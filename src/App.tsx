@@ -9,6 +9,7 @@ import NestLayout from "./components/dashboard/NestLayout";
 import FalconLogo from "./components/spatial/FalconLogo";
 import GridMap from "./components/spatial/GridMap";
 import ScoreCard from "./components/dashboard/ScoreCard";
+import TimeSlider from "./components/dashboard/TimeSlider";
 import { useGridData } from "./hooks/useGridData";
 
 // ── data-quality → colour mapping ───────────────────────────────
@@ -155,7 +156,7 @@ export default function App() {
           />
         </div>
       }
-      timelineSlot={placeholder("TIMELINE")}
+      timelineSlot={<TimeSlider />}
       alertsSlot={placeholder("ALERTS")}
     />
 

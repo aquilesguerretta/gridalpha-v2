@@ -41,7 +41,7 @@ export default function GridMap({ currentFrame = null }: GridMapProps) {
       style: MAPBOX_STYLE,
       center: [-78.5, 40.0],
       zoom: 7,
-      pitch: 45,
+      pitch: 30,
       bearing: -10,
       maxBounds: PJM_BOUNDS,
       minZoom: 6,
@@ -52,7 +52,7 @@ export default function GridMap({ currentFrame = null }: GridMapProps) {
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
-      map.setPitch(45);
+      map.setPitch(30);
       map.setBearing(-10);
       console.log(
         `[GridMap] loaded — pitch=${map.getPitch()} bearing=${map.getBearing()} zoom=${map.getZoom()}`

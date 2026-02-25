@@ -14,7 +14,7 @@
     {
       "type": "Feature",
       "properties": { "zone_id": "COMED", "display_name": "Commonwealth Edison", "type": "zone", "peak_load_mw": 22000, "lmp_total": 38.91, "congestion": -0.88 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-89.2,40.9],[-87.5,40.9],[-87.5,42.5],[-89.2,42.5],[-89.2,40.9]]] }
+      "geometry": { "type": "Polygon", "coordinates": [[[-88.3,41.6],[-87.5,41.6],[-87.5,42.5],[-88.3,42.5],[-88.3,41.6]]] }
     },
     {
       "type": "Feature",

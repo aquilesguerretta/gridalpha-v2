@@ -29,7 +29,7 @@ export const MAPBOX_INITIAL_VIEW: {
 } = {
   center: [-79.5, 39.5] as [number, number],
   zoom: 7,
-  pitch: 45,
+  pitch: 30,
   bearing: -10,
 } as const;
 

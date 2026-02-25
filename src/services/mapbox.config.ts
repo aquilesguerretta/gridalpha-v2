@@ -7,8 +7,8 @@
 
 import type { LngLatBoundsLike, LngLatLike } from "mapbox-gl";
 
-/** Mapbox style URL — dark-v11 placeholder until custom Obsidian Deep is published. */
-export const MAPBOX_STYLE = "mapbox://styles/mapbox/dark-v11" as const;
+// Obsidian Deep v1 — frozen, do not modify without version bump
+export const MAPBOX_STYLE = "mapbox://styles/aquiles-guerretta/cmm1u47kn005a01s53hd80jbw" as const;
 
 /**
  * Initial camera state centred on PJM Interconnection territory.

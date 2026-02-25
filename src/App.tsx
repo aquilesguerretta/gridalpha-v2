@@ -7,6 +7,7 @@
 
 import NestLayout from "./components/dashboard/NestLayout";
 import FalconLogo from "./components/spatial/FalconLogo";
+import GridMap from "./components/spatial/GridMap";
 import ScoreCard from "./components/dashboard/ScoreCard";
 import { useGridData } from "./hooks/useGridData";
 
@@ -95,7 +96,7 @@ export default function App() {
           </div>
         </div>
       }
-      mapSlot={placeholder("MAP")}
+      mapSlot={<GridMap />}
       scorecardLeftSlot={
         <div
           style={{

@@ -1,0 +1,30 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "PECO", "display_name": "PECO Energy", "type": "zone", "peak_load_mw": 8500, "lmp_total": 48.32, "congestion": 1.02 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-75.6,39.8],[-74.9,39.8],[-74.9,40.4],[-75.6,40.4],[-75.6,39.8]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "BGE", "display_name": "Baltimore Gas and Electric", "type": "zone", "peak_load_mw": 6800, "lmp_total": 52.17, "congestion": 3.45 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-77.1,38.8],[-76.3,38.8],[-76.3,39.7],[-77.1,39.7],[-77.1,38.8]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "COMED", "display_name": "Commonwealth Edison", "type": "zone", "peak_load_mw": 22000, "lmp_total": 38.91, "congestion": -0.88 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-89.2,40.9],[-87.5,40.9],[-87.5,42.5],[-89.2,42.5],[-89.2,40.9]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "PPL", "display_name": "PPL Electric Utilities", "type": "zone", "peak_load_mw": 9200, "lmp_total": 45.60, "congestion": 0.75 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-77.5,40.0],[-75.8,40.0],[-75.8,41.4],[-77.5,41.4],[-77.5,40.0]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "PSEG", "display_name": "Public Service E&G", "type": "zone", "peak_load_mw": 10100, "lmp_total": 55.22, "congestion": 5.10 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-75.6,39.5],[-74.0,39.5],[-74.0,41.4],[-75.6,41.4],[-75.6,39.5]]] }
+    }
+  ]
+}

@@ -27,7 +27,9 @@ const placeholder = (name: string) => (
 // ── app ─────────────────────────────────────────────────────────
 
 export default function App() {
-  const { currentFrame } = useGridData();
+  const { currentFrame, frames } = useGridData();
+  const currentIndex = frames.indexOf(currentFrame!);
+
 
   const lmpTotal = currentFrame?.lmp_total ?? 0;
   const congestion = currentFrame?.congestion ?? 0;
@@ -36,6 +38,7 @@ export default function App() {
   const quality = currentFrame?.data_quality ?? "RECONNECTING";
 
   return (
+    <>
     <NestLayout
       headerSlot={
         <div
@@ -154,5 +157,28 @@ export default function App() {
       timelineSlot={placeholder("TIMELINE")}
       alertsSlot={placeholder("ALERTS")}
     />
+
+    {/* ── debug overlay (remove in Phase 5) ──────────────── */}
+    <div
+      style={{
+        position: "fixed",
+        bottom: 8,
+        left: 8,
+        background: "rgba(0,0,0,0.75)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 6,
+        padding: "6px 10px",
+        fontFamily: "'SF Mono', 'Fira Code', monospace",
+        fontSize: "0.65rem",
+        color: "#888",
+        zIndex: 9999,
+        lineHeight: 1.6,
+        pointerEvents: "none",
+      }}
+    >
+      <div>Frames in buffer: {frames.length}</div>
+      <div>Current index: {currentIndex === -1 ? "—" : currentIndex}</div>
+    </div>
+    </>
   );
 }

@@ -3,9 +3,10 @@
  *
  * Mapbox GL JS base map locked to the PJM Interconnection footprint.
  * Initialises on mount, tears down on unmount.
+ * Renders ZoneLayer markers on top of the map canvas.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -15,15 +16,23 @@ import {
   PJM_BOUNDS,
 } from "../../services/mapbox.config";
 
-export default function GridMap() {
+import ZoneLayer from "./ZoneLayer";
+import type { LiveDataFrame } from "../../types/index";
+
+export interface GridMapProps {
+  currentFrame?: LiveDataFrame | null;
+}
+
+export default function GridMap({ currentFrame = null }: GridMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
+  const [mapReady, setMapReady] = useState<mapboxgl.Map | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
     // Prevent double-init in React 18 StrictMode
-    if (mapRef.current) return;
+    if (mapInstanceRef.current) return;
 
     mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? "";
 
@@ -42,11 +51,16 @@ export default function GridMap() {
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
-    mapRef.current = map;
+    map.on("load", () => {
+      setMapReady(map);
+    });
+
+    mapInstanceRef.current = map;
 
     return () => {
       map.remove();
-      mapRef.current = null;
+      mapInstanceRef.current = null;
+      setMapReady(null);
     };
   }, []);
 
@@ -54,6 +68,8 @@ export default function GridMap() {
     <div
       ref={containerRef}
       style={{ width: "100%", height: "100%" }}
-    />
+    >
+      <ZoneLayer map={mapReady} currentFrame={currentFrame ?? null} />
+    </div>
   );
 }

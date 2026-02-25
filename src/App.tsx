@@ -96,7 +96,7 @@ export default function App() {
           </div>
         </div>
       }
-      mapSlot={<GridMap />}
+      mapSlot={<GridMap currentFrame={currentFrame} />}
       scorecardLeftSlot={
         <div
           style={{

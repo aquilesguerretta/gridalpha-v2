@@ -1,85 +1,112 @@
 /**
  * GridAlpha V2 — GridMap
  *
- * Mapbox GL JS base map locked to the PJM Interconnection footprint.
- * Initialises on mount, tears down on unmount.
- * Renders ZoneLayer markers and deck.gl extrusions on top of the map canvas.
+ * DeckGL as the single view-state controller with react-map-gl Map as child.
+ * This eliminates camera sync issues between deck.gl and Mapbox.
  */
 
-import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
+import { useState, useCallback, useEffect } from "react";
+import DeckGL from "@deck.gl/react";
+import { Map } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-import {
-  MAPBOX_STYLE,
-  PJM_BOUNDS,
-} from "../../services/mapbox.config";
-
-import ZoneLayer from "./ZoneLayer";
-import DeckLayer from "./DeckLayer";
+import { createPjmZoneLayer } from "./PjmZoneLayer";
+import { createPowerPlantLayer } from "./PowerPlantLayer";
 import type { LiveDataFrame } from "../../types/index";
+
+// ── initial camera ──────────────────────────────────────────────
+
+const INITIAL_VIEW_STATE = {
+  longitude: -79.5,
+  latitude: 39.5,
+  zoom: 6,
+  pitch: 45,
+  bearing: 0,
+};
+
+// ── component ───────────────────────────────────────────────────
 
 export interface GridMapProps {
   currentFrame?: LiveDataFrame | null;
 }
 
-export default function GridMap({ currentFrame = null }: GridMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<mapboxgl.Map | null>(null);
-  const [mapReady, setMapReady] = useState<mapboxgl.Map | null>(null);
+export default function GridMap({ currentFrame: _currentFrame = null }: GridMapProps) {
+  const [viewState, setViewState] = useState(INITIAL_VIEW_STATE);
+  const [zoneGeoJson, setZoneGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [plantGeoJson, setPlantGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
+  const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
 
+  // Fetch GeoJSON data on mount
   useEffect(() => {
-    if (!containerRef.current) return;
+    fetch("/data/pjm-zones.geojson")
+      .then((res) => res.json())
+      .then((data: GeoJSON.FeatureCollection) => {
+        setZoneGeoJson(data);
+        console.log(`[GridMap] Loaded ${data.features.length} PJM zones`);
+      })
+      .catch((err) => console.error("[GridMap] Failed to load zones:", err));
 
-    // Prevent double-init in React 18 StrictMode
-    if (mapInstanceRef.current) return;
-
-    mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN ?? "";
-
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: MAPBOX_STYLE,
-      center: [-79.5, 39.5],
-      zoom: 5.8,
-      pitch: 35,
-      bearing: -10,
-      maxBounds: PJM_BOUNDS,
-      minZoom: 6,
-      maxZoom: 14,
-      scrollZoom: false,
-    });
-
-    map.addControl(new mapboxgl.NavigationControl(), "top-right");
-
-    map.on("load", () => {
-      map.setPitch(35);
-      map.setBearing(-10);
-      console.log(
-        `[GridMap] loaded — pitch=${map.getPitch()} bearing=${map.getBearing()} zoom=${map.getZoom()}`
-      );
-      setMapReady(map);
-    });
-
-    map.on("error", (e) => {
-      console.error("[GridMap] Mapbox error:", e.error?.message ?? e);
-    });
-
-    mapInstanceRef.current = map;
-
-    return () => {
-      map.remove();
-      mapInstanceRef.current = null;
-      setMapReady(null);
-    };
+    fetch("/data/power-plants.geojson")
+      .then((res) => res.json())
+      .then((data: GeoJSON.FeatureCollection) => {
+        setPlantGeoJson(data);
+        console.log(`[GridMap] Loaded ${data.features.length} power plants`);
+      })
+      .catch((err) => console.error("[GridMap] Failed to load power plants:", err));
   }, []);
 
+  const onViewStateChange = useCallback(({ viewState }: { viewState: typeof INITIAL_VIEW_STATE }) => {
+    setViewState(viewState);
+  }, []);
+
+  const onHover = useCallback((info: { object?: GeoJSON.Feature }) => {
+    const zoneId = (info.object?.properties?.zone_id as string) ?? null;
+    setHoveredZoneId((prev) => (prev === zoneId ? prev : zoneId));
+  }, []);
+
+  const onClick = useCallback((info: { object?: GeoJSON.Feature }) => {
+    const zoneId = (info.object?.properties?.zone_id as string) ?? null;
+    if (zoneId) {
+      setSelectedZoneId((prev) => (prev === zoneId ? null : zoneId));
+      console.log(`[GridMap] Selected zone: ${zoneId}`);
+    }
+  }, []);
+
+  const getTooltip = useCallback(({ object }: { object?: GeoJSON.Feature }) => {
+    if (!object?.properties) return null;
+    const p = object.properties;
+    if (p.capacity_mw != null) {
+      return {
+        html: `<b>${p.name}</b><br/>Fuel: ${p.fuel_type}<br/>Capacity: ${p.capacity_mw} MW`,
+      };
+    }
+    return null;
+  }, []);
+
+  // Build layers
+  const layers = [
+    ...(zoneGeoJson
+      ? [createPjmZoneLayer(zoneGeoJson, hoveredZoneId, selectedZoneId)]
+      : []),
+    ...(plantGeoJson ? [createPowerPlantLayer(plantGeoJson)] : []),
+  ];
+
   return (
-    <div
-      ref={containerRef}
-      style={{ width: "100%", height: "100%" }}
+    <DeckGL
+      viewState={viewState}
+      onViewStateChange={onViewStateChange}
+      controller={true}
+      layers={layers}
+      onHover={onHover}
+      onClick={onClick}
+      getTooltip={getTooltip}
     >
-      <ZoneLayer map={mapReady} currentFrame={currentFrame ?? null} />
-      <DeckLayer map={mapReady} />
-    </div>
+      <Map
+        reuseMaps
+        mapStyle="mapbox://styles/aquiles-guerretta/cmm1u47kn005a01s53hd80jbw"
+        mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
+      />
+    </DeckGL>
   );
 }

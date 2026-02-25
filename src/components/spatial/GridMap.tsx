@@ -17,6 +17,7 @@ import {
 } from "../../services/mapbox.config";
 
 import ZoneLayer from "./ZoneLayer";
+import DeckLayer from "./DeckLayer";
 import type { LiveDataFrame } from "../../types/index";
 
 export interface GridMapProps {
@@ -70,6 +71,7 @@ export default function GridMap({ currentFrame = null }: GridMapProps) {
       style={{ width: "100%", height: "100%" }}
     >
       <ZoneLayer map={mapReady} currentFrame={currentFrame ?? null} />
+      <DeckLayer map={mapReady} />
     </div>
   );
 }

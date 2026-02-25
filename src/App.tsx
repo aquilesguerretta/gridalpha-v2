@@ -1,69 +1,151 @@
 /**
  * GridAlpha V2 — App shell.
  *
- * Wires the NestLayout Bento grid with placeholder slots.
- * FalconLogo in header, two mock ScoreCards in the strip.
+ * Wires the NestLayout Bento grid to live data via useGridData.
+ * FalconLogo in header, four ScoreCards driven by currentFrame.
  */
 
 import NestLayout from "./components/dashboard/NestLayout";
 import FalconLogo from "./components/spatial/FalconLogo";
 import ScoreCard from "./components/dashboard/ScoreCard";
+import { useGridData } from "./hooks/useGridData";
+
+// ── data-quality → colour mapping ───────────────────────────────
+
+const QUALITY_DOT: Record<string, string> = {
+  LIVE: "#00E676",
+  STALE: "#FFB800",
+  RECONNECTING: "#FF3B3B",
+};
+
+// ── placeholder for unbuilt slots ───────────────────────────────
 
 const placeholder = (name: string) => (
   <div style={{ color: "#444", padding: 8 }}>{name}</div>
 );
 
+// ── app ─────────────────────────────────────────────────────────
+
 export default function App() {
+  const { currentFrame } = useGridData();
+
+  const lmpTotal = currentFrame?.lmp_total ?? 0;
+  const congestion = currentFrame?.congestion ?? 0;
+  const loadForecast = currentFrame?.load_forecast_mw ?? 0;
+  const actualLoad = currentFrame?.actual_load_mw ?? 0;
+  const quality = currentFrame?.data_quality ?? "RECONNECTING";
+
   return (
     <NestLayout
       headerSlot={
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "0 16px" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "0 16px",
+            height: "100%",
+          }}
+        >
           <FalconLogo state="idle" />
-          <span style={{ color: "#fff", fontSize: "0.9rem", fontWeight: 600, letterSpacing: "0.15em" }}>
+          <span
+            style={{
+              color: "#fff",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              letterSpacing: "0.15em",
+            }}
+          >
             GRIDALPHA
           </span>
+
+          {/* data-quality badge */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              marginLeft: 12,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: QUALITY_DOT[quality] ?? "#FF3B3B",
+                display: "inline-block",
+                boxShadow: `0 0 6px ${QUALITY_DOT[quality] ?? "#FF3B3B"}`,
+              }}
+            />
+            <span
+              style={{
+                color: QUALITY_DOT[quality] ?? "#FF3B3B",
+                fontSize: "0.6rem",
+                fontFamily: "'SF Mono', 'Fira Code', monospace",
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {quality}
+            </span>
+          </div>
         </div>
       }
       mapSlot={placeholder("MAP")}
       scorecardLeftSlot={
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            padding: 8,
+          }}
+        >
           <ScoreCard
             label="LMP Total"
-            value={42.17}
+            value={lmpTotal}
             unit="$/MWh"
-            trend={[38, 40, 41, 39, 42, 44, 42]}
-            delta={2.3}
-            delta_direction="up"
+            trend={[]}
+            delta={0}
+            delta_direction="neutral"
             typography_variant="headline"
           />
           <ScoreCard
             label="Congestion"
-            value={3.81}
+            value={congestion}
             unit="$/MWh"
-            trend={[4.2, 3.9, 3.7, 3.8, 3.6, 3.8, 3.8]}
-            delta={-1.1}
-            delta_direction="down"
+            trend={[]}
+            delta={0}
+            delta_direction="neutral"
             typography_variant="subhead"
           />
         </div>
       }
       scorecardRightSlot={
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            padding: 8,
+          }}
+        >
           <ScoreCard
             label="Load Forecast"
-            value={28450}
+            value={loadForecast}
             unit="MW"
-            trend={[27000, 27800, 28200, 28100, 28450]}
-            delta={0.4}
-            delta_direction="up"
+            trend={[]}
+            delta={0}
+            delta_direction="neutral"
             typography_variant="mono-data"
           />
           <ScoreCard
             label="Actual Load"
-            value={27930}
+            value={actualLoad}
             unit="MW"
-            trend={[26500, 27200, 27600, 27800, 27930]}
-            delta={0.0}
+            trend={[]}
+            delta={0}
             delta_direction="neutral"
             typography_variant="mono-data"
           />

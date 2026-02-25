@@ -3,28 +3,103 @@
   "features": [
     {
       "type": "Feature",
-      "properties": { "zone_id": "PECO", "display_name": "PECO Energy", "type": "zone", "peak_load_mw": 8500, "lmp_total": 48.32, "congestion": 1.02 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-75.6,39.8],[-74.9,39.8],[-74.9,40.4],[-75.6,40.4],[-75.6,39.8]]] }
+      "properties": { "zone_id": "PSEG", "display_name": "Public Service E&G (NJ)", "peak_load_mw": 10100, "lmp_total": 48.32, "congestion": 1.02 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-75.559,38.928],[-74.886,38.928],[-74.886,39.365],[-74.023,39.365],[-74.023,41.357],[-74.249,41.357],[-74.249,41.096],[-74.692,41.096],[-74.692,40.752],[-75.195,40.752],[-75.195,40.543],[-75.559,40.543],[-75.559,38.928]]] }
     },
     {
       "type": "Feature",
-      "properties": { "zone_id": "BGE", "display_name": "Baltimore Gas and Electric", "type": "zone", "peak_load_mw": 6800, "lmp_total": 52.17, "congestion": 3.45 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-77.1,38.8],[-76.3,38.8],[-76.3,39.7],[-77.1,39.7],[-77.1,38.8]]] }
+      "properties": { "zone_id": "PECO", "display_name": "PECO Energy (SE PA)", "peak_load_mw": 8500, "lmp_total": 45.60, "congestion": 0.75 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-76.146,39.720],[-75.559,39.720],[-75.559,40.543],[-75.195,40.543],[-75.195,40.752],[-74.692,40.752],[-74.692,41.096],[-75.341,41.096],[-75.341,41.487],[-76.146,41.487],[-76.146,39.720]]] }
     },
     {
       "type": "Feature",
-      "properties": { "zone_id": "COMED", "display_name": "Commonwealth Edison", "type": "zone", "peak_load_mw": 22000, "lmp_total": 38.91, "congestion": -0.88 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-88.3,41.6],[-87.5,41.6],[-87.5,42.5],[-88.3,42.5],[-88.3,41.6]]] }
+      "properties": { "zone_id": "BGE", "display_name": "Baltimore Gas & Electric", "peak_load_mw": 6800, "lmp_total": 52.17, "congestion": 3.45 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-77.469,38.455],[-76.529,38.455],[-76.529,38.928],[-75.786,38.928],[-75.786,39.720],[-76.146,39.720],[-76.146,39.459],[-77.469,39.459],[-77.469,38.455]]] }
     },
     {
       "type": "Feature",
-      "properties": { "zone_id": "PPL", "display_name": "PPL Electric Utilities", "type": "zone", "peak_load_mw": 9200, "lmp_total": 45.60, "congestion": 0.75 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-77.5,40.0],[-75.8,40.0],[-75.8,41.4],[-77.5,41.4],[-77.5,40.0]]] }
+      "properties": { "zone_id": "PEPCO", "display_name": "Potomac Electric Power (DC/MD)", "peak_load_mw": 4200, "lmp_total": 49.88, "congestion": 2.10 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-77.469,38.455],[-76.529,38.455],[-76.529,38.928],[-77.469,38.928],[-77.469,38.455]]] }
     },
     {
       "type": "Feature",
-      "properties": { "zone_id": "PSEG", "display_name": "Public Service E&G", "type": "zone", "peak_load_mw": 10100, "lmp_total": 55.22, "congestion": 5.10 },
-      "geometry": { "type": "Polygon", "coordinates": [[[-75.6,39.5],[-74.0,39.5],[-74.0,41.4],[-75.6,41.4],[-75.6,39.5]]] }
+      "properties": { "zone_id": "PPL", "display_name": "PPL Electric (Central PA)", "peak_load_mw": 9200, "lmp_total": 43.21, "congestion": 0.55 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-77.473,39.720],[-76.146,39.720],[-76.146,41.487],[-75.341,41.487],[-75.341,41.996],[-77.473,41.996],[-77.473,39.720]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "METED", "display_name": "Metropolitan Edison (E PA)", "peak_load_mw": 3100, "lmp_total": 42.90, "congestion": 0.30 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-77.473,39.459],[-77.469,39.459],[-77.469,39.720],[-77.473,39.720],[-77.473,39.459]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "PENELEC", "display_name": "Pennsylvania Electric (NW PA)", "peak_load_mw": 3800, "lmp_total": 41.55, "congestion": -0.22 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-80.524,41.487],[-77.473,41.487],[-77.473,41.996],[-80.524,41.996],[-80.524,41.487]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "DUQ", "display_name": "Duquesne Light (Pittsburgh)", "peak_load_mw": 3400, "lmp_total": 38.91, "congestion": -0.88 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-80.524,40.180],[-79.477,40.180],[-79.477,40.900],[-80.524,40.900],[-80.524,40.180]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "APS", "display_name": "Allegheny Power (WV/W PA)", "peak_load_mw": 7200, "lmp_total": 37.44, "congestion": -1.20 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-82.644,37.201],[-79.477,37.201],[-79.477,40.180],[-80.524,40.180],[-80.524,39.459],[-82.644,39.459],[-82.644,37.201]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "DOM", "display_name": "Dominion Virginia Power", "peak_load_mw": 19500, "lmp_total": 44.77, "congestion": 1.55 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-83.676,36.540],[-75.244,36.540],[-75.244,38.455],[-77.469,38.455],[-77.469,39.459],[-79.477,39.459],[-79.477,37.201],[-83.676,37.201],[-83.676,36.540]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "ATSI", "display_name": "FirstEnergy (OH/W PA)", "peak_load_mw": 18500, "lmp_total": 36.22, "congestion": -2.10 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-84.820,38.404],[-80.524,38.404],[-80.524,41.996],[-82.863,41.996],[-82.863,41.722],[-84.820,41.722],[-84.820,38.404]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "DAY", "display_name": "AES Ohio (Dayton)", "peak_load_mw": 4100, "lmp_total": 35.88, "congestion": -2.55 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-84.820,39.459],[-83.676,39.459],[-83.676,40.225],[-84.820,40.225],[-84.820,39.459]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "DEOK", "display_name": "Duke Energy Ohio/Kentucky", "peak_load_mw": 5800, "lmp_total": 34.91, "congestion": -3.10 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-85.605,37.799],[-83.676,37.799],[-83.676,39.459],[-84.820,39.459],[-84.820,38.404],[-85.605,38.404],[-85.605,37.799]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "COMED", "display_name": "Commonwealth Edison (IL)", "peak_load_mw": 22000, "lmp_total": 32.15, "congestion": -4.20 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-91.513,40.180],[-87.532,40.180],[-87.532,42.495],[-91.513,42.495],[-91.513,40.180]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "AEP", "display_name": "American Electric Power", "peak_load_mw": 16800, "lmp_total": 36.44, "congestion": -1.80 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-83.676,36.540],[-83.676,37.799],[-85.605,37.799],[-85.605,38.404],[-84.820,38.404],[-84.820,41.722],[-82.863,41.722],[-82.863,41.996],[-80.524,41.996],[-80.524,38.404],[-82.644,38.404],[-82.644,37.201],[-83.676,37.201],[-83.676,36.540]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "EKPC", "display_name": "East Kentucky Power Coop", "peak_load_mw": 2200, "lmp_total": 33.77, "congestion": -3.55 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-85.605,37.201],[-83.676,37.201],[-83.676,37.799],[-85.605,37.799],[-85.605,37.201]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "JCPL", "display_name": "Jersey Central P&L (N NJ)", "peak_load_mw": 3300, "lmp_total": 50.11, "congestion": 2.88 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-75.195,40.543],[-74.692,40.543],[-74.692,40.752],[-75.195,40.752],[-75.195,40.543]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "DL", "display_name": "Delmarva Power (DE/MD)", "peak_load_mw": 2100, "lmp_total": 47.33, "congestion": 1.44 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-76.529,38.455],[-75.786,38.455],[-75.786,38.928],[-75.047,38.928],[-75.047,39.720],[-75.786,39.720],[-76.529,38.928],[-76.529,38.455]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "RECO", "display_name": "Rockland Electric (NY/NJ)", "peak_load_mw": 800, "lmp_total": 55.22, "congestion": 5.10 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-74.249,41.096],[-74.023,41.096],[-74.023,41.357],[-74.249,41.357],[-74.249,41.096]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "zone_id": "AEC", "display_name": "Atlantic City Electric", "peak_load_mw": 2800, "lmp_total": 46.88, "congestion": 1.22 },
+      "geometry": { "type": "Polygon", "coordinates": [[[-75.559,38.928],[-75.047,38.928],[-75.047,39.365],[-74.886,39.365],[-74.886,38.928],[-74.886,38.650],[-75.559,38.650],[-75.559,38.928]]] }
     }
   ]
 }

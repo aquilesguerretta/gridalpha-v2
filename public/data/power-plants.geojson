@@ -1,0 +1,2776 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brunner Island",
+        "fuel_type": "NG",
+        "capacity_mw": 1439,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.7412,
+          40.1523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Conemaugh",
+        "fuel_type": "NG",
+        "capacity_mw": 1872,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.2687,
+          40.4312
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Homer City",
+        "fuel_type": "COL",
+        "capacity_mw": 1884,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.1623,
+          40.5401
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Keystone",
+        "fuel_type": "COL",
+        "capacity_mw": 1872,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.2145,
+          40.6234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Seward Station",
+        "fuel_type": "COL",
+        "capacity_mw": 619,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.0234,
+          40.4156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Lower Mt Bethel",
+        "fuel_type": "NG",
+        "capacity_mw": 1300,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.1567,
+          40.8234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Calpine Bethlehem",
+        "fuel_type": "NG",
+        "capacity_mw": 705,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.3456,
+          40.6123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hay Road",
+        "fuel_type": "NG",
+        "capacity_mw": 663,
+        "state": "DE",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.5678,
+          39.7234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cromby",
+        "fuel_type": "NG",
+        "capacity_mw": 453,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.6234,
+          40.1345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Eddystone",
+        "fuel_type": "NG",
+        "capacity_mw": 1490,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.3312,
+          39.8567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Marcus Hook Energy",
+        "fuel_type": "NG",
+        "capacity_mw": 756,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.4234,
+          39.8123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sunbury Generation",
+        "fuel_type": "NG",
+        "capacity_mw": 430,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.789,
+          40.8678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Martins Creek",
+        "fuel_type": "NG",
+        "capacity_mw": 1200,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.1234,
+          40.789
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Portland",
+        "fuel_type": "NG",
+        "capacity_mw": 420,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.0567,
+          40.9234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Talen Montour",
+        "fuel_type": "COL",
+        "capacity_mw": 613,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.4678,
+          41.0567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Limerick Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 2317,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.589,
+          40.2234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Peach Bottom Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 2773,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.2678,
+          39.7567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Three Mile Island",
+        "fuel_type": "NUC",
+        "capacity_mw": 837,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.7234,
+          40.1534
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Beaver Valley Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1872,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.4312,
+          40.6234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Susquehanna Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 2520,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.1423,
+          41.0945
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Salem Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 2358,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.5234,
+          39.4678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hope Creek Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1237,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.5289,
+          39.4612
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Calvert Cliffs Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1790,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.4423,
+          38.4312
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "North Anna Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1892,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.789,
+          38.0623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Surry Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1676,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.6978,
+          37.1645
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Perry Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1268,
+        "state": "OH",
+        "zone": "ATSI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -81.1434,
+          41.8023
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Davis-Besse Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 908,
+        "state": "OH",
+        "zone": "ATSI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.0823,
+          41.5978
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Braidwood Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 2386,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.2312,
+          41.2345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Byron Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 2347,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -89.2812,
+          42.0734
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dresden Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1858,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.2623,
+          41.3945
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Quad Cities Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1819,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.3312,
+          41.7234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Clinton Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 1065,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.8523,
+          40.1567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "LaSalle Nuclear",
+        "fuel_type": "NUC",
+        "capacity_mw": 2320,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.6712,
+          41.2823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Linden Cogen",
+        "fuel_type": "NG",
+        "capacity_mw": 1100,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.2145,
+          40.6234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sewaren",
+        "fuel_type": "NG",
+        "capacity_mw": 490,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.2512,
+          40.5456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kearny",
+        "fuel_type": "NG",
+        "capacity_mw": 280,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.1234,
+          40.7512
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hudson",
+        "fuel_type": "NG",
+        "capacity_mw": 450,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0789,
+          40.7123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bergen Generating",
+        "fuel_type": "NG",
+        "capacity_mw": 680,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.0345,
+          40.8234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sayreville",
+        "fuel_type": "NG",
+        "capacity_mw": 385,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.3123,
+          40.4567
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "BL England",
+        "fuel_type": "NG",
+        "capacity_mw": 447,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.589,
+          39.2678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brandywine",
+        "fuel_type": "NG",
+        "capacity_mw": 585,
+        "state": "MD",
+        "zone": "PEPCO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.8312,
+          38.6823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Chalk Point",
+        "fuel_type": "NG",
+        "capacity_mw": 2390,
+        "state": "MD",
+        "zone": "PEPCO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.6678,
+          38.5345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Morgantown",
+        "fuel_type": "NG",
+        "capacity_mw": 1250,
+        "state": "MD",
+        "zone": "PEPCO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.0123,
+          38.3234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dickerson",
+        "fuel_type": "NG",
+        "capacity_mw": 710,
+        "state": "MD",
+        "zone": "PEPCO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.4234,
+          39.1456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brandon Shores",
+        "fuel_type": "NG",
+        "capacity_mw": 1274,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.5123,
+          39.1812
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Westport",
+        "fuel_type": "NG",
+        "capacity_mw": 180,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.589,
+          39.2634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Wagner",
+        "fuel_type": "NG",
+        "capacity_mw": 540,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.5234,
+          39.2945
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "C.P. Crane",
+        "fuel_type": "NG",
+        "capacity_mw": 400,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.3678,
+          39.3423
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Possum Point",
+        "fuel_type": "NG",
+        "capacity_mw": 1482,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.2623,
+          38.5712
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Chesterfield Power",
+        "fuel_type": "NG",
+        "capacity_mw": 1302,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.4512,
+          37.3456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Yorktown Power",
+        "fuel_type": "NG",
+        "capacity_mw": 710,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.5123,
+          37.2234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Clover Power",
+        "fuel_type": "COL",
+        "capacity_mw": 441,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -78.7234,
+          36.8345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mt Storm Power",
+        "fuel_type": "COL",
+        "capacity_mw": 1560,
+        "state": "WV",
+        "zone": "APS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.2345,
+          39.0678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gavin Power",
+        "fuel_type": "COL",
+        "capacity_mw": 2665,
+        "state": "OH",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -82.1456,
+          38.8123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cardinal Power",
+        "fuel_type": "COL",
+        "capacity_mw": 1880,
+        "state": "OH",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.9012,
+          39.6234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Pleasants Power",
+        "fuel_type": "COL",
+        "capacity_mw": 1300,
+        "state": "WV",
+        "zone": "APS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -81.1234,
+          39.3512
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Amos Power",
+        "fuel_type": "COL",
+        "capacity_mw": 3005,
+        "state": "WV",
+        "zone": "APS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -81.8234,
+          38.4156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sammis Power",
+        "fuel_type": "COL",
+        "capacity_mw": 2216,
+        "state": "OH",
+        "zone": "ATSI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.6123,
+          40.4156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "W H Zimmer",
+        "fuel_type": "COL",
+        "capacity_mw": 1308,
+        "state": "OH",
+        "zone": "DEOK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.2312,
+          38.8045
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "J M Stuart",
+        "fuel_type": "COL",
+        "capacity_mw": 2442,
+        "state": "OH",
+        "zone": "DEOK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.8234,
+          38.8456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Beckjord",
+        "fuel_type": "COL",
+        "capacity_mw": 1235,
+        "state": "OH",
+        "zone": "DEOK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.1567,
+          39.0923
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Miami Fort",
+        "fuel_type": "NG",
+        "capacity_mw": 1370,
+        "state": "OH",
+        "zone": "DEOK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.7234,
+          39.1712
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Killen Station",
+        "fuel_type": "COL",
+        "capacity_mw": 676,
+        "state": "OH",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -83.989,
+          38.8623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Conesville",
+        "fuel_type": "COL",
+        "capacity_mw": 1619,
+        "state": "OH",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -81.8567,
+          40.1234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kyger Creek",
+        "fuel_type": "COL",
+        "capacity_mw": 1086,
+        "state": "OH",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -82.2345,
+          38.9512
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Muskingum River",
+        "fuel_type": "COL",
+        "capacity_mw": 1360,
+        "state": "OH",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -81.7234,
+          39.4823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ormet",
+        "fuel_type": "COL",
+        "capacity_mw": 640,
+        "state": "OH",
+        "zone": "APS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -81.3678,
+          39.1045
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Crawford Station",
+        "fuel_type": "NG",
+        "capacity_mw": 575,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.7123,
+          41.8456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Fisk Street",
+        "fuel_type": "NG",
+        "capacity_mw": 330,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.6456,
+          41.8512
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Will County",
+        "fuel_type": "COL",
+        "capacity_mw": 1088,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.8312,
+          41.5345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Waukegan",
+        "fuel_type": "COL",
+        "capacity_mw": 779,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.869,
+          42.3423
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Joliet 29",
+        "fuel_type": "NG",
+        "capacity_mw": 1350,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.189,
+          41.5678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Collins Station",
+        "fuel_type": "NG",
+        "capacity_mw": 2698,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.2567,
+          41.4823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Powerton",
+        "fuel_type": "COL",
+        "capacity_mw": 1538,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -89.5123,
+          40.6234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Havana",
+        "fuel_type": "COL",
+        "capacity_mw": 446,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -90.0345,
+          40.2945
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cheswick",
+        "fuel_type": "COL",
+        "capacity_mw": 636,
+        "state": "PA",
+        "zone": "DUQ"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.789,
+          40.5423
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Elrama",
+        "fuel_type": "COL",
+        "capacity_mw": 480,
+        "state": "PA",
+        "zone": "DUQ"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.9567,
+          40.2345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mitchell Power",
+        "fuel_type": "NG",
+        "capacity_mw": 785,
+        "state": "PA",
+        "zone": "DUQ"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.1234,
+          40.1123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Calpine Ontelaunee",
+        "fuel_type": "NG",
+        "capacity_mw": 550,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.9123,
+          40.4234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Harquahala",
+        "fuel_type": "NG",
+        "capacity_mw": 1092,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.0456,
+          40.2678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Laurel Mountain Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 98,
+        "state": "WV",
+        "zone": "APS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.1567,
+          38.9234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Beech Ridge Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 186,
+        "state": "WV",
+        "zone": "APS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.8234,
+          38.1456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "NedPower Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 264,
+        "state": "WV",
+        "zone": "APS"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.5678,
+          38.7823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Camp Grove Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 200,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -89.8123,
+          41.3234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Twin Groves Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 396,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.8456,
+          40.7845
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Streator Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 300,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.889,
+          41.1234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Roanoke Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 200,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -89.2123,
+          40.7912
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mendota Hills Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 50,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -89.0234,
+          41.5456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Criterion Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 70,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.189,
+          39.5234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Garrett Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 42,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.3456,
+          39.6123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "North Allegheny Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 132,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.1234,
+          40.6512
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Enlow Fork Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 180,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.3567,
+          39.9234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Casselman Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 56,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.189,
+          39.8123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Waymart Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 65,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.4234,
+          41.5945
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Highland Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 20,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.8123,
+          41.8234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Somerset Wind",
+        "fuel_type": "WND",
+        "capacity_mw": 19,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.0678,
+          40.0234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Old Dominion Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 300,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.8456,
+          38.9678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Whitehouse Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 150,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -78.1123,
+          38.7234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Spotsylvania Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 500,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.6234,
+          38.2123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Longview Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 200,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.389,
+          38.5456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cooke Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 120,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.1234,
+          39.3456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Beachhead Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 70,
+        "state": "MD",
+        "zone": "PEPCO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.6789,
+          38.8234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Freehold Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 11,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.2789,
+          40.2678
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Vineland Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 30,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.0234,
+          39.4856
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Atlantic City Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 8,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.4234,
+          39.3634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rutgers Solar Farm",
+        "fuel_type": "SUN",
+        "capacity_mw": 9,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.4378,
+          40.4956
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sunbury Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 20,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.7945,
+          40.8634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Berks Solar",
+        "fuel_type": "SUN",
+        "capacity_mw": 25,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.9234,
+          40.3356
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Elgin Energy Storage",
+        "fuel_type": "MWH",
+        "capacity_mw": 10,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.2678,
+          42.0345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AES Lawrenceburg BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 40,
+        "state": "IN",
+        "zone": "DEOK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.8634,
+          39.0956
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Warwick BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 20,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.3456,
+          41.2634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Stratford BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 15,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.5234,
+          40.2134
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Vineland Storage",
+        "fuel_type": "MWH",
+        "capacity_mw": 8,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.0123,
+          39.4634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Baltimore BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 25,
+        "state": "MD",
+        "zone": "BGE"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.6123,
+          39.2845
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Manassas BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 20,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.4756,
+          38.7234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Chester BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 30,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.3512,
+          39.8634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hazle BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 50,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.9789,
+          40.9634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "PJM Dispatching BESS",
+        "fuel_type": "MWH",
+        "capacity_mw": 45,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.3234,
+          40.0523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Muddy Run Pumped Storage",
+        "fuel_type": "WAT",
+        "capacity_mw": 1070,
+        "state": "PA",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.2034,
+          39.8156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Yards Creek Pumped Storage",
+        "fuel_type": "WAT",
+        "capacity_mw": 400,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.9345,
+          41.0234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Seneca Pumped Storage",
+        "fuel_type": "WAT",
+        "capacity_mw": 435,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -78.9456,
+          41.6234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bath County Pumped Storage",
+        "fuel_type": "WAT",
+        "capacity_mw": 3003,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.7956,
+          38.1823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Smith Mountain Hydro",
+        "fuel_type": "WAT",
+        "capacity_mw": 816,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.6234,
+          37.0634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Niagara Mohawk Hydro",
+        "fuel_type": "WAT",
+        "capacity_mw": 450,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.0634,
+          43.0956
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Conowingo Hydro",
+        "fuel_type": "WAT",
+        "capacity_mw": 572,
+        "state": "MD",
+        "zone": "PECO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.1734,
+          39.6523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Holtwood Hydro",
+        "fuel_type": "WAT",
+        "capacity_mw": 108,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.3456,
+          39.8234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Safe Harbor Hydro",
+        "fuel_type": "WAT",
+        "capacity_mw": 418,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.3789,
+          39.9023
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Racoon Creek Hydro",
+        "fuel_type": "WAT",
+        "capacity_mw": 8,
+        "state": "PA",
+        "zone": "PENELEC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.4234,
+          40.5234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Panda Hummel Station",
+        "fuel_type": "NG",
+        "capacity_mw": 1124,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.8234,
+          40.6523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Panda Stonewall",
+        "fuel_type": "NG",
+        "capacity_mw": 778,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.5234,
+          38.9634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Warren County NG",
+        "fuel_type": "NG",
+        "capacity_mw": 572,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -78.2156,
+          39.0734
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Loudoun County NG",
+        "fuel_type": "NG",
+        "capacity_mw": 800,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.6234,
+          39.0234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Scott Solar/NG",
+        "fuel_type": "NG",
+        "capacity_mw": 585,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.4234,
+          37.5345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AES Shady Point",
+        "fuel_type": "COL",
+        "capacity_mw": 320,
+        "state": "OK",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -94.6345,
+          34.8956
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Elwood Energy",
+        "fuel_type": "NG",
+        "capacity_mw": 1370,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -88.0523,
+          41.4734
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "University Park Gas",
+        "fuel_type": "NG",
+        "capacity_mw": 1100,
+        "state": "IL",
+        "zone": "COMED"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.7234,
+          41.5723
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hillabee Energy",
+        "fuel_type": "NG",
+        "capacity_mw": 774,
+        "state": "AL",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -85.7234,
+          32.6512
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "New Covert NG",
+        "fuel_type": "NG",
+        "capacity_mw": 1180,
+        "state": "MI",
+        "zone": "ATSI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -86.2956,
+          42.3623
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Piqua NG",
+        "fuel_type": "NG",
+        "capacity_mw": 400,
+        "state": "OH",
+        "zone": "DAY"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.2423,
+          40.1434
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Hanging Rock Energy",
+        "fuel_type": "NG",
+        "capacity_mw": 1220,
+        "state": "OH",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -82.7456,
+          38.4123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rock Springs NG",
+        "fuel_type": "NG",
+        "capacity_mw": 650,
+        "state": "MD",
+        "zone": "PEPCO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.4134,
+          39.6634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mattawoman Energy",
+        "fuel_type": "NG",
+        "capacity_mw": 560,
+        "state": "MD",
+        "zone": "PEPCO"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.0523,
+          38.5234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Doswell NG",
+        "fuel_type": "NG",
+        "capacity_mw": 700,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.4512,
+          37.8456
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Gordonsville NG",
+        "fuel_type": "NG",
+        "capacity_mw": 240,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -78.1845,
+          38.1323
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Remington NG",
+        "fuel_type": "NG",
+        "capacity_mw": 400,
+        "state": "VA",
+        "zone": "DOM"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.7923,
+          38.5345
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Coastal Lacey Twp",
+        "fuel_type": "NG",
+        "capacity_mw": 880,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.2456,
+          39.9234
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bayonne Energy Center",
+        "fuel_type": "NG",
+        "capacity_mw": 512,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.1023,
+          40.6645
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Newark Bay CCGT",
+        "fuel_type": "NG",
+        "capacity_mw": 620,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.1534,
+          40.6934
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Forked River NG",
+        "fuel_type": "NG",
+        "capacity_mw": 354,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.1845,
+          39.8523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Woodbridge Energy",
+        "fuel_type": "NG",
+        "capacity_mw": 470,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.2645,
+          40.5534
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Sewaren Energy",
+        "fuel_type": "NG",
+        "capacity_mw": 220,
+        "state": "NJ",
+        "zone": "PSEG"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.2623,
+          40.5278
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Wheelabrator Frackville",
+        "fuel_type": "COL",
+        "capacity_mw": 80,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.2134,
+          40.7823
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Scranton Steam",
+        "fuel_type": "NG",
+        "capacity_mw": 185,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.6623,
+          41.4034
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Montour Steam",
+        "fuel_type": "COL",
+        "capacity_mw": 1570,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -76.4934,
+          41.0423
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Talen Martins Creek",
+        "fuel_type": "NG",
+        "capacity_mw": 1500,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.1345,
+          40.7756
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Calpine Bethlehem 2",
+        "fuel_type": "NG",
+        "capacity_mw": 460,
+        "state": "PA",
+        "zone": "PPL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -75.3723,
+          40.6389
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "KY Pioneer Gas",
+        "fuel_type": "NG",
+        "capacity_mw": 310,
+        "state": "KY",
+        "zone": "EKPC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.5234,
+          37.9534
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "East Bend",
+        "fuel_type": "COL",
+        "capacity_mw": 600,
+        "state": "KY",
+        "zone": "EKPC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.8523,
+          38.7634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ghent Power",
+        "fuel_type": "COL",
+        "capacity_mw": 2220,
+        "state": "KY",
+        "zone": "EKPC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -85.0234,
+          38.7034
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Brown Station",
+        "fuel_type": "COL",
+        "capacity_mw": 1550,
+        "state": "KY",
+        "zone": "EKPC"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.5634,
+          38.9523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rockport Power IN",
+        "fuel_type": "COL",
+        "capacity_mw": 2600,
+        "state": "IN",
+        "zone": "AEP"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.0523,
+          37.8634
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Cayuga Station IN",
+        "fuel_type": "COL",
+        "capacity_mw": 1000,
+        "state": "IN",
+        "zone": "DEOK"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -87.4523,
+          39.9534
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "AEP Indiana Mich",
+        "fuel_type": "NG",
+        "capacity_mw": 860,
+        "state": "IN",
+        "zone": "ATSI"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -86.2234,
+          41.6434
+        ]
+      }
+    }
+  ]
+}

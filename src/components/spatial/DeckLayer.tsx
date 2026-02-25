@@ -16,6 +16,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { createPjmZoneLayer } from "./PjmZoneLayer";
+import { createPowerPlantLayer } from "./PowerPlantLayer";
 import type mapboxgl from "mapbox-gl";
 
 export interface DeckLayerProps {
@@ -25,6 +26,7 @@ export interface DeckLayerProps {
 export default function DeckLayer({ map }: DeckLayerProps) {
   const [overlay, setOverlay] = useState<MapboxOverlay | null>(null);
   const [geoJson, setGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [plantGeoJson, setPlantGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
 
@@ -37,6 +39,14 @@ export default function DeckLayer({ map }: DeckLayerProps) {
         console.log(`[DeckLayer] Loaded ${data.features.length} PJM zones`);
       })
       .catch((err) => console.error("[DeckLayer] Failed to load GeoJSON:", err));
+
+    fetch("/data/power-plants.geojson")
+      .then((res) => res.json())
+      .then((data: GeoJSON.FeatureCollection) => {
+        setPlantGeoJson(data);
+        console.log(`[DeckLayer] Loaded ${data.features.length} power plants`);
+      })
+      .catch((err) => console.error("[DeckLayer] Failed to load power plants:", err));
   }, []);
 
   // Attach MapboxOverlay control to the map once
@@ -77,16 +87,30 @@ export default function DeckLayer({ map }: DeckLayerProps) {
   useEffect(() => {
     if (!overlay || !geoJson) return;
 
-    const layer = createPjmZoneLayer(geoJson, hoveredZoneId, selectedZoneId);
+    const layers = [
+      createPjmZoneLayer(geoJson, hoveredZoneId, selectedZoneId),
+      ...(plantGeoJson ? [createPowerPlantLayer(plantGeoJson)] : []),
+    ];
 
     overlay.setProps({
-      layers: [layer],
+      layers,
       onHover,
       onClick,
+      getTooltip: ({ object }: { object?: GeoJSON.Feature }) => {
+        if (!object?.properties) return null;
+        const p = object.properties;
+        if (p.capacity_mw != null) {
+          return {
+            html: `<b>${p.name}</b><br/>Fuel: ${p.fuel_type}<br/>Capacity: ${p.capacity_mw} MW`,
+          };
+        }
+        return null;
+      },
     });
 
-    console.log("[DeckLayer] Layers updated — zones:", geoJson.features.length);
-  }, [overlay, geoJson, hoveredZoneId, selectedZoneId, onHover, onClick]);
+    console.log("[DeckLayer] Layers updated — zones:", geoJson.features.length,
+      "plants:", plantGeoJson?.features.length ?? 0);
+  }, [overlay, geoJson, plantGeoJson, hoveredZoneId, selectedZoneId, onHover, onClick]);
 
   // Pure side-effect component
   return null;

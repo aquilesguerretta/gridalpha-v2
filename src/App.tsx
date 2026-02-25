@@ -12,6 +12,7 @@ import ScoreCard from "./components/dashboard/ScoreCard";
 import TimeSlider from "./components/dashboard/TimeSlider";
 import { useGridData } from "./hooks/useGridData";
 
+
 // ── data-quality → colour mapping ───────────────────────────────
 
 const QUALITY_DOT: Record<string, string> = {

@@ -33,7 +33,7 @@ export const createPjmZoneLayer = (
     wireframe: true,
     getElevation: (d: GeoJSON.Feature) => {
       const lmp = (d.properties?.lmp_total as number) || 1;
-      return Math.log10(Math.max(lmp, 1)) * 800 + 200;
+      return Math.log10(Math.max(lmp, 1)) * 800 + 500;
     },
     getFillColor: (d: GeoJSON.Feature) => {
       const baseColor = getLmpColor((d.properties?.lmp_total as number) || 0);

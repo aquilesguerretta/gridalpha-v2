@@ -45,14 +45,17 @@ export default function GridMap({ currentFrame = null }: GridMapProps) {
       pitch: MAPBOX_INITIAL_VIEW.pitch,
       bearing: MAPBOX_INITIAL_VIEW.bearing,
       maxBounds: PJM_BOUNDS,
-      minZoom: 4,
-      maxZoom: 10,
+      minZoom: 6,
+      maxZoom: 14,
       scrollZoom: false,
     });
 
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
+      // Force 3-D perspective on startup
+      map.setPitch(45);
+      map.setBearing(-10);
       setMapReady(map);
     });
 

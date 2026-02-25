@@ -32,17 +32,17 @@ export const createPjmZoneLayer = (
     wireframe: true,
     getElevation: (d: GeoJSON.Feature) => {
       const lmp = (d.properties?.lmp_total as number) || 1;
-      return Math.log10(Math.max(lmp, 1)) * 8000 + 2000;
+      return Math.log10(Math.max(lmp, 1)) * 50000 + 20000;
     },
     getFillColor: (d: GeoJSON.Feature) => {
       const baseColor = getLmpColor((d.properties?.lmp_total as number) || 0);
       const zoneId = d.properties?.zone_id;
-      let alpha = 153;
+      let alpha = 210;
       if (zoneId === selectedZoneId) alpha = 255;
-      else if (zoneId === hoveredZoneId) alpha = 230;
+      else if (zoneId === hoveredZoneId) alpha = 245;
       return [...baseColor, alpha] as [number, number, number, number];
     },
-    getLineColor: [0, 163, 255, 100] as [number, number, number, number],
+    getLineColor: [0, 255, 240, 255] as [number, number, number, number],
     lineWidthMinPixels: 1,
     updateTriggers: {
       getFillColor: [hoveredZoneId, selectedZoneId],

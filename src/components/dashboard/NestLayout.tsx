@@ -17,6 +17,8 @@ export interface NestLayoutProps {
 }
 
 const BORDER = "1px solid rgba(255,255,255,0.06)";
+const GLASS_BG = "rgba(10, 10, 11, 0.85)";
+const GLASS_FILTER = "blur(12px)";
 
 export default function NestLayout({
   headerSlot,
@@ -31,7 +33,7 @@ export default function NestLayout({
       style={{
         width: "100vw",
         height: "100vh",
-        background: "#0A0A0B",
+        background: "transparent",
         display: "grid",
         gridTemplateColumns: "60% 20% 20%",
         gridTemplateRows: "48px 1fr 120px 48px",
@@ -47,7 +49,7 @@ export default function NestLayout({
       {/* ── header ──────────────────────────── */}
       <div
         className="header"
-        style={{ gridArea: "header", border: BORDER, minWidth: 0, minHeight: 0 }}
+        style={{ gridArea: "header", border: BORDER, minWidth: 0, minHeight: 0, background: GLASS_BG, backdropFilter: GLASS_FILTER }}
       >
         {headerSlot ?? <div />}
       </div>
@@ -55,7 +57,7 @@ export default function NestLayout({
       {/* ── map ─────────────────────────────── */}
       <div
         className="map"
-        style={{ gridArea: "map", border: BORDER, minWidth: 0, minHeight: 0 }}
+        style={{ gridArea: "map", minWidth: 0, minHeight: 0, pointerEvents: "none" }}
       >
         {mapSlot ?? <div />}
       </div>
@@ -69,6 +71,8 @@ export default function NestLayout({
           minWidth: 0,
           minHeight: 0,
           overflow: "auto",
+          background: GLASS_BG,
+          backdropFilter: GLASS_FILTER,
         }}
       >
         {scorecardLeftSlot ?? <div />}
@@ -83,6 +87,8 @@ export default function NestLayout({
           minWidth: 0,
           minHeight: 0,
           overflow: "auto",
+          background: GLASS_BG,
+          backdropFilter: GLASS_FILTER,
         }}
       >
         {scorecardRightSlot ?? <div />}
@@ -91,7 +97,7 @@ export default function NestLayout({
       {/* ── timeline ────────────────────────── */}
       <div
         className="timeline"
-        style={{ gridArea: "timeline", border: BORDER, minWidth: 0, minHeight: 0 }}
+        style={{ gridArea: "timeline", border: BORDER, minWidth: 0, minHeight: 0, background: GLASS_BG, backdropFilter: GLASS_FILTER }}
       >
         {timelineSlot ?? <div />}
       </div>
@@ -99,7 +105,7 @@ export default function NestLayout({
       {/* ── alerts ──────────────────────────── */}
       <div
         className="alerts"
-        style={{ gridArea: "alerts", border: BORDER, minWidth: 0, minHeight: 0 }}
+        style={{ gridArea: "alerts", border: BORDER, minWidth: 0, minHeight: 0, background: GLASS_BG, backdropFilter: GLASS_FILTER }}
       >
         {alertsSlot ?? <div />}
       </div>

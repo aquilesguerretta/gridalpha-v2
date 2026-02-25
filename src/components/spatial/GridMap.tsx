@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import DeckGL from "@deck.gl/react";
-import { Map } from "react-map-gl";
+import Map from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 import { createPjmZoneLayer } from "./PjmZoneLayer";

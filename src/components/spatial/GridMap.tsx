@@ -40,10 +40,10 @@ export default function GridMap({ currentFrame = null }: GridMapProps) {
     const map = new mapboxgl.Map({
       container: containerRef.current,
       style: MAPBOX_STYLE,
-      center: MAPBOX_INITIAL_VIEW.center,
-      zoom: MAPBOX_INITIAL_VIEW.zoom,
-      pitch: MAPBOX_INITIAL_VIEW.pitch,
-      bearing: MAPBOX_INITIAL_VIEW.bearing,
+      center: [-78.5, 40.0],
+      zoom: 7,
+      pitch: 45,
+      bearing: -10,
       maxBounds: PJM_BOUNDS,
       minZoom: 6,
       maxZoom: 14,
@@ -56,6 +56,9 @@ export default function GridMap({ currentFrame = null }: GridMapProps) {
       // Force 3-D perspective on startup
       map.setPitch(45);
       map.setBearing(-10);
+      console.log(
+        `[GridMap] loaded — pitch=${map.getPitch()} bearing=${map.getBearing()} zoom=${map.getZoom()}`
+      );
       setMapReady(map);
     });
 

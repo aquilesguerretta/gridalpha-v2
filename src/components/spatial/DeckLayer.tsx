@@ -28,6 +28,7 @@ export default function DeckLayer({ map }: DeckLayerProps) {
       .then((data: GeoJSON.FeatureCollection) => {
         setGeoJson(data);
         console.log(`[DeckLayer] Loaded ${data.features.length} PJM zones`);
+        console.log("DeckLayer mounted, zones:", data.features.length, data.features.map(f => f.properties?.zone_id));
       })
       .catch((err) => console.error("[DeckLayer] Failed to load GeoJSON:", err));
   }, []);

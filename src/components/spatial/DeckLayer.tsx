@@ -4,9 +4,16 @@
  * Fetches the PJM zone GeoJSON and renders extruded deck.gl polygons
  * on top of the Mapbox base map via MapboxOverlay.
  * Manages hover and selection state for zone interactivity.
+ *
+ * NOTE: `overlay` is held in state (not a ref) so that the layer-update
+ * effect re-runs once the overlay is attached — fixes race condition where
+ * GeoJSON can resolve before the map `load` event fires.
+ *
+ * Uses interleaved: false so deck.gl creates its own WebGL canvas on top
+ * of the Mapbox canvas — more reliable for 3-D extruded polygon rendering.
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { MapboxOverlay } from "@deck.gl/mapbox";
 import { createPjmZoneLayer } from "./PjmZoneLayer";
 import type mapboxgl from "mapbox-gl";
@@ -16,7 +23,7 @@ export interface DeckLayerProps {
 }
 
 export default function DeckLayer({ map }: DeckLayerProps) {
-  const overlayRef = useRef<MapboxOverlay | null>(null);
+  const [overlay, setOverlay] = useState<MapboxOverlay | null>(null);
   const [geoJson, setGeoJson] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
@@ -28,7 +35,6 @@ export default function DeckLayer({ map }: DeckLayerProps) {
       .then((data: GeoJSON.FeatureCollection) => {
         setGeoJson(data);
         console.log(`[DeckLayer] Loaded ${data.features.length} PJM zones`);
-        console.log("DeckLayer mounted, zones:", data.features.length, data.features.map(f => f.properties?.zone_id));
       })
       .catch((err) => console.error("[DeckLayer] Failed to load GeoJSON:", err));
   }, []);
@@ -37,24 +43,25 @@ export default function DeckLayer({ map }: DeckLayerProps) {
   useEffect(() => {
     if (!map) return;
 
-    const overlay = new MapboxOverlay({
-      interleaved: true,
+    const ov = new MapboxOverlay({
+      interleaved: false,
       layers: [],
     });
 
-    map.addControl(overlay);
-    overlayRef.current = overlay;
+    map.addControl(ov);
+    setOverlay(ov);
+    console.log("[DeckLayer] MapboxOverlay attached (interleaved=false)");
 
     return () => {
-      map.removeControl(overlay);
-      overlayRef.current = null;
+      map.removeControl(ov);
+      setOverlay(null);
     };
   }, [map]);
 
-  // Hover handler
+  // Hover handler — uses functional update to avoid unnecessary state changes
   const onHover = useCallback((info: { object?: GeoJSON.Feature }) => {
     const zoneId = (info.object?.properties?.zone_id as string) ?? null;
-    setHoveredZoneId(zoneId);
+    setHoveredZoneId((prev) => (prev === zoneId ? prev : zoneId));
   }, []);
 
   // Click handler
@@ -66,18 +73,20 @@ export default function DeckLayer({ map }: DeckLayerProps) {
     }
   }, []);
 
-  // Update layers when data or interaction state changes
+  // Update layers when data, overlay, or interaction state changes
   useEffect(() => {
-    if (!overlayRef.current || !geoJson) return;
+    if (!overlay || !geoJson) return;
 
     const layer = createPjmZoneLayer(geoJson, hoveredZoneId, selectedZoneId);
 
-    overlayRef.current.setProps({
+    overlay.setProps({
       layers: [layer],
       onHover,
       onClick,
     });
-  }, [geoJson, hoveredZoneId, selectedZoneId, onHover, onClick]);
+
+    console.log("[DeckLayer] Layers updated — zones:", geoJson.features.length);
+  }, [overlay, geoJson, hoveredZoneId, selectedZoneId, onHover, onClick]);
 
   // Pure side-effect component
   return null;

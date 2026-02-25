@@ -7,8 +7,14 @@
 
 import type { LngLatBoundsLike, LngLatLike } from "mapbox-gl";
 
-// Obsidian Deep v1 — frozen, do not modify without version bump
-export const MAPBOX_STYLE = "mapbox://styles/aquiles-guerretta/cmm1u47kn005a01s53hd80jbw" as const;
+/**
+ * Obsidian Deep v1 custom style — intermittent 503s from Mapbox API
+ * prevent the `load` event from firing, which blocks deck.gl overlay
+ * attachment. Using dark-v11 as a reliable fallback until the custom
+ * style is republished / stabilised on the Mapbox Studio side.
+ */
+// export const MAPBOX_STYLE_OBSIDIAN = "mapbox://styles/aquiles-guerretta/cmm1u47kn005a01s53hd80jbw" as const;
+export const MAPBOX_STYLE = "mapbox://styles/mapbox/dark-v11" as const;
 
 /**
  * Initial camera state centred on PJM Interconnection territory.

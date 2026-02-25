@@ -3,7 +3,7 @@
  *
  * Mapbox GL JS base map locked to the PJM Interconnection footprint.
  * Initialises on mount, tears down on unmount.
- * Renders ZoneLayer markers on top of the map canvas.
+ * Renders ZoneLayer markers and deck.gl extrusions on top of the map canvas.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -12,7 +12,6 @@ import "mapbox-gl/dist/mapbox-gl.css";
 
 import {
   MAPBOX_STYLE,
-  MAPBOX_INITIAL_VIEW,
   PJM_BOUNDS,
 } from "../../services/mapbox.config";
 
@@ -53,13 +52,16 @@ export default function GridMap({ currentFrame = null }: GridMapProps) {
     map.addControl(new mapboxgl.NavigationControl(), "top-right");
 
     map.on("load", () => {
-      // Force 3-D perspective on startup
       map.setPitch(45);
       map.setBearing(-10);
       console.log(
         `[GridMap] loaded — pitch=${map.getPitch()} bearing=${map.getBearing()} zoom=${map.getZoom()}`
       );
       setMapReady(map);
+    });
+
+    map.on("error", (e) => {
+      console.error("[GridMap] Mapbox error:", e.error?.message ?? e);
     });
 
     mapInstanceRef.current = map;

@@ -1,4 +1,22 @@
-/* GridAlpha V2 — Global reset */
+/* GridAlpha V2 — Global reset + Geist font */
+
+/* Geist Sans — Variable font */
+@font-face {
+  font-family: 'Geist Sans';
+  src: url('/fonts/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Geist Mono — Variable font */
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 *,
 *::before,
@@ -9,8 +27,9 @@
 }
 
 :root {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial,
-    sans-serif;
+  --font-sans: 'Geist Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', 'SF Mono', monospace;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
   color-scheme: dark;
@@ -26,4 +45,7 @@ body {
   margin: 0;
   min-height: 100vh;
   overflow: hidden;
+  font-family: var(--font-sans);
+  background: #0A0A0B;
+  cursor: crosshair;
 }

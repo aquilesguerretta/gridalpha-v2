@@ -1,9 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
+
 html, body, #root {
   height: 100vh !important;
   width: 100vw !important;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  background: #0A0A0B !important;
 }
 
 @tailwind base;
@@ -361,7 +364,6 @@ html, body, #root, [data-reactroot] {
   background-color: #0A0A0B !important;
 }
 
-/* Find the main wrapper inside GlobalShell and kill any width limits */
 div[class*="container"], div[class*="max-w-"] {
   max-width: none !important;
   width: 100% !important;

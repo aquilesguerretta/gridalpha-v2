@@ -1538,7 +1538,7 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
         {cardType === "intelligence" && <GhostlyLineChart />}
         {cardType === "resource" && <AnimatedStackedBar />}
         {cardType === "optimizer" && (
-          <div className="h-[180px] -mx-2 -mt-1 mb-2">
+          <div className="w-full h-full relative" style={{ minHeight: '300px' }}>
             <Suspense fallback={
               <div className="w-full h-full flex items-center justify-center">
                 <div className="w-4 h-4 border border-[#00A3FF] border-t-transparent rounded-full animate-spin" />

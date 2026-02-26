@@ -350,3 +350,20 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
     cursor: pointer;
   }
 }
+
+/* FORCE FULLSCREEN OVERRIDE */
+html, body, #root, [data-reactroot] {
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  background-color: #0A0A0B !important;
+}
+
+/* Find the main wrapper inside GlobalShell and kill any width limits */
+div[class*="container"], div[class*="max-w-"] {
+  max-width: none !important;
+  width: 100% !important;
+  height: 100% !important;
+}

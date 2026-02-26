@@ -1,12 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 html, body, #root {
-  height: 100vh !important;
-  width: 100vw !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  background: #0A0A0B !important;
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #0A0A0B;
+  font-family: 'Geist Mono', monospace;
 }
 
 @tailwind base;
@@ -362,10 +383,5 @@ html, body, #root, [data-reactroot] {
   padding: 0 !important;
   display: block !important;
   background-color: #0A0A0B !important;
-}
-
-div[class*="container"], div[class*="max-w-"] {
-  max-width: none !important;
-  width: 100% !important;
-  height: 100% !important;
+  font-family: 'Geist Mono', monospace !important;
 }

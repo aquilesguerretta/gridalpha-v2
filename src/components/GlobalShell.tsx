@@ -151,6 +151,106 @@ function StatusDot({ status }: { status: "live" | "stale" | "fallback" }) {
   );
 }
 
+// Entry Overlay - cinematic splash screen
+function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
+  const [visible, setVisible] = useState(true);
+  const [collapsing, setCollapsing] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCollapsing(true);
+      setTimeout(() => {
+        setVisible(false);
+        onDismiss();
+      }, 600);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [onDismiss]);
+
+  const handleClick = () => {
+    setCollapsing(true);
+    setTimeout(() => {
+      setVisible(false);
+      onDismiss();
+    }, 600);
+  };
+
+  if (!visible) return null;
+
+  return (
+    <div
+      onClick={handleClick}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        backgroundColor: '#0A0A0B',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        transition: 'opacity 600ms ease-out, transform 600ms ease-out',
+        opacity: collapsing ? 0 : 1,
+        transform: collapsing ? 'translateY(-100%)' : 'translateY(0)',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse at center, rgba(0,163,255,0.08) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
+      <span style={{
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: '36px',
+        fontWeight: 700,
+        color: '#FFFFFF',
+        letterSpacing: '0.15em',
+      }}>
+        GRIDALPHA
+      </span>
+      <span style={{
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: '12px',
+        fontWeight: 400,
+        color: 'rgba(255,255,255,0.4)',
+        letterSpacing: '0.3em',
+      }}>
+        PJM MARKET INTELLIGENCE TERMINAL
+      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+        <div style={{
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: '#00A3FF',
+          boxShadow: '0 0 12px rgba(0,163,255,0.8)',
+        }} />
+        <span style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: '11px',
+          color: '#00A3FF',
+          letterSpacing: '0.2em',
+        }}>
+          LIVE · $31.85 /MWh · NORMAL OPERATIONS
+        </span>
+      </div>
+      <span style={{
+        position: 'absolute',
+        bottom: '32px',
+        fontFamily: "'Geist Mono', monospace",
+        fontSize: '9px',
+        color: 'rgba(255,255,255,0.2)',
+        letterSpacing: '0.2em',
+      }}>
+        CLICK ANYWHERE TO ENTER
+      </span>
+    </div>
+  );
+}
+
 // Header Bar with ping animation
 function HeaderBar({ activeView }: { activeView: string }) {
   const [lmpValue] = useState(31.85);
@@ -252,17 +352,38 @@ function PJMTerritory() {
 }
 
 // Bento Card Component
-function BentoCard({ title, children, status = "live", className = "", style = {} }: { title: string; children: React.ReactNode; status?: "live" | "stale" | "fallback"; className?: string; style?: React.CSSProperties }) {
+function BentoCard({ title, children, status = "live", className = "", style = {} }: {
+  title: string;
+  children: React.ReactNode;
+  status?: "live" | "stale" | "fallback";
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
     <div
-      className={`relative rounded-lg overflow-hidden ${className}`}
-      style={{ backgroundColor: "rgba(10, 10, 11, 0.7)", backdropFilter: "blur(12px)", border: "0.5px solid rgba(255, 255, 255, 0.08)", ...style }}
+      className={`relative rounded-lg overflow-hidden flex flex-col ${className}`}
+      style={{
+        backgroundColor: "rgba(10, 10, 11, 0.7)",
+        backdropFilter: "blur(12px)",
+        border: "0.5px solid rgba(255, 255, 255, 0.08)",
+        height: '100%',
+        width: '100%',
+        minHeight: 0,
+        minWidth: 0,
+        ...style
+      }}
     >
-      <div className="absolute top-3 right-3 z-10"><StatusDot status={status} /></div>
-      <div className="px-4 py-3" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
-        <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: "'Geist', sans-serif", color: "rgba(255, 255, 255, 0.5)" }}>{title}</span>
+      <div className="absolute top-3 right-3 z-10">
+        <StatusDot status={status} />
       </div>
-      <div className="relative">{children}</div>
+      <div className="px-4 py-3 shrink-0" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
+        <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>
+          {title}
+        </span>
+      </div>
+      <div className="relative flex-1 min-h-0 overflow-hidden">
+        {children}
+      </div>
     </div>
   );
 }
@@ -319,11 +440,11 @@ function MiniSparkline() {
 // THE NEST View - Volumetric Bento
 function NestView() {
   return (
-    <div className="flex-1 p-4 overflow-auto" style={{ backgroundColor: "#0D0D0E" }}>
-      <div className="grid grid-cols-12 gap-3 h-full min-h-[600px]">
+    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "#0D0D0E", padding: '12px' }}>
+      <div className="grid grid-cols-12 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: '45fr 30fr 25fr' }}>
         {/* Market Pulse - 40% width with PJM Territory */}
         <BentoCard title="MARKET PULSE" className="col-span-5 row-span-2" status="live">
-          <div className="relative h-[280px]">
+          <div className="relative w-full h-full">
             <PulsingDotGrid />
             <PJMTerritory />
           </div>
@@ -1621,6 +1742,7 @@ function VaultView() {
 export default function GlobalShell() {
   const [collapsed, setCollapsed] = useState(true);
   const [activeNav, setActiveNav] = useState("nest");
+  const [entryDismissed, setEntryDismissed] = useState(false);
   const sidebarWidth = collapsed ? 64 : 200;
 
   const renderContent = () => {
@@ -1634,20 +1756,23 @@ export default function GlobalShell() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ backgroundColor: "#0A0A0B" }}>
-      <aside className="flex flex-col h-full shrink-0 border-r transition-all duration-200 ease-out" style={{ width: sidebarWidth, backgroundColor: "#0A0A0B", borderColor: "rgba(255, 255, 255, 0.06)" }}>
-        <div className="pt-4 pb-2"><FalconLogo collapsed={collapsed} /></div>
-        <nav className="flex-1 flex flex-col pt-4">
-          {navItems.map((item) => <NavButton key={item.id} item={item} active={activeNav === item.id} collapsed={collapsed} onClick={() => setActiveNav(item.id)} />)}
-        </nav>
-        <div className="border-t" style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}>
-          <CollapseToggle collapsed={collapsed} onClick={() => setCollapsed(!collapsed)} />
-        </div>
-      </aside>
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <HeaderBar activeView={activeNav} />
-        {renderContent()}
-      </main>
-    </div>
+    <>
+      {!entryDismissed && <EntryOverlay onDismiss={() => setEntryDismissed(true)} />}
+      <div className="flex h-screen w-screen overflow-hidden" style={{ backgroundColor: "#0A0A0B" }}>
+        <aside className="flex flex-col h-full shrink-0 border-r transition-all duration-200 ease-out" style={{ width: sidebarWidth, backgroundColor: "#0A0A0B", borderColor: "rgba(255, 255, 255, 0.06)" }}>
+          <div className="pt-4 pb-2"><FalconLogo collapsed={collapsed} /></div>
+          <nav className="flex-1 flex flex-col pt-4">
+            {navItems.map((item) => <NavButton key={item.id} item={item} active={activeNav === item.id} collapsed={collapsed} onClick={() => setActiveNav(item.id)} />)}
+          </nav>
+          <div className="border-t" style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}>
+            <CollapseToggle collapsed={collapsed} onClick={() => setCollapsed(!collapsed)} />
+          </div>
+        </aside>
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <HeaderBar activeView={activeNav} />
+          {renderContent()}
+        </main>
+      </div>
+    </>
   );
 }

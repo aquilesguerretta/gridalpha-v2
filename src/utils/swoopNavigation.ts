@@ -1,4 +1,4 @@
-import { LinearInterpolator, FlyToInterpolator } from '@deck.gl/core';
+import { FlyToInterpolator } from '@deck.gl/core';
 
 interface ViewState {
   longitude: number;
@@ -14,7 +14,7 @@ interface ViewState {
 const quinticOut = (t: number) => 1 - Math.pow(1 - t, 5);
 
 export const swoopNavigation = (
-  start: ViewState,
+  _start: ViewState,
   end: ViewState,
   duration: number = 2000
 ): ViewState => {

@@ -56,8 +56,8 @@ export default function GridMap({ currentFrame: _currentFrame = null }: GridMapP
       .catch((err) => console.error("[GridMap] Failed to load power plants:", err));
   }, []);
 
-  const onViewStateChange = useCallback(({ viewState }: { viewState: typeof INITIAL_VIEW_STATE }) => {
-    setViewState(viewState);
+  const onViewStateChange = useCallback((params: any) => {
+    setViewState(params.viewState);
   }, []);
 
   const onHover = useCallback((info: { object?: GeoJSON.Feature }) => {

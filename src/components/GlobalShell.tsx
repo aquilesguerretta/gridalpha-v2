@@ -324,6 +324,7 @@ function NestView() {
       gridTemplateRows: '1fr 1fr 0.6fr',
       height: '100%',
       width: '100%',
+      minHeight: '0',
     }}>
         {/* Market Pulse - spans 2 rows in first column */}
         <BentoCard title="MARKET PULSE" className="h-full w-full row-span-2" status="live" style={{ minHeight: 0, minWidth: 0 }}>

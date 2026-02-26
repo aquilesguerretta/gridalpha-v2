@@ -1,10 +1,9 @@
 html, body, #root {
-  height: 100vh;
-  width: 100vw;
+  height: 100vh !important;
+  width: 100vw !important;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #0A0A0B;
 }
 
 @tailwind base;
@@ -339,8 +338,10 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Geist Mono', 'SF Mono', 'Fira Code', monospace;
+    @apply bg-background text-foreground;
+    font-family: 'Geist Mono', 'SF Mono', 'Fira Code', monospace !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     cursor: crosshair;
   }
 

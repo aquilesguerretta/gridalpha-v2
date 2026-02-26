@@ -1,51 +1,343 @@
-/* GridAlpha V2 — Global reset + Geist font */
+@import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap');
 
-/* Geist Sans — Variable font */
-@font-face {
-  font-family: 'Geist Sans';
-  src: url('/fonts/Geist-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* GridAlpha Custom Animations */
+@keyframes falcon-breathe {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
-/* Geist Mono — Variable font */
-@font-face {
-  font-family: 'Geist Mono';
-  src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 1; }
+  75%, 100% { transform: scale(2.5); opacity: 0; }
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
 }
 
-:root {
-  --font-sans: 'Geist Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'Geist Mono', 'SF Mono', monospace;
-  font-family: var(--font-sans);
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0a0a0b;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@keyframes status-pulse {
+  0%, 100% { box-shadow: 0 0 4px 1px currentColor; }
+  50% { box-shadow: 0 0 8px 2px currentColor; }
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  overflow: hidden;
-  font-family: var(--font-sans);
-  background: #0A0A0B;
+.animate-falcon-breathe {
+  animation: falcon-breathe 4s ease-in-out infinite;
+}
+
+.animate-live-ping {
+  animation: live-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+.animate-status-pulse {
+  animation: status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes badge-scan {
+  0% { stroke-dashoffset: 200; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-badge-scan {
+  animation: badge-scan 3s linear infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 2s linear infinite;
+}
+
+/* Trader's Crosshair Cursor */
+* {
   cursor: crosshair;
+}
+
+button, a, input, select, textarea, [role="button"], .cursor-pointer {
+  cursor: pointer !important;
+}
+
+/* Custom Scrollbars - Electric Blue */
+::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 163, 255, 0.3);
+  border-radius: 1px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 163, 255, 0.5);
+}
+
+/* Circuit trace breathing animation */
+@keyframes circuit-pulse {
+  0%, 100% { opacity: 0.6; stroke-dashoffset: 0; }
+  50% { opacity: 1; stroke-dashoffset: -8; }
+}
+
+.animate-circuit-pulse {
+  animation: circuit-pulse 4s ease-in-out infinite;
+}
+
+/* Ghostly line draw animation */
+@keyframes line-draw {
+  0% { stroke-dashoffset: 100; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-line-draw {
+  animation: line-draw 3s ease-out infinite;
+}
+
+/* Bar fill animation */
+@keyframes bar-fill {
+  0% { transform: scaleY(0); }
+  100% { transform: scaleY(1); }
+}
+
+.animate-bar-fill {
+  animation: bar-fill 2s ease-out infinite;
+  transform-origin: bottom;
+}
+
+/* Drawer slide-in animation */
+@keyframes drawer-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.animate-drawer-in {
+  animation: drawer-slide-in 0.3s ease-out forwards;
+}
+
+/* Confidence band breathing */
+@keyframes confidence-breathe {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.25; }
+}
+
+.animate-confidence-breathe {
+  animation: confidence-breathe 3s ease-in-out infinite;
+}
+
+/* Particle flow animation */
+@keyframes particle-flow {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-particle-flow {
+  animation: particle-flow 1s linear infinite;
+}
+
+/* Heat rate curve draw */
+@keyframes curve-draw {
+  from { stroke-dashoffset: 200; }
+  to { stroke-dashoffset: 0; }
+}
+
+.animate-curve-draw {
+  animation: curve-draw 1.5s ease-out forwards;
+}
+
+/* Swoop Engine - Motion blur for camera transitions */
+@keyframes swoop-blur-in {
+  0% { 
+    opacity: 0;
+    filter: blur(0px);
+  }
+  30% { 
+    opacity: 1;
+    filter: blur(20px);
+  }
+  100% { 
+    opacity: 0;
+    filter: blur(0px);
+  }
+}
+
+@keyframes velocity-streak {
+  0% { 
+    transform: scaleX(0) translateX(-50%);
+    opacity: 0;
+  }
+  20% { 
+    transform: scaleX(1) translateX(0);
+    opacity: 0.8;
+  }
+  100% { 
+    transform: scaleX(2) translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes border-flash {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.animate-swoop-blur {
+  animation: swoop-blur-in 0.6s ease-out forwards;
+}
+
+.animate-velocity-streak {
+  animation: velocity-streak 0.5s ease-out forwards;
+}
+
+.animate-border-flash {
+  animation: border-flash 0.4s ease-out forwards;
+}
+
+/* Volumetric Flow - Particle animations */
+@keyframes particle-flow-fast {
+  0% { stroke-dashoffset: 40; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes particle-flow-medium {
+  0% { stroke-dashoffset: 40; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes particle-flow-slow {
+  0% { stroke-dashoffset: 40; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes thermal-vibrate {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+@keyframes tube-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 2px currentColor); }
+  50% { filter: drop-shadow(0 0 6px currentColor); }
+}
+
+.animate-particle-fast {
+  animation: particle-flow-fast 0.4s linear infinite;
+}
+
+.animate-particle-medium {
+  animation: particle-flow-medium 0.8s linear infinite;
+}
+
+.animate-particle-slow {
+  animation: particle-flow-slow 1.5s linear infinite;
+}
+
+.animate-thermal-vibrate {
+  animation: thermal-vibrate 0.1s ease-in-out infinite;
+}
+
+.animate-tube-glow {
+  animation: tube-glow-pulse 2s ease-in-out infinite;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 14.3% 4.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 14.3% 4.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 14.3% 4.1%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 270 50% 95%;
+    --secondary: 60 4.8% 95.9%;
+    --secondary-foreground: 24 9.8% 10%;
+    --muted: 60 4.8% 95.9%;
+    --muted-foreground: 25 5.3% 44.7%;
+    --accent: 60 4.8% 95.9%;
+    --accent-foreground: 24 9.8% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 60 9.1% 97.8%;
+    --border: 20 5.9% 90%;
+    --input: 20 5.9% 90%;
+    --ring: 20 14.3% 4.1%;
+    --radius: 0.45rem;
+    --chart-1: 262 70% 70%;
+    --chart-2: 262 75% 60%;
+    --chart-3: 262 80% 50%;
+    --chart-4: 262 83% 45%;
+    --chart-5: 262 85% 40%;
+    --sidebar: 0 0% 98%;
+    --sidebar-foreground: 20 14.3% 4.1%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 270 50% 95%;
+    --sidebar-accent: 60 4.8% 95.9%;
+    --sidebar-accent-foreground: 24 9.8% 10%;
+    --sidebar-border: 20 5.9% 90%;
+    --sidebar-ring: 20 14.3% 4.1%;
+  }
+
+  .dark {
+    --background: 20 14.3% 4.1%;
+    --foreground: 0 0% 98%;
+    --card: 24 9.8% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 24 9.8% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 262 80% 55%;
+    --primary-foreground: 270 50% 95%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 12 6.5% 15.1%;
+    --muted-foreground: 24 5.4% 63.9%;
+    --accent: 12 6.5% 15.1%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 100% / 10%;
+    --input: 0 0% 100% / 15%;
+    --ring: 24 5.4% 63.9%;
+    --chart-1: 262 70% 70%;
+    --chart-2: 262 75% 60%;
+    --chart-3: 262 80% 50%;
+    --chart-4: 262 83% 45%;
+    --chart-5: 262 85% 40%;
+    --sidebar: 24 9.8% 10%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 262 75% 60%;
+    --sidebar-primary-foreground: 270 50% 95%;
+    --sidebar-accent: 12 6.5% 15.1%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 100% / 10%;
+    --sidebar-ring: 24 5.4% 63.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter Variable", "Inter", system-ui, sans-serif;
+  }
+
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
 }

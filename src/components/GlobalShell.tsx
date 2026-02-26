@@ -318,18 +318,23 @@ function MiniSparkline() {
 // THE NEST View - Volumetric Bento
 function NestView() {
   return (
-    <div className="flex-1 p-4 overflow-auto" style={{ backgroundColor: "#0D0D0E" }}>
-      <div className="grid grid-cols-12 gap-3 h-full min-h-[600px]">
-        {/* Market Pulse - 40% width with PJM Territory */}
-        <BentoCard title="MARKET PULSE" className="col-span-5 row-span-2" status="live">
-          <div className="relative h-[280px]">
+    <div className="w-full h-full p-3 grid gap-2" style={{
+      display: 'grid',
+      gridTemplateColumns: '2fr 1.5fr 1fr',
+      gridTemplateRows: '1fr 1fr 0.6fr',
+      height: '100%',
+      width: '100%',
+    }}>
+        {/* Market Pulse - spans 2 rows in first column */}
+        <BentoCard title="MARKET PULSE" className="h-full w-full row-span-2" status="live" style={{ minHeight: 0, minWidth: 0 }}>
+          <div className="relative h-full">
             <PulsingDotGrid />
             <PJMTerritory />
           </div>
         </BentoCard>
 
         {/* Peregrine Feed - Terminal Style */}
-        <BentoCard title="PEREGRINE FEED" className="col-span-4 row-span-1" status="live">
+        <BentoCard title="PEREGRINE FEED" className="h-full w-full" status="live" style={{ minHeight: 0, minWidth: 0 }}>
           <div className="p-4 space-y-1.5">
             {[
               { msg: "Congestion spike — West Hub", severity: "critical", time: "09:15" },
@@ -356,12 +361,12 @@ function NestView() {
         </BentoCard>
 
         {/* LMP Scorecard */}
-        <BentoCard title="LMP / Hub" className="col-span-3 row-span-1" status="live">
+        <BentoCard title="LMP / Hub" className="h-full w-full" status="live" style={{ minHeight: 0, minWidth: 0 }}>
           <LMPScorecard />
         </BentoCard>
 
         {/* Spark Spread */}
-        <BentoCard title="SPARK SPREAD" className="col-span-4 row-span-1" status="live">
+        <BentoCard title="SPARK SPREAD" className="h-full w-full" status="live" style={{ minHeight: 0, minWidth: 0 }}>
           <div className="p-4 flex flex-col items-center">
             <span className="text-3xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00A3FF" }}>12.7</span>
             <span className="text-[9px] mt-1" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>$/MWh</span>
@@ -370,7 +375,7 @@ function NestView() {
         </BentoCard>
 
         {/* Battery ARB - Charge Windows */}
-        <BentoCard title="BATTERY ARB" className="col-span-3 row-span-1" status="stale">
+        <BentoCard title="BATTERY ARB" className="h-full w-full" status="stale" style={{ minHeight: 0, minWidth: 0 }}>
           <div className="p-3 flex flex-col items-center">
             <div className="relative w-14 h-14">
               <svg viewBox="0 0 36 36" className="w-full h-full">
@@ -392,7 +397,7 @@ function NestView() {
         </BentoCard>
 
         {/* Generation Mix - Corrected Palette with MW Values */}
-        <BentoCard title="GENERATION MIX" className="col-span-8 row-span-1" status="live">
+        <BentoCard title="GENERATION MIX" className="h-full w-full col-span-2" status="live" style={{ minHeight: 0, minWidth: 0 }}>
           <div className="p-4">
             {/* MW labels above bar */}
             <div className="flex h-4 mb-1">
@@ -444,8 +449,8 @@ function NestView() {
         </BentoCard>
 
         {/* Resource Gap - Reserve Margin with Probability Ribbons */}
-        <BentoCard title="RESOURCE GAP" className="col-span-4 row-span-1" status="live">
-          <div className="p-4 h-[120px] relative">
+        <BentoCard title="RESOURCE GAP" className="h-full w-full" status="live" style={{ minHeight: 0, minWidth: 0 }}>
+          <div className="p-4 h-full relative">
             {/* Reserve Margin Badge */}
             <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(0, 163, 255, 0.1)", border: "1px solid rgba(0, 163, 255, 0.3)" }}>
               <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>RESERVE MARGIN: 18.4%</span>
@@ -468,35 +473,35 @@ function NestView() {
                   <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.15" />
                 </linearGradient>
               </defs>
-              
+
               {/* 95% Confidence Band (outer) - wider uncertainty */}
-              <path 
-                d="M0,40 Q30,32 60,38 T120,36 T180,42 L200,40 L200,68 Q170,72 140,66 T80,70 T20,64 L0,66 Z" 
+              <path
+                d="M0,40 Q30,32 60,38 T120,36 T180,42 L200,40 L200,68 Q170,72 140,66 T80,70 T20,64 L0,66 Z"
                 fill="url(#confidenceGradient95)"
                 className="animate-confidence-breathe"
               />
-              
+
               {/* 68% Confidence Band (inner) - tighter uncertainty */}
-              <path 
-                d="M0,45 Q30,40 60,44 T120,42 T180,48 L200,46 L200,62 Q170,66 140,60 T80,64 T20,58 L0,60 Z" 
+              <path
+                d="M0,45 Q30,40 60,44 T120,42 T180,48 L200,46 L200,62 Q170,66 140,60 T80,64 T20,58 L0,60 Z"
                 fill="url(#confidenceGradient68)"
                 className="animate-confidence-breathe"
                 style={{ animationDelay: "0.5s" }}
               />
-              
+
               {/* Fill between capacity and load */}
               <path d="M0,25 Q50,20 100,22 T200,18 L200,55 Q150,50 100,52 T0,50 Z" fill="rgba(0,163,255,0.05)" />
-              
+
               {/* Capacity line (Electric Blue) */}
               <path d="M0,25 Q50,20 100,22 T200,18" fill="none" stroke="#00A3FF" strokeWidth="2" />
-              
+
               {/* Load forecast line (White) with real-time feel */}
               <path d="M0,52 Q30,48 60,54 T120,50 T180,56 L200,53" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" />
-              
+
               {/* Uncertainty markers */}
               <line x1="100" y1="42" x2="100" y2="64" stroke="rgba(255,184,0,0.3)" strokeWidth="1" strokeDasharray="2 2" />
               <text x="103" y="53" fill="#FFB800" fontSize="5" fontFamily="'Geist Mono', monospace" opacity="0.6">±8%</text>
-              
+
               {/* Line labels */}
               <text x="5" y="20" fill="#00A3FF" fontSize="7" fontFamily="'Geist Mono', monospace">CAPACITY</text>
               <text x="5" y="62" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="'Geist Mono', monospace">LOAD</text>
@@ -504,7 +509,6 @@ function NestView() {
             <div className="absolute bottom-2 right-2 text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>Oasis PTI</div>
           </div>
         </BentoCard>
-      </div>
     </div>
   );
 }

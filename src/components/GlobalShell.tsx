@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import FalconLogo from "./FalconLogo";
+import { PJMNodeGraph } from "./PJMNodeGraph";
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -276,7 +277,8 @@ function HeaderBar({ activeView }: { activeView: string }) {
   );
 }
 
-// Pulsing Dot Grid Background
+// Pulsing Dot Grid Background (kept for future use)
+// @ts-ignore: preserved component
 function PulsingDotGrid() {
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -292,7 +294,8 @@ function PulsingDotGrid() {
   );
 }
 
-// PJM Territory Outline with Hub Dots
+// PJM Territory Outline with Hub Dots (kept for future use)
+// @ts-ignore: preserved component
 function PJMTerritory() {
   const hubs = [
     { x: 100, y: 55, label: "WEST HUB", delay: 0 },
@@ -415,7 +418,8 @@ function PriceSparkline24h() {
   );
 }
 
-// LMP Scorecard with enhanced glow and delta
+// LMP Scorecard with enhanced glow and delta (kept for future use)
+// @ts-ignore: preserved component
 function LMPScorecard() {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full py-2">
@@ -447,8 +451,65 @@ function MiniSparkline() {
   );
 }
 
+// Zone LMP data for interactivity
+const ZONE_LMP: Record<string, { price: number; delta: number }> = {
+  'WEST_HUB':  { price: 35.90, delta: +2.4 },
+  'COMED':     { price: 32.04, delta: -0.8 },
+  'AEP':       { price: 33.36, delta: +1.1 },
+  'ATSI':      { price: 33.23, delta: +0.6 },
+  'DUQ':       { price: 33.20, delta: +0.9 },
+  'DOMINION':  { price: 34.23, delta: +1.8 },
+  'PPL':       { price: 33.11, delta: +0.4 },
+  'PECO':      { price: 34.10, delta: +1.5 },
+  'PSEG':      { price: 34.93, delta: +2.1 },
+  'JCPL':      { price: 34.67, delta: +1.9 },
+}
+
+const ZONE_LABELS: Record<string, string> = {
+  'WEST_HUB': 'WEST HUB', 'COMED': 'COMED', 'AEP': 'AEP', 'ATSI': 'ATSI',
+  'DUQ': 'DUQ', 'DOMINION': 'DOMINION', 'PPL': 'PPL', 'PECO': 'PECO',
+  'PSEG': 'PSEG', 'JCPL': 'JCPL',
+}
+
+// Zone-specific alerts
+const ZONE_ALERTS: Record<string, { msg: string; severity: string; time: string }[]> = {
+  'WEST_HUB': [
+    { msg: "Congestion spike — West Hub", severity: "critical", time: "09:15" },
+    { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
+    { msg: "Wind ramp detected — OHIO", severity: "info", time: "09:29" },
+    { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:36" },
+    { msg: "Transmission constraint — Rte 18", severity: "critical", time: "09:43" },
+  ],
+  'COMED': [
+    { msg: "COMED price suppression active", severity: "warning", time: "09:15" },
+    { msg: "Wind oversupply — N. Illinois", severity: "info", time: "09:22" },
+    { msg: "Negative LMP risk elevated", severity: "critical", time: "09:29" },
+  ],
+  'DOMINION': [
+    { msg: "Dominion heat event — high load", severity: "critical", time: "09:15" },
+    { msg: "Capacity constraint — Rte 500", severity: "warning", time: "09:22" },
+    { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:29" },
+  ],
+  'PSEG': [
+    { msg: "PSEG congestion alert", severity: "critical", time: "09:15" },
+    { msg: "NJ load peak approaching", severity: "warning", time: "09:22" },
+    { msg: "Transmission constraint — Hudson", severity: "critical", time: "09:29" },
+  ],
+  'PECO': [
+    { msg: "PECO zone spread widening", severity: "warning", time: "09:15" },
+    { msg: "PA demand surge detected", severity: "critical", time: "09:22" },
+    { msg: "DA/RT divergence — PECO", severity: "info", time: "09:29" },
+  ],
+}
+
 // THE NEST View - Volumetric Bento
 function NestView() {
+  const [selectedZone, setSelectedZone] = useState<string | null>(null)
+
+  const lmpData = ZONE_LMP[selectedZone ?? 'WEST_HUB']
+  const zoneName = ZONE_LABELS[selectedZone ?? 'WEST_HUB'] ?? 'WEST HUB'
+  const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['WEST_HUB']
+
   return (
     <div style={{
       flex: 1,
@@ -464,21 +525,14 @@ function NestView() {
       {/* Market Pulse - spans 2 rows */}
       <BentoCard title="MARKET PULSE" status="live" style={{ gridRow: 'span 2' }}>
         <div style={{ position: 'absolute', inset: 0 }}>
-          <PulsingDotGrid />
-          <PJMTerritory />
+          <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} />
         </div>
       </BentoCard>
 
       {/* Peregrine Feed */}
       <BentoCard title="PEREGRINE FEED" status="live">
         <div style={{ position: 'absolute', inset: 0, padding: '12px', overflowY: 'auto' }}>
-          {[
-            { msg: "Congestion spike — West Hub", severity: "critical", time: "09:15" },
-            { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
-            { msg: "Wind ramp detected — OHIO", severity: "info", time: "09:29" },
-            { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:36" },
-            { msg: "Transmission constraint — Rte 18", severity: "critical", time: "09:43" },
-          ].map((alert, i) => (
+          {alerts.map((alert, i) => (
             <div
               key={i}
               className="flex items-center gap-2 pl-2"
@@ -498,8 +552,16 @@ function NestView() {
 
       {/* LMP Hub */}
       <BentoCard title="LMP / HUB" status="live">
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <LMPScorecard />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em' }}>
+            {zoneName} LMP
+          </span>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '42px', fontWeight: 700, color: '#00FFF0', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+            {lmpData.price.toFixed(2)}
+          </span>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: lmpData.delta >= 0 ? '#00FF88' : '#FF4444' }}>
+            $/MWh  {lmpData.delta >= 0 ? '▲' : '▼'} {Math.abs(lmpData.delta).toFixed(1)}%
+          </span>
         </div>
       </BentoCard>
 

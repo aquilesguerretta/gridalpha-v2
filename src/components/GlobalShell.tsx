@@ -308,7 +308,7 @@ function PJMTerritory() {
   ];
 
   return (
-    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice">
+    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 160" preserveAspectRatio="xMidYMid meet">
       {/* PJM Territory - PA-centered hexagonal cluster */}
       <path
         d="M40,60 L55,35 L85,25 L115,25 L145,35 L160,60 L150,85 L120,100 L80,100 L50,85 Z"
@@ -408,7 +408,7 @@ function PriceSparkline24h() {
 // LMP Scorecard with enhanced glow and delta
 function LMPScorecard() {
   return (
-    <div className="flex flex-col items-center justify-center h-full py-4">
+    <div className="flex flex-col items-center justify-center w-full h-full py-2">
       <span className="text-[10px] tracking-wider mb-1" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>WEST HUB LMP</span>
       <span
         className="text-5xl font-medium"
@@ -431,7 +431,7 @@ function MiniSparkline() {
   useEffect(() => { const i = setInterval(() => setOffset(p => (p + 1) % 100), 80); return () => clearInterval(i); }, []);
   const points = Array.from({ length: 30 }, (_, i) => `${i * 5},${25 + Math.sin((i + offset) * 0.4) * 15}`).join(" ");
   return (
-    <svg width="100%" height="50" className="mt-2">
+    <svg width="100%" height="60" className="mt-2">
       <polyline points={points} fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
@@ -441,10 +441,10 @@ function MiniSparkline() {
 function NestView() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "#0D0D0E", padding: '12px' }}>
-      <div className="grid grid-cols-12 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: '45fr 30fr 25fr' }}>
+      <div className="grid grid-cols-12 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: '45fr 32fr 23fr' }}>
         {/* Market Pulse - 40% width with PJM Territory */}
         <BentoCard title="MARKET PULSE" className="col-span-5 row-span-2" status="live">
-          <div className="relative w-full h-full min-h-0">
+          <div className="absolute inset-0 w-full h-full">
             <PulsingDotGrid />
             <PJMTerritory />
           </div>
@@ -484,31 +484,30 @@ function NestView() {
 
         {/* Spark Spread */}
         <BentoCard title="SPARK SPREAD" className="col-span-4 row-span-1" status="live">
-          <div className="p-4 flex flex-col items-center justify-center h-full">
+          <div className="flex flex-col items-center justify-center h-full w-full p-4">
             <span className="text-3xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00A3FF" }}>12.7</span>
             <span className="text-[9px] mt-1" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>$/MWh</span>
-            <MiniSparkline />
+            <div className="w-full mt-4">
+              <MiniSparkline />
+            </div>
           </div>
         </BentoCard>
 
         {/* Battery ARB - Charge Windows */}
         <BentoCard title="BATTERY ARB" className="col-span-3 row-span-1" status="stale">
-          <div className="p-3 flex flex-col items-center justify-center h-full">
-            <div className="relative w-14 h-14">
+          <div className="flex flex-col items-center justify-center h-full w-full p-4 gap-4">
+            <div className="relative w-24 h-24">
               <svg viewBox="0 0 36 36" className="w-full h-full">
                 <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
                 <circle cx="18" cy="18" r="16" fill="none" stroke="#00FFF0" strokeWidth="2" strokeDasharray="71 100" strokeLinecap="round" transform="rotate(-90 18 18)" />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-base font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00FFF0" }}>71%</span>
+              <span className="absolute inset-0 flex items-center justify-center text-xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00FFF0" }}>71%</span>
             </div>
-            {/* Charge Windows Schedule */}
-            <div className="mt-3 space-y-1 text-center">
-              <div className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>
-                CHARGE 02:00–06:00
-              </div>
-              <div className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>
-                DISCHARGE 16:00–20:00
-              </div>
+            <div className="space-y-2 text-center">
+              <div className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>CHARGE 02:00–06:00</div>
+              <div className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>DISCHARGE 16:00–20:00</div>
+              <div className="mt-2 text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.3)" }}>EST. DAILY REVENUE</div>
+              <div className="text-[13px] font-medium" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>$4,240 /MWh</div>
             </div>
           </div>
         </BentoCard>
@@ -567,7 +566,7 @@ function NestView() {
 
         {/* Resource Gap - Reserve Margin with Probability Ribbons */}
         <BentoCard title="RESOURCE GAP" className="col-span-4 row-span-1" status="live">
-          <div className="p-4 relative h-full">
+          <div className="p-3 relative flex-1 min-h-0 h-full">
             {/* Reserve Margin Badge */}
             <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(0, 163, 255, 0.1)", border: "1px solid rgba(0, 163, 255, 0.3)" }}>
               <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>RESERVE MARGIN: 18.4%</span>

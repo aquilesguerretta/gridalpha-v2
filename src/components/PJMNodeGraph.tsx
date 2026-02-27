@@ -233,8 +233,9 @@ function Scene({ selectedZone, onZoneSelect }: {
 }
 
 // Main export
-export function PJMNodeGraph({ onZoneSelect }: {
+export function PJMNodeGraph({ onZoneSelect, expanded = false }: {
   onZoneSelect?: (zoneId: string) => void
+  expanded?: boolean
 }) {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
 
@@ -254,14 +255,14 @@ export function PJMNodeGraph({ onZoneSelect }: {
         <fog attach="fog" args={['#0A0A0B', 12, 25]} />
         <Scene selectedZone={selectedZone} onZoneSelect={handleSelect} />
         <OrbitControls
-          enablePan={false}
+          enablePan={expanded}
           enableZoom={true}
-          minDistance={6}
-          maxDistance={14}
+          minDistance={expanded ? 2 : 7}
+          maxDistance={expanded ? 20 : 14}
           autoRotate={true}
-          autoRotateSpeed={1.2}
-          minPolarAngle={Math.PI / 6}
-          maxPolarAngle={Math.PI / 1.5}
+          autoRotateSpeed={expanded ? 0.8 : 1.2}
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI}
         />
       </Canvas>
     </div>

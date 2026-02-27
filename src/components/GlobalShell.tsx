@@ -355,12 +355,13 @@ function PJMTerritory() {
 }
 
 // Bento Card Component
-function BentoCard({ title, children, status = "live", className = "", style = {} }: {
+function BentoCard({ title, children, status = "live", className = "", style = {}, onTitleClick }: {
   title: string;
   children: React.ReactNode;
   status?: "live" | "stale" | "fallback";
   className?: string;
   style?: React.CSSProperties;
+  onTitleClick?: () => void;
 }) {
   return (
     <div
@@ -380,11 +381,18 @@ function BentoCard({ title, children, status = "live", className = "", style = {
       <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
         <StatusDot status={status} />
       </div>
-      <div style={{
-        padding: '10px 16px',
-        borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)",
-        flexShrink: 0
-      }}>
+      <div
+        style={{
+          padding: '10px 16px',
+          borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)",
+          flexShrink: 0,
+          cursor: onTitleClick ? 'pointer' : 'default',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+        }}
+        onClick={onTitleClick}
+      >
         <span style={{
           fontFamily: "'Geist Mono', monospace",
           fontSize: '10px',
@@ -393,6 +401,16 @@ function BentoCard({ title, children, status = "live", className = "", style = {
           textTransform: 'uppercase' as const,
           color: "rgba(255, 255, 255, 0.5)"
         }}>{title}</span>
+        {onTitleClick && (
+          <span style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '8px',
+            color: 'rgba(255,255,255,0.2)',
+            letterSpacing: '0.1em',
+          }}>
+            ↗ EXPAND
+          </span>
+        )}
       </div>
       <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
         {children}
@@ -524,6 +542,7 @@ const ZONE_ALERTS: Record<string, { msg: string; severity: string; time: string 
 // THE NEST View - Volumetric Bento
 function NestView() {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
+  const [marketPulseExpanded, setMarketPulseExpanded] = useState(false)
 
   const lmpData = ZONE_LMP[selectedZone ?? 'WEST_HUB']
   const zoneName = ZONE_LABELS[selectedZone ?? 'WEST_HUB'] ?? 'WEST HUB'
@@ -544,11 +563,98 @@ function NestView() {
       backgroundColor: '#0D0D0E'
     }}>
       {/* Market Pulse - spans 2 rows */}
-      <BentoCard title="MARKET PULSE" status="live" style={{ gridRow: 'span 2' }}>
+      <BentoCard title="MARKET PULSE" status="live" style={{ gridRow: 'span 2', cursor: 'pointer' }} onTitleClick={() => setMarketPulseExpanded(true)}>
         <div style={{ position: 'absolute', inset: 0 }}>
-          <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} />
+          <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} expanded={false} />
         </div>
       </BentoCard>
+
+      {/* Fullscreen overlay */}
+      {marketPulseExpanded && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 50,
+          backgroundColor: '#0A0A0B',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          {/* Overlay header */}
+          <div style={{
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 24px',
+            borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+            flexShrink: 0,
+          }}>
+            <span style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '11px',
+              color: 'rgba(255,255,255,0.5)',
+              letterSpacing: '0.15em',
+            }}>
+              MARKET PULSE — PJM ZONE EXPLORER
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {selectedZone && (
+                <span style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '11px',
+                  color: '#00FFF0',
+                  letterSpacing: '0.1em',
+                }}>
+                  SELECTED: {selectedZone}
+                </span>
+              )}
+              <button
+                onClick={() => setMarketPulseExpanded(false)}
+                style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '10px',
+                  color: 'rgba(255,255,255,0.4)',
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '0.5px solid rgba(255,255,255,0.1)',
+                  borderRadius: '4px',
+                  padding: '4px 12px',
+                  cursor: 'pointer',
+                  letterSpacing: '0.1em',
+                }}
+              >
+                ← BACK TO NEST
+              </button>
+            </div>
+          </div>
+          {/* Full 3D canvas */}
+          <div style={{ flex: 1, position: 'relative' }}>
+            <PJMNodeGraph
+              onZoneSelect={(id) => {
+                setSelectedZone(id || null)
+                if (id) setMarketPulseExpanded(false)
+              }}
+              expanded={true}
+            />
+          </div>
+          {/* Bottom hint */}
+          <div style={{
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderTop: '0.5px solid rgba(255,255,255,0.05)',
+          }}>
+            <span style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '9px',
+              color: 'rgba(255,255,255,0.2)',
+              letterSpacing: '0.15em',
+            }}>
+              DRAG TO ROTATE  ·  SCROLL TO ZOOM  ·  CLICK ZONE TO SELECT & RETURN
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Peregrine Feed */}
       <BentoCard title="PEREGRINE FEED" status="live">

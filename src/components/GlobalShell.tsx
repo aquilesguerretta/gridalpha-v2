@@ -381,7 +381,7 @@ function BentoCard({ title, children, status = "live", className = "", style = {
           {title}
         </span>
       </div>
-      <div className="relative flex-1 min-h-0 overflow-hidden">
+      <div className="relative flex-1 min-h-0 overflow-hidden" style={{ height: '100%' }}>
         {children}
       </div>
     </div>
@@ -441,7 +441,7 @@ function MiniSparkline() {
 function NestView() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "#0D0D0E", padding: '12px' }}>
-      <div className="grid grid-cols-12 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: '45fr 32fr 23fr' }}>
+      <div className="grid grid-cols-12 gap-3" style={{ gridTemplateRows: '45fr 32fr 23fr', height: '100%', flex: 1, minHeight: 0 }}>
         {/* Market Pulse - 40% width with PJM Territory */}
         <BentoCard title="MARKET PULSE" className="col-span-5 row-span-2" status="live">
           <div className="absolute inset-0 w-full h-full">

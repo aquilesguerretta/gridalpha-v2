@@ -543,6 +543,15 @@ const ZONE_ALERTS: Record<string, { msg: string; severity: string; time: string 
 function NestView() {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [marketPulseExpanded, setMarketPulseExpanded] = useState(false)
+  const [marketPulseClosing, setMarketPulseClosing] = useState(false)
+
+  const closeModal = () => {
+    setMarketPulseClosing(true)
+    setTimeout(() => {
+      setMarketPulseExpanded(false)
+      setMarketPulseClosing(false)
+    }, 280)
+  }
 
   const lmpData = ZONE_LMP[selectedZone ?? 'WEST_HUB']
   const zoneName = ZONE_LABELS[selectedZone ?? 'WEST_HUB'] ?? 'WEST HUB'
@@ -569,91 +578,114 @@ function NestView() {
         </div>
       </BentoCard>
 
-      {/* Fullscreen overlay */}
+      {/* Modal overlay */}
       {marketPulseExpanded && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 50,
-          backgroundColor: '#0A0A0B',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          {/* Overlay header */}
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={closeModal}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 49,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(4px)',
+            }}
+          />
+          {/* Modal */}
           <div style={{
-            height: '48px',
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 50,
+            width: '78vw',
+            height: '78vh',
+            backgroundColor: '#0A0A0B',
+            border: '0.5px solid rgba(0,163,255,0.3)',
+            borderRadius: '12px',
+            overflow: 'hidden',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 24px',
-            borderBottom: '0.5px solid rgba(255,255,255,0.08)',
-            flexShrink: 0,
+            flexDirection: 'column',
+            boxShadow: '0 0 60px rgba(0,163,255,0.15), 0 0 120px rgba(0,163,255,0.05)',
+            animation: marketPulseClosing
+              ? 'modal-collapse 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards'
+              : 'modal-expand 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
           }}>
-            <span style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: '11px',
-              color: 'rgba(255,255,255,0.5)',
-              letterSpacing: '0.15em',
+            {/* Header */}
+            <div style={{
+              height: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '0 20px',
+              borderBottom: '0.5px solid rgba(255,255,255,0.08)',
+              flexShrink: 0,
             }}>
-              MARKET PULSE — PJM ZONE EXPLORER
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              {selectedZone && (
-                <span style={{
-                  fontFamily: "'Geist Mono', monospace",
-                  fontSize: '11px',
-                  color: '#00FFF0',
-                  letterSpacing: '0.1em',
-                }}>
-                  SELECTED: {selectedZone}
-                </span>
-              )}
-              <button
-                onClick={() => setMarketPulseExpanded(false)}
-                style={{
-                  fontFamily: "'Geist Mono', monospace",
-                  fontSize: '10px',
-                  color: 'rgba(255,255,255,0.4)',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '0.5px solid rgba(255,255,255,0.1)',
-                  borderRadius: '4px',
-                  padding: '4px 12px',
-                  cursor: 'pointer',
-                  letterSpacing: '0.1em',
-                }}
-              >
-                ← BACK TO NEST
-              </button>
+              <span style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                color: 'rgba(255,255,255,0.5)',
+                letterSpacing: '0.15em',
+              }}>
+                MARKET PULSE — PJM ZONE EXPLORER
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {selectedZone && (
+                  <span style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: '11px',
+                    color: '#00FFF0',
+                    letterSpacing: '0.1em',
+                  }}>
+                    {selectedZone} · ${ZONE_LMP[selectedZone]?.price.toFixed(2)} /MWh
+                  </span>
+                )}
+                <button
+                  onClick={closeModal}
+                  style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: '9px',
+                    color: 'rgba(255,255,255,0.4)',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '0.5px solid rgba(255,255,255,0.1)',
+                    borderRadius: '4px',
+                    padding: '4px 12px',
+                    cursor: 'pointer',
+                    letterSpacing: '0.1em',
+                  }}
+                >
+                  ✕ CLOSE
+                </button>
+              </div>
+            </div>
+            {/* 3D canvas */}
+            <div style={{ flex: 1, position: 'relative' }}>
+              <PJMNodeGraph
+                onZoneSelect={(id) => setSelectedZone(id || null)}
+                expanded={true}
+              />
+            </div>
+            {/* Footer hint */}
+            <div style={{
+              height: '28px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderTop: '0.5px solid rgba(255,255,255,0.05)',
+              flexShrink: 0,
+            }}>
+              <span style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '8px',
+                color: 'rgba(255,255,255,0.2)',
+                letterSpacing: '0.15em',
+              }}>
+                DRAG · SCROLL TO ZOOM · CLICK ZONE TO SELECT · CLICK AGAIN TO DESELECT
+              </span>
             </div>
           </div>
-          {/* Full 3D canvas */}
-          <div style={{ flex: 1, position: 'relative' }}>
-            <PJMNodeGraph
-              onZoneSelect={(id) => {
-                setSelectedZone(id || null)
-                if (id) setMarketPulseExpanded(false)
-              }}
-              expanded={true}
-            />
-          </div>
-          {/* Bottom hint */}
-          <div style={{
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderTop: '0.5px solid rgba(255,255,255,0.05)',
-          }}>
-            <span style={{
-              fontFamily: "'Geist Mono', monospace",
-              fontSize: '9px',
-              color: 'rgba(255,255,255,0.2)',
-              letterSpacing: '0.15em',
-            }}>
-              DRAG TO ROTATE  ·  SCROLL TO ZOOM  ·  CLICK ZONE TO SELECT & RETURN
-            </span>
-          </div>
-        </div>
+        </>
       )}
 
       {/* Peregrine Feed */}

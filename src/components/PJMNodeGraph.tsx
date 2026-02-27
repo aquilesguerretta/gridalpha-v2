@@ -1,30 +1,30 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 
 // PJM zones with 3D positions — all 20 zones
 const PJM_ZONES = [
-  { id: 'WEST_HUB',  label: 'WEST HUB',  position: [0, 0, 0] as [number,number,number],       lmp: 35.90, isHub: true },
-  { id: 'COMED',     label: 'COMED',     position: [-4, 1.5, 0.5] as [number,number,number],   lmp: 32.04 },
-  { id: 'AEP',       label: 'AEP',       position: [-2.5, -1.5, 1] as [number,number,number],  lmp: 33.36 },
-  { id: 'ATSI',      label: 'ATSI',      position: [-2.5, 2, -0.5] as [number,number,number],  lmp: 33.23 },
-  { id: 'DAY',       label: 'DAY',       position: [-1.5, -0.5, 1.5] as [number,number,number],lmp: 33.89 },
-  { id: 'DEOK',      label: 'DEOK',      position: [-1, -2, 1] as [number,number,number],      lmp: 32.69 },
-  { id: 'DUQ',       label: 'DUQ',       position: [-0.5, 2, 1] as [number,number,number],     lmp: 33.20 },
-  { id: 'DOMINION',  label: 'DOMINION',  position: [1.5, -2.5, -0.5] as [number,number,number],lmp: 34.23 },
-  { id: 'DPL',       label: 'DPL',       position: [2, -1.5, -1] as [number,number,number],    lmp: 35.26 },
-  { id: 'EKPC',      label: 'EKPC',      position: [-3, -2, 0] as [number,number,number],      lmp: 32.48 },
-  { id: 'PPL',       label: 'PPL',       position: [1.5, 1, 1] as [number,number,number],      lmp: 33.11 },
-  { id: 'PECO',      label: 'PECO',      position: [2.5, 0.5, 0.5] as [number,number,number],  lmp: 34.10 },
-  { id: 'PSEG',      label: 'PSEG',      position: [3.5, 1.5, -0.5] as [number,number,number], lmp: 34.93 },
-  { id: 'JCPL',      label: 'JCPL',      position: [3, -0.5, -1] as [number,number,number],    lmp: 34.67 },
-  { id: 'PEPCO',     label: 'PEPCO',     position: [2, -0.5, -2] as [number,number,number],    lmp: 34.81 },
-  { id: 'BGE',       label: 'BGE',       position: [1.5, -1, -2] as [number,number,number],    lmp: 34.50 },
-  { id: 'METED',     label: 'METED',     position: [1, 0.5, 1.5] as [number,number,number],    lmp: 34.10 },
-  { id: 'PENELEC',   label: 'PENELEC',   position: [0.5, 2, 0.5] as [number,number,number],    lmp: 32.96 },
-  { id: 'RECO',      label: 'RECO',      position: [4, 0.5, -1] as [number,number,number],     lmp: 36.60 },
-  { id: 'OVEC',      label: 'OVEC',      position: [-1, -1.5, 0.5] as [number,number,number],  lmp: 32.56 },
+  { id: 'WEST_HUB',  label: 'WEST HUB',  position: [0, 0, 0] as [number,number,number],          lmp: 35.90, isHub: true },
+  { id: 'COMED',     label: 'COMED',     position: [-4.5, 1.5, 2] as [number,number,number],      lmp: 32.04 },
+  { id: 'AEP',       label: 'AEP',       position: [-3, -2, -1.5] as [number,number,number],      lmp: 33.36 },
+  { id: 'ATSI',      label: 'ATSI',      position: [-2.5, 3, -2] as [number,number,number],       lmp: 33.23 },
+  { id: 'DAY',       label: 'DAY',       position: [-2, -0.5, 3] as [number,number,number],       lmp: 33.89 },
+  { id: 'DEOK',      label: 'DEOK',      position: [-1.5, -3, 2] as [number,number,number],       lmp: 32.69 },
+  { id: 'DUQ',       label: 'DUQ',       position: [-0.5, 3, 2.5] as [number,number,number],      lmp: 33.20 },
+  { id: 'DOMINION',  label: 'DOMINION',  position: [2, -3, -2] as [number,number,number],         lmp: 34.23 },
+  { id: 'DPL',       label: 'DPL',       position: [2.5, -2, -3] as [number,number,number],       lmp: 35.26 },
+  { id: 'EKPC',      label: 'EKPC',      position: [-4, -2.5, -1] as [number,number,number],      lmp: 32.48 },
+  { id: 'PPL',       label: 'PPL',       position: [2, 1.5, 2.5] as [number,number,number],       lmp: 33.11 },
+  { id: 'PECO',      label: 'PECO',      position: [3, 0.5, 1] as [number,number,number],         lmp: 34.10 },
+  { id: 'PSEG',      label: 'PSEG',      position: [4, 2, -1] as [number,number,number],          lmp: 34.93 },
+  { id: 'JCPL',      label: 'JCPL',      position: [3.5, -1, -2] as [number,number,number],       lmp: 34.67 },
+  { id: 'PEPCO',     label: 'PEPCO',     position: [2.5, -1, -3.5] as [number,number,number],     lmp: 34.81 },
+  { id: 'BGE',       label: 'BGE',       position: [1.5, -2, -3] as [number,number,number],       lmp: 34.50 },
+  { id: 'METED',     label: 'METED',     position: [1.5, 1, 3] as [number,number,number],         lmp: 34.10 },
+  { id: 'PENELEC',   label: 'PENELEC',   position: [0.5, 3, 1.5] as [number,number,number],       lmp: 32.96 },
+  { id: 'RECO',      label: 'RECO',      position: [5, 0.5, -2] as [number,number,number],        lmp: 36.60 },
+  { id: 'OVEC',      label: 'OVEC',      position: [-1.5, -2, -1] as [number,number,number],      lmp: 32.56 },
 ]
 
 // Transmission connections between zones
@@ -184,6 +184,52 @@ function ConnectionLine({ from, to, active }: {
   )
 }
 
+// Star field — 300 random points for depth
+function StarField() {
+  const points = useMemo(() => {
+    const arr = []
+    for (let i = 0; i < 300; i++) {
+      arr.push(
+        (Math.random() - 0.5) * 60,
+        (Math.random() - 0.5) * 60,
+        (Math.random() - 0.5) * 60,
+      )
+    }
+    return new Float32Array(arr)
+  }, [])
+
+  const bufferRef = useRef<THREE.BufferGeometry>(null)
+
+  useEffect(() => {
+    if (bufferRef.current) {
+      bufferRef.current.setAttribute('position', new THREE.BufferAttribute(points, 3))
+    }
+  }, [points])
+
+  return (
+    <points>
+      <bufferGeometry ref={bufferRef} />
+      <pointsMaterial
+        size={0.06}
+        color="#00A3FF"
+        transparent
+        opacity={0.3}
+        sizeAttenuation
+      />
+    </points>
+  )
+}
+
+// Grid plane at the bottom for depth reference
+function GridPlane() {
+  return (
+    <gridHelper
+      args={[30, 30, 'rgba(0,163,255,0.1)', 'rgba(0,163,255,0.05)']}
+      position={[0, -5, 0]}
+    />
+  )
+}
+
 // Scene
 function Scene({ selectedZone, onZoneSelect }: {
   selectedZone: string | null
@@ -198,6 +244,10 @@ function Scene({ selectedZone, onZoneSelect }: {
 
   return (
     <group>
+      {/* Depth background */}
+      <StarField />
+      <GridPlane />
+
       {/* Ambient and point lights */}
       <ambientLight intensity={0.2} />
       <pointLight position={[0, 5, 5]} intensity={1} color="#00A3FF" />
@@ -240,9 +290,15 @@ export function PJMNodeGraph({ onZoneSelect, expanded = false }: {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
 
   const handleSelect = (id: string) => {
-    const next = selectedZone === id ? null : id
-    setSelectedZone(next)
-    onZoneSelect?.(next ?? '')
+    if (selectedZone === id) {
+      // Second click — deselect, notify parent with empty string
+      setSelectedZone(null)
+      onZoneSelect?.('')
+    } else {
+      // First click — highlight zone, notify parent but do NOT close
+      setSelectedZone(id)
+      onZoneSelect?.(id)
+    }
   }
 
   return (

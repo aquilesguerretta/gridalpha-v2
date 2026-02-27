@@ -308,7 +308,7 @@ function PJMTerritory() {
   ];
 
   return (
-    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid meet">
+    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice">
       {/* PJM Territory - PA-centered hexagonal cluster */}
       <path
         d="M40,60 L55,35 L85,25 L115,25 L145,35 L160,60 L150,85 L120,100 L80,100 L50,85 Z"
@@ -444,7 +444,7 @@ function NestView() {
       <div className="grid grid-cols-12 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: '45fr 30fr 25fr' }}>
         {/* Market Pulse - 40% width with PJM Territory */}
         <BentoCard title="MARKET PULSE" className="col-span-5 row-span-2" status="live">
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full min-h-0">
             <PulsingDotGrid />
             <PJMTerritory />
           </div>
@@ -452,7 +452,7 @@ function NestView() {
 
         {/* Peregrine Feed - Terminal Style */}
         <BentoCard title="PEREGRINE FEED" className="col-span-4 row-span-1" status="live">
-          <div className="p-4 space-y-1.5">
+          <div className="p-4 space-y-1.5 h-full flex flex-col justify-between">
             {[
               { msg: "Congestion spike — West Hub", severity: "critical", time: "09:15" },
               { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
@@ -484,7 +484,7 @@ function NestView() {
 
         {/* Spark Spread */}
         <BentoCard title="SPARK SPREAD" className="col-span-4 row-span-1" status="live">
-          <div className="p-4 flex flex-col items-center">
+          <div className="p-4 flex flex-col items-center justify-center h-full">
             <span className="text-3xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00A3FF" }}>12.7</span>
             <span className="text-[9px] mt-1" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>$/MWh</span>
             <MiniSparkline />
@@ -493,7 +493,7 @@ function NestView() {
 
         {/* Battery ARB - Charge Windows */}
         <BentoCard title="BATTERY ARB" className="col-span-3 row-span-1" status="stale">
-          <div className="p-3 flex flex-col items-center">
+          <div className="p-3 flex flex-col items-center justify-center h-full">
             <div className="relative w-14 h-14">
               <svg viewBox="0 0 36 36" className="w-full h-full">
                 <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
@@ -567,7 +567,7 @@ function NestView() {
 
         {/* Resource Gap - Reserve Margin with Probability Ribbons */}
         <BentoCard title="RESOURCE GAP" className="col-span-4 row-span-1" status="live">
-          <div className="p-4 h-[120px] relative">
+          <div className="p-4 relative h-full">
             {/* Reserve Margin Badge */}
             <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(0, 163, 255, 0.1)", border: "1px solid rgba(0, 163, 255, 0.3)" }}>
               <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>RESERVE MARGIN: 18.4%</span>

@@ -361,27 +361,37 @@ function BentoCard({ title, children, status = "live", className = "", style = {
 }) {
   return (
     <div
-      className={`relative rounded-lg overflow-hidden flex flex-col ${className}`}
+      className={className}
       style={{
+        position: 'relative',
         backgroundColor: "rgba(10, 10, 11, 0.7)",
         backdropFilter: "blur(12px)",
         border: "0.5px solid rgba(255, 255, 255, 0.08)",
-        height: '100%',
-        width: '100%',
-        minHeight: 0,
-        minWidth: 0,
+        borderRadius: '8px',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
         ...style
       }}
     >
-      <div className="absolute top-3 right-3 z-10">
+      <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
         <StatusDot status={status} />
       </div>
-      <div className="px-4 py-3 shrink-0" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
-        <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>
-          {title}
-        </span>
+      <div style={{
+        padding: '10px 16px',
+        borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)",
+        flexShrink: 0
+      }}>
+        <span style={{
+          fontFamily: "'Geist Mono', monospace",
+          fontSize: '10px',
+          fontWeight: 600,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase' as const,
+          color: "rgba(255, 255, 255, 0.5)"
+        }}>{title}</span>
       </div>
-      <div className="relative flex-1 min-h-0 overflow-hidden" style={{ height: '100%' }}>
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
         {children}
       </div>
     </div>
@@ -440,192 +450,200 @@ function MiniSparkline() {
 // THE NEST View - Volumetric Bento
 function NestView() {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: "#0D0D0E", padding: '12px' }}>
-      <div className="grid grid-cols-12 gap-3" style={{ gridTemplateRows: '45fr 32fr 23fr', height: '100%', flex: 1, minHeight: 0 }}>
-        {/* Market Pulse - 40% width with PJM Territory */}
-        <BentoCard title="MARKET PULSE" className="col-span-5 row-span-2" status="live">
-          <div className="absolute inset-0 w-full h-full">
-            <PulsingDotGrid />
-            <PJMTerritory />
-          </div>
-        </BentoCard>
+    <div style={{
+      flex: 1,
+      display: 'grid',
+      gridTemplateColumns: '40fr 30fr 30fr',
+      gridTemplateRows: '45fr 30fr 25fr',
+      gap: '8px',
+      padding: '8px',
+      minHeight: 0,
+      overflow: 'hidden',
+      backgroundColor: '#0D0D0E'
+    }}>
+      {/* Market Pulse - spans 2 rows */}
+      <BentoCard title="MARKET PULSE" status="live" style={{ gridRow: 'span 2' }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <PulsingDotGrid />
+          <PJMTerritory />
+        </div>
+      </BentoCard>
 
-        {/* Peregrine Feed - Terminal Style */}
-        <BentoCard title="PEREGRINE FEED" className="col-span-4 row-span-1" status="live">
-          <div className="p-4 space-y-1.5 h-full flex flex-col justify-between">
+      {/* Peregrine Feed */}
+      <BentoCard title="PEREGRINE FEED" status="live">
+        <div style={{ position: 'absolute', inset: 0, padding: '12px', overflowY: 'auto' }}>
+          {[
+            { msg: "Congestion spike — West Hub", severity: "critical", time: "09:15" },
+            { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
+            { msg: "Wind ramp detected — OHIO", severity: "info", time: "09:29" },
+            { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:36" },
+            { msg: "Transmission constraint — Rte 18", severity: "critical", time: "09:43" },
+          ].map((alert, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 pl-2"
+              style={{ borderLeft: `2px solid ${alert.severity === "critical" ? "#DC2626" : alert.severity === "warning" ? "#FFB800" : "#00FFF0"}`, marginBottom: '6px' }}
+            >
+              <span className="text-[9px] tabular-nums" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "rgba(255, 255, 255, 0.3)" }}>{alert.time}</span>
+              <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.6)" }}>{alert.msg}</span>
+            </div>
+          ))}
+          {/* Blinking terminal cursor */}
+          <div className="flex items-center gap-2 pl-2 mt-2" style={{ borderLeft: "2px solid transparent" }}>
+            <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.3)" }}>09:50</span>
+            <span className="text-[10px] animate-pulse" style={{ fontFamily: "'Geist Mono', monospace", color: "#00FFF0" }}>█</span>
+          </div>
+        </div>
+      </BentoCard>
+
+      {/* LMP Hub */}
+      <BentoCard title="LMP / HUB" status="live">
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <LMPScorecard />
+        </div>
+      </BentoCard>
+
+      {/* Spark Spread */}
+      <BentoCard title="SPARK SPREAD" status="live">
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '32px', color: '#00A3FF', fontVariantNumeric: 'tabular-nums' }}>12.7</span>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>$/MWh</span>
+          <div style={{ width: '100%', marginTop: '16px' }}><MiniSparkline /></div>
+        </div>
+      </BentoCard>
+
+      {/* Battery ARB */}
+      <BentoCard title="BATTERY ARB" status="stale">
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px' }}>
+          <div style={{ position: 'relative', width: '88px', height: '88px' }}>
+            <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
+              <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#00FFF0" strokeWidth="2" strokeDasharray="71 100" strokeLinecap="round" transform="rotate(-90 18 18)" />
+            </svg>
+            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Geist Mono', monospace", fontSize: '18px', color: '#00FFF0' }}>71%</span>
+          </div>
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>CHARGE 02:00–06:00</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: '#FFB800' }}>DISCHARGE 16:00–20:00</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>EST. DAILY REVENUE</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: '#FFB800' }}>$4,240 /MWh</span>
+          </div>
+        </div>
+      </BentoCard>
+
+      {/* Generation Mix - spans 2 columns */}
+      <BentoCard title="GENERATION MIX" status="live" style={{ gridColumn: 'span 2' }}>
+        <div style={{ position: 'absolute', inset: 0, padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {/* MW labels above bar */}
+          <div className="flex h-4 mb-1">
             {[
-              { msg: "Congestion spike — West Hub", severity: "critical", time: "09:15" },
-              { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
-              { msg: "Wind ramp detected — OHIO", severity: "info", time: "09:29" },
-              { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:36" },
-              { msg: "Transmission constraint — Rte 18", severity: "critical", time: "09:43" },
-            ].map((alert, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 pl-2"
-                style={{ borderLeft: `2px solid ${alert.severity === "critical" ? "#DC2626" : alert.severity === "warning" ? "#FFB800" : "#00FFF0"}` }}
-              >
-                <span className="text-[9px] tabular-nums" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "rgba(255, 255, 255, 0.3)" }}>{alert.time}</span>
-                <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.6)" }}>{alert.msg}</span>
+              { w: "32%", mw: "28.4", c: "#A855F7" },
+              { w: "28%", mw: "24.8", c: "#F97316" },
+              { w: "14%", mw: "12.4", c: "#00FFF0" },
+              { w: "10%", mw: "8.9", c: "#FFB800" },
+              { w: "9%", mw: "8.0", c: "#64748B" },
+              { w: "7%", mw: "6.2", c: "#3B82F6" },
+            ].map((s, i) => (
+              <div key={i} style={{ width: s.w }} className="flex justify-center">
+                <span className="text-[8px]" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: s.c }}>{s.mw}</span>
               </div>
             ))}
-            {/* Blinking terminal cursor */}
-            <div className="flex items-center gap-2 pl-2 mt-2" style={{ borderLeft: "2px solid transparent" }}>
-              <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.3)" }}>09:50</span>
-              <span className="text-[10px] animate-pulse" style={{ fontFamily: "'Geist Mono', monospace", color: "#00FFF0" }}>█</span>
-            </div>
           </div>
-        </BentoCard>
-
-        {/* LMP Scorecard */}
-        <BentoCard title="LMP / Hub" className="col-span-3 row-span-1" status="live">
-          <LMPScorecard />
-        </BentoCard>
-
-        {/* Spark Spread */}
-        <BentoCard title="SPARK SPREAD" className="col-span-4 row-span-1" status="live">
-          <div className="flex flex-col items-center justify-center h-full w-full p-4">
-            <span className="text-3xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00A3FF" }}>12.7</span>
-            <span className="text-[9px] mt-1" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>$/MWh</span>
-            <div className="w-full mt-4">
-              <MiniSparkline />
-            </div>
+          {/* Stacked bar */}
+          <div className="flex h-6 rounded overflow-hidden">
+            {[
+              { w: "32%", c: "#A855F7", l: "Nuclear" },
+              { w: "28%", c: "#F97316", l: "Gas" },
+              { w: "14%", c: "#00FFF0", l: "Wind" },
+              { w: "10%", c: "#FFB800", l: "Solar" },
+              { w: "9%", c: "#64748B", l: "Coal" },
+              { w: "7%", c: "#3B82F6", l: "Hydro" },
+            ].map((s, i) => (
+              <div key={i} style={{ width: s.w, backgroundColor: s.c }} className="relative group">
+                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] whitespace-nowrap" style={{ fontFamily: "'Geist Mono', monospace", color: s.c }}>{s.l}</div>
+              </div>
+            ))}
           </div>
-        </BentoCard>
-
-        {/* Battery ARB - Charge Windows */}
-        <BentoCard title="BATTERY ARB" className="col-span-3 row-span-1" status="stale">
-          <div className="flex flex-col items-center justify-center h-full w-full p-4 gap-4">
-            <div className="relative w-24 h-24">
-              <svg viewBox="0 0 36 36" className="w-full h-full">
-                <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-                <circle cx="18" cy="18" r="16" fill="none" stroke="#00FFF0" strokeWidth="2" strokeDasharray="71 100" strokeLinecap="round" transform="rotate(-90 18 18)" />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00FFF0" }}>71%</span>
-            </div>
-            <div className="space-y-2 text-center">
-              <div className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>CHARGE 02:00–06:00</div>
-              <div className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>DISCHARGE 16:00–20:00</div>
-              <div className="mt-2 text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.3)" }}>EST. DAILY REVENUE</div>
-              <div className="text-[13px] font-medium" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>$4,240 /MWh</div>
-            </div>
+          {/* Legend */}
+          <div className="flex gap-4 mt-4 flex-wrap">
+            {[
+              { c: "#A855F7", l: "Nuclear", v: "32%" },
+              { c: "#F97316", l: "Gas", v: "28%" },
+              { c: "#00FFF0", l: "Wind", v: "14%" },
+              { c: "#FFB800", l: "Solar", v: "10%" },
+              { c: "#64748B", l: "Coal", v: "9%" },
+              { c: "#3B82F6", l: "Hydro", v: "7%" },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: s.c }} />
+                <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>{s.l} {s.v}</span>
+              </div>
+            ))}
           </div>
-        </BentoCard>
+        </div>
+      </BentoCard>
 
-        {/* Generation Mix - Corrected Palette with MW Values */}
-        <BentoCard title="GENERATION MIX" className="col-span-8 row-span-1" status="live">
-          <div className="p-4">
-            {/* MW labels above bar */}
-            <div className="flex h-4 mb-1">
-              {[
-                { w: "32%", mw: "28.4", c: "#A855F7" },
-                { w: "28%", mw: "24.8", c: "#F97316" },
-                { w: "14%", mw: "12.4", c: "#00FFF0" },
-                { w: "10%", mw: "8.9", c: "#FFB800" },
-                { w: "9%", mw: "8.0", c: "#64748B" },
-                { w: "7%", mw: "6.2", c: "#3B82F6" },
-              ].map((s, i) => (
-                <div key={i} style={{ width: s.w }} className="flex justify-center">
-                  <span className="text-[8px]" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: s.c }}>{s.mw}</span>
-                </div>
-              ))}
-            </div>
-            {/* Stacked bar */}
-            <div className="flex h-6 rounded overflow-hidden">
-              {[
-                { w: "32%", c: "#A855F7", l: "Nuclear" },
-                { w: "28%", c: "#F97316", l: "Gas" },
-                { w: "14%", c: "#00FFF0", l: "Wind" },
-                { w: "10%", c: "#FFB800", l: "Solar" },
-                { w: "9%", c: "#64748B", l: "Coal" },
-                { w: "7%", c: "#3B82F6", l: "Hydro" },
-              ].map((s, i) => (
-                <div key={i} style={{ width: s.w, backgroundColor: s.c }} className="relative group">
-                  <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] whitespace-nowrap" style={{ fontFamily: "'Geist Mono', monospace", color: s.c }}>{s.l}</div>
-                </div>
-              ))}
-            </div>
-            {/* Legend */}
-            <div className="flex gap-4 mt-4 flex-wrap">
-              {[
-                { c: "#A855F7", l: "Nuclear", v: "32%" },
-                { c: "#F97316", l: "Gas", v: "28%" },
-                { c: "#00FFF0", l: "Wind", v: "14%" },
-                { c: "#FFB800", l: "Solar", v: "10%" },
-                { c: "#64748B", l: "Coal", v: "9%" },
-                { c: "#3B82F6", l: "Hydro", v: "7%" },
-              ].map((s, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: s.c }} />
-                  <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>{s.l} {s.v}</span>
-                </div>
-              ))}
-            </div>
+      {/* Resource Gap */}
+      <BentoCard title="RESOURCE GAP" status="live">
+        <div style={{ position: 'absolute', inset: 0 }}>
+          {/* Reserve Margin Badge */}
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(0, 163, 255, 0.1)", border: "1px solid rgba(0, 163, 255, 0.3)" }}>
+            <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>RESERVE MARGIN: 18.4%</span>
           </div>
-        </BentoCard>
+          {/* NOAA Uncertainty Badge */}
+          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255, 184, 0, 0.1)", border: "1px solid rgba(255, 184, 0, 0.3)" }}>
+            <span className="text-[7px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>±σ NOAA</span>
+          </div>
+          <svg viewBox="0 0 200 80" className="w-full h-full">
+            <defs>
+              {/* Confidence band gradients */}
+              <linearGradient id="confidenceGradient95" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#00A3FF" stopOpacity="0.08" />
+                <stop offset="50%" stopColor="#00A3FF" stopOpacity="0.12" />
+                <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.08" />
+              </linearGradient>
+              <linearGradient id="confidenceGradient68" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#00A3FF" stopOpacity="0.15" />
+                <stop offset="50%" stopColor="#00A3FF" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.15" />
+              </linearGradient>
+            </defs>
 
-        {/* Resource Gap - Reserve Margin with Probability Ribbons */}
-        <BentoCard title="RESOURCE GAP" className="col-span-4 row-span-1" status="live">
-          <div className="p-3 relative flex-1 min-h-0 h-full">
-            {/* Reserve Margin Badge */}
-            <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(0, 163, 255, 0.1)", border: "1px solid rgba(0, 163, 255, 0.3)" }}>
-              <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>RESERVE MARGIN: 18.4%</span>
-            </div>
-            {/* NOAA Uncertainty Badge */}
-            <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255, 184, 0, 0.1)", border: "1px solid rgba(255, 184, 0, 0.3)" }}>
-              <span className="text-[7px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>±σ NOAA</span>
-            </div>
-            <svg viewBox="0 0 200 80" className="w-full h-full">
-              <defs>
-                {/* Confidence band gradients */}
-                <linearGradient id="confidenceGradient95" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#00A3FF" stopOpacity="0.08" />
-                  <stop offset="50%" stopColor="#00A3FF" stopOpacity="0.12" />
-                  <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.08" />
-                </linearGradient>
-                <linearGradient id="confidenceGradient68" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#00A3FF" stopOpacity="0.15" />
-                  <stop offset="50%" stopColor="#00A3FF" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.15" />
-                </linearGradient>
-              </defs>
-              
-              {/* 95% Confidence Band (outer) - wider uncertainty */}
-              <path 
-                d="M0,40 Q30,32 60,38 T120,36 T180,42 L200,40 L200,68 Q170,72 140,66 T80,70 T20,64 L0,66 Z" 
-                fill="url(#confidenceGradient95)"
-                className="animate-confidence-breathe"
-              />
-              
-              {/* 68% Confidence Band (inner) - tighter uncertainty */}
-              <path 
-                d="M0,45 Q30,40 60,44 T120,42 T180,48 L200,46 L200,62 Q170,66 140,60 T80,64 T20,58 L0,60 Z" 
-                fill="url(#confidenceGradient68)"
-                className="animate-confidence-breathe"
-                style={{ animationDelay: "0.5s" }}
-              />
-              
-              {/* Fill between capacity and load */}
-              <path d="M0,25 Q50,20 100,22 T200,18 L200,55 Q150,50 100,52 T0,50 Z" fill="rgba(0,163,255,0.05)" />
-              
-              {/* Capacity line (Electric Blue) */}
-              <path d="M0,25 Q50,20 100,22 T200,18" fill="none" stroke="#00A3FF" strokeWidth="2" />
-              
-              {/* Load forecast line (White) with real-time feel */}
-              <path d="M0,52 Q30,48 60,54 T120,50 T180,56 L200,53" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" />
-              
-              {/* Uncertainty markers */}
-              <line x1="100" y1="42" x2="100" y2="64" stroke="rgba(255,184,0,0.3)" strokeWidth="1" strokeDasharray="2 2" />
-              <text x="103" y="53" fill="#FFB800" fontSize="5" fontFamily="'Geist Mono', monospace" opacity="0.6">±8%</text>
-              
-              {/* Line labels */}
-              <text x="5" y="20" fill="#00A3FF" fontSize="7" fontFamily="'Geist Mono', monospace">CAPACITY</text>
-              <text x="5" y="62" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="'Geist Mono', monospace">LOAD</text>
-            </svg>
-            <div className="absolute bottom-2 right-2 text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>Oasis PTI</div>
-          </div>
-        </BentoCard>
-      </div>
+            {/* 95% Confidence Band (outer) - wider uncertainty */}
+            <path
+              d="M0,40 Q30,32 60,38 T120,36 T180,42 L200,40 L200,68 Q170,72 140,66 T80,70 T20,64 L0,66 Z"
+              fill="url(#confidenceGradient95)"
+              className="animate-confidence-breathe"
+            />
+
+            {/* 68% Confidence Band (inner) - tighter uncertainty */}
+            <path
+              d="M0,45 Q30,40 60,44 T120,42 T180,48 L200,46 L200,62 Q170,66 140,60 T80,64 T20,58 L0,60 Z"
+              fill="url(#confidenceGradient68)"
+              className="animate-confidence-breathe"
+              style={{ animationDelay: "0.5s" }}
+            />
+
+            {/* Fill between capacity and load */}
+            <path d="M0,25 Q50,20 100,22 T200,18 L200,55 Q150,50 100,52 T0,50 Z" fill="rgba(0,163,255,0.05)" />
+
+            {/* Capacity line (Electric Blue) */}
+            <path d="M0,25 Q50,20 100,22 T200,18" fill="none" stroke="#00A3FF" strokeWidth="2" />
+
+            {/* Load forecast line (White) with real-time feel */}
+            <path d="M0,52 Q30,48 60,54 T120,50 T180,56 L200,53" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" />
+
+            {/* Uncertainty markers */}
+            <line x1="100" y1="42" x2="100" y2="64" stroke="rgba(255,184,0,0.3)" strokeWidth="1" strokeDasharray="2 2" />
+            <text x="103" y="53" fill="#FFB800" fontSize="5" fontFamily="'Geist Mono', monospace" opacity="0.6">±8%</text>
+
+            {/* Line labels */}
+            <text x="5" y="20" fill="#00A3FF" fontSize="7" fontFamily="'Geist Mono', monospace">CAPACITY</text>
+            <text x="5" y="62" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="'Geist Mono', monospace">LOAD</text>
+          </svg>
+          <div className="absolute bottom-2 right-2 text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>Oasis PTI</div>
+        </div>
+      </BentoCard>
     </div>
   );
 }

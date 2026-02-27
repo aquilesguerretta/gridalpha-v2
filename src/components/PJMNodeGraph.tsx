@@ -3,18 +3,28 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 
-// PJM zones with 3D positions mapped from geographic layout
+// PJM zones with 3D positions — all 20 zones
 const PJM_ZONES = [
-  { id: 'WEST_HUB', label: 'WEST HUB', position: [0, 0, 0] as [number,number,number], lmp: 35.90, isHub: true },
-  { id: 'COMED',    label: 'COMED',    position: [-4, 1.5, 0] as [number,number,number], lmp: 32.04 },
-  { id: 'AEP',      label: 'AEP',      position: [-2.5, -1, 0.5] as [number,number,number], lmp: 33.36 },
-  { id: 'ATSI',     label: 'ATSI',     position: [-2, 2, -0.5] as [number,number,number], lmp: 33.23 },
-  { id: 'DUQ',      label: 'DUQ',      position: [-0.5, 1.5, 1] as [number,number,number], lmp: 33.20 },
-  { id: 'DOMINION', label: 'DOMINION', position: [1, -2.5, 0] as [number,number,number], lmp: 34.23 },
-  { id: 'PPL',      label: 'PPL',      position: [1.5, 0.5, 1] as [number,number,number], lmp: 33.11 },
-  { id: 'PECO',     label: 'PECO',     position: [2.5, 0, 0.5] as [number,number,number], lmp: 34.10 },
-  { id: 'PSEG',     label: 'PSEG',     position: [3.5, 1, -0.5] as [number,number,number], lmp: 34.93 },
-  { id: 'JCPL',     label: 'JCPL',     position: [3, -0.5, -1] as [number,number,number], lmp: 34.67 },
+  { id: 'WEST_HUB',  label: 'WEST HUB',  position: [0, 0, 0] as [number,number,number],       lmp: 35.90, isHub: true },
+  { id: 'COMED',     label: 'COMED',     position: [-4, 1.5, 0.5] as [number,number,number],   lmp: 32.04 },
+  { id: 'AEP',       label: 'AEP',       position: [-2.5, -1.5, 1] as [number,number,number],  lmp: 33.36 },
+  { id: 'ATSI',      label: 'ATSI',      position: [-2.5, 2, -0.5] as [number,number,number],  lmp: 33.23 },
+  { id: 'DAY',       label: 'DAY',       position: [-1.5, -0.5, 1.5] as [number,number,number],lmp: 33.89 },
+  { id: 'DEOK',      label: 'DEOK',      position: [-1, -2, 1] as [number,number,number],      lmp: 32.69 },
+  { id: 'DUQ',       label: 'DUQ',       position: [-0.5, 2, 1] as [number,number,number],     lmp: 33.20 },
+  { id: 'DOMINION',  label: 'DOMINION',  position: [1.5, -2.5, -0.5] as [number,number,number],lmp: 34.23 },
+  { id: 'DPL',       label: 'DPL',       position: [2, -1.5, -1] as [number,number,number],    lmp: 35.26 },
+  { id: 'EKPC',      label: 'EKPC',      position: [-3, -2, 0] as [number,number,number],      lmp: 32.48 },
+  { id: 'PPL',       label: 'PPL',       position: [1.5, 1, 1] as [number,number,number],      lmp: 33.11 },
+  { id: 'PECO',      label: 'PECO',      position: [2.5, 0.5, 0.5] as [number,number,number],  lmp: 34.10 },
+  { id: 'PSEG',      label: 'PSEG',      position: [3.5, 1.5, -0.5] as [number,number,number], lmp: 34.93 },
+  { id: 'JCPL',      label: 'JCPL',      position: [3, -0.5, -1] as [number,number,number],    lmp: 34.67 },
+  { id: 'PEPCO',     label: 'PEPCO',     position: [2, -0.5, -2] as [number,number,number],    lmp: 34.81 },
+  { id: 'BGE',       label: 'BGE',       position: [1.5, -1, -2] as [number,number,number],    lmp: 34.50 },
+  { id: 'METED',     label: 'METED',     position: [1, 0.5, 1.5] as [number,number,number],    lmp: 34.10 },
+  { id: 'PENELEC',   label: 'PENELEC',   position: [0.5, 2, 0.5] as [number,number,number],    lmp: 32.96 },
+  { id: 'RECO',      label: 'RECO',      position: [4, 0.5, -1] as [number,number,number],     lmp: 36.60 },
+  { id: 'OVEC',      label: 'OVEC',      position: [-1, -1.5, 0.5] as [number,number,number],  lmp: 32.56 },
 ]
 
 // Transmission connections between zones
@@ -25,22 +35,40 @@ const CONNECTIONS: [string, string][] = [
   ['WEST_HUB', 'DUQ'],
   ['WEST_HUB', 'PPL'],
   ['WEST_HUB', 'DOMINION'],
+  ['WEST_HUB', 'DAY'],
+  ['WEST_HUB', 'METED'],
   ['DUQ', 'PPL'],
+  ['DUQ', 'PENELEC'],
   ['PPL', 'PECO'],
+  ['PPL', 'METED'],
   ['PECO', 'PSEG'],
+  ['PECO', 'DPL'],
   ['PSEG', 'JCPL'],
+  ['PSEG', 'RECO'],
   ['JCPL', 'PPL'],
   ['AEP', 'DOMINION'],
+  ['AEP', 'DAY'],
+  ['AEP', 'DEOK'],
+  ['AEP', 'EKPC'],
   ['ATSI', 'DUQ'],
   ['COMED', 'AEP'],
+  ['DAY', 'DEOK'],
+  ['DOMINION', 'BGE'],
+  ['DOMINION', 'PEPCO'],
+  ['DPL', 'PEPCO'],
+  ['BGE', 'PEPCO'],
+  ['EKPC', 'OVEC'],
+  ['OVEC', 'DEOK'],
+  ['PENELEC', 'METED'],
 ]
 
-// Color based on LMP value
-function lmpToColor(lmp: number): THREE.Color {
-  if (lmp < 32) return new THREE.Color('#00A3FF')
-  if (lmp < 34) return new THREE.Color('#00FF88')
-  if (lmp < 36) return new THREE.Color('#FFB800')
-  return new THREE.Color('#FF4444')
+// Color based on LMP value — Electric Blue theme
+function lmpToColor(lmp: number, isSelected: boolean): THREE.Color {
+  if (isSelected) return new THREE.Color('#00FFF0') // cyan when selected
+  if (lmp < 32.5) return new THREE.Color('#00A3FF') // electric blue — cheap
+  if (lmp < 34) return new THREE.Color('#00A3FF')   // electric blue — normal
+  if (lmp < 35) return new THREE.Color('#FFB800')   // amber — elevated
+  return new THREE.Color('#FF4444')                  // red — expensive
 }
 
 // Individual zone node
@@ -50,17 +78,19 @@ function ZoneNode({ zone, isSelected, onClick }: {
   onClick: () => void
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const color = lmpToColor(zone.lmp)
+  const color = lmpToColor(zone.lmp, isSelected)
   const size = zone.isHub ? 0.25 : 0.15
-  const pulseRef = useRef(0)
+  const targetScale = useRef(1)
 
-  useFrame(() => {
+  useFrame((state) => {
     if (!meshRef.current) return
-    pulseRef.current += 0.05
-    const pulse = Math.sin(pulseRef.current) * 0.5 + 0.5
-    const baseScale = isSelected ? 1.4 : 1.0
-    const pulseScale = isSelected ? baseScale + pulse * 0.15 : baseScale + pulse * 0.03
-    meshRef.current.scale.setScalar(pulseScale)
+    targetScale.current = isSelected ? 1.6 : 1.0
+    // Smooth lerp to target scale
+    const current = meshRef.current.scale.x
+    const next = current + (targetScale.current - current) * 0.1
+    // Pulse on top of base scale
+    const pulse = Math.sin(state.clock.elapsedTime * 3) * (isSelected ? 0.08 : 0.02)
+    meshRef.current.scale.setScalar(next + pulse)
     meshRef.current.rotation.y += 0.005
   })
 
@@ -154,7 +184,7 @@ function ConnectionLine({ from, to, active }: {
   )
 }
 
-// Scene with camera auto-rotation
+// Scene
 function Scene({ selectedZone, onZoneSelect }: {
   selectedZone: string | null
   onZoneSelect: (id: string) => void
@@ -175,8 +205,9 @@ function Scene({ selectedZone, onZoneSelect }: {
 
       {/* Connection lines */}
       {CONNECTIONS.map(([fromId, toId]) => {
-        const from = PJM_ZONES.find(z => z.id === fromId)!
-        const to = PJM_ZONES.find(z => z.id === toId)!
+        const from = PJM_ZONES.find(z => z.id === fromId)
+        const to = PJM_ZONES.find(z => z.id === toId)
+        if (!from || !to) return null
         const active = selectedZone === fromId || selectedZone === toId
         return (
           <ConnectionLine
@@ -224,11 +255,13 @@ export function PJMNodeGraph({ onZoneSelect }: {
         <Scene selectedZone={selectedZone} onZoneSelect={handleSelect} />
         <OrbitControls
           enablePan={false}
-          enableZoom={false}
-          autoRotate={!selectedZone}
-          autoRotateSpeed={0.5}
-          minPolarAngle={Math.PI / 4}
-          maxPolarAngle={Math.PI / 1.8}
+          enableZoom={true}
+          minDistance={6}
+          maxDistance={14}
+          autoRotate={true}
+          autoRotateSpeed={1.2}
+          minPolarAngle={Math.PI / 6}
+          maxPolarAngle={Math.PI / 1.5}
         />
       </Canvas>
     </div>

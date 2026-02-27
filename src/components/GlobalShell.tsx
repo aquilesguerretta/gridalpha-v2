@@ -457,18 +457,37 @@ const ZONE_LMP: Record<string, { price: number; delta: number }> = {
   'COMED':     { price: 32.04, delta: -0.8 },
   'AEP':       { price: 33.36, delta: +1.1 },
   'ATSI':      { price: 33.23, delta: +0.6 },
+  'DAY':       { price: 33.89, delta: +1.3 },
+  'DEOK':      { price: 32.69, delta: -0.2 },
   'DUQ':       { price: 33.20, delta: +0.9 },
   'DOMINION':  { price: 34.23, delta: +1.8 },
+  'DPL':       { price: 35.26, delta: +2.0 },
+  'EKPC':      { price: 32.48, delta: -0.5 },
   'PPL':       { price: 33.11, delta: +0.4 },
   'PECO':      { price: 34.10, delta: +1.5 },
   'PSEG':      { price: 34.93, delta: +2.1 },
   'JCPL':      { price: 34.67, delta: +1.9 },
+  'PEPCO':     { price: 34.81, delta: +1.7 },
+  'BGE':       { price: 34.50, delta: +1.4 },
+  'METED':     { price: 34.10, delta: +1.2 },
+  'PENELEC':   { price: 32.96, delta: +0.3 },
+  'RECO':      { price: 36.60, delta: +3.2 },
+  'OVEC':      { price: 32.56, delta: -0.4 },
+}
+
+const ZONE_SPARK: Record<string, number> = {
+  'WEST_HUB': 12.7, 'COMED': 8.2, 'AEP': 10.1, 'ATSI': 9.8, 'DAY': 10.5,
+  'DEOK': 8.9, 'DUQ': 9.6, 'DOMINION': 11.4, 'DPL': 12.1, 'EKPC': 8.4,
+  'PPL': 9.3, 'PECO': 11.0, 'PSEG': 12.3, 'JCPL': 11.8, 'PEPCO': 11.6,
+  'BGE': 11.2, 'METED': 10.8, 'PENELEC': 9.1, 'RECO': 13.9, 'OVEC': 8.6,
 }
 
 const ZONE_LABELS: Record<string, string> = {
   'WEST_HUB': 'WEST HUB', 'COMED': 'COMED', 'AEP': 'AEP', 'ATSI': 'ATSI',
-  'DUQ': 'DUQ', 'DOMINION': 'DOMINION', 'PPL': 'PPL', 'PECO': 'PECO',
-  'PSEG': 'PSEG', 'JCPL': 'JCPL',
+  'DAY': 'DAY', 'DEOK': 'DEOK', 'DUQ': 'DUQ', 'DOMINION': 'DOMINION',
+  'DPL': 'DPL', 'EKPC': 'EKPC', 'PPL': 'PPL', 'PECO': 'PECO',
+  'PSEG': 'PSEG', 'JCPL': 'JCPL', 'PEPCO': 'PEPCO', 'BGE': 'BGE',
+  'METED': 'METED', 'PENELEC': 'PENELEC', 'RECO': 'RECO', 'OVEC': 'OVEC',
 }
 
 // Zone-specific alerts
@@ -509,6 +528,8 @@ function NestView() {
   const lmpData = ZONE_LMP[selectedZone ?? 'WEST_HUB']
   const zoneName = ZONE_LABELS[selectedZone ?? 'WEST_HUB'] ?? 'WEST HUB'
   const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['WEST_HUB']
+  const sparkValue = ZONE_SPARK[selectedZone ?? 'WEST_HUB'] ?? 12.7
+  const batteryRevenue = (lmpData.price * 118).toFixed(0)
 
   return (
     <div style={{
@@ -568,7 +589,7 @@ function NestView() {
       {/* Spark Spread */}
       <BentoCard title="SPARK SPREAD" status="live">
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '32px', color: '#00A3FF', fontVariantNumeric: 'tabular-nums' }}>12.7</span>
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '32px', color: '#00A3FF', fontVariantNumeric: 'tabular-nums' }}>{sparkValue.toFixed(1)}</span>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>$/MWh</span>
           <div style={{ width: '100%', marginTop: '16px' }}><MiniSparkline /></div>
         </div>
@@ -588,7 +609,7 @@ function NestView() {
             <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>CHARGE 02:00–06:00</span>
             <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: '#FFB800' }}>DISCHARGE 16:00–20:00</span>
             <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>EST. DAILY REVENUE</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: '#FFB800' }}>$4,240 /MWh</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: '#FFB800' }}>${Number(batteryRevenue).toLocaleString()} /MWh</span>
           </div>
         </div>
       </BentoCard>

@@ -113,19 +113,19 @@ function LMPExpandedSystem() {
       </div>
 
       {/* 24h trend chart */}
-      <div style={{ flexShrink: 0, minHeight: '180px', position: 'relative' }}>
+      <div style={{ flexShrink: 0, height: '200px', minHeight: '200px', position: 'relative' }}>
         <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
           24H LMP TREND — WEST HUB
         </span>
-        <svg width="100%" height="160" viewBox="0 0 1000 160" preserveAspectRatio="none" style={{ marginTop: '8px' }}>
+        <svg width="100%" height={200} viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ marginTop: '8px' }}>
           {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
-            <line key={i} x1="0" y1={t * 140 + 10} x2="1000" y2={t * 140 + 10}
+            <line key={i} x1="0" y1={t * 180 + 10} x2="1000" y2={t * 180 + 10}
               stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
           ))}
           <polyline
             points={hubPrices.map((p, i) => {
               const x = (i / 23) * 1000
-              const y = 150 - ((p - 25) / 35) * 140
+              const y = 190 - ((p - 25) / 35) * 180
               return `${x},${y}`
             }).join(' ')}
             fill="none"
@@ -133,11 +133,11 @@ function LMPExpandedSystem() {
             strokeWidth="2"
           />
           <polygon
-            points={`0,150 ${hubPrices.map((p, i) => {
+            points={`0,190 ${hubPrices.map((p, i) => {
               const x = (i / 23) * 1000
-              const y = 150 - ((p - 25) / 35) * 140
+              const y = 190 - ((p - 25) / 35) * 180
               return `${x},${y}`
-            }).join(' ')} 1000,150`}
+            }).join(' ')} 1000,190`}
             fill="rgba(0,212,255,0.05)"
           />
         </svg>

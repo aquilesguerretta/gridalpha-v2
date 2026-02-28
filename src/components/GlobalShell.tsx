@@ -624,6 +624,29 @@ function NestView() {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
   const [marketPulseExpanded, setMarketPulseExpanded] = useState(false)
   const [marketPulseClosing, setMarketPulseClosing] = useState(false)
+  const [ghostTime, setGhostTime] = useState<string | null>(null)
+  const [flashAlertZone, setFlashAlertZone] = useState<string | null>(null)
+
+  // Ghost mode toggle — press G
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'g' || e.key === 'G') {
+        setGhostTime(prev =>
+          prev ? null : new Date(Date.now() - 3600000).toISOString()
+        )
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  // Flash Peregrine Feed alert on zone selection
+  useEffect(() => {
+    if (selectedZone) {
+      setFlashAlertZone(selectedZone)
+      setTimeout(() => setFlashAlertZone(null), 800)
+    }
+  }, [selectedZone])
 
   const closeModal = () => {
     setMarketPulseClosing(true)
@@ -658,7 +681,7 @@ function NestView() {
       {/* Market Pulse - spans 2 rows */}
       <BentoCard title="MARKET PULSE" status="live" style={{ gridRow: 'span 2', cursor: 'pointer' }} onTitleClick={() => setMarketPulseExpanded(true)}>
         <div style={{ position: 'absolute', inset: 0 }}>
-          <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} expanded={false} />
+          <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} expanded={false} ghostTime={ghostTime} />
         </div>
       </BentoCard>
 
@@ -715,6 +738,20 @@ function NestView() {
                 MARKET PULSE — PJM ZONE EXPLORER
               </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {ghostTime && (
+                  <span style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    fontSize: '9px',
+                    color: '#FFB800',
+                    background: 'rgba(255,183,0,0.08)',
+                    border: '0.5px solid rgba(255,183,0,0.25)',
+                    borderRadius: '3px',
+                    padding: '2px 10px',
+                    letterSpacing: '0.12em',
+                  }}>
+                    ◎ GHOST MODE · T−1H
+                  </span>
+                )}
                 {selectedZone && (
                   <span style={{
                     fontFamily: "'Geist Mono', monospace",
@@ -748,6 +785,7 @@ function NestView() {
               <PJMNodeGraph
                 onZoneSelect={(id) => setSelectedZone(id || null)}
                 expanded={true}
+                ghostTime={ghostTime}
               />
               {/* Mini-legend overlay — bottom-left of expanded view */}
               <div style={{
@@ -865,7 +903,7 @@ function NestView() {
           {alerts.map((alert, i) => (
             <div
               key={i}
-              className="flex items-center gap-2 pl-2"
+              className={`flex items-center gap-2 pl-2${i === 0 && flashAlertZone === selectedZone ? ' alert-flash' : ''}`}
               style={{ borderLeft: `2px solid ${alert.severity === "critical" ? "#DC2626" : alert.severity === "warning" ? "#FFB800" : "#00FFF0"}`, marginBottom: '6px' }}
             >
               <span className="text-[9px] tabular-nums" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "rgba(255, 255, 255, 0.3)" }}>{alert.time}</span>

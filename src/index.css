@@ -263,6 +263,16 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   50% { filter: drop-shadow(0 0 6px currentColor); }
 }
 
+@keyframes alert-flash {
+  0%   { background: rgba(0, 255, 240, 0.18); border-left-color: #00FFF0; }
+  60%  { background: rgba(0, 255, 240, 0.08); border-left-color: #00FFF0; }
+  100% { background: transparent; border-left-color: inherit; }
+}
+
+.alert-flash {
+  animation: alert-flash 800ms ease-out forwards;
+}
+
 @keyframes modal-expand {
   from {
     opacity: 0;

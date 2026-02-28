@@ -10,19 +10,20 @@ const ZONE_LMP_DETAIL: Record<string, {
   loss: number
   delta: number
   avg24h: number
+  avgCongestion24h: number
   peak: { hour: string; price: number }
   cheapest: { hour: string; price: number }
 }> = {
-  'WEST_HUB': { price: 35.90, energy: 32.10, congestion: 2.40,  loss: 1.40,  delta: +1.2, avg24h: 33.8, peak: { hour: '7AM', price: 48.2 },  cheapest: { hour: '3AM', price: 28.1 } },
-  'COMED':    { price: 32.04, energy: 31.20, congestion: -0.30, loss: 1.14,  delta: -0.8, avg24h: 31.2, peak: { hour: '8AM', price: 41.5 },  cheapest: { hour: '4AM', price: 26.8 } },
-  'AEP':      { price: 33.36, energy: 31.80, congestion: 0.42,  loss: 1.14,  delta: +0.4, avg24h: 32.1, peak: { hour: '7AM', price: 44.2 },  cheapest: { hour: '3AM', price: 27.4 } },
-  'PSEG':     { price: 34.93, energy: 32.10, congestion: 1.58,  loss: 1.25,  delta: +2.1, avg24h: 33.4, peak: { hour: '6AM', price: 52.8 },  cheapest: { hour: '2AM', price: 28.9 } },
-  'RECO':     { price: 36.60, energy: 32.10, congestion: 3.10,  loss: 1.40,  delta: +3.8, avg24h: 34.9, peak: { hour: '6AM', price: 58.4 },  cheapest: { hour: '2AM', price: 29.2 } },
-  'DOMINION': { price: 34.23, energy: 32.10, congestion: 0.88,  loss: 1.25,  delta: +0.9, avg24h: 32.8, peak: { hour: '7AM', price: 46.1 },  cheapest: { hour: '3AM', price: 27.8 } },
-  'BGE':      { price: 34.50, energy: 32.10, congestion: 1.15,  loss: 1.25,  delta: +1.4, avg24h: 33.1, peak: { hour: '7AM', price: 47.3 },  cheapest: { hour: '3AM', price: 28.2 } },
-  'PPL':      { price: 33.11, energy: 32.10, congestion: -0.18, loss: 1.19,  delta: -0.2, avg24h: 32.4, peak: { hour: '8AM', price: 43.1 },  cheapest: { hour: '4AM', price: 27.1 } },
-  'PECO':     { price: 34.10, energy: 32.10, congestion: 0.75,  loss: 1.25,  delta: +1.1, avg24h: 32.9, peak: { hour: '7AM', price: 45.8 },  cheapest: { hour: '3AM', price: 28.0 } },
-  'DEFAULT':  { price: 33.50, energy: 32.10, congestion: 0.20,  loss: 1.20,  delta: +0.3, avg24h: 32.2, peak: { hour: '7AM', price: 44.0 },  cheapest: { hour: '3AM', price: 27.5 } },
+  'WEST_HUB': { price: 35.90, energy: 32.10, congestion: 2.40,  loss: 1.40,  delta: +1.2, avg24h: 33.8, avgCongestion24h: 1.8,  peak: { hour: '7AM', price: 48.2 },  cheapest: { hour: '3AM', price: 28.1 } },
+  'COMED':    { price: 32.04, energy: 31.20, congestion: -0.30, loss: 1.14,  delta: -0.8, avg24h: 31.2, avgCongestion24h: -0.2, peak: { hour: '8AM', price: 41.5 },  cheapest: { hour: '4AM', price: 26.8 } },
+  'AEP':      { price: 33.36, energy: 31.80, congestion: 0.42,  loss: 1.14,  delta: +0.4, avg24h: 32.1, avgCongestion24h: 0.3,  peak: { hour: '7AM', price: 44.2 },  cheapest: { hour: '3AM', price: 27.4 } },
+  'PSEG':     { price: 34.93, energy: 32.10, congestion: 1.58,  loss: 1.25,  delta: +2.1, avg24h: 33.4, avgCongestion24h: 2.1,  peak: { hour: '6AM', price: 52.8 },  cheapest: { hour: '2AM', price: 28.9 } },
+  'RECO':     { price: 36.60, energy: 32.10, congestion: 3.10,  loss: 1.40,  delta: +3.8, avg24h: 34.9, avgCongestion24h: 3.4,  peak: { hour: '6AM', price: 58.4 },  cheapest: { hour: '2AM', price: 29.2 } },
+  'DOMINION': { price: 34.23, energy: 32.10, congestion: 0.88,  loss: 1.25,  delta: +0.9, avg24h: 32.8, avgCongestion24h: 0.7,  peak: { hour: '7AM', price: 46.1 },  cheapest: { hour: '3AM', price: 27.8 } },
+  'BGE':      { price: 34.50, energy: 32.10, congestion: 1.15,  loss: 1.25,  delta: +1.4, avg24h: 33.1, avgCongestion24h: 1.0,  peak: { hour: '7AM', price: 47.3 },  cheapest: { hour: '3AM', price: 28.2 } },
+  'PPL':      { price: 33.11, energy: 32.10, congestion: -0.18, loss: 1.19,  delta: -0.2, avg24h: 32.4, avgCongestion24h: -0.1, peak: { hour: '8AM', price: 43.1 },  cheapest: { hour: '4AM', price: 27.1 } },
+  'PECO':     { price: 34.10, energy: 32.10, congestion: 0.75,  loss: 1.25,  delta: +1.1, avg24h: 32.9, avgCongestion24h: 0.6,  peak: { hour: '7AM', price: 45.8 },  cheapest: { hour: '3AM', price: 28.0 } },
+  'DEFAULT':  { price: 33.50, energy: 32.10, congestion: 0.20,  loss: 1.20,  delta: +0.3, avg24h: 32.2, avgCongestion24h: 0.5,  peak: { hour: '7AM', price: 44.0 },  cheapest: { hour: '3AM', price: 27.5 } },
 }
 
 const ZONE_SPARKLINE: Record<string, number[]> = {
@@ -66,9 +67,10 @@ const ZONE_FORECAST: Record<string, Array<{hour: string; price: number}>> = {
 
 /* ─── HELPERS ─────────────────────────────────────────────────── */
 
+/* FIX 10 — Peak at 45% from top (y=45), trough at 82% (y=82) */
 function sparklinePoints(values: number[]): string {
   const w = 100 / (values.length - 1)
-  return values.map((v, i) => `${i * w},${100 - v * 90}`).join(' ')
+  return values.map((v, i) => `${i * w},${82 - v * 37}`).join(' ')
 }
 
 /* ─── SUB-COMPONENTS ──────────────────────────────────────────── */
@@ -176,13 +178,17 @@ function LMPExpandedZone({ zone }: { zone: string }) {
   const genMix = ZONE_GEN_MIX[zone] ?? ZONE_GEN_MIX['DEFAULT']
   const forecast = ZONE_FORECAST[zone] ?? ZONE_FORECAST['DEFAULT']
 
-  const total = data.energy + Math.abs(data.congestion) + data.loss
+  /* FIX 6 — absolute values for stacked bar */
+  const energyAbs = Math.abs(data.energy)
+  const congestionAbs = Math.abs(data.congestion)
+  const lossAbs = Math.abs(data.loss)
+  const total = energyAbs + congestionAbs + lossAbs
 
   return (
     <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflow: 'auto' }}>
 
       {/* TOP SECTION — Zone header + component breakdown */}
-      <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexShrink: 0 }}>
         {/* Price block */}
         <div>
           <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.2em', marginBottom: '4px' }}>
@@ -228,11 +234,11 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               </div>
             ))}
           </div>
-          {/* Proportional stacked bar */}
-          <div style={{ display: 'flex', height: '4px', width: '100%', overflow: 'hidden' }}>
-            <div style={{ width: `${(data.energy / total) * 100}%`, background: '#00D4FF' }} />
-            <div style={{ width: `${(Math.abs(data.congestion) / total) * 100}%`, background: data.congestion > 0 ? '#FFB800' : '#FF4444' }} />
-            <div style={{ width: `${(data.loss / total) * 100}%`, background: 'rgba(255,120,120,0.8)' }} />
+          {/* FIX 6 — Proportional stacked bar — 8px, absolute values, overflow visible */}
+          <div style={{ display: 'flex', height: '8px', width: '100%', overflow: 'visible' }}>
+            <div style={{ display: 'block', height: '100%', width: `${(energyAbs / total) * 100}%`, background: '#00D4FF', borderRadius: 0 }} />
+            <div style={{ display: 'block', height: '100%', width: `${(congestionAbs / total) * 100}%`, background: data.congestion > 0 ? '#FFB800' : '#FF4444', borderRadius: 0 }} />
+            <div style={{ display: 'block', height: '100%', width: `${(lossAbs / total) * 100}%`, background: 'rgba(255,120,120,0.8)', borderRadius: 0 }} />
           </div>
           <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
             {[
@@ -249,8 +255,87 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         </div>
       </div>
 
-      {/* MIDDLE SECTION — 24h price chart */}
-      <div style={{ border: '0.5px solid rgba(255,255,255,0.05)', padding: '16px', background: 'rgba(255,255,255,0.01)' }}>
+      {/* FIX 9 — METRICS STRIP — fixed 72px height */}
+      <div style={{
+        height: '72px',
+        flexShrink: 0,
+        display: 'flex',
+        background: 'rgba(255,255,255,0.02)',
+        borderTop: '0.5px solid rgba(255,255,255,0.05)',
+        borderBottom: '0.5px solid rgba(255,255,255,0.05)',
+      }}>
+        {[
+          {
+            label: '24H AVERAGE',
+            value: data.avg24h.toFixed(2),
+            sub: '$/MWh',
+            color: '#FFFFFF',
+          },
+          {
+            label: '24H PEAK',
+            value: data.peak.price.toFixed(2),
+            sub: data.peak.hour,
+            color: '#FF4444',
+          },
+          {
+            label: '24H LOW',
+            value: data.cheapest.price.toFixed(2),
+            sub: data.cheapest.hour,
+            color: '#00D4FF',
+          },
+          {
+            label: 'AVG CONGESTION',
+            value: (data.avgCongestion24h >= 0 ? '+' : '') + data.avgCongestion24h.toFixed(2),
+            sub: '24H MEAN',
+            color: data.avgCongestion24h > 0.3 ? '#FFB800' : '#00FFF0',
+          },
+        ].map(({ label, value, sub, color }, i, arr) => (
+          <div
+            key={label}
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '0 20px',
+              borderRight: i < arr.length - 1
+                ? '0.5px solid rgba(255,255,255,0.06)'
+                : 'none',
+            }}
+          >
+            <div style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '8px',
+              color: 'rgba(255,255,255,0.2)',
+              letterSpacing: '0.15em',
+              marginBottom: '4px',
+              textTransform: 'uppercase',
+            }}>
+              {label}
+            </div>
+            <div style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '22px',
+              fontWeight: 'bold',
+              color,
+              lineHeight: 1,
+            }}>
+              {value}
+            </div>
+            <div style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '9px',
+              color: 'rgba(255,255,255,0.3)',
+              marginTop: '3px',
+            }}>
+              {sub}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* MIDDLE SECTION — FIX 5: 24h price chart — height 240, viewBox 0 0 1000 240, baseline 220 */}
+      <div style={{ border: '0.5px solid rgba(255,255,255,0.05)', padding: '16px', background: 'rgba(255,255,255,0.01)', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
             24H PRICE TREND — {zone} vs WEST HUB
@@ -261,20 +346,20 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)' }}>— 24H AVG {data.avg24h.toFixed(1)}</span>
           </div>
         </div>
-        <svg width="100%" height="120" viewBox="0 0 1000 120" preserveAspectRatio="none">
+        <svg width="100%" height="240" viewBox="0 0 1000 240" preserveAspectRatio="none">
           {/* Avg line */}
           {(() => {
-            const avgY = 110 - ((data.avg24h - 25) / 35) * 100
+            const avgY = 220 - ((data.avg24h - 25) / 35) * 200
             return <line x1="0" y1={avgY} x2="1000" y2={avgY} stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="4,4" />
           })()}
           {/* Spread fill between zone and hub */}
           <polygon
-            points={`${prices.map((p, i) => `${(i/23)*1000},${110-((p-25)/35)*100}`).join(' ')} ${hubPrices.slice().reverse().map((p, i) => `${((23-i)/23)*1000},${110-((p-25)/35)*100}`).join(' ')}`}
+            points={`${prices.map((p, i) => `${(i/23)*1000},${220-((p-25)/35)*200}`).join(' ')} ${hubPrices.slice().reverse().map((p, i) => `${((23-i)/23)*1000},${220-((p-25)/35)*200}`).join(' ')}`}
             fill={data.congestion > 0 ? 'rgba(255,183,0,0.08)' : 'rgba(0,212,255,0.06)'}
           />
           {/* West Hub faint reference line */}
           <polyline
-            points={hubPrices.map((p, i) => `${(i/23)*1000},${110-((p-25)/35)*100}`).join(' ')}
+            points={hubPrices.map((p, i) => `${(i/23)*1000},${220-((p-25)/35)*200}`).join(' ')}
             fill="none"
             stroke="rgba(255,255,255,0.18)"
             strokeWidth="1"
@@ -282,7 +367,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           />
           {/* Zone line */}
           <polyline
-            points={prices.map((p, i) => `${(i/23)*1000},${110-((p-25)/35)*100}`).join(' ')}
+            points={prices.map((p, i) => `${(i/23)*1000},${220-((p-25)/35)*200}`).join(' ')}
             fill="none"
             stroke="#00D4FF"
             strokeWidth="2"
@@ -291,7 +376,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           {(() => {
             const peakIdx = prices.indexOf(Math.max(...prices))
             const x = (peakIdx / 23) * 1000
-            const y = 110 - ((prices[peakIdx] - 25) / 35) * 100
+            const y = 220 - ((prices[peakIdx] - 25) / 35) * 200
             return (
               <g>
                 <circle cx={x} cy={y} r="3" fill="#FF4444" />
@@ -305,7 +390,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           {(() => {
             const lowIdx = prices.indexOf(Math.min(...prices))
             const x = (lowIdx / 23) * 1000
-            const y = 110 - ((prices[lowIdx] - 25) / 35) * 100
+            const y = 220 - ((prices[lowIdx] - 25) / 35) * 200
             return (
               <g>
                 <circle cx={x} cy={y} r="3" fill="#00D4FF" />
@@ -318,15 +403,24 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         </svg>
       </div>
 
-      {/* BOTTOM SECTION — Three equal panels */}
-      <div style={{ display: 'flex', gap: '12px', flex: 1 }}>
+      {/* BOTTOM SECTION — FIX 4: Three equal panels, fill remaining space */}
+      <div style={{ display: 'flex', gap: '12px', flex: 1, minHeight: 0 }}>
 
-        {/* Panel 1 — Congestion Intelligence */}
-        <div style={{ flex: 1, border: '0.5px solid rgba(255,183,0,0.12)', padding: '16px', background: 'rgba(255,183,0,0.02)' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,183,0,0.5)', letterSpacing: '0.15em', marginBottom: '12px' }}>
+        {/* FIX 7+8 — Panel 1: Congestion Intelligence — accent left border */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,183,0,0.4)', background: 'rgba(255,183,0,0.02)', padding: '20px' }}>
+          <div style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '9px',
+            color: 'rgba(255,183,0,0.6)',
+            letterSpacing: '0.15em',
+            paddingBottom: '8px',
+            marginBottom: '12px',
+            borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+            flexShrink: 0,
+          }}>
             CONGESTION INTELLIGENCE
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {constraints.map((c, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
                 <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
@@ -340,17 +434,26 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           </div>
         </div>
 
-        {/* Panel 2 — Zone Generation Mix */}
-        <div style={{ flex: 1, border: '0.5px solid rgba(0,212,255,0.08)', padding: '16px', background: 'rgba(0,212,255,0.01)' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(0,212,255,0.4)', letterSpacing: '0.15em', marginBottom: '12px' }}>
+        {/* FIX 7+8 — Panel 2: Zone Generation Mix — accent left border */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.01)', padding: '20px' }}>
+          <div style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '9px',
+            color: 'rgba(0,212,255,0.6)',
+            letterSpacing: '0.15em',
+            paddingBottom: '8px',
+            marginBottom: '12px',
+            borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+            flexShrink: 0,
+          }}>
             ZONE GENERATION MIX
           </div>
-          <div style={{ display: 'flex', height: '6px', marginBottom: '12px', overflow: 'hidden' }}>
-            {genMix.map(({ fuel, pct, color }) => (
-              <div key={fuel} style={{ width: `${pct}%`, background: color }} />
-            ))}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', height: '6px', marginBottom: '4px', overflow: 'hidden', flexShrink: 0 }}>
+              {genMix.map(({ fuel, pct, color }) => (
+                <div key={fuel} style={{ width: `${pct}%`, background: color }} />
+              ))}
+            </div>
             {genMix.map(({ fuel, pct, color }) => (
               <div key={fuel} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -365,12 +468,21 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           </div>
         </div>
 
-        {/* Panel 3 — Price Forecast */}
-        <div style={{ flex: 1, border: '0.5px solid rgba(255,255,255,0.06)', padding: '16px', background: 'rgba(255,255,255,0.01)' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '12px' }}>
+        {/* FIX 7+8 — Panel 3: Price Forecast — accent left border */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.01)', padding: '20px' }}>
+          <div style={{
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: '9px',
+            color: 'rgba(255,255,255,0.35)',
+            letterSpacing: '0.15em',
+            paddingBottom: '8px',
+            marginBottom: '12px',
+            borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+            flexShrink: 0,
+          }}>
             PRICE FORECAST
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {forecast.map(({ hour, price }) => {
               const delta = price - data.price
               return (
@@ -423,23 +535,22 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
 
   return (
     <>
-      {/* ── COMPACT STATE ── */}
+      {/* ── COMPACT STATE — FIX 1: Three explicit zones 20/50/30 ── */}
       <div
         onClick={() => setLmpExpanded(true)}
         style={{
           position: 'absolute',
           inset: 0,
-          padding: '12px 16px',
+          padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
-          cursor: 'pointer',
           overflow: 'hidden',
+          cursor: 'pointer',
         }}
       >
-        {/* Background sparkline */}
+        {/* FIX 2+10 — Background sparkline — opacity 0.12, strokeWidth 3 */}
         <svg
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.06, pointerEvents: 'none' }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.12, pointerEvents: 'none' }}
           preserveAspectRatio="none"
           viewBox="0 0 100 100"
         >
@@ -447,12 +558,18 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
             points={sparklinePoints(sparkData)}
             fill="none"
             stroke="#00D4FF"
-            strokeWidth="2"
+            strokeWidth="3"
           />
         </svg>
 
-        {/* Top row — zone name + LIVE badge */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* ZONE 1 — Top 20% — Zone name + LIVE badge */}
+        <div style={{
+          flex: '0 0 20%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+        }}>
           <span style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '9px',
@@ -476,8 +593,15 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
           </span>
         </div>
 
-        {/* Main price */}
-        <div style={{ textAlign: 'center' }}>
+        {/* ZONE 2 — Middle 50% — Dominant price + delta badge */}
+        <div style={{
+          flex: '0 0 50%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+        }}>
           <div style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '42px',
@@ -493,7 +617,6 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
             fontSize: '10px',
             color: 'rgba(255,255,255,0.3)',
             letterSpacing: '0.1em',
-            marginTop: '4px',
           }}>
             $/MWh
           </div>
@@ -502,7 +625,6 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '4px',
-            marginTop: '6px',
             padding: '2px 8px',
             borderRadius: '2px',
             background: lmpData.delta >= 0 ? 'rgba(255,183,0,0.1)' : 'rgba(0,163,255,0.1)',
@@ -519,8 +641,16 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
           </div>
         </div>
 
-        {/* Three component rows */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        {/* ZONE 3 — Bottom 30% — FIX 3: Component rows + expand hint */}
+        <div style={{
+          flex: '0 0 30%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          padding: '0 16px 14px 16px',
+          gap: '6px',
+          overflow: 'visible',
+        }}>
           {[
             { label: 'ENERGY',     value: lmpData.energy,     color: '#00D4FF' },
             { label: 'CONGESTION', value: lmpData.congestion, color: lmpData.congestion > 0.5 ? '#FFB800' : lmpData.congestion < -0.1 ? '#FF4444' : '#00FFF0' },
@@ -535,13 +665,12 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
               </span>
             </div>
           ))}
-        </div>
-
-        {/* Expand hint */}
-        <div style={{ textAlign: 'center' }}>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em' }}>
-            ↗ CLICK TO EXPAND
-          </span>
+          {/* Expand hint */}
+          <div style={{ textAlign: 'center', marginTop: '2px' }}>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em' }}>
+              ↗ CLICK TO EXPAND
+            </span>
+          </div>
         </div>
       </div>
 

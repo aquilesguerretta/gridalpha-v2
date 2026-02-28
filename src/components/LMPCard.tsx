@@ -375,21 +375,22 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         border: '0.5px solid rgba(255,255,255,0.05)',
         background: 'rgba(255,255,255,0.01)',
         padding: '16px',
-        flexShrink: 0,
+        minHeight: '240px',
+        flex: '1 1 240px',
       }}>
         {/* Chart header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
             24H PRICE TREND — {zone} vs WEST HUB
           </span>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: '16px', height: '2px', background: '#00D4FF' }} />
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>{zone}</span>
+              <div style={{ width: '20px', height: '2px', background: '#00D4FF' }} />
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>{zone}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <div style={{ width: '16px', height: '1px', background: 'rgba(255,255,255,0.2)', borderTop: '1px dashed rgba(255,255,255,0.2)' }} />
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.25)' }}>WEST HUB</span>
+              <div style={{ width: '20px', height: '0', borderTop: '1.5px dashed rgba(255,255,255,0.3)' }} />
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>WEST HUB</span>
             </div>
             {hoverIndex !== null && (
               <div style={{
@@ -424,7 +425,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
                 <line x1="0" y1={y} x2={CHART_WIDTH} y2={y}
                   stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
                 <text x="8" y={y - 4}
-                  fontFamily="monospace" fontSize="11" fill="rgba(255,255,255,0.15)">
+                  fontFamily="monospace" fontSize="12" fill="rgba(255,255,255,0.20)">
                   ${price}
                 </text>
               </g>
@@ -438,7 +439,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               y={CHART_HEIGHT - 4}
               fontFamily="monospace"
               fontSize="11"
-              fill="rgba(255,255,255,0.15)"
+              fill="rgba(255,255,255,0.20)"
               textAnchor="middle"
             >
               {i}:00

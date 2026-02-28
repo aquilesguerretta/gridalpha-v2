@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Text, Line, Billboard } from '@react-three/drei'
+import { OrbitControls, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 
 // PJM zones with 3D positions — all 20 zones
@@ -104,31 +104,27 @@ function ZoneNode({ zone, isSelected, onClick }: {
           metalness={0.8}
         />
       </mesh>
-      {/* Zone label — billboard always faces camera */}
-      <Billboard position={[0, size + 0.25, 0]}>
-        <Text
-          fontSize={0.18}
-          color={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}
-          anchorX="center"
-          anchorY="bottom"
-          font="/fonts/GeistMono-Regular.woff2"
-        >
-          {zone.label}
-        </Text>
-      </Billboard>
+      {/* Zone label */}
+      <Text
+        position={[0, size + 0.25, 0]}
+        fontSize={0.18}
+        color={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}
+        anchorX="center"
+        anchorY="bottom"
+      >
+        {zone.label}
+      </Text>
       {/* LMP price label — show on selected */}
       {isSelected && (
-        <Billboard position={[0, size + 0.55, 0]}>
-          <Text
-            fontSize={0.22}
-            color={color.getStyle()}
-            anchorX="center"
-            anchorY="bottom"
-            font="/fonts/GeistMono-Bold.woff2"
-          >
-            ${zone.lmp.toFixed(2)}
-          </Text>
-        </Billboard>
+        <Text
+          position={[0, size + 0.55, 0]}
+          fontSize={0.22}
+          color={color.getStyle()}
+          anchorX="center"
+          anchorY="bottom"
+        >
+          ${zone.lmp.toFixed(2)}
+        </Text>
       )}
     </group>
   )
@@ -216,7 +212,7 @@ function StarField() {
 function GridPlane() {
   return (
     <gridHelper
-      args={[30, 30, 'rgba(0,163,255,0.1)', 'rgba(0,163,255,0.05)']}
+      args={[30, 30, '#0a2a44', '#061a2e']}
       position={[0, -5, 0]}
     />
   )

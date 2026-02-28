@@ -370,13 +370,13 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         ))}
       </div>
 
-      {/* ── FIX 1 — INTERACTIVE CHART WITH MOUSE TRACKING ── */}
+      {/* ── INTERACTIVE CHART WITH MOUSE TRACKING ── */}
       <div className="lmp-section-enter" style={{
-        border: '0.5px solid rgba(255,255,255,0.05)',
         background: 'rgba(255,255,255,0.01)',
-        padding: '16px',
+        padding: '16px 24px',
         minHeight: '240px',
         flex: '1 1 240px',
+        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
       }}>
         {/* Chart header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -576,11 +576,11 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         </svg>
       </div>
 
-      {/* BOTTOM SECTION — FIX 4: Three equal panels, fill remaining space */}
-      <div className="lmp-section-enter" style={{ display: 'flex', gap: '12px', flex: 1, minHeight: 0 }}>
+      {/* BOTTOM SECTION — Three panels, fixed 200px, never shrinks */}
+      <div className="lmp-section-enter" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', flexShrink: 0, height: '200px', borderTop: '0.5px solid rgba(255,255,255,0.06)' }}>
 
-        {/* FIX 7+8 — Panel 1: Congestion Intelligence — accent left border */}
-        <div className="lmp-panel-congestion" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,183,0,0.4)', background: 'rgba(255,183,0,0.02)', padding: '20px' }}>
+        {/* Panel 1: Congestion Intelligence — accent left border */}
+        <div className="lmp-panel-congestion" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: 'none', borderLeft: '2px solid rgba(255,183,0,0.4)', background: 'rgba(255,183,0,0.02)', padding: '16px 20px' }}>
           <div style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '9px',
@@ -607,8 +607,8 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           </div>
         </div>
 
-        {/* FIX 7+8 — Panel 2: Zone Generation Mix — accent left border */}
-        <div className="lmp-panel-genmix" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.01)', padding: '20px' }}>
+        {/* Panel 2: Zone Generation Mix — accent left border */}
+        <div className="lmp-panel-genmix" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: 'none', borderLeft: '2px solid rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.01)', padding: '16px 20px' }}>
           <div style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '9px',
@@ -641,8 +641,8 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           </div>
         </div>
 
-        {/* FIX 7+8 — Panel 3: Price Forecast — accent left border */}
-        <div className="lmp-panel-forecast" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.01)', padding: '20px' }}>
+        {/* Panel 3: Price Forecast — accent left border */}
+        <div className="lmp-panel-forecast" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: 'none', borderLeft: '2px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.01)', padding: '16px 20px' }}>
           <div style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '9px',

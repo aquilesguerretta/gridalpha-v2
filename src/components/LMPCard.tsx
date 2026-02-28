@@ -113,7 +113,7 @@ function LMPExpandedSystem() {
       </div>
 
       {/* 24h trend chart */}
-      <div style={{ flex: 1, minHeight: '180px', position: 'relative' }}>
+      <div style={{ flexShrink: 0, minHeight: '180px', position: 'relative' }}>
         <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
           24H LMP TREND — WEST HUB
         </span>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 /* ─── MOCK DATA ───────────────────────────────────────────────── */
@@ -71,6 +71,21 @@ const ZONE_FORECAST: Record<string, Array<{hour: string; price: number}>> = {
 function sparklinePoints(values: number[]): string {
   const w = 100 / (values.length - 1)
   return values.map((v, i) => `${i * w},${82 - v * 37}`).join(' ')
+}
+
+/* ─── CHART CONSTANTS ─────────────────────────────────────────── */
+
+const CHART_HEIGHT = 240
+const CHART_WIDTH = 1000
+const PRICE_MIN = 24
+const PRICE_MAX = 62
+
+function priceToY(price: number): number {
+  return CHART_HEIGHT - 20 - ((price - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * (CHART_HEIGHT - 40)
+}
+
+function indexToX(i: number): number {
+  return (i / 23) * CHART_WIDTH
 }
 
 /* ─── SUB-COMPONENTS ──────────────────────────────────────────── */
@@ -184,11 +199,25 @@ function LMPExpandedZone({ zone }: { zone: string }) {
   const lossAbs = Math.abs(data.loss)
   const total = energyAbs + congestionAbs + lossAbs
 
+  /* FIX 1 — Interactive chart state */
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+  const chartRef = useRef<SVGSVGElement>(null)
+
+  const handleChartMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const pct = x / rect.width
+    const index = Math.round(pct * 23)
+    setHoverIndex(Math.min(23, Math.max(0, index)))
+  }
+
+  const handleChartMouseLeave = () => setHoverIndex(null)
+
   return (
     <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflow: 'auto' }}>
 
       {/* TOP SECTION — Zone header + component breakdown */}
-      <div style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexShrink: 0 }}>
+      <div className="lmp-section-enter" style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexShrink: 0 }}>
         {/* Price block */}
         <div>
           <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.2em', marginBottom: '4px' }}>
@@ -226,7 +255,13 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               { label: 'CONGESTION', value: data.congestion, color: data.congestion > 0.5 ? '#FFB800' : data.congestion < -0.1 ? '#FF4444' : '#00FFF0' },
               { label: 'LOSS',       value: data.loss,        color: 'rgba(255,120,120,0.8)' },
             ].map(({ label, value, color }) => (
-              <div key={label}>
+              <div
+                key={label}
+                title={label === 'ENERGY' ? 'Marginal cost of energy at system reference' : label === 'CONGESTION' ? 'Transmission congestion rent — positive = import constraint' : 'Line loss adjustment'}
+                style={{ cursor: 'help', transition: 'transform 0.1s ease' }}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+              >
                 <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', marginBottom: '4px' }}>{label}</div>
                 <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '22px', color, fontWeight: 'bold' }}>
                   {value >= 0 ? '+' : ''}{value.toFixed(2)}
@@ -236,9 +271,9 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           </div>
           {/* FIX 6 — Proportional stacked bar — 8px, absolute values, overflow visible */}
           <div style={{ display: 'flex', height: '8px', width: '100%', overflow: 'visible' }}>
-            <div style={{ display: 'block', height: '100%', width: `${(energyAbs / total) * 100}%`, background: '#00D4FF', borderRadius: 0 }} />
-            <div style={{ display: 'block', height: '100%', width: `${(congestionAbs / total) * 100}%`, background: data.congestion > 0 ? '#FFB800' : '#FF4444', borderRadius: 0 }} />
-            <div style={{ display: 'block', height: '100%', width: `${(lossAbs / total) * 100}%`, background: 'rgba(255,120,120,0.8)', borderRadius: 0 }} />
+            <div className="lmp-bar-segment" style={{ display: 'block', height: '100%', width: `${(energyAbs / total) * 100}%`, background: '#00D4FF', borderRadius: 0 }} />
+            <div className="lmp-bar-segment" style={{ display: 'block', height: '100%', width: `${(congestionAbs / total) * 100}%`, background: data.congestion > 0 ? '#FFB800' : '#FF4444', borderRadius: 0 }} />
+            <div className="lmp-bar-segment" style={{ display: 'block', height: '100%', width: `${(lossAbs / total) * 100}%`, background: 'rgba(255,120,120,0.8)', borderRadius: 0 }} />
           </div>
           <div style={{ display: 'flex', gap: '16px', marginTop: '6px' }}>
             {[
@@ -256,7 +291,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
       </div>
 
       {/* FIX 9 — METRICS STRIP — fixed 72px height */}
-      <div style={{
+      <div className="lmp-section-enter" style={{
         height: '72px',
         flexShrink: 0,
         display: 'flex',
@@ -292,6 +327,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         ].map(({ label, value, sub, color }, i, arr) => (
           <div
             key={label}
+            className="lmp-metric-tile"
             style={{
               flex: 1,
               display: 'flex',
@@ -334,69 +370,205 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         ))}
       </div>
 
-      {/* MIDDLE SECTION — FIX 5: 24h price chart — height 240, viewBox 0 0 1000 240, baseline 220 */}
-      <div style={{ border: '0.5px solid rgba(255,255,255,0.05)', padding: '16px', background: 'rgba(255,255,255,0.01)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+      {/* ── FIX 1 — INTERACTIVE CHART WITH MOUSE TRACKING ── */}
+      <div className="lmp-section-enter" style={{
+        border: '0.5px solid rgba(255,255,255,0.05)',
+        background: 'rgba(255,255,255,0.01)',
+        padding: '16px',
+        flexShrink: 0,
+      }}>
+        {/* Chart header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
             24H PRICE TREND — {zone} vs WEST HUB
           </span>
-          <div style={{ display: 'flex', gap: '16px' }}>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: '#00D4FF' }}>● {zone}</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)' }}>● WEST HUB</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)' }}>— 24H AVG {data.avg24h.toFixed(1)}</span>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '16px', height: '2px', background: '#00D4FF' }} />
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.4)' }}>{zone}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ width: '16px', height: '1px', background: 'rgba(255,255,255,0.2)', borderTop: '1px dashed rgba(255,255,255,0.2)' }} />
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.25)' }}>WEST HUB</span>
+            </div>
+            {hoverIndex !== null && (
+              <div style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '11px',
+                color: '#00D4FF',
+                fontWeight: 'bold',
+                transition: 'color 0.1s',
+              }}>
+                {hoverIndex}:00 · ${prices[hoverIndex]?.toFixed(2)}/MWh
+              </div>
+            )}
           </div>
         </div>
-        <svg width="100%" height="240" viewBox="0 0 1000 240" preserveAspectRatio="none">
-          {/* Avg line */}
+
+        {/* SVG Chart */}
+        <svg
+          ref={chartRef}
+          width="100%"
+          height={CHART_HEIGHT}
+          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+          preserveAspectRatio="none"
+          style={{ cursor: 'crosshair', display: 'block' }}
+          onMouseMove={handleChartMouseMove}
+          onMouseLeave={handleChartMouseLeave}
+        >
+          {/* Horizontal grid lines */}
+          {[25, 30, 35, 40, 45, 50, 55, 60].map(price => {
+            const y = priceToY(price)
+            return (
+              <g key={price}>
+                <line x1="0" y1={y} x2={CHART_WIDTH} y2={y}
+                  stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+                <text x="8" y={y - 4}
+                  fontFamily="monospace" fontSize="11" fill="rgba(255,255,255,0.15)">
+                  ${price}
+                </text>
+              </g>
+            )
+          })}
+
+          {/* Hour labels on X axis */}
+          {[0, 3, 6, 9, 12, 15, 18, 21, 23].map(i => (
+            <text key={i}
+              x={indexToX(i)}
+              y={CHART_HEIGHT - 4}
+              fontFamily="monospace"
+              fontSize="11"
+              fill="rgba(255,255,255,0.15)"
+              textAnchor="middle"
+            >
+              {i}:00
+            </text>
+          ))}
+
+          {/* 24h average line */}
           {(() => {
-            const avgY = 220 - ((data.avg24h - 25) / 35) * 200
-            return <line x1="0" y1={avgY} x2="1000" y2={avgY} stroke="rgba(255,255,255,0.12)" strokeWidth="1" strokeDasharray="4,4" />
+            const avgY = priceToY(data.avg24h)
+            return (
+              <line x1="0" y1={avgY} x2={CHART_WIDTH} y2={avgY}
+                stroke="rgba(255,255,255,0.12)"
+                strokeWidth="1"
+                strokeDasharray="4,4" />
+            )
           })()}
+
           {/* Spread fill between zone and hub */}
           <polygon
-            points={`${prices.map((p, i) => `${(i/23)*1000},${220-((p-25)/35)*200}`).join(' ')} ${hubPrices.slice().reverse().map((p, i) => `${((23-i)/23)*1000},${220-((p-25)/35)*200}`).join(' ')}`}
-            fill={data.congestion > 0 ? 'rgba(255,183,0,0.08)' : 'rgba(0,212,255,0.06)'}
+            points={`${prices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')} ${hubPrices.slice().reverse().map((p, i) => `${indexToX(23 - i)},${priceToY(p)}`).join(' ')}`}
+            fill={data.congestion > 0 ? 'rgba(255,183,0,0.07)' : 'rgba(0,212,255,0.05)'}
           />
-          {/* West Hub faint reference line */}
+
+          {/* West Hub reference line — dashed, faint */}
           <polyline
-            points={hubPrices.map((p, i) => `${(i/23)*1000},${220-((p-25)/35)*200}`).join(' ')}
+            points={hubPrices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')}
             fill="none"
             stroke="rgba(255,255,255,0.18)"
-            strokeWidth="1"
-            strokeDasharray="3,3"
+            strokeWidth="1.5"
+            strokeDasharray="4,4"
           />
-          {/* Zone line */}
+
+          {/* Zone area fill */}
+          <polygon
+            points={`${indexToX(0)},${CHART_HEIGHT} ${prices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')} ${indexToX(23)},${CHART_HEIGHT}`}
+            fill="rgba(0,212,255,0.04)"
+          />
+
+          {/* Zone price line */}
           <polyline
-            points={prices.map((p, i) => `${(i/23)*1000},${220-((p-25)/35)*200}`).join(' ')}
+            points={prices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')}
             fill="none"
             stroke="#00D4FF"
             strokeWidth="2"
+            strokeLinejoin="round"
           />
-          {/* Peak label */}
+
+          {/* Peak marker */}
           {(() => {
             const peakIdx = prices.indexOf(Math.max(...prices))
-            const x = (peakIdx / 23) * 1000
-            const y = 220 - ((prices[peakIdx] - 25) / 35) * 200
+            const x = indexToX(peakIdx)
+            const y = priceToY(prices[peakIdx])
             return (
               <g>
-                <circle cx={x} cy={y} r="3" fill="#FF4444" />
-                <text x={x + 6} y={y - 4} fontFamily="monospace" fontSize="10" fill="rgba(255,100,100,0.8)">
+                <circle cx={x} cy={y} r="5" fill="#FF4444" stroke="#0A0A0B" strokeWidth="2" />
+                <text x={x + 10} y={y - 8} fontFamily="monospace" fontSize="12" fill="rgba(255,80,80,0.9)" fontWeight="bold">
                   {data.peak.hour} ${data.peak.price}
                 </text>
               </g>
             )
           })()}
-          {/* Cheapest label */}
+
+          {/* Cheapest marker */}
           {(() => {
             const lowIdx = prices.indexOf(Math.min(...prices))
-            const x = (lowIdx / 23) * 1000
-            const y = 220 - ((prices[lowIdx] - 25) / 35) * 200
+            const x = indexToX(lowIdx)
+            const y = priceToY(prices[lowIdx])
             return (
               <g>
-                <circle cx={x} cy={y} r="3" fill="#00D4FF" />
-                <text x={x + 6} y={y + 14} fontFamily="monospace" fontSize="10" fill="rgba(0,212,255,0.8)">
+                <circle cx={x} cy={y} r="5" fill="#00D4FF" stroke="#0A0A0B" strokeWidth="2" />
+                <text x={x + 10} y={y + 16} fontFamily="monospace" fontSize="12" fill="rgba(0,212,255,0.9)" fontWeight="bold">
                   {data.cheapest.hour} ${data.cheapest.price}
                 </text>
+              </g>
+            )
+          })()}
+
+          {/* HOVER LAYER — only when hovering */}
+          {hoverIndex !== null && (() => {
+            const x = indexToX(hoverIndex)
+            const price = prices[hoverIndex]
+            const y = priceToY(price)
+            const hubPrice = hubPrices[hoverIndex]
+            const hubY = priceToY(hubPrice)
+
+            return (
+              <g>
+                {/* Vertical crosshair */}
+                <line x1={x} y1="0" x2={x} y2={CHART_HEIGHT}
+                  stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3,3" />
+
+                {/* Zone price dot — large, glowing */}
+                <circle cx={x} cy={y} r="6" fill="#00D4FF" opacity="0.15" />
+                <circle cx={x} cy={y} r="4" fill="#00D4FF" stroke="#0A0A0B" strokeWidth="2" />
+
+                {/* Hub price dot — smaller */}
+                <circle cx={x} cy={hubY} r="3" fill="rgba(255,255,255,0.4)" stroke="#0A0A0B" strokeWidth="1.5" />
+
+                {/* Tooltip box — flip side if near right edge */}
+                {(() => {
+                  const tooltipX = hoverIndex > 18 ? x - 160 : x + 12
+                  const tooltipY = Math.max(10, y - 48)
+                  const spread = price - hubPrice
+
+                  return (
+                    <g>
+                      <rect x={tooltipX} y={tooltipY} width="148" height="76" rx="0"
+                        fill="#0A0A0B" stroke="rgba(0,212,255,0.25)" strokeWidth="0.5" />
+                      {/* Hour */}
+                      <text x={tooltipX + 10} y={tooltipY + 16}
+                        fontFamily="monospace" fontSize="11" fill="rgba(255,255,255,0.4)" letterSpacing="2">
+                        {hoverIndex}:00
+                      </text>
+                      {/* Zone price */}
+                      <text x={tooltipX + 10} y={tooltipY + 36}
+                        fontFamily="monospace" fontSize="16" fill="#FFFFFF" fontWeight="bold">
+                        ${price.toFixed(2)}/MWh
+                      </text>
+                      {/* Hub spread */}
+                      <text x={tooltipX + 10} y={tooltipY + 52}
+                        fontFamily="monospace" fontSize="10"
+                        fill={spread > 0 ? 'rgba(255,183,0,0.8)' : 'rgba(0,212,255,0.8)'}>
+                        {spread >= 0 ? '+' : ''}{spread.toFixed(2)} vs Hub
+                      </text>
+                      {/* Zone indicator dot */}
+                      <circle cx={tooltipX + 136} cy={tooltipY + 12} r="3"
+                        fill="#00D4FF" />
+                    </g>
+                  )
+                })()}
               </g>
             )
           })()}
@@ -404,10 +576,10 @@ function LMPExpandedZone({ zone }: { zone: string }) {
       </div>
 
       {/* BOTTOM SECTION — FIX 4: Three equal panels, fill remaining space */}
-      <div style={{ display: 'flex', gap: '12px', flex: 1, minHeight: 0 }}>
+      <div className="lmp-section-enter" style={{ display: 'flex', gap: '12px', flex: 1, minHeight: 0 }}>
 
         {/* FIX 7+8 — Panel 1: Congestion Intelligence — accent left border */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,183,0,0.4)', background: 'rgba(255,183,0,0.02)', padding: '20px' }}>
+        <div className="lmp-panel-congestion" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,183,0,0.4)', background: 'rgba(255,183,0,0.02)', padding: '20px' }}>
           <div style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '9px',
@@ -420,10 +592,10 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           }}>
             CONGESTION INTELLIGENCE
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0' }}>
             {constraints.map((c, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
+              <div key={i} className="lmp-constraint-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="constraint-name" style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)', transition: 'color 0.15s ease' }}>
                   {c.name}
                 </span>
                 <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', fontWeight: 'bold', color: c.impact > 0.5 ? '#FFB800' : c.impact < 0 ? '#FF4444' : 'rgba(255,255,255,0.3)' }}>
@@ -435,7 +607,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         </div>
 
         {/* FIX 7+8 — Panel 2: Zone Generation Mix — accent left border */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.01)', padding: '20px' }}>
+        <div className="lmp-panel-genmix" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(0,212,255,0.3)', background: 'rgba(0,212,255,0.01)', padding: '20px' }}>
           <div style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '9px',
@@ -448,14 +620,14 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           }}>
             ZONE GENERATION MIX
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0' }}>
             <div style={{ display: 'flex', height: '6px', marginBottom: '4px', overflow: 'hidden', flexShrink: 0 }}>
               {genMix.map(({ fuel, pct, color }) => (
-                <div key={fuel} style={{ width: `${pct}%`, background: color }} />
+                <div key={fuel} className="lmp-bar-segment" style={{ width: `${pct}%`, background: color }} />
               ))}
             </div>
             {genMix.map(({ fuel, pct, color }) => (
-              <div key={fuel} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div key={fuel} className="lmp-genmix-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '6px', height: '6px', background: color }} />
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>{fuel}</span>
@@ -469,7 +641,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         </div>
 
         {/* FIX 7+8 — Panel 3: Price Forecast — accent left border */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.01)', padding: '20px' }}>
+        <div className="lmp-panel-forecast" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, border: 'none', borderLeft: '2px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.01)', padding: '20px' }}>
           <div style={{
             fontFamily: "'Geist Mono', monospace",
             fontSize: '9px',
@@ -482,11 +654,11 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           }}>
             PRICE FORECAST
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0' }}>
             {forecast.map(({ hour, price }) => {
               const delta = price - data.price
               return (
-                <div key={hour} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '8px', borderBottom: '0.5px solid rgba(255,255,255,0.04)' }}>
+                <div key={hour} className="lmp-forecast-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>{hour}</span>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '13px', fontWeight: 'bold', color: '#FFFFFF' }}>
@@ -588,7 +760,7 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
             alignItems: 'center',
             gap: '4px',
           }}>
-            <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#00FFF0', display: 'inline-block' }} />
+            <span className="live-dot" style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#00FFF0', display: 'inline-block' }} />
             LIVE
           </span>
         </div>

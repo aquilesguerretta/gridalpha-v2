@@ -3,62 +3,68 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 
-// PJM zones with 3D positions — all 20 zones spread across ±8 units
+// PJM zones with 3D positions — all 20 zones as equal peers
 const PJM_ZONES = [
-  // West Hub — small central anchor, not dominant
-  { id: 'WEST_HUB',  label: 'WEST HUB',  position: [0, 0, 0] as [number,number,number],            lmp: 35.90, isHub: true },
-  // Western zones — spread left and deep
-  { id: 'COMED',     label: 'COMED',     position: [-7, 3, -4] as [number,number,number],           lmp: 32.04 },
-  { id: 'EKPC',      label: 'EKPC',      position: [-8, -3, 2] as [number,number,number],           lmp: 32.48 },
-  { id: 'AEP',       label: 'AEP',       position: [-5, -2, 4] as [number,number,number],           lmp: 33.36 },
-  { id: 'OVEC',      label: 'OVEC',      position: [-3, -4, 3] as [number,number,number],           lmp: 32.56 },
-  { id: 'DAY',       label: 'DAY',       position: [-4, 1, 5] as [number,number,number],            lmp: 33.89 },
-  { id: 'DEOK',      label: 'DEOK',      position: [-3, -5, -2] as [number,number,number],          lmp: 32.69 },
-  { id: 'ATSI',      label: 'ATSI',      position: [-5, 4, -3] as [number,number,number],           lmp: 33.23 },
-  // Central/Pennsylvania zones
-  { id: 'DUQ',       label: 'DUQ',       position: [-1, 5, 3] as [number,number,number],            lmp: 33.20 },
-  { id: 'PENELEC',   label: 'PENELEC',   position: [1, 6, -1] as [number,number,number],            lmp: 32.96 },
-  { id: 'PPL',       label: 'PPL',       position: [2, 3, 4] as [number,number,number],             lmp: 33.11 },
-  { id: 'METED',     label: 'METED',     position: [3, 2, 5] as [number,number,number],             lmp: 34.10 },
-  // Eastern zones — spread right
-  { id: 'PECO',      label: 'PECO',      position: [5, 1, 2] as [number,number,number],             lmp: 34.10 },
-  { id: 'PSEG',      label: 'PSEG',      position: [7, 3, -2] as [number,number,number],            lmp: 34.93 },
-  { id: 'JCPL',      label: 'JCPL',      position: [6, -1, -4] as [number,number,number],           lmp: 34.67 },
-  { id: 'RECO',      label: 'RECO',      position: [8, 2, -5] as [number,number,number],            lmp: 36.60 },
-  // Southern/Mid-Atlantic zones
-  { id: 'DPL',       label: 'DPL',       position: [4, -3, -3] as [number,number,number],           lmp: 35.26 },
-  { id: 'PEPCO',     label: 'PEPCO',     position: [3, -5, -4] as [number,number,number],           lmp: 34.81 },
-  { id: 'BGE',       label: 'BGE',       position: [2, -6, -2] as [number,number,number],           lmp: 34.50 },
-  { id: 'DOMINION',  label: 'DOMINION',  position: [4, -5, 1] as [number,number,number],            lmp: 34.23 },
+  // West Hub — just a peer zone, left-center
+  { id: 'WEST_HUB', label: 'WEST HUB', position: [-2, 0, 1] as [number,number,number], lmp: 35.90 },
+  // Far West
+  { id: 'EKPC',     label: 'EKPC',     position: [-9, -2, -3] as [number,number,number], lmp: 32.48 },
+  { id: 'COMED',    label: 'COMED',    position: [-7,  4,  3] as [number,number,number], lmp: 32.04 },
+  { id: 'AEP',      label: 'AEP',      position: [-5, -1,  5] as [number,number,number], lmp: 33.36 },
+  { id: 'OVEC',     label: 'OVEC',     position: [-4, -5,  2] as [number,number,number], lmp: 32.56 },
+  // West-Central
+  { id: 'DEOK',     label: 'DEOK',     position: [-3, -3, -5] as [number,number,number], lmp: 32.69 },
+  { id: 'DAY',      label: 'DAY',      position: [-2,  2,  6] as [number,number,number], lmp: 33.89 },
+  { id: 'ATSI',     label: 'ATSI',     position: [-4,  5, -1] as [number,number,number], lmp: 33.23 },
+  // Central Pennsylvania
+  { id: 'DUQ',      label: 'DUQ',      position: [ 0,  6,  3] as [number,number,number], lmp: 33.20 },
+  { id: 'PENELEC',  label: 'PENELEC',  position: [ 1,  7, -2] as [number,number,number], lmp: 32.96 },
+  { id: 'PPL',      label: 'PPL',      position: [ 3,  4,  4] as [number,number,number], lmp: 33.11 },
+  { id: 'METED',    label: 'METED',    position: [ 4,  2,  6] as [number,number,number], lmp: 34.10 },
+  // East — Philadelphia corridor
+  { id: 'PECO',     label: 'PECO',     position: [ 6,  1,  2] as [number,number,number], lmp: 34.10 },
+  // Mid-Atlantic South
+  { id: 'DOMINION', label: 'DOMINION', position: [ 2, -6,  3] as [number,number,number], lmp: 34.23 },
+  { id: 'BGE',      label: 'BGE',      position: [ 4, -5, -1] as [number,number,number], lmp: 34.50 },
+  { id: 'PEPCO',    label: 'PEPCO',    position: [ 5, -6, -5] as [number,number,number], lmp: 34.81 },
+  { id: 'DPL',      label: 'DPL',      position: [ 7, -3, -4] as [number,number,number], lmp: 35.26 },
+  // Far East
+  { id: 'PSEG',     label: 'PSEG',     position: [ 9,  2, -2] as [number,number,number], lmp: 34.93 },
+  { id: 'JCPL',     label: 'JCPL',     position: [10, -1, -4] as [number,number,number], lmp: 34.67 },
+  { id: 'RECO',     label: 'RECO',     position: [11,  0, -6] as [number,number,number], lmp: 36.60 },
 ]
 
-// Transmission connections — West Hub as soft backbone + direct geographic links
+// Transmission connections — West Hub connects to nearby western zones only
 const CONNECTIONS: [string, string][] = [
-  // West Hub soft connections — faint backbone
+  // West Hub connects only to nearby western zones
   ['WEST_HUB', 'AEP'],
-  ['WEST_HUB', 'PPL'],
-  ['WEST_HUB', 'PECO'],
-  ['WEST_HUB', 'DOMINION'],
-  // Direct geographic connections
-  ['COMED', 'AEP'],
-  ['COMED', 'ATSI'],
-  ['EKPC', 'AEP'],
-  ['AEP', 'OVEC'],
-  ['AEP', 'DAY'],
-  ['DAY', 'DEOK'],
-  ['ATSI', 'DUQ'],
-  ['DUQ', 'PENELEC'],
-  ['DUQ', 'PPL'],
-  ['PPL', 'METED'],
-  ['PPL', 'PECO'],
-  ['PECO', 'PSEG'],
-  ['PECO', 'DPL'],
-  ['PSEG', 'JCPL'],
-  ['JCPL', 'RECO'],
-  ['DPL', 'PEPCO'],
-  ['PEPCO', 'BGE'],
-  ['BGE', 'DOMINION'],
-  ['DOMINION', 'AEP'],
+  ['WEST_HUB', 'DAY'],
+  ['WEST_HUB', 'ATSI'],
+  // All other geographic connections
+  ['EKPC',    'AEP'],
+  ['COMED',   'AEP'],
+  ['COMED',   'ATSI'],
+  ['AEP',     'OVEC'],
+  ['AEP',     'DAY'],
+  ['AEP',     'DOMINION'],
+  ['OVEC',    'DAY'],
+  ['DAY',     'DEOK'],
+  ['DEOK',    'ATSI'],
+  ['ATSI',    'DUQ'],
+  ['DUQ',     'PENELEC'],
+  ['DUQ',     'PPL'],
+  ['PENELEC', 'PPL'],
+  ['PPL',     'METED'],
+  ['PPL',     'PECO'],
+  ['METED',   'PECO'],
+  ['PECO',    'PSEG'],
+  ['PECO',    'DPL'],
+  ['PECO',    'BGE'],
+  ['PSEG',    'JCPL'],
+  ['JCPL',    'RECO'],
+  ['DPL',     'PEPCO'],
+  ['PEPCO',   'BGE'],
+  ['BGE',     'DOMINION'],
 ]
 
 // Color based on LMP value — Electric Blue theme
@@ -77,8 +83,8 @@ function ZoneNode({ zone, isSelected, onClick }: {
   onClick: () => void
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const color = zone.isHub ? new THREE.Color('#00A3FF') : lmpToColor(zone.lmp, isSelected)
-  const size = zone.isHub ? 0.18 : 0.15
+  const color = lmpToColor(zone.lmp, isSelected)
+  const size = 0.15
   const targetScale = useRef(1)
 
   useFrame((state) => {
@@ -219,13 +225,60 @@ function StarField() {
   )
 }
 
-// Grid plane at the bottom for depth reference
-function GridPlane() {
+// Nebula — soft volumetric particle cloud surrounding the constellation
+function Nebula() {
+  const data = useMemo(() => {
+    const positions: number[] = []
+    const colors: number[] = []
+
+    for (let i = 0; i < 500; i++) {
+      // Distribute in an ellipsoid that matches the zone spread
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      const r = 8 + Math.random() * 10
+
+      positions.push(
+        r * Math.sin(phi) * Math.cos(theta) * 1.5, // wider on X (west-east axis)
+        r * Math.sin(phi) * Math.sin(theta) * 0.8, // compressed on Y
+        r * Math.cos(phi) * 1.2
+      )
+
+      // Mix of deep blue and faint cyan
+      const isCyan = Math.random() > 0.7
+      colors.push(
+        isCyan ? 0 : 0,
+        isCyan ? 0.8 : 0.3,
+        isCyan ? 1.0 : 0.6,
+      )
+    }
+
+    return {
+      positions: new Float32Array(positions),
+      colors: new Float32Array(colors),
+    }
+  }, [])
+
+  const bufferRef = useRef<THREE.BufferGeometry>(null)
+
+  useEffect(() => {
+    if (bufferRef.current) {
+      bufferRef.current.setAttribute('position', new THREE.BufferAttribute(data.positions, 3))
+      bufferRef.current.setAttribute('color', new THREE.BufferAttribute(data.colors, 3))
+    }
+  }, [data])
+
   return (
-    <gridHelper
-      args={[30, 30, '#0a2a44', '#061a2e']}
-      position={[0, -5, 0]}
-    />
+    <points>
+      <bufferGeometry ref={bufferRef} />
+      <pointsMaterial
+        size={0.08}
+        vertexColors
+        transparent
+        opacity={0.25}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
   )
 }
 
@@ -237,7 +290,7 @@ function Scene({ selectedZone, onZoneSelect }: {
   const { camera } = useThree()
 
   useEffect(() => {
-    camera.position.set(0, 2, 16)
+    camera.position.set(0, 2, 18)
     camera.lookAt(0, 0, 0)
   }, [camera])
 
@@ -245,7 +298,7 @@ function Scene({ selectedZone, onZoneSelect }: {
     <group>
       {/* Depth background */}
       <StarField />
-      <GridPlane />
+      <Nebula />
 
       {/* Ambient and point lights */}
       <ambientLight intensity={0.2} />
@@ -303,11 +356,11 @@ export function PJMNodeGraph({ onZoneSelect, expanded = false }: {
   return (
     <div style={{ position: 'absolute', inset: 0, background: 'transparent' }}>
       <Canvas
-        camera={{ position: [0, 2, 16], fov: 55 }}
+        camera={{ position: [0, 2, 18], fov: 55 }}
         style={{ background: 'transparent' }}
         gl={{ alpha: true, antialias: true }}
       >
-        <fog attach="fog" args={['#0A0A0B', 12, 25]} />
+        <fog attach="fog" args={['#0A0A0B', 18, 45]} />
         <Scene selectedZone={selectedZone} onZoneSelect={handleSelect} />
         <OrbitControls
           enablePan={expanded}

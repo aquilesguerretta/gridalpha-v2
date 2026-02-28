@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
+import { LMPCard } from "./LMPCard";
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -562,14 +563,6 @@ const REGIME_DESCRIPTIONS: Record<Regime, string> = {
   NORMAL:     'Balanced supply · Normal operations',
 }
 
-const ZONE_LABELS: Record<string, string> = {
-  'WEST_HUB': 'WEST HUB', 'COMED': 'COMED', 'AEP': 'AEP', 'ATSI': 'ATSI',
-  'DAY': 'DAY', 'DEOK': 'DEOK', 'DUQ': 'DUQ', 'DOMINION': 'DOMINION',
-  'DPL': 'DPL', 'EKPC': 'EKPC', 'PPL': 'PPL', 'PECO': 'PECO',
-  'PSEG': 'PSEG', 'JCPL': 'JCPL', 'PEPCO': 'PEPCO', 'BGE': 'BGE',
-  'METED': 'METED', 'PENELEC': 'PENELEC', 'RECO': 'RECO', 'OVEC': 'OVEC',
-}
-
 // Zone-specific alerts
 const ZONE_ALERTS: Record<string, { msg: string; severity: string; time: string }[]> = {
   'WEST_HUB': [
@@ -656,8 +649,6 @@ function NestView() {
     }, 280)
   }
 
-  const lmpData = ZONE_LMP[selectedZone ?? 'WEST_HUB']
-  const zoneName = ZONE_LABELS[selectedZone ?? 'WEST_HUB'] ?? 'WEST HUB'
   const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['DEFAULT']
   const sparkValue = ZONE_SPARK[selectedZone ?? 'WEST_HUB'] ?? 12.4
   const battData = ZONE_BATTERY[selectedZone ?? 'WEST_HUB'] ?? ZONE_BATTERY['WEST_HUB']
@@ -918,19 +909,9 @@ function NestView() {
         </div>
       </BentoCard>
 
-      {/* LMP Hub */}
+      {/* LMP Hub — redesigned card with expanded overlay */}
       <BentoCard title="LMP / HUB" status="live">
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.15em' }}>
-            {zoneName} LMP
-          </span>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '42px', fontWeight: 700, color: '#00FFF0', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-            {lmpData.price.toFixed(2)}
-          </span>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: lmpData.delta >= 0 ? '#00FF88' : '#FF4444' }}>
-            $/MWh  {lmpData.delta >= 0 ? '▲' : '▼'} {Math.abs(lmpData.delta).toFixed(1)}%
-          </span>
-        </div>
+        <LMPCard selectedZone={selectedZone} />
       </BentoCard>
 
       {/* Spark Spread */}

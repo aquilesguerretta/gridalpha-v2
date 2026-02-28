@@ -1,11 +1,10 @@
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Text, Line } from '@react-three/drei'
+import { OrbitControls, Text, Line, Billboard } from '@react-three/drei'
 import * as THREE from 'three'
 
 // PJM zones with 3D positions — all 20 zones
 const PJM_ZONES = [
-  { id: 'WEST_HUB',  label: 'WEST HUB',  position: [0, 0, 0] as [number,number,number],          lmp: 35.90, isHub: true },
   { id: 'COMED',     label: 'COMED',     position: [-4.5, 1.5, 2] as [number,number,number],      lmp: 32.04 },
   { id: 'AEP',       label: 'AEP',       position: [-3, -2, -1.5] as [number,number,number],      lmp: 33.36 },
   { id: 'ATSI',      label: 'ATSI',      position: [-2.5, 3, -2] as [number,number,number],       lmp: 33.23 },
@@ -29,14 +28,12 @@ const PJM_ZONES = [
 
 // Transmission connections between zones
 const CONNECTIONS: [string, string][] = [
-  ['WEST_HUB', 'COMED'],
-  ['WEST_HUB', 'AEP'],
-  ['WEST_HUB', 'ATSI'],
-  ['WEST_HUB', 'DUQ'],
-  ['WEST_HUB', 'PPL'],
-  ['WEST_HUB', 'DOMINION'],
-  ['WEST_HUB', 'DAY'],
-  ['WEST_HUB', 'METED'],
+  ['COMED', 'AEP'],
+  ['COMED', 'ATSI'],
+  ['AEP', 'DEOK'],
+  ['AEP', 'OVEC'],
+  ['ATSI', 'DUQ'],
+  ['DEOK', 'DAY'],
   ['DUQ', 'PPL'],
   ['DUQ', 'PENELEC'],
   ['PPL', 'PECO'],
@@ -45,21 +42,12 @@ const CONNECTIONS: [string, string][] = [
   ['PECO', 'DPL'],
   ['PSEG', 'JCPL'],
   ['PSEG', 'RECO'],
-  ['JCPL', 'PPL'],
-  ['AEP', 'DOMINION'],
-  ['AEP', 'DAY'],
-  ['AEP', 'DEOK'],
-  ['AEP', 'EKPC'],
-  ['ATSI', 'DUQ'],
-  ['COMED', 'AEP'],
-  ['DAY', 'DEOK'],
-  ['DOMINION', 'BGE'],
-  ['DOMINION', 'PEPCO'],
   ['DPL', 'PEPCO'],
-  ['BGE', 'PEPCO'],
-  ['EKPC', 'OVEC'],
-  ['OVEC', 'DEOK'],
-  ['PENELEC', 'METED'],
+  ['PEPCO', 'BGE'],
+  ['AEP', 'DOMINION'],
+  ['DOMINION', 'BGE'],
+  ['EKPC', 'AEP'],
+  ['OVEC', 'DAY'],
 ]
 
 // Color based on LMP value — Electric Blue theme
@@ -79,7 +67,7 @@ function ZoneNode({ zone, isSelected, onClick }: {
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
   const color = lmpToColor(zone.lmp, isSelected)
-  const size = zone.isHub ? 0.25 : 0.15
+  const size = 0.15
   const targetScale = useRef(1)
 
   useFrame((state) => {
@@ -116,27 +104,31 @@ function ZoneNode({ zone, isSelected, onClick }: {
           metalness={0.8}
         />
       </mesh>
-      {/* Zone label */}
-      <Text
-        position={[0, size + 0.25, 0]}
-        fontSize={0.18}
-        color={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}
-        anchorX="center"
-        anchorY="bottom"
-      >
-        {zone.label}
-      </Text>
-      {/* LMP price label — show on selected */}
-      {isSelected && (
+      {/* Zone label — billboard always faces camera */}
+      <Billboard position={[0, size + 0.25, 0]}>
         <Text
-          position={[0, size + 0.55, 0]}
-          fontSize={0.22}
-          color={color.getStyle()}
+          fontSize={0.18}
+          color={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}
           anchorX="center"
           anchorY="bottom"
+          font="/fonts/GeistMono-Regular.woff2"
         >
-          ${zone.lmp.toFixed(2)}
+          {zone.label}
         </Text>
+      </Billboard>
+      {/* LMP price label — show on selected */}
+      {isSelected && (
+        <Billboard position={[0, size + 0.55, 0]}>
+          <Text
+            fontSize={0.22}
+            color={color.getStyle()}
+            anchorX="center"
+            anchorY="bottom"
+            font="/fonts/GeistMono-Bold.woff2"
+          >
+            ${zone.lmp.toFixed(2)}
+          </Text>
+        </Billboard>
       )}
     </group>
   )
@@ -313,6 +305,7 @@ export function PJMNodeGraph({ onZoneSelect, expanded = false }: {
         <OrbitControls
           enablePan={expanded}
           enableZoom={true}
+          zoomToCursor={true}
           minDistance={expanded ? 2 : 7}
           maxDistance={expanded ? 20 : 14}
           autoRotate={true}

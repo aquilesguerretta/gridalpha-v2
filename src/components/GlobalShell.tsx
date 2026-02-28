@@ -471,7 +471,6 @@ function MiniSparkline() {
 
 // Zone LMP data for interactivity
 const ZONE_LMP: Record<string, { price: number; delta: number }> = {
-  'WEST_HUB':  { price: 35.90, delta: +2.4 },
   'COMED':     { price: 32.04, delta: -0.8 },
   'AEP':       { price: 33.36, delta: +1.1 },
   'ATSI':      { price: 33.23, delta: +0.6 },
@@ -494,14 +493,14 @@ const ZONE_LMP: Record<string, { price: number; delta: number }> = {
 }
 
 const ZONE_SPARK: Record<string, number> = {
-  'WEST_HUB': 12.7, 'COMED': 8.2, 'AEP': 10.1, 'ATSI': 9.8, 'DAY': 10.5,
+  'COMED': 8.2, 'AEP': 10.1, 'ATSI': 9.8, 'DAY': 10.5,
   'DEOK': 8.9, 'DUQ': 9.6, 'DOMINION': 11.4, 'DPL': 12.1, 'EKPC': 8.4,
   'PPL': 9.3, 'PECO': 11.0, 'PSEG': 12.3, 'JCPL': 11.8, 'PEPCO': 11.6,
   'BGE': 11.2, 'METED': 10.8, 'PENELEC': 9.1, 'RECO': 13.9, 'OVEC': 8.6,
 }
 
 const ZONE_LABELS: Record<string, string> = {
-  'WEST_HUB': 'WEST HUB', 'COMED': 'COMED', 'AEP': 'AEP', 'ATSI': 'ATSI',
+  'COMED': 'COMED', 'AEP': 'AEP', 'ATSI': 'ATSI',
   'DAY': 'DAY', 'DEOK': 'DEOK', 'DUQ': 'DUQ', 'DOMINION': 'DOMINION',
   'DPL': 'DPL', 'EKPC': 'EKPC', 'PPL': 'PPL', 'PECO': 'PECO',
   'PSEG': 'PSEG', 'JCPL': 'JCPL', 'PEPCO': 'PEPCO', 'BGE': 'BGE',
@@ -510,8 +509,8 @@ const ZONE_LABELS: Record<string, string> = {
 
 // Zone-specific alerts
 const ZONE_ALERTS: Record<string, { msg: string; severity: string; time: string }[]> = {
-  'WEST_HUB': [
-    { msg: "Congestion spike — West Hub", severity: "critical", time: "09:15" },
+  'PPL': [
+    { msg: "PPL congestion detected — Rte 18", severity: "critical", time: "09:15" },
     { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
     { msg: "Wind ramp detected — OHIO", severity: "info", time: "09:29" },
     { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:36" },
@@ -553,10 +552,10 @@ function NestView() {
     }, 280)
   }
 
-  const lmpData = ZONE_LMP[selectedZone ?? 'WEST_HUB']
-  const zoneName = ZONE_LABELS[selectedZone ?? 'WEST_HUB'] ?? 'WEST HUB'
-  const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['WEST_HUB']
-  const sparkValue = ZONE_SPARK[selectedZone ?? 'WEST_HUB'] ?? 12.7
+  const lmpData = ZONE_LMP[selectedZone ?? 'PPL']
+  const zoneName = ZONE_LABELS[selectedZone ?? 'PPL'] ?? 'PPL'
+  const alerts = ZONE_ALERTS[selectedZone ?? 'PPL'] ?? ZONE_ALERTS['PPL']
+  const sparkValue = ZONE_SPARK[selectedZone ?? 'PPL'] ?? 9.3
   const batteryRevenue = (lmpData.price * 118).toFixed(0)
 
   return (

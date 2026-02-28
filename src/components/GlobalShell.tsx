@@ -749,6 +749,55 @@ function NestView() {
                 onZoneSelect={(id) => setSelectedZone(id || null)}
                 expanded={true}
               />
+              {/* Mini-legend overlay — bottom-left of expanded view */}
+              <div style={{
+                position: 'absolute',
+                bottom: '16px',
+                left: '16px',
+                background: 'rgba(10,10,11,0.85)',
+                border: '0.5px solid rgba(255,255,255,0.08)',
+                borderRadius: '6px',
+                padding: '10px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                pointerEvents: 'none',
+              }}>
+                <span style={{
+                  fontFamily: "'Geist Mono', monospace",
+                  fontSize: '7px',
+                  color: 'rgba(255,255,255,0.35)',
+                  letterSpacing: '0.15em',
+                  marginBottom: '2px',
+                }}>
+                  VISUAL ENCODING
+                </span>
+                {/* Color legend */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00A3FF' }} />
+                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
+                    CHEAP (ZONE 24H LOW)
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FFB800' }} />
+                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
+                    MID-RANGE
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FF4444' }} />
+                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
+                    EXPENSIVE (ZONE 24H HIGH)
+                  </span>
+                </div>
+                {/* Size + depth legend */}
+                <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', paddingTop: '5px', marginTop: '2px' }}>
+                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '7.5px', color: 'rgba(255,255,255,0.3)' }}>
+                    ● SIZE = PEAK LOAD MW &nbsp; ● DEPTH = LMP $/MWh
+                  </span>
+                </div>
+              </div>
             </div>
             {/* Footer hint */}
             <div style={{

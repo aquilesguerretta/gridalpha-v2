@@ -3,7 +3,101 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
 
-// PJM zones with 3D positions — all 20 zones as equal peers
+// === Z-AXIS PRICE SURFACE ===
+// Expensive zones float toward viewer, cheap zones recede
+const LMP_MIN = 30.0
+const LMP_MAX = 40.0
+const Z_RANGE = 6.0
+
+function lmpToZOffset(lmp: number): number {
+  const normalized = Math.min(1, Math.max(0, (lmp - LMP_MIN) / (LMP_MAX - LMP_MIN)))
+  return normalized * Z_RANGE - Z_RANGE / 2
+}
+
+// === SPHERE SIZE FROM ZONE PEAK LOAD MW ===
+const ZONE_PEAK_LOAD_MW: Record<string, number> = {
+  'COMED':    25_800,
+  'AEP':      19_400,
+  'DOMINION': 18_200,
+  'PSEG':     10_900,
+  'PPL':       9_800,
+  'PECO':      8_600,
+  'BGE':       7_200,
+  'ATSI':      6_800,
+  'DPL':       4_100,
+  'DAY':       3_900,
+  'PEPCO':     3_700,
+  'DUQ':       3_400,
+  'JCPL':      3_200,
+  'METED':     2_900,
+  'PENELEC':   2_700,
+  'DEOK':      2_400,
+  'WEST_HUB':  2_200,
+  'EKPC':      2_100,
+  'OVEC':      1_800,
+  'RECO':      1_200,
+}
+
+const MW_MIN = 1_200
+const MW_MAX = 25_800
+const R_MIN = 0.12
+const R_MAX = 0.55
+
+function mwToRadius(zoneId: string): number {
+  const mw = ZONE_PEAK_LOAD_MW[zoneId] ?? 3_000
+  const normalized = Math.min(1, Math.max(0, (mw - MW_MIN) / (MW_MAX - MW_MIN)))
+  return R_MIN + normalized * (R_MAX - R_MIN)
+}
+
+// === RELATIVE COLOR PER ZONE 24H RANGE ===
+const ZONE_24H_RANGE: Record<string, { low: number; high: number }> = {
+  'WEST_HUB':  { low: 28.5, high: 38.2 },
+  'COMED':     { low: 27.1, high: 35.6 },
+  'AEP':       { low: 28.0, high: 36.4 },
+  'ATSI':      { low: 27.8, high: 36.1 },
+  'DAY':       { low: 27.9, high: 36.8 },
+  'DEOK':      { low: 27.3, high: 35.2 },
+  'DUQ':       { low: 27.6, high: 35.9 },
+  'DOMINION':  { low: 28.8, high: 37.5 },
+  'DPL':       { low: 29.1, high: 38.4 },
+  'EKPC':      { low: 26.9, high: 34.8 },
+  'PPL':       { low: 28.3, high: 37.0 },
+  'PECO':      { low: 28.6, high: 37.8 },
+  'PSEG':      { low: 29.2, high: 38.9 },
+  'JCPL':      { low: 29.0, high: 38.5 },
+  'PEPCO':     { low: 28.9, high: 38.1 },
+  'BGE':       { low: 28.7, high: 37.9 },
+  'METED':     { low: 28.4, high: 37.2 },
+  'PENELEC':   { low: 27.5, high: 35.8 },
+  'RECO':      { low: 29.8, high: 40.2 },
+  'OVEC':      { low: 26.8, high: 34.6 },
+}
+
+function lmpToRelativeColor(zoneId: string, lmp: number, isSelected: boolean): THREE.Color {
+  if (isSelected) return new THREE.Color('#00FFF0')
+
+  // West Hub always white-cyan as pricing anchor
+  if (zoneId === 'WEST_HUB') return new THREE.Color('#E0FFFF')
+
+  const range = ZONE_24H_RANGE[zoneId]
+  if (!range) return new THREE.Color('#00A3FF')
+
+  const rangeSize = range.high - range.low
+  const position = (lmp - range.low) / rangeSize // 0 = at daily low, 1 = at daily high
+
+  if (position < 0.33) {
+    // Lower third — cyan (cheap for this zone)
+    return new THREE.Color('#00A3FF')
+  } else if (position < 0.67) {
+    // Middle third — amber (mid-range)
+    return new THREE.Color('#FFB800')
+  } else {
+    // Upper third — red (expensive for this zone)
+    return new THREE.Color('#FF4444')
+  }
+}
+
+// PJM zones with geographic X/Y positions — Z is computed from LMP at render time
 const PJM_ZONES = [
   // West Hub — just a peer zone, left-center
   { id: 'WEST_HUB', label: 'WEST HUB', position: [-2, 0, 1] as [number,number,number], lmp: 35.90 },
@@ -67,24 +161,18 @@ const CONNECTIONS: [string, string][] = [
   ['BGE',     'DOMINION'],
 ]
 
-// Color based on LMP value — Electric Blue theme
-function lmpToColor(lmp: number, isSelected: boolean): THREE.Color {
-  if (isSelected) return new THREE.Color('#00FFF0') // cyan when selected
-  if (lmp < 32.5) return new THREE.Color('#00A3FF') // electric blue — cheap
-  if (lmp < 34) return new THREE.Color('#00A3FF')   // electric blue — normal
-  if (lmp < 35) return new THREE.Color('#FFB800')   // amber — elevated
-  return new THREE.Color('#FF4444')                  // red — expensive
-}
-
-// Individual zone node
-function ZoneNode({ zone, isSelected, onClick }: {
-  zone: typeof PJM_ZONES[0]
+// Individual zone node — size from MW, color from relative LMP, labels only in expanded
+function ZoneNode({ zone, isSelected, onClick, expanded }: {
+  zone: typeof PJM_ZONES[0] & { position: [number, number, number] }
   isSelected: boolean
   onClick: () => void
+  expanded: boolean
 }) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const color = lmpToColor(zone.lmp, isSelected)
-  const size = 0.15
+  const color = lmpToRelativeColor(zone.id, zone.lmp, isSelected)
+  const size = zone.id === 'WEST_HUB'
+    ? mwToRadius(zone.id) * 1.25 // West Hub 25% larger as pricing anchor
+    : mwToRadius(zone.id)
   const targetScale = useRef(1)
 
   useFrame((state) => {
@@ -121,22 +209,24 @@ function ZoneNode({ zone, isSelected, onClick }: {
           metalness={0.8}
         />
       </mesh>
-      {/* Zone label */}
-      <Text
-        position={[0, size + 0.25, 0]}
-        fontSize={0.18}
-        color={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.6)'}
-        anchorX="center"
-        anchorY="bottom"
-      >
-        {zone.label}
-      </Text>
-      {/* LMP price label — show on selected */}
-      {isSelected && (
+      {/* Zone label — only in expanded view */}
+      {expanded && (
         <Text
-          position={[0, size + 0.55, 0]}
-          fontSize={0.22}
-          color={color.getStyle()}
+          position={[0, size + 0.3, 0]}
+          fontSize={0.16}
+          color={isSelected ? '#FFFFFF' : 'rgba(255,255,255,0.55)'}
+          anchorX="center"
+          anchorY="bottom"
+        >
+          {zone.label}
+        </Text>
+      )}
+      {/* LMP price label — show on selected in expanded view */}
+      {expanded && isSelected && (
+        <Text
+          position={[0, size + 0.6, 0]}
+          fontSize={0.20}
+          color={lmpToRelativeColor(zone.id, zone.lmp, false).getStyle()}
           anchorX="center"
           anchorY="bottom"
         >
@@ -282,10 +372,27 @@ function Nebula() {
   )
 }
 
-// Scene
-function Scene({ selectedZone, onZoneSelect }: {
+// Reference plane at bottom for depth perception
+function ReferencePlane() {
+  return (
+    <mesh rotation={[0, 0, 0]} position={[0, -8, 0]}>
+      <planeGeometry args={[35, 35, 20, 20]} />
+      <meshBasicMaterial
+        color="#00A3FF"
+        transparent
+        opacity={0.03}
+        wireframe
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  )
+}
+
+// Scene — computes LMP Z-offset positions at render time
+function Scene({ selectedZone, onZoneSelect, expanded }: {
   selectedZone: string | null
   onZoneSelect: (id: string) => void
+  expanded: boolean
 }) {
   const { camera } = useThree()
 
@@ -294,21 +401,34 @@ function Scene({ selectedZone, onZoneSelect }: {
     camera.lookAt(0, 0, 0)
   }, [camera])
 
+  // Compute Z-offset from LMP for each zone at render time
+  const zoneWithLmpZ = useMemo(() =>
+    PJM_ZONES.map(zone => ({
+      ...zone,
+      position: [
+        zone.position[0],
+        zone.position[1],
+        zone.position[2] + lmpToZOffset(zone.lmp),
+      ] as [number, number, number]
+    })),
+  [])
+
   return (
     <group>
       {/* Depth background */}
       <StarField />
       <Nebula />
+      <ReferencePlane />
 
       {/* Ambient and point lights */}
       <ambientLight intensity={0.2} />
       <pointLight position={[0, 5, 5]} intensity={1} color="#00A3FF" />
       <pointLight position={[0, -5, -5]} intensity={0.5} color="#00FFF0" />
 
-      {/* Connection lines */}
+      {/* Connection lines — use LMP-offset positions */}
       {CONNECTIONS.map(([fromId, toId]) => {
-        const from = PJM_ZONES.find(z => z.id === fromId)
-        const to = PJM_ZONES.find(z => z.id === toId)
+        const from = zoneWithLmpZ.find(z => z.id === fromId)
+        const to = zoneWithLmpZ.find(z => z.id === toId)
         if (!from || !to) return null
         const active = selectedZone === fromId || selectedZone === toId
         return (
@@ -321,13 +441,14 @@ function Scene({ selectedZone, onZoneSelect }: {
         )
       })}
 
-      {/* Zone nodes */}
-      {PJM_ZONES.map(zone => (
+      {/* Zone nodes — use LMP-offset positions */}
+      {zoneWithLmpZ.map(zone => (
         <ZoneNode
           key={zone.id}
           zone={zone}
           isSelected={selectedZone === zone.id}
           onClick={() => onZoneSelect(zone.id)}
+          expanded={expanded}
         />
       ))}
     </group>
@@ -361,7 +482,7 @@ export function PJMNodeGraph({ onZoneSelect, expanded = false }: {
         gl={{ alpha: true, antialias: true }}
       >
         <fog attach="fog" args={['#0A0A0B', 18, 45]} />
-        <Scene selectedZone={selectedZone} onZoneSelect={handleSelect} />
+        <Scene selectedZone={selectedZone} onZoneSelect={handleSelect} expanded={expanded} />
         <OrbitControls
           enablePan={expanded}
           enableZoom={true}

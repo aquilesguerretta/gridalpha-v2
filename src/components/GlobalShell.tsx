@@ -494,10 +494,72 @@ const ZONE_LMP: Record<string, { price: number; delta: number }> = {
 }
 
 const ZONE_SPARK: Record<string, number> = {
-  'WEST_HUB': 9.3, 'COMED': 8.2, 'AEP': 10.1, 'ATSI': 9.8, 'DAY': 10.5,
-  'DEOK': 8.9, 'DUQ': 9.6, 'DOMINION': 11.4, 'DPL': 12.1, 'EKPC': 8.4,
-  'PPL': 9.3, 'PECO': 11.0, 'PSEG': 12.3, 'JCPL': 11.8, 'PEPCO': 11.6,
-  'BGE': 11.2, 'METED': 10.8, 'PENELEC': 9.1, 'RECO': 13.9, 'OVEC': 8.6,
+  'WEST_HUB': 12.4, 'COMED': 10.2, 'AEP': 11.8, 'ATSI': 11.5,
+  'DAY': 12.1, 'DEOK': 10.9, 'DUQ': 11.3, 'DOMINION': 13.8,
+  'DPL': 14.2, 'EKPC': 10.5, 'PPL': 12.8, 'PECO': 13.5,
+  'PSEG': 14.9, 'JCPL': 14.6, 'PEPCO': 14.0, 'BGE': 13.9,
+  'METED': 13.2, 'PENELEC': 11.9, 'RECO': 16.1, 'OVEC': 10.8,
+}
+
+// Zone-specific battery arbitrage data
+const ZONE_BATTERY: Record<string, { revenue: number; charge: string; discharge: string; soc: number }> = {
+  'WEST_HUB': { revenue: 4240, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 71 },
+  'COMED':    { revenue: 3820, charge: '01:00–05:00', discharge: '15:00–19:00', soc: 65 },
+  'AEP':      { revenue: 3960, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 68 },
+  'ATSI':     { revenue: 3900, charge: '02:00–06:00', discharge: '17:00–21:00', soc: 67 },
+  'DAY':      { revenue: 4050, charge: '01:00–05:00', discharge: '16:00–20:00', soc: 70 },
+  'DEOK':     { revenue: 3780, charge: '02:00–06:00', discharge: '15:00–19:00', soc: 64 },
+  'DUQ':      { revenue: 3930, charge: '03:00–07:00', discharge: '16:00–20:00', soc: 69 },
+  'DOMINION': { revenue: 4380, charge: '02:00–06:00', discharge: '15:00–19:00', soc: 74 },
+  'DPL':      { revenue: 4510, charge: '01:00–05:00', discharge: '16:00–20:00', soc: 76 },
+  'EKPC':     { revenue: 3710, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 62 },
+  'PPL':      { revenue: 4160, charge: '02:00–06:00', discharge: '17:00–21:00', soc: 72 },
+  'PECO':     { revenue: 4420, charge: '01:00–05:00', discharge: '16:00–20:00', soc: 75 },
+  'PSEG':     { revenue: 4680, charge: '01:00–05:00', discharge: '15:00–19:00', soc: 78 },
+  'JCPL':     { revenue: 4590, charge: '01:00–05:00', discharge: '15:00–19:00', soc: 77 },
+  'PEPCO':    { revenue: 4490, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 76 },
+  'BGE':      { revenue: 4460, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 75 },
+  'METED':    { revenue: 4280, charge: '02:00–06:00', discharge: '17:00–21:00', soc: 73 },
+  'PENELEC':  { revenue: 3980, charge: '03:00–07:00', discharge: '16:00–20:00', soc: 68 },
+  'RECO':     { revenue: 5020, charge: '01:00–05:00', discharge: '14:00–18:00', soc: 82 },
+  'OVEC':     { revenue: 3690, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 63 },
+}
+
+// Zone-specific resource gap (reserve margin %)
+const ZONE_RESERVE: Record<string, number> = {
+  'WEST_HUB': 18.4, 'COMED': 21.2, 'AEP': 19.6, 'ATSI': 20.1,
+  'DAY': 19.8, 'DEOK': 22.3, 'DUQ': 18.9, 'DOMINION': 16.2,
+  'DPL': 15.8, 'EKPC': 23.1, 'PPL': 17.4, 'PECO': 16.9,
+  'PSEG': 14.3, 'JCPL': 14.8, 'PEPCO': 15.1, 'BGE': 15.6,
+  'METED': 17.8, 'PENELEC': 19.2, 'RECO': 13.1, 'OVEC': 24.2,
+}
+
+// Regime detection — derived from LMP + reserve + marginal fuel
+type Regime = 'SCARCITY' | 'SURPLUS' | 'TRANSITION' | 'NORMAL'
+
+function detectRegime(zone: string | null): Regime {
+  const z = zone ?? 'WEST_HUB'
+  const lmp = ZONE_LMP[z]?.price ?? 33.0
+  const reserve = ZONE_RESERVE[z] ?? 18.0
+
+  if (lmp > 36 && reserve < 15) return 'SCARCITY'
+  if (lmp < 32 && reserve > 22) return 'SURPLUS'
+  if (Math.abs(lmp - 34) < 1.5 && reserve > 15 && reserve < 20) return 'TRANSITION'
+  return 'NORMAL'
+}
+
+const REGIME_COLORS: Record<Regime, string> = {
+  SCARCITY:   '#FF4444',
+  SURPLUS:    '#00A3FF',
+  TRANSITION: '#FFB800',
+  NORMAL:     '#00FFF0',
+}
+
+const REGIME_DESCRIPTIONS: Record<Regime, string> = {
+  SCARCITY:   'High LMP · Tight reserves · Peaker dispatch active',
+  SURPLUS:    'Low LMP · Ample reserves · Renewables curtailing',
+  TRANSITION: 'Marginal fuel shifting · Monitor spreads',
+  NORMAL:     'Balanced supply · Normal operations',
 }
 
 const ZONE_LABELS: Record<string, string> = {
@@ -511,36 +573,49 @@ const ZONE_LABELS: Record<string, string> = {
 // Zone-specific alerts
 const ZONE_ALERTS: Record<string, { msg: string; severity: string; time: string }[]> = {
   'WEST_HUB': [
-    { msg: "West Hub LMP elevated — $35.90", severity: "warning", time: "09:10" },
-    { msg: "System-wide congestion moderate", severity: "info", time: "09:18" },
-    { msg: "PJM dispatch signal: NORMAL", severity: "info", time: "09:25" },
+    { msg: "Congestion spike — West Hub", severity: "critical", time: "08:50" },
+    { msg: "DA/RT spread > 8% threshold", severity: "warning", time: "08:32" },
+    { msg: "PJM dispatch signal: NORMAL", severity: "info", time: "08:15" },
+  ],
+  'PSEG': [
+    { msg: "Interface limit binding — PSEG", severity: "critical", time: "09:02" },
+    { msg: "Import constraint from PJM-EAST", severity: "warning", time: "08:44" },
+    { msg: "Battery dispatch: ACTIVE", severity: "info", time: "08:21" },
+  ],
+  'RECO': [
+    { msg: "LMP spike — RECO $36.60/MWh", severity: "critical", time: "09:05" },
+    { msg: "NY import limit reached", severity: "critical", time: "08:50" },
+    { msg: "Peaker dispatch imminent", severity: "warning", time: "08:30" },
+  ],
+  'COMED': [
+    { msg: "Wind ramp detected — COMED", severity: "info", time: "08:40" },
+    { msg: "Surplus generation — curtail watch", severity: "warning", time: "08:22" },
+    { msg: "Imports from MISO elevated", severity: "info", time: "08:05" },
+  ],
+  'DOMINION': [
+    { msg: "Dominion zone load rising", severity: "warning", time: "09:00" },
+    { msg: "Gas unit on hot standby", severity: "warning", time: "08:45" },
+    { msg: "Transmission line restored", severity: "info", time: "08:20" },
   ],
   'PPL': [
     { msg: "PPL congestion detected — Rte 18", severity: "critical", time: "09:15" },
     { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
-    { msg: "Wind ramp detected — OHIO", severity: "info", time: "09:29" },
     { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:36" },
-    { msg: "Transmission constraint — Rte 18", severity: "critical", time: "09:43" },
-  ],
-  'COMED': [
-    { msg: "COMED price suppression active", severity: "warning", time: "09:15" },
-    { msg: "Wind oversupply — N. Illinois", severity: "info", time: "09:22" },
-    { msg: "Negative LMP risk elevated", severity: "critical", time: "09:29" },
-  ],
-  'DOMINION': [
-    { msg: "Dominion heat event — high load", severity: "critical", time: "09:15" },
-    { msg: "Capacity constraint — Rte 500", severity: "warning", time: "09:22" },
-    { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:29" },
-  ],
-  'PSEG': [
-    { msg: "PSEG congestion alert", severity: "critical", time: "09:15" },
-    { msg: "NJ load peak approaching", severity: "warning", time: "09:22" },
-    { msg: "Transmission constraint — Hudson", severity: "critical", time: "09:29" },
   ],
   'PECO': [
     { msg: "PECO zone spread widening", severity: "warning", time: "09:15" },
     { msg: "PA demand surge detected", severity: "critical", time: "09:22" },
     { msg: "DA/RT divergence — PECO", severity: "info", time: "09:29" },
+  ],
+  'AEP': [
+    { msg: "AEP thermal unit trip — 400MW", severity: "critical", time: "08:55" },
+    { msg: "Reserve sharing activated", severity: "warning", time: "08:40" },
+    { msg: "MISO tie flow elevated", severity: "info", time: "08:20" },
+  ],
+  'DEFAULT': [
+    { msg: "Zone LMP elevated · Monitor", severity: "warning", time: "08:55" },
+    { msg: "System-wide congestion moderate", severity: "info", time: "08:30" },
+    { msg: "PJM dispatch signal: NORMAL", severity: "info", time: "08:10" },
   ],
 }
 
@@ -560,9 +635,13 @@ function NestView() {
 
   const lmpData = ZONE_LMP[selectedZone ?? 'WEST_HUB']
   const zoneName = ZONE_LABELS[selectedZone ?? 'WEST_HUB'] ?? 'WEST HUB'
-  const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['WEST_HUB']
-  const sparkValue = ZONE_SPARK[selectedZone ?? 'WEST_HUB'] ?? 9.3
-  const batteryRevenue = (lmpData.price * 118).toFixed(0)
+  const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['DEFAULT']
+  const sparkValue = ZONE_SPARK[selectedZone ?? 'WEST_HUB'] ?? 12.4
+  const battData = ZONE_BATTERY[selectedZone ?? 'WEST_HUB'] ?? ZONE_BATTERY['WEST_HUB']
+  const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4
+  const reserveColor = reserveMargin < 15 ? '#FF4444' : reserveMargin < 18 ? '#FFB800' : '#00A3FF'
+  const regime = detectRegime(selectedZone)
+  const regimeColor = REGIME_COLORS[regime]
 
   return (
     <div style={{
@@ -696,6 +775,44 @@ function NestView() {
       {/* Peregrine Feed */}
       <BentoCard title="PEREGRINE FEED" status="live">
         <div style={{ position: 'absolute', inset: 0, padding: '12px', overflowY: 'auto' }}>
+          {/* Regime Detection Badge */}
+          <div style={{
+            padding: '8px 12px',
+            marginBottom: '8px',
+            borderLeft: `2px solid ${regimeColor}`,
+            background: `${regimeColor}10`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '10px',
+                fontWeight: 'bold',
+                color: regimeColor,
+                letterSpacing: '0.15em',
+              }}>
+                ● {regime}
+              </span>
+              <span style={{
+                fontFamily: "'Geist Mono', monospace",
+                fontSize: '8px',
+                color: 'rgba(255,255,255,0.25)',
+                letterSpacing: '0.1em',
+              }}>
+                MARKET REGIME
+              </span>
+            </div>
+            <span style={{
+              fontFamily: "'Geist Mono', monospace",
+              fontSize: '9px',
+              color: 'rgba(255,255,255,0.4)',
+              letterSpacing: '0.08em',
+            }}>
+              {REGIME_DESCRIPTIONS[regime]}
+            </span>
+          </div>
           {alerts.map((alert, i) => (
             <div
               key={i}
@@ -732,6 +849,9 @@ function NestView() {
       {/* Spark Spread */}
       <BentoCard title="SPARK SPREAD" status="live">
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', marginBottom: '4px' }}>
+            {selectedZone ?? 'SYSTEM'} SPARK
+          </div>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '32px', color: '#00A3FF', fontVariantNumeric: 'tabular-nums' }}>{sparkValue.toFixed(1)}</span>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>$/MWh</span>
           <div style={{ width: '100%', marginTop: '16px' }}><MiniSparkline /></div>
@@ -741,18 +861,21 @@ function NestView() {
       {/* Battery ARB */}
       <BentoCard title="BATTERY ARB" status="stale">
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px' }}>
+          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textAlign: 'right', alignSelf: 'flex-end' }}>
+            {selectedZone ?? 'WEST HUB'} ARB
+          </div>
           <div style={{ position: 'relative', width: '88px', height: '88px' }}>
             <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
               <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-              <circle cx="18" cy="18" r="16" fill="none" stroke="#00FFF0" strokeWidth="2" strokeDasharray="71 100" strokeLinecap="round" transform="rotate(-90 18 18)" />
+              <circle cx="18" cy="18" r="16" fill="none" stroke="#00FFF0" strokeWidth="2" strokeDasharray={`${battData.soc} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" />
             </svg>
-            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Geist Mono', monospace", fontSize: '18px', color: '#00FFF0' }}>71%</span>
+            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Geist Mono', monospace", fontSize: '18px', color: '#00FFF0' }}>{battData.soc}%</span>
           </div>
           <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>CHARGE 02:00–06:00</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: '#FFB800' }}>DISCHARGE 16:00–20:00</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>CHARGE {battData.charge}</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: '#FFB800' }}>DISCHARGE {battData.discharge}</span>
             <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>EST. DAILY REVENUE</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: '#FFB800' }}>${Number(batteryRevenue).toLocaleString()} /MWh</span>
+            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: '#FFB800' }}>${battData.revenue.toLocaleString()} /MWh</span>
           </div>
         </div>
       </BentoCard>
@@ -813,8 +936,8 @@ function NestView() {
       <BentoCard title="RESOURCE GAP" status="live">
         <div style={{ position: 'absolute', inset: 0 }}>
           {/* Reserve Margin Badge */}
-          <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(0, 163, 255, 0.1)", border: "1px solid rgba(0, 163, 255, 0.3)" }}>
-            <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>RESERVE MARGIN: 18.4%</span>
+          <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: `${reserveColor}15`, border: `1px solid ${reserveColor}50` }}>
+            <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: reserveColor }}>RESERVE MARGIN: {reserveMargin.toFixed(1)}%</span>
           </div>
           {/* NOAA Uncertainty Badge */}
           <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255, 184, 0, 0.1)", border: "1px solid rgba(255, 184, 0, 0.3)" }}>

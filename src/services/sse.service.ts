@@ -6,6 +6,10 @@
  */
 
 import type { LiveDataFrame } from "../types/index";
+import { logger } from "../lib/shared/logger";
+import { captureError } from "../lib/shared/error-tracking";
+
+const log = logger.child("sse-service");
 
 // ── V1 backend base URL ─────────────────────────────────────────
 
@@ -81,7 +85,7 @@ export function startPollingBridge(
 
       // Fallback to demo when live is empty
       if (!body.data || body.data.length === 0) {
-        console.warn("[Poll] Live data empty — falling back to demo endpoint");
+        log.warn("Live data empty — falling back to demo endpoint");
         res = await fetch(DEMO_URL);
         body = (await res.json()) as V1LmpResponse;
       }
@@ -95,12 +99,10 @@ export function startPollingBridge(
       if (rtoRow) {
         const frame = mapRowToFrame(rtoRow, quality);
         onFrame(frame);
-        console.log(
-          `[Poll] ${frame.zone_id} LMP=$${frame.lmp_total} quality=${frame.data_quality}`,
-        );
+        log.info("Frame received", { zone: frame.zone_id, lmp: frame.lmp_total, quality: frame.data_quality });
       }
     } catch (err) {
-      console.error("[Poll] Fetch failed:", (err as Error).message);
+      captureError(err, { context: "polling-bridge" });
 
       // Emit a RECONNECTING sentinel so the UI can show status
       onFrame({
@@ -151,24 +153,20 @@ export function createSSEConnection(
       const frame: LiveDataFrame = JSON.parse(event.data) as LiveDataFrame;
 
       if (frame.data_quality === "STALE") {
-        console.warn(
-          `[SSE] zone=${frame.zone_id} data_quality=STALE — upstream may be delayed`,
-        );
+        log.warn("data_quality=STALE — upstream may be delayed", { zone: frame.zone_id });
       }
       if (frame.data_quality === "RECONNECTING") {
-        console.warn(
-          `[SSE] zone=${frame.zone_id} data_quality=RECONNECTING — attempting recovery`,
-        );
+        log.warn("data_quality=RECONNECTING — attempting recovery", { zone: frame.zone_id });
       }
 
       onMessage(frame);
     } catch (parseErr) {
-      console.error("[SSE] Failed to parse incoming frame:", parseErr);
+      captureError(parseErr, { context: "sse-parse" });
     }
   };
 
   source.onerror = (err: Event) => {
-    console.error("[SSE] Connection error:", err);
+    captureError(err, { context: "sse-connection" });
     onError?.(err);
   };
 

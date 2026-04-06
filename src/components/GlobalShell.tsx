@@ -2,6 +2,16 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
 import { LMPCard } from "./LMPCard";
+import {
+  type Regime,
+  type AssetData,
+  type TransmissionLine,
+  ZONE_LMP, ZONE_SPARK, ZONE_BATTERY, ZONE_RESERVE,
+  REGIME_COLORS, REGIME_DESCRIPTIONS, ZONE_ALERTS,
+  sampleAssets, transmissionLines, hubLocations,
+} from "../lib/pjm/mock-data";
+import { ErrorBoundary } from "./shared/ErrorBoundary";
+import { CardSkeleton } from "./shared/CardSkeleton";
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -470,73 +480,7 @@ function MiniSparkline() {
   );
 }
 
-// Zone LMP data for interactivity
-const ZONE_LMP: Record<string, { price: number; delta: number }> = {
-  'WEST_HUB':  { price: 35.90, delta: +0.5 },
-  'COMED':     { price: 32.04, delta: -0.8 },
-  'AEP':       { price: 33.36, delta: +1.1 },
-  'ATSI':      { price: 33.23, delta: +0.6 },
-  'DAY':       { price: 33.89, delta: +1.3 },
-  'DEOK':      { price: 32.69, delta: -0.2 },
-  'DUQ':       { price: 33.20, delta: +0.9 },
-  'DOMINION':  { price: 34.23, delta: +1.8 },
-  'DPL':       { price: 35.26, delta: +2.0 },
-  'EKPC':      { price: 32.48, delta: -0.5 },
-  'PPL':       { price: 33.11, delta: +0.4 },
-  'PECO':      { price: 34.10, delta: +1.5 },
-  'PSEG':      { price: 34.93, delta: +2.1 },
-  'JCPL':      { price: 34.67, delta: +1.9 },
-  'PEPCO':     { price: 34.81, delta: +1.7 },
-  'BGE':       { price: 34.50, delta: +1.4 },
-  'METED':     { price: 34.10, delta: +1.2 },
-  'PENELEC':   { price: 32.96, delta: +0.3 },
-  'RECO':      { price: 36.60, delta: +3.2 },
-  'OVEC':      { price: 32.56, delta: -0.4 },
-}
-
-const ZONE_SPARK: Record<string, number> = {
-  'WEST_HUB': 12.4, 'COMED': 10.2, 'AEP': 11.8, 'ATSI': 11.5,
-  'DAY': 12.1, 'DEOK': 10.9, 'DUQ': 11.3, 'DOMINION': 13.8,
-  'DPL': 14.2, 'EKPC': 10.5, 'PPL': 12.8, 'PECO': 13.5,
-  'PSEG': 14.9, 'JCPL': 14.6, 'PEPCO': 14.0, 'BGE': 13.9,
-  'METED': 13.2, 'PENELEC': 11.9, 'RECO': 16.1, 'OVEC': 10.8,
-}
-
-// Zone-specific battery arbitrage data
-const ZONE_BATTERY: Record<string, { revenue: number; charge: string; discharge: string; soc: number }> = {
-  'WEST_HUB': { revenue: 4240, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 71 },
-  'COMED':    { revenue: 3820, charge: '01:00–05:00', discharge: '15:00–19:00', soc: 65 },
-  'AEP':      { revenue: 3960, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 68 },
-  'ATSI':     { revenue: 3900, charge: '02:00–06:00', discharge: '17:00–21:00', soc: 67 },
-  'DAY':      { revenue: 4050, charge: '01:00–05:00', discharge: '16:00–20:00', soc: 70 },
-  'DEOK':     { revenue: 3780, charge: '02:00–06:00', discharge: '15:00–19:00', soc: 64 },
-  'DUQ':      { revenue: 3930, charge: '03:00–07:00', discharge: '16:00–20:00', soc: 69 },
-  'DOMINION': { revenue: 4380, charge: '02:00–06:00', discharge: '15:00–19:00', soc: 74 },
-  'DPL':      { revenue: 4510, charge: '01:00–05:00', discharge: '16:00–20:00', soc: 76 },
-  'EKPC':     { revenue: 3710, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 62 },
-  'PPL':      { revenue: 4160, charge: '02:00–06:00', discharge: '17:00–21:00', soc: 72 },
-  'PECO':     { revenue: 4420, charge: '01:00–05:00', discharge: '16:00–20:00', soc: 75 },
-  'PSEG':     { revenue: 4680, charge: '01:00–05:00', discharge: '15:00–19:00', soc: 78 },
-  'JCPL':     { revenue: 4590, charge: '01:00–05:00', discharge: '15:00–19:00', soc: 77 },
-  'PEPCO':    { revenue: 4490, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 76 },
-  'BGE':      { revenue: 4460, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 75 },
-  'METED':    { revenue: 4280, charge: '02:00–06:00', discharge: '17:00–21:00', soc: 73 },
-  'PENELEC':  { revenue: 3980, charge: '03:00–07:00', discharge: '16:00–20:00', soc: 68 },
-  'RECO':     { revenue: 5020, charge: '01:00–05:00', discharge: '14:00–18:00', soc: 82 },
-  'OVEC':     { revenue: 3690, charge: '02:00–06:00', discharge: '16:00–20:00', soc: 63 },
-}
-
-// Zone-specific resource gap (reserve margin %)
-const ZONE_RESERVE: Record<string, number> = {
-  'WEST_HUB': 18.4, 'COMED': 21.2, 'AEP': 19.6, 'ATSI': 20.1,
-  'DAY': 19.8, 'DEOK': 22.3, 'DUQ': 18.9, 'DOMINION': 16.2,
-  'DPL': 15.8, 'EKPC': 23.1, 'PPL': 17.4, 'PECO': 16.9,
-  'PSEG': 14.3, 'JCPL': 14.8, 'PEPCO': 15.1, 'BGE': 15.6,
-  'METED': 17.8, 'PENELEC': 19.2, 'RECO': 13.1, 'OVEC': 24.2,
-}
-
 // Regime detection — derived from LMP + reserve + marginal fuel
-type Regime = 'SCARCITY' | 'SURPLUS' | 'TRANSITION' | 'NORMAL'
 
 function detectRegime(zone: string | null): Regime {
   const z = zone ?? 'WEST_HUB'
@@ -549,68 +493,6 @@ function detectRegime(zone: string | null): Regime {
   return 'NORMAL'
 }
 
-const REGIME_COLORS: Record<Regime, string> = {
-  SCARCITY:   '#FF4444',
-  SURPLUS:    '#00A3FF',
-  TRANSITION: '#FFB800',
-  NORMAL:     '#00FFF0',
-}
-
-const REGIME_DESCRIPTIONS: Record<Regime, string> = {
-  SCARCITY:   'High LMP · Tight reserves · Peaker dispatch active',
-  SURPLUS:    'Low LMP · Ample reserves · Renewables curtailing',
-  TRANSITION: 'Marginal fuel shifting · Monitor spreads',
-  NORMAL:     'Balanced supply · Normal operations',
-}
-
-// Zone-specific alerts
-const ZONE_ALERTS: Record<string, { msg: string; severity: string; time: string }[]> = {
-  'WEST_HUB': [
-    { msg: "Congestion spike — West Hub", severity: "critical", time: "08:50" },
-    { msg: "DA/RT spread > 8% threshold", severity: "warning", time: "08:32" },
-    { msg: "PJM dispatch signal: NORMAL", severity: "info", time: "08:15" },
-  ],
-  'PSEG': [
-    { msg: "Interface limit binding — PSEG", severity: "critical", time: "09:02" },
-    { msg: "Import constraint from PJM-EAST", severity: "warning", time: "08:44" },
-    { msg: "Battery dispatch: ACTIVE", severity: "info", time: "08:21" },
-  ],
-  'RECO': [
-    { msg: "LMP spike — RECO $36.60/MWh", severity: "critical", time: "09:05" },
-    { msg: "NY import limit reached", severity: "critical", time: "08:50" },
-    { msg: "Peaker dispatch imminent", severity: "warning", time: "08:30" },
-  ],
-  'COMED': [
-    { msg: "Wind ramp detected — COMED", severity: "info", time: "08:40" },
-    { msg: "Surplus generation — curtail watch", severity: "warning", time: "08:22" },
-    { msg: "Imports from MISO elevated", severity: "info", time: "08:05" },
-  ],
-  'DOMINION': [
-    { msg: "Dominion zone load rising", severity: "warning", time: "09:00" },
-    { msg: "Gas unit on hot standby", severity: "warning", time: "08:45" },
-    { msg: "Transmission line restored", severity: "info", time: "08:20" },
-  ],
-  'PPL': [
-    { msg: "PPL congestion detected — Rte 18", severity: "critical", time: "09:15" },
-    { msg: "DA/RT spread > $8 threshold", severity: "warning", time: "09:22" },
-    { msg: "Battery dispatch signal: ACTIVE", severity: "warning", time: "09:36" },
-  ],
-  'PECO': [
-    { msg: "PECO zone spread widening", severity: "warning", time: "09:15" },
-    { msg: "PA demand surge detected", severity: "critical", time: "09:22" },
-    { msg: "DA/RT divergence — PECO", severity: "info", time: "09:29" },
-  ],
-  'AEP': [
-    { msg: "AEP thermal unit trip — 400MW", severity: "critical", time: "08:55" },
-    { msg: "Reserve sharing activated", severity: "warning", time: "08:40" },
-    { msg: "MISO tie flow elevated", severity: "info", time: "08:20" },
-  ],
-  'DEFAULT': [
-    { msg: "Zone LMP elevated · Monitor", severity: "warning", time: "08:55" },
-    { msg: "System-wide congestion moderate", severity: "info", time: "08:30" },
-    { msg: "PJM dispatch signal: NORMAL", severity: "info", time: "08:10" },
-  ],
-}
 
 // THE NEST View - Volumetric Bento
 function NestView() {
@@ -671,9 +553,11 @@ function NestView() {
     }}>
       {/* Market Pulse - spans 2 rows */}
       <BentoCard title="MARKET PULSE" status="live" style={{ gridRow: 'span 2', cursor: 'pointer' }} onTitleClick={() => setMarketPulseExpanded(true)}>
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} expanded={false} ghostTime={ghostTime} />
-        </div>
+        <ErrorBoundary label="MARKET PULSE">
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} expanded={false} ghostTime={ghostTime} />
+          </div>
+        </ErrorBoundary>
       </BentoCard>
 
       {/* Modal overlay */}
@@ -852,6 +736,7 @@ function NestView() {
 
       {/* Peregrine Feed */}
       <BentoCard title="PEREGRINE FEED" status="live">
+        <ErrorBoundary label="PEREGRINE FEED">
         <div style={{ position: 'absolute', inset: 0, padding: '12px', overflowY: 'auto' }}>
           {/* Regime Detection Badge */}
           <div style={{
@@ -907,15 +792,19 @@ function NestView() {
             <span className="text-[10px] animate-pulse" style={{ fontFamily: "'Geist Mono', monospace", color: "#00FFF0" }}>█</span>
           </div>
         </div>
+        </ErrorBoundary>
       </BentoCard>
 
       {/* LMP Hub — redesigned card with expanded overlay */}
       <BentoCard title="LMP / HUB" status="live">
-        <LMPCard selectedZone={selectedZone} />
+        <ErrorBoundary label="LMP HUB">
+          <LMPCard selectedZone={selectedZone} />
+        </ErrorBoundary>
       </BentoCard>
 
       {/* Spark Spread */}
       <BentoCard title="SPARK SPREAD" status="live">
+        <ErrorBoundary label="SPARK SPREAD">
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
           <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', marginBottom: '4px' }}>
             {selectedZone ?? 'SYSTEM'} SPARK
@@ -924,10 +813,12 @@ function NestView() {
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>$/MWh</span>
           <div style={{ width: '100%', marginTop: '16px' }}><MiniSparkline /></div>
         </div>
+        </ErrorBoundary>
       </BentoCard>
 
       {/* Battery ARB */}
       <BentoCard title="BATTERY ARB" status="stale">
+        <ErrorBoundary label="BATTERY ARB">
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px' }}>
           <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textAlign: 'right', alignSelf: 'flex-end' }}>
             {selectedZone ?? 'WEST HUB'} ARB
@@ -946,10 +837,12 @@ function NestView() {
             <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: '#FFB800' }}>${battData.revenue.toLocaleString()} /MWh</span>
           </div>
         </div>
+        </ErrorBoundary>
       </BentoCard>
 
       {/* Generation Mix - spans 2 columns */}
       <BentoCard title="GENERATION MIX" status="live" style={{ gridColumn: 'span 2' }}>
+        <ErrorBoundary label="GENERATION MIX">
         <div style={{ position: 'absolute', inset: 0, padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {/* MW labels above bar */}
           <div className="flex h-4 mb-1">
@@ -998,10 +891,12 @@ function NestView() {
             ))}
           </div>
         </div>
+        </ErrorBoundary>
       </BentoCard>
 
       {/* Resource Gap */}
       <BentoCard title="RESOURCE GAP" status="live">
+        <ErrorBoundary label="RESOURCE GAP">
         <div style={{ position: 'absolute', inset: 0 }}>
           {/* Reserve Margin Badge */}
           <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: `${reserveColor}15`, border: `1px solid ${reserveColor}50` }}>
@@ -1060,25 +955,13 @@ function NestView() {
           </svg>
           <div className="absolute bottom-2 right-2 text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>Oasis PTI</div>
         </div>
+        </ErrorBoundary>
       </BentoCard>
     </div>
   );
 }
 
 // Contextual Drawer - Asset Detail Panel
-interface AssetData {
-  id: string;
-  name: string;
-  type: "plant" | "node";
-  mwOutput: number;
-  capacity: number;
-  lmp: number;
-  lmpDelta: number;
-  heatRate: number;
-  fuelType: string;
-  neighbors: string[];
-}
-
 function ContextualDrawer({ asset, onClose, onViewNeighbors }: { asset: AssetData | null; onClose: () => void; onViewNeighbors: (neighbors: string[]) => void }) {
   if (!asset) return null;
 
@@ -1484,32 +1367,6 @@ function ContextualInfoPanel() {
   );
 }
 
-// Sample asset data for demonstration
-const sampleAssets: AssetData[] = [
-  { id: "plant-1", name: "BRUNNER ISLAND", type: "plant", mwOutput: 1458, capacity: 1490, lmp: 31.85, lmpDelta: 2.4, heatRate: 7850, fuelType: "NATURAL GAS", neighbors: ["YORK", "HOLTWOOD", "PEACH BOTTOM"] },
-  { id: "plant-2", name: "MONTOUR", type: "plant", mwOutput: 1590, capacity: 1600, lmp: 29.45, lmpDelta: -1.2, heatRate: 9200, fuelType: "COAL", neighbors: ["SUNBURY", "DANVILLE"] },
-  { id: "node-1", name: "WEST HUB", type: "node", mwOutput: 0, capacity: 0, lmp: 31.85, lmpDelta: 2.4, heatRate: 0, fuelType: "HUB", neighbors: ["AEP", "PSEG", "PECO", "PPL"] },
-];
-
-// Transmission line data with loading percentages
-interface TransmissionLine {
-  id: string;
-  from: { x: number; y: number };
-  to: { x: number; y: number };
-  loading: number; // 0-100, above 90 is thermal limit
-  capacity: number; // MW
-  name: string;
-}
-
-const transmissionLines: TransmissionLine[] = [
-  { id: "line-1", from: { x: 25, y: 40 }, to: { x: 45, y: 55 }, loading: 45, capacity: 1200, name: "DUQ-WEST" },
-  { id: "line-2", from: { x: 45, y: 55 }, to: { x: 75, y: 40 }, loading: 72, capacity: 1500, name: "WEST-PECO" },
-  { id: "line-3", from: { x: 75, y: 40 }, to: { x: 85, y: 30 }, loading: 88, capacity: 800, name: "PECO-PSEG" },
-  { id: "line-4", from: { x: 45, y: 55 }, to: { x: 55, y: 35 }, loading: 93, capacity: 1100, name: "WEST-PPL" }, // Near thermal limit
-  { id: "line-5", from: { x: 20, y: 50 }, to: { x: 25, y: 40 }, loading: 38, capacity: 900, name: "AEP-DUQ" },
-  { id: "line-6", from: { x: 15, y: 30 }, to: { x: 25, y: 40 }, loading: 55, capacity: 1000, name: "COMED-DUQ" },
-  { id: "line-7", from: { x: 55, y: 35 }, to: { x: 75, y: 40 }, loading: 67, capacity: 1300, name: "PPL-PECO" },
-];
 
 // Volumetric Flow Layer - Transmission lines with flowing particles
 function VolumetricFlowLayer({ enabled }: { enabled: boolean }) {
@@ -1640,16 +1497,6 @@ function VolumetricFlowLayer({ enabled }: { enabled: boolean }) {
   );
 }
 
-// Hub locations for Cmd+K navigation
-const hubLocations = [
-  { id: "west-hub", name: "WEST HUB", x: 45, y: 55 },
-  { id: "peco", name: "PECO", x: 75, y: 40 },
-  { id: "pseg", name: "PSEG", x: 85, y: 30 },
-  { id: "aep", name: "AEP", x: 20, y: 50 },
-  { id: "ppl", name: "PPL", x: 55, y: 35 },
-  { id: "duq", name: "DUQ", x: 25, y: 40 },
-  { id: "comed", name: "COMED", x: 15, y: 30 },
-];
 
 // Swoop Engine - Motion Blur Overlay
 function SwoopOverlay({ active, direction: _direction }: { active: boolean; direction: "in" | "out" }) {
@@ -2090,11 +1937,7 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
         {cardType === "resource" && <AnimatedStackedBar />}
         {cardType === "optimizer" && (
           <div className="h-[180px] -mx-2 -mt-1 mb-2">
-            <Suspense fallback={
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="w-4 h-4 border border-[#00A3FF] border-t-transparent rounded-full animate-spin" />
-              </div>
-            }>
+            <Suspense fallback={<CardSkeleton />}>
               <SparkSpreadSurface3D />
             </Suspense>
           </div>

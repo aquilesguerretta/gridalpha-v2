@@ -509,6 +509,11 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 .lmp-section-enter:nth-child(3) { animation-delay: 0.15s; opacity: 0; }
 .lmp-section-enter:nth-child(4) { animation-delay: 0.20s; opacity: 0; }
 
+@keyframes card-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
 /* FORCE FULLSCREEN OVERRIDE */
 html, body, #root, [data-reactroot] {
   height: 100vh !important;

@@ -1,69 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
-/* ─── MOCK DATA ───────────────────────────────────────────────── */
-
-const ZONE_LMP_DETAIL: Record<string, {
-  price: number
-  energy: number
-  congestion: number
-  loss: number
-  delta: number
-  avg24h: number
-  avgCongestion24h: number
-  peak: { hour: string; price: number }
-  cheapest: { hour: string; price: number }
-}> = {
-  'WEST_HUB': { price: 35.90, energy: 32.10, congestion: 2.40,  loss: 1.40,  delta: +1.2, avg24h: 33.8, avgCongestion24h: 1.8,  peak: { hour: '7AM', price: 48.2 },  cheapest: { hour: '3AM', price: 28.1 } },
-  'COMED':    { price: 32.04, energy: 31.20, congestion: -0.30, loss: 1.14,  delta: -0.8, avg24h: 31.2, avgCongestion24h: -0.2, peak: { hour: '8AM', price: 41.5 },  cheapest: { hour: '4AM', price: 26.8 } },
-  'AEP':      { price: 33.36, energy: 31.80, congestion: 0.42,  loss: 1.14,  delta: +0.4, avg24h: 32.1, avgCongestion24h: 0.3,  peak: { hour: '7AM', price: 44.2 },  cheapest: { hour: '3AM', price: 27.4 } },
-  'PSEG':     { price: 34.93, energy: 32.10, congestion: 1.58,  loss: 1.25,  delta: +2.1, avg24h: 33.4, avgCongestion24h: 2.1,  peak: { hour: '6AM', price: 52.8 },  cheapest: { hour: '2AM', price: 28.9 } },
-  'RECO':     { price: 36.60, energy: 32.10, congestion: 3.10,  loss: 1.40,  delta: +3.8, avg24h: 34.9, avgCongestion24h: 3.4,  peak: { hour: '6AM', price: 58.4 },  cheapest: { hour: '2AM', price: 29.2 } },
-  'DOMINION': { price: 34.23, energy: 32.10, congestion: 0.88,  loss: 1.25,  delta: +0.9, avg24h: 32.8, avgCongestion24h: 0.7,  peak: { hour: '7AM', price: 46.1 },  cheapest: { hour: '3AM', price: 27.8 } },
-  'BGE':      { price: 34.50, energy: 32.10, congestion: 1.15,  loss: 1.25,  delta: +1.4, avg24h: 33.1, avgCongestion24h: 1.0,  peak: { hour: '7AM', price: 47.3 },  cheapest: { hour: '3AM', price: 28.2 } },
-  'PPL':      { price: 33.11, energy: 32.10, congestion: -0.18, loss: 1.19,  delta: -0.2, avg24h: 32.4, avgCongestion24h: -0.1, peak: { hour: '8AM', price: 43.1 },  cheapest: { hour: '4AM', price: 27.1 } },
-  'PECO':     { price: 34.10, energy: 32.10, congestion: 0.75,  loss: 1.25,  delta: +1.1, avg24h: 32.9, avgCongestion24h: 0.6,  peak: { hour: '7AM', price: 45.8 },  cheapest: { hour: '3AM', price: 28.0 } },
-  'DEFAULT':  { price: 33.50, energy: 32.10, congestion: 0.20,  loss: 1.20,  delta: +0.3, avg24h: 32.2, avgCongestion24h: 0.5,  peak: { hour: '7AM', price: 44.0 },  cheapest: { hour: '3AM', price: 27.5 } },
-}
-
-const ZONE_SPARKLINE: Record<string, number[]> = {
-  'WEST_HUB': [0.4, 0.5, 0.8, 1.0, 0.7, 0.6],
-  'COMED':    [0.3, 0.4, 0.7, 0.9, 0.6, 0.5],
-  'PSEG':     [0.5, 0.6, 0.9, 1.0, 0.8, 0.7],
-  'RECO':     [0.6, 0.7, 1.0, 1.0, 0.9, 0.8],
-  'DEFAULT':  [0.4, 0.5, 0.7, 0.9, 0.6, 0.5],
-}
-
-const ZONE_24H_PRICES: Record<string, number[]> = {
-  'WEST_HUB': [28.1,27.4,27.8,28.2,31.5,48.2,45.1,38.4,36.2,35.1,34.8,34.2,33.9,33.5,34.1,35.2,36.8,38.4,37.2,36.1,35.4,34.8,34.2,33.6],
-  'PSEG':     [28.9,28.2,28.6,29.1,33.2,52.8,49.4,41.2,38.8,37.4,36.9,36.1,35.7,35.2,36.1,37.4,39.2,41.8,40.1,38.6,37.4,36.8,35.9,35.1],
-  'RECO':     [29.2,28.8,29.1,29.6,34.8,58.4,54.2,44.8,41.2,39.8,38.9,38.0,37.4,36.9,37.8,39.2,41.8,44.9,42.8,40.9,39.4,38.6,37.4,36.4],
-  'COMED':    [26.8,26.2,26.5,26.9,29.8,41.5,38.9,33.4,31.8,30.9,30.4,29.8,29.5,29.1,29.8,30.9,32.4,34.8,33.2,31.9,31.1,30.5,29.9,29.4],
-  'DEFAULT':  [27.5,26.9,27.2,27.6,31.0,44.0,41.2,35.8,33.9,32.8,32.2,31.6,31.2,30.8,31.5,32.6,34.2,36.9,35.4,33.8,32.9,32.2,31.6,31.0],
-}
-
-const ZONE_CONSTRAINTS: Record<string, Array<{name: string; impact: number}>> = {
-  'PSEG':     [{ name: 'Artificial Island Interface', impact: 1.42 }, { name: 'PJM-EAST Import Limit', impact: 0.82 }, { name: 'Bergen-Linden Corridor', impact: -0.34 }],
-  'RECO':     [{ name: 'NY-NJ Interface', impact: 2.18 }, { name: 'Ramapo-Waldwick Line', impact: 0.91 }, { name: 'Bergen-Linden Corridor', impact: 0.12 }],
-  'BGE':      [{ name: 'Potomac River Crossing', impact: 0.88 }, { name: 'Baltimore-Backbone', impact: 0.34 }, { name: 'PJM-DOM Interface', impact: -0.07 }],
-  'DOMINION': [{ name: 'Meadow Brook-Loudoun', impact: 0.72 }, { name: 'Northern VA Load Pocket', impact: 0.31 }, { name: 'PJM-DOM South', impact: -0.15 }],
-  'DEFAULT':  [{ name: 'System-Wide Congestion', impact: 0.24 }, { name: 'No binding constraints', impact: 0.00 }, { name: 'Normal operations', impact: 0.00 }],
-}
-
-const ZONE_GEN_MIX: Record<string, Array<{fuel: string; pct: number; color: string}>> = {
-  'PSEG':     [{ fuel: 'Nuclear', pct: 48, color: '#9B59B6' }, { fuel: 'Gas', pct: 38, color: '#E67E22' }, { fuel: 'Solar', pct: 9, color: '#F1C40F' }, { fuel: 'Other', pct: 5, color: '#555' }],
-  'COMED':    [{ fuel: 'Nuclear', pct: 62, color: '#9B59B6' }, { fuel: 'Gas', pct: 18, color: '#E67E22' }, { fuel: 'Wind', pct: 14, color: '#00A3FF' }, { fuel: 'Other', pct: 6, color: '#555' }],
-  'AEP':      [{ fuel: 'Coal', pct: 38, color: '#7F8C8D' }, { fuel: 'Gas', pct: 31, color: '#E67E22' }, { fuel: 'Wind', pct: 22, color: '#00A3FF' }, { fuel: 'Other', pct: 9, color: '#555' }],
-  'DOMINION': [{ fuel: 'Nuclear', pct: 34, color: '#9B59B6' }, { fuel: 'Gas', pct: 42, color: '#E67E22' }, { fuel: 'Solar', pct: 14, color: '#F1C40F' }, { fuel: 'Other', pct: 10, color: '#555' }],
-  'DEFAULT':  [{ fuel: 'Gas', pct: 42, color: '#E67E22' }, { fuel: 'Nuclear', pct: 28, color: '#9B59B6' }, { fuel: 'Wind', pct: 18, color: '#00A3FF' }, { fuel: 'Other', pct: 12, color: '#555' }],
-}
-
-const ZONE_FORECAST: Record<string, Array<{hour: string; price: number}>> = {
-  'PSEG':    [{ hour: '+1H', price: 35.8 }, { hour: '+2H', price: 36.4 }, { hour: '+3H', price: 37.1 }, { hour: '+4H', price: 36.8 }],
-  'RECO':    [{ hour: '+1H', price: 37.2 }, { hour: '+2H', price: 38.1 }, { hour: '+3H', price: 39.4 }, { hour: '+4H', price: 38.6 }],
-  'COMED':   [{ hour: '+1H', price: 31.8 }, { hour: '+2H', price: 32.1 }, { hour: '+3H', price: 31.6 }, { hour: '+4H', price: 31.2 }],
-  'DEFAULT': [{ hour: '+1H', price: 33.8 }, { hour: '+2H', price: 34.2 }, { hour: '+3H', price: 34.8 }, { hour: '+4H', price: 34.1 }],
-}
+import {
+  ZONE_LMP_DETAIL, ZONE_SPARKLINE, ZONE_24H_PRICES,
+  ZONE_CONSTRAINTS, ZONE_GEN_MIX, ZONE_FORECAST,
+  CHART_HEIGHT, CHART_WIDTH, PRICE_MIN, PRICE_MAX,
+} from '../lib/pjm/mock-data'
 
 /* ─── HELPERS ─────────────────────────────────────────────────── */
 
@@ -73,12 +15,6 @@ function sparklinePoints(values: number[]): string {
   return values.map((v, i) => `${i * w},${82 - v * 37}`).join(' ')
 }
 
-/* ─── CHART CONSTANTS ─────────────────────────────────────────── */
-
-const CHART_HEIGHT = 240
-const CHART_WIDTH = 1000
-const PRICE_MIN = 24
-const PRICE_MAX = 62
 
 function priceToY(price: number): number {
   return CHART_HEIGHT - 20 - ((price - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * (CHART_HEIGHT - 40)

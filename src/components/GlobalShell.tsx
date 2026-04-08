@@ -397,6 +397,362 @@ function detectRegime(zone: string | null): Regime {
   return 'NORMAL'
 }
 
+// ── SparkSpreadChart ─────────────────────────────────────────────
+function SparkSpreadChart({
+  history,
+  regime,
+}: {
+  history: number[];
+  regime: 'BURNING' | 'SUPPRESSED' | 'NEUTRAL';
+}) {
+  const W = 300;
+  const H = 120;
+  const PAD = { top: 12, right: 8, bottom: 20, left: 32 };
+
+  const minVal = Math.min(...history, -5);
+  const maxVal = Math.max(...history, 5);
+  const range  = maxVal - minVal;
+
+  const toX = (i: number) =>
+    PAD.left + (i / (history.length - 1)) * (W - PAD.left - PAD.right);
+  const toY = (v: number) =>
+    PAD.top + ((maxVal - v) / range) * (H - PAD.top - PAD.bottom);
+
+  const zeroY = toY(0);
+
+  const points = history.map((v, i) => `${toX(i)},${toY(v)}`);
+  const linePath = `M ${points.join(' L ')}`;
+
+  // Fill above zero (BURNING — gold)
+  const abovePath = [
+    `M ${toX(0)},${zeroY}`,
+    ...history.map((v, i) => `L ${toX(i)},${Math.min(toY(v), zeroY)}`),
+    `L ${toX(history.length - 1)},${zeroY}`,
+    'Z',
+  ].join(' ');
+
+  // Fill below zero (SUPPRESSED — red)
+  const belowPath = [
+    `M ${toX(0)},${zeroY}`,
+    ...history.map((v, i) => `L ${toX(i)},${Math.max(toY(v), zeroY)}`),
+    `L ${toX(history.length - 1)},${zeroY}`,
+    'Z',
+  ].join(' ');
+
+  const peakIdx   = history.indexOf(Math.max(...history));
+  const troughIdx = history.indexOf(Math.min(...history));
+
+  const lineColor = regime === 'BURNING' ? C.falconGold
+    : regime === 'SUPPRESSED' ? C.alertCritical
+    : C.textSecondary;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%"
+      height="100%"
+      preserveAspectRatio="none"
+      style={{ display: 'block' }}
+    >
+      <defs>
+        <linearGradient id="aboveGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={C.falconGold}    stopOpacity="0.25" />
+          <stop offset="100%" stopColor={C.falconGold}    stopOpacity="0.04" />
+        </linearGradient>
+        <linearGradient id="belowGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={C.alertCritical} stopOpacity="0.04" />
+          <stop offset="100%" stopColor={C.alertCritical} stopOpacity="0.20" />
+        </linearGradient>
+      </defs>
+
+      {/* Y-axis labels */}
+      {[maxVal, 0, minVal].map((v, i) => (
+        <text
+          key={i}
+          x={PAD.left - 4}
+          y={toY(v) + 4}
+          textAnchor="end"
+          style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}
+        >
+          {v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0)}
+        </text>
+      ))}
+
+      {/* Hour labels */}
+      {[0, 6, 12, 18, 23].map(i => (
+        <text
+          key={i}
+          x={toX(i)}
+          y={H - 4}
+          textAnchor="middle"
+          style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}
+        >
+          {i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : '11P'}
+        </text>
+      ))}
+
+      {/* Fill above zero — gold */}
+      <path d={abovePath} fill="url(#aboveGrad)" />
+
+      {/* Fill below zero — red */}
+      <path d={belowPath} fill="url(#belowGrad)" />
+
+      {/* Zero threshold line */}
+      <line
+        x1={PAD.left}  y1={zeroY}
+        x2={W - PAD.right} y2={zeroY}
+        stroke={C.textMuted}
+        strokeWidth="1"
+        strokeDasharray="3 3"
+        opacity="0.5"
+      />
+      <text
+        x={PAD.left + 2}
+        y={zeroY - 3}
+        style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}
+      >
+        BREAKEVEN
+      </text>
+
+      {/* Main line */}
+      <path
+        d={linePath}
+        fill="none"
+        stroke={lineColor}
+        strokeWidth="1.5"
+      />
+
+      {/* Peak marker */}
+      <circle cx={toX(peakIdx)} cy={toY(history[peakIdx])} r="3" fill={C.falconGold} />
+
+      {/* Trough marker */}
+      <circle cx={toX(troughIdx)} cy={toY(history[troughIdx])} r="3" fill={C.alertCritical} />
+    </svg>
+  );
+}
+
+// ── SparkKPIView ──────────────────────────────────────────────────
+function SparkKPIView({ selectedZone }: { selectedZone: string | null }) {
+  const SPARK_DATA = {
+    zone: selectedZone ?? 'SYSTEM',
+    regime: 'BURNING' as 'BURNING' | 'SUPPRESSED' | 'NEUTRAL',
+    spreadValue: 12.4,
+    gasPrice: 3.42,
+    heatRate: 7.2,
+    powerPrice: 35.90,
+    gasEquivPrice: 24.62,
+    netSpread: 12.4,
+    avg24h: 10.8,
+    peak: { value: 18.2, hour: '8AM' },
+    hoursBurning: 18,
+    history: [
+      -2.4, -1.8, -0.6, 2.1, 4.8, 8.2, 14.1, 18.2,
+      16.8, 15.2, 13.4, 12.8, 11.9, 10.4, 9.8, 11.2,
+      13.6, 14.9, 12.4, 10.8, 9.2, 7.6, 5.4, 3.8,
+    ],
+  };
+
+  const regimeColor = SPARK_DATA.regime === 'BURNING'
+    ? C.falconGold
+    : SPARK_DATA.regime === 'SUPPRESSED'
+      ? C.alertCritical
+      : C.textSecondary;
+
+  const regimeBg = SPARK_DATA.regime === 'BURNING'
+    ? C.falconGoldWash
+    : SPARK_DATA.regime === 'SUPPRESSED'
+      ? 'rgba(239,68,68,0.10)'
+      : 'rgba(255,255,255,0.06)';
+
+  const regimeBorder = SPARK_DATA.regime === 'BURNING'
+    ? 'rgba(245,158,11,0.30)'
+    : SPARK_DATA.regime === 'SUPPRESSED'
+      ? 'rgba(239,68,68,0.30)'
+      : 'rgba(255,255,255,0.20)';
+
+  return (
+    <div style={{
+      display:       'flex',
+      flexDirection: 'column',
+      position:      'absolute',
+      inset:         0,
+      padding:       `${S.lg} ${S.lg} ${S.md} ${S.lg}`,
+      gap:           S.md,
+      overflow:      'hidden',
+    }}>
+
+      {/* SECTION 1 — Header row */}
+      <div style={{
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'space-between',
+        flexShrink:     0,
+      }}>
+        <span style={{
+          fontFamily:    F.mono,
+          fontSize:      T.labelSize,
+          fontWeight:    T.labelWeight,
+          letterSpacing: T.labelSpacing,
+          textTransform: 'uppercase' as const,
+          color:         C.textMuted,
+        }}>
+          SPARK SPREAD · {SPARK_DATA.zone}
+        </span>
+
+        <div style={{
+          display:       'inline-flex',
+          alignItems:    'center',
+          gap:           5,
+          padding:       '3px 8px',
+          background:    regimeBg,
+          border:        `1px solid ${regimeBorder}`,
+          borderRadius:  R.sm,
+          color:         regimeColor,
+          fontFamily:    F.mono,
+          fontSize:      '10px',
+          fontWeight:    '500',
+          letterSpacing: '0.10em',
+          textTransform: 'uppercase' as const,
+        }}>
+          <div style={{
+            width:        6,
+            height:       6,
+            borderRadius: '50%',
+            background:   regimeColor,
+            flexShrink:   0,
+          }} />
+          {SPARK_DATA.regime}
+        </div>
+      </div>
+
+      {/* SECTION 2 — Dominant spread value */}
+      <div style={{ flexShrink: 0 }}>
+        <div style={{
+          fontFamily:          F.mono,
+          fontSize:            T.dataLgSize,
+          fontWeight:          T.dataLgWeight,
+          color:               regimeColor,
+          lineHeight:          1,
+          fontVariantNumeric:  'tabular-nums',
+          fontFeatureSettings: '"tnum"',
+        }}>
+          {SPARK_DATA.regime === 'BURNING' ? '+' : ''}{SPARK_DATA.spreadValue.toFixed(1)}
+        </div>
+        <div style={{
+          fontFamily:    F.mono,
+          fontSize:      T.labelSize,
+          color:         C.textMuted,
+          marginTop:     S.xs,
+          letterSpacing: '0.08em',
+        }}>
+          $/MWh NET SPREAD
+        </div>
+      </div>
+
+      {/* SECTION 3 — Input breakdown */}
+      <div style={{
+        display:       'flex',
+        flexDirection: 'column',
+        gap:           S.xs,
+        flexShrink:    0,
+        paddingTop:    S.xs,
+        borderTop:     `1px solid ${C.borderDefault}`,
+      }}>
+        {[
+          { label: 'PWR PRICE',  value: `$${SPARK_DATA.powerPrice.toFixed(2)}`,    color: C.electricBlue },
+          { label: 'GAS EQUIV',  value: `$${SPARK_DATA.gasEquivPrice.toFixed(2)}`, color: C.falconGold },
+          { label: 'NET SPREAD', value: `$${SPARK_DATA.netSpread.toFixed(2)}`,     color: regimeColor },
+        ].map(row => (
+          <div key={row.label} style={{
+            display:        'flex',
+            justifyContent: 'space-between',
+            alignItems:     'center',
+          }}>
+            <span style={{
+              fontFamily:    F.mono,
+              fontSize:      '11px',
+              color:         C.textMuted,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase' as const,
+            }}>
+              {row.label}
+            </span>
+            <span style={{
+              fontFamily:          F.mono,
+              fontSize:            T.dataSmSize,
+              fontWeight:          '500',
+              color:               row.color,
+              fontVariantNumeric:  'tabular-nums',
+              fontFeatureSettings: '"tnum"',
+            }}>
+              {row.value}
+              <span style={{ color: C.textMuted, fontSize: '10px', marginLeft: 3 }}>/MWh</span>
+            </span>
+          </div>
+        ))}
+
+        {/* Sub-line: gas price + heat rate */}
+        <div style={{ display: 'flex', gap: S.xl, marginTop: S.xs }}>
+          {[
+            { label: 'GAS', value: `$${SPARK_DATA.gasPrice}/MMBtu` },
+            { label: 'HR',  value: `${SPARK_DATA.heatRate}×` },
+          ].map(item => (
+            <div key={item.label} style={{ display: 'flex', gap: S.xs, alignItems: 'baseline' }}>
+              <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.08em' }}>
+                {item.label}
+              </span>
+              <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textSecondary }}>
+                {item.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SECTION 4 — 24H chart */}
+      <div style={{ flex: 1, minHeight: 0, paddingTop: S.xs }}>
+        <SparkSpreadChart history={SPARK_DATA.history} regime={SPARK_DATA.regime} />
+      </div>
+
+      {/* SECTION 5 — Bottom stats */}
+      <div style={{
+        display:        'flex',
+        justifyContent: 'space-between',
+        flexShrink:     0,
+        paddingTop:     S.sm,
+        borderTop:      `1px solid ${C.borderDefault}`,
+      }}>
+        {[
+          { label: '24H AVG',     value: `+${SPARK_DATA.avg24h.toFixed(1)}`,    color: C.falconGold },
+          { label: 'HRS BURNING', value: `${SPARK_DATA.hoursBurning}/24`,        color: C.textPrimary },
+          { label: 'PEAK SPREAD', value: `+${SPARK_DATA.peak.value.toFixed(1)}`, color: C.falconGold },
+        ].map(stat => (
+          <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <span style={{
+              fontFamily:    F.mono,
+              fontSize:      '9px',
+              color:         C.textMuted,
+              letterSpacing: '0.10em',
+              textTransform: 'uppercase' as const,
+            }}>
+              {stat.label}
+            </span>
+            <span style={{
+              fontFamily:          F.mono,
+              fontSize:            '13px',
+              fontWeight:          '600',
+              color:               stat.color,
+              fontVariantNumeric:  'tabular-nums',
+              fontFeatureSettings: '"tnum"',
+            }}>
+              {stat.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // THE NEST View - Volumetric Bento
 function NestView() {
@@ -437,7 +793,6 @@ function NestView() {
   }
 
   const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['DEFAULT']
-  const sparkValue = ZONE_SPARK[selectedZone ?? 'WEST_HUB'] ?? 12.4
   const battData = ZONE_BATTERY[selectedZone ?? 'WEST_HUB'] ?? ZONE_BATTERY['WEST_HUB']
   const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4
   const reserveColor = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue
@@ -764,14 +1119,7 @@ function NestView() {
           )}
           {activeKPI === 'spark' && (
             <ErrorBoundary label="SPARK SPREAD">
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-                <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.15em', marginBottom: '4px' }}>
-                  {selectedZone ?? 'SYSTEM'} SPARK
-                </div>
-                <span style={{ fontFamily: F.mono, fontSize: '32px', color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>{sparkValue.toFixed(1)}</span>
-                <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textSecondary, marginTop: '4px' }}>$/MWh</span>
-                <div style={{ width: '100%', marginTop: '16px' }}><MiniSparkline /></div>
-              </div>
+              <SparkKPIView selectedZone={selectedZone} />
             </ErrorBoundary>
           )}
           {activeKPI === 'battery' && (

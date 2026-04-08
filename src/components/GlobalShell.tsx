@@ -1,13 +1,13 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { C, F, R, T } from '@/design/tokens';
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
 import { LMPCard } from "./LMPCard";
 import {
   type Regime,
   type AssetData,
-  type TransmissionLine,
   ZONE_LMP, ZONE_SPARK, ZONE_BATTERY, ZONE_RESERVE,
-  REGIME_COLORS, REGIME_DESCRIPTIONS, ZONE_ALERTS,
+  REGIME_DESCRIPTIONS, ZONE_ALERTS,
   sampleAssets, transmissionLines, hubLocations,
 } from "../lib/pjm/mock-data";
 import { ErrorBoundary } from "./shared/ErrorBoundary";
@@ -30,17 +30,10 @@ const navItems: NavItem[] = [
   { id: "vault", code: "04", icon: <VaultIcon />, label: "VAULT" },
 ];
 
-const viewLabels: Record<string, string> = {
-  nest: "THE NEST",
-  atlas: "GRID ATLAS",
-  analytics: "ANALYTICS",
-  vault: "VAULT",
-};
-
 // Icons
 function HexagonIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5L12 2Z" />
     </svg>
   );
@@ -48,7 +41,7 @@ function HexagonIcon() {
 
 function DiamondIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M12 2L22 12L12 22L2 12L12 2Z" />
       <path d="M12 7L17 12L12 17L7 12L12 7Z" />
     </svg>
@@ -57,7 +50,7 @@ function DiamondIcon() {
 
 function TargetIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="5" />
       <circle cx="12" cy="12" r="1" fill="currentColor" />
@@ -67,7 +60,7 @@ function TargetIcon() {
 
 function VaultIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <rect x="3" y="6" width="18" height="14" rx="2" />
       <path d="M7 6V4a2 2 0 012-2h6a2 2 0 012 2v2" />
       <line x1="8" y1="11" x2="8" y2="15" />
@@ -77,81 +70,11 @@ function VaultIcon() {
   );
 }
 
-// Falcon Logo with breathing animation and circuit traces
 // FalconLogo imported from ./FalconLogo (Spline 3D + Zustand)
-
-function CollapseToggle({ collapsed, onClick }: { collapsed: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="w-full flex items-center justify-center py-3 text-white/30 hover:text-white/60 transition-colors duration-200"
-    >
-      <span className="font-mono text-xs tracking-wider">{collapsed ? "»" : "«"}</span>
-    </button>
-  );
-}
-
-const navTooltips: Record<string, string> = {
-  nest: "THE NEST · Passive Market Monitor",
-  atlas: "GRID ATLAS · Spatial Intelligence",
-  analytics: "ANALYTICS · Deep Insights",
-  vault: "VAULT · Documentation Hub",
-};
-
-function NavButton({ item, active, collapsed, onClick }: { item: NavItem; active: boolean; collapsed: boolean; onClick: () => void }) {
-  const [showTooltip, setShowTooltip] = useState(false);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={onClick}
-        className={`relative w-full flex flex-col items-center justify-center transition-all duration-200 ${collapsed ? "py-4" : "py-3 px-2"}`}
-        style={{ backgroundColor: active ? "rgba(0, 163, 255, 0.08)" : "transparent" }}
-        onMouseEnter={(e) => {
-          if (!active) e.currentTarget.style.backgroundColor = "rgba(0, 163, 255, 0.08)";
-          if (collapsed) setShowTooltip(true);
-        }}
-        onMouseLeave={(e) => {
-          if (!active) e.currentTarget.style.backgroundColor = "transparent";
-          setShowTooltip(false);
-        }}
-      >
-        {active && (
-          <div className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ backgroundColor: "#00A3FF", boxShadow: "0 0 12px 2px rgba(0, 163, 255, 0.4)" }} />
-        )}
-        <div className="transition-colors duration-200" style={{ color: active ? "#00A3FF" : "rgba(255, 255, 255, 0.3)" }}>
-          {item.icon}
-        </div>
-        {!collapsed && (
-          <span className="mt-1.5 text-[10px] font-medium tracking-wide" style={{ fontFamily: "'Geist', sans-serif", color: active ? "#00A3FF" : "rgba(255, 255, 255, 0.3)" }}>
-            {item.label}
-          </span>
-        )}
-      </button>
-      
-      {/* Glassmorphism Tooltip */}
-      {collapsed && showTooltip && (
-        <div
-          className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-3 py-1.5 rounded-md whitespace-nowrap z-50 pointer-events-none"
-          style={{
-            backgroundColor: "rgba(10, 10, 11, 0.9)",
-            backdropFilter: "blur(12px)",
-            border: "0.5px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.5)",
-          }}
-        >
-          <span className="text-[10px] tracking-wide" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.7)" }}>
-            {navTooltips[item.id]}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
 
 // Status Dot Component
 function StatusDot({ status }: { status: "live" | "stale" | "fallback" }) {
-  const colors = { live: "#00A3FF", stale: "#F59E0B", fallback: "#EF4444" };
+  const colors = { live: C.alertNormal, stale: C.alertWarning, fallback: C.alertCritical };
   return (
     <div className="relative">
       {status === "live" && <div className="absolute inset-0 rounded-full animate-live-ping" style={{ backgroundColor: colors[status] }} />}
@@ -211,7 +134,7 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'radial-gradient(ellipse at center, rgba(0,163,255,0.08) 0%, transparent 70%)',
+        background: 'radial-gradient(ellipse at center, rgba(6,182,212,0.08) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
       <span style={{
@@ -237,13 +160,13 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
           width: '8px',
           height: '8px',
           borderRadius: '50%',
-          backgroundColor: '#00A3FF',
-          boxShadow: '0 0 12px rgba(0,163,255,0.8)',
+          backgroundColor: C.electricBlue,
+          boxShadow: '0 0 12px rgba(6,182,212,0.8)',
         }} />
         <span style={{
           fontFamily: "'Geist Mono', monospace",
           fontSize: '11px',
-          color: '#00A3FF',
+          color: C.electricBlue,
           letterSpacing: '0.2em',
         }}>
           LIVE · $31.85 /MWh · NORMAL OPERATIONS
@@ -263,30 +186,6 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
   );
 }
 
-// Header Bar with ping animation
-function HeaderBar({ activeView }: { activeView: string }) {
-  const [lmpValue] = useState(31.85);
-  const [isLive] = useState(true);
-
-  return (
-    <header className="h-8 flex items-center justify-between px-4 shrink-0" style={{ backgroundColor: "#0A0A0B", borderBottom: "0.5px solid rgba(255, 255, 255, 0.08)" }}>
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-semibold tracking-wide" style={{ fontFamily: "'Geist', sans-serif", color: "#EDEDED" }}>GRIDALPHA</span>
-        <span className="text-[10px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>/ {viewLabels[activeView]}</span>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>LMP</span>
-          <span className="text-xs font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00A3FF" }}>${lmpValue.toFixed(2)}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <StatusDot status={isLive ? "live" : "stale"} />
-          <span className="text-[9px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: isLive ? "#00A3FF" : "#F59E0B" }}>{isLive ? "LIVE" : "STALE"}</span>
-        </div>
-      </div>
-    </header>
-  );
-}
 
 // Pulsing Dot Grid Background (kept for future use)
 // @ts-ignore: preserved component
@@ -296,7 +195,7 @@ function PulsingDotGrid() {
       <svg width="100%" height="100%" className="animate-dot-pulse">
         <defs>
           <pattern id="dotGrid" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1" fill="#00A3FF" fillOpacity="0.3" />
+            <circle cx="2" cy="2" r="1" fill={C.electricBlue} fillOpacity="0.3" />
           </pattern>
         </defs>
         <rect width="100%" height="100%" fill="url(#dotGrid)" />
@@ -326,16 +225,16 @@ function PJMTerritory() {
       {/* PJM Territory - PA-centered hexagonal cluster */}
       <path
         d="M40,60 L55,35 L85,25 L115,25 L145,35 L160,60 L150,85 L120,100 L80,100 L50,85 Z"
-        stroke="#00A3FF"
+        stroke={C.electricBlue}
         strokeWidth="1"
         fill="none"
         opacity="0.6"
       />
       {/* Inner transmission lines */}
-      <path d="M55,35 L100,55 L145,35" stroke="#00A3FF" strokeWidth="0.5" fill="none" opacity="0.3" />
-      <path d="M40,60 L100,55 L160,60" stroke="#00A3FF" strokeWidth="0.5" fill="none" opacity="0.3" />
-      <path d="M50,85 L100,55 L150,85" stroke="#00A3FF" strokeWidth="0.5" fill="none" opacity="0.3" />
-      <path d="M80,100 L100,55 L120,100" stroke="#00A3FF" strokeWidth="0.5" fill="none" opacity="0.3" />
+      <path d="M55,35 L100,55 L145,35" stroke={C.electricBlue} strokeWidth="0.5" fill="none" opacity="0.3" />
+      <path d="M40,60 L100,55 L160,60" stroke={C.electricBlue} strokeWidth="0.5" fill="none" opacity="0.3" />
+      <path d="M50,85 L100,55 L150,85" stroke={C.electricBlue} strokeWidth="0.5" fill="none" opacity="0.3" />
+      <path d="M80,100 L100,55 L120,100" stroke={C.electricBlue} strokeWidth="0.5" fill="none" opacity="0.3" />
       {/* Hub dots with staggered pulsing */}
       {hubs.map((hub, i) => (
         <g key={i}>
@@ -343,12 +242,12 @@ function PJMTerritory() {
             cx={hub.x}
             cy={hub.y}
             r="6"
-            fill="#00A3FF"
+            fill={C.electricBlue}
             fillOpacity="0.15"
             className="animate-dot-pulse"
             style={{ animationDelay: `${hub.delay}s` }}
           />
-          <circle cx={hub.x} cy={hub.y} r="3" fill="#00A3FF" fillOpacity="0.8" />
+          <circle cx={hub.x} cy={hub.y} r="3" fill={C.electricBlue} fillOpacity="0.8" />
           <text
             x={hub.x}
             y={hub.y - 8}
@@ -374,20 +273,25 @@ function BentoCard({ title, children, status = "live", className = "", style = {
   style?: React.CSSProperties;
   onTitleClick?: () => void;
 }) {
+  const [hovered, setHovered] = useState(false);
+
   return (
     <div
       className={className}
       style={{
         position: 'relative',
-        backgroundColor: "rgba(10, 10, 11, 0.7)",
-        backdropFilter: "blur(12px)",
-        border: "0.5px solid rgba(255, 255, 255, 0.08)",
-        borderRadius: '8px',
+        backgroundColor: C.bgElevated,
+        border: `1px solid ${C.borderDefault}`,
+        borderTop: `1px solid ${hovered ? C.borderActive : C.borderAccent}`,
+        borderRadius: R.lg,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        transition: 'border-top-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
         ...style
       }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
         <StatusDot status={status} />
@@ -395,7 +299,7 @@ function BentoCard({ title, children, status = "live", className = "", style = {
       <div
         style={{
           padding: '10px 16px',
-          borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)",
+          borderBottom: `0.5px solid ${C.borderDefault}`,
           flexShrink: 0,
           cursor: onTitleClick ? 'pointer' : 'default',
           display: 'flex',
@@ -405,12 +309,12 @@ function BentoCard({ title, children, status = "live", className = "", style = {
         onClick={onTitleClick}
       >
         <span style={{
-          fontFamily: "'Geist Mono', monospace",
-          fontSize: '10px',
-          fontWeight: 600,
-          letterSpacing: '0.1em',
+          fontFamily: F.mono,
+          fontSize: T.labelSize,
+          fontWeight: 500,
+          letterSpacing: T.labelSpacing,
           textTransform: 'uppercase' as const,
-          color: "rgba(255, 255, 255, 0.5)"
+          color: C.textMuted,
         }}>{title}</span>
         {onTitleClick && (
           <span style={{
@@ -441,8 +345,8 @@ function PriceSparkline24h() {
   
   return (
     <svg width="150" height="40" className="mt-2">
-      <polyline points={points} fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="145" cy={35 - ((31.85 - min) / range) * 30} r="2.5" fill="#00FFF0" />
+      <polyline points={points} fill="none" stroke={C.electricBlue} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="145" cy={35 - ((31.85 - min) / range) * 30} r="2.5" fill={C.electricBlueLight} />
     </svg>
   );
 }
@@ -455,12 +359,12 @@ function LMPScorecard() {
       <span className="text-[10px] tracking-wider mb-1" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>WEST HUB LMP</span>
       <span
         className="text-5xl font-medium"
-        style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00FFF0", textShadow: "0 0 20px rgba(0, 255, 240, 0.6), 0 0 40px rgba(0, 255, 240, 0.3)" }}
+        style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: C.electricBlueLight, textShadow: "0 0 20px rgba(34, 211, 238, 0.6), 0 0 40px rgba(34, 211, 238, 0.3)" }}
       >
         31.85
       </span>
       <div className="flex items-center gap-2 mt-1">
-        <span className="text-[10px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>$/MWh</span>
+        <span className="text-[10px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: C.electricBlue }}>$/MWh</span>
         <span className="text-[10px] font-medium" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>▲ +2.4%</span>
       </div>
       <PriceSparkline24h />
@@ -475,7 +379,7 @@ function MiniSparkline() {
   const points = Array.from({ length: 30 }, (_, i) => `${i * 5},${25 + Math.sin((i + offset) * 0.4) * 15}`).join(" ");
   return (
     <svg width="100%" height="60" className="mt-2">
-      <polyline points={points} fill="none" stroke="#00A3FF" strokeWidth="1.5" strokeLinecap="round" />
+      <polyline points={points} fill="none" stroke={C.electricBlue} strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -501,6 +405,7 @@ function NestView() {
   const [marketPulseClosing, setMarketPulseClosing] = useState(false)
   const [ghostTime, setGhostTime] = useState<string | null>(null)
   const [flashAlertZone, setFlashAlertZone] = useState<string | null>(null)
+  const [activeKPI, setActiveKPI] = useState<'lmp' | 'spark' | 'battery' | 'gap'>('lmp')
 
   // Ghost mode toggle — press G
   useEffect(() => {
@@ -535,27 +440,35 @@ function NestView() {
   const sparkValue = ZONE_SPARK[selectedZone ?? 'WEST_HUB'] ?? 12.4
   const battData = ZONE_BATTERY[selectedZone ?? 'WEST_HUB'] ?? ZONE_BATTERY['WEST_HUB']
   const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4
-  const reserveColor = reserveMargin < 15 ? '#FF4444' : reserveMargin < 18 ? '#FFB800' : '#00A3FF'
+  const reserveColor = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue
   const regime = detectRegime(selectedZone)
-  const regimeColor = REGIME_COLORS[regime]
+  const REGIME_TOKEN_COLORS: Record<Regime, string> = {
+    SCARCITY:   C.alertCritical,
+    SURPLUS:    C.electricBlue,
+    TRANSITION: C.falconGold,
+    NORMAL:     C.alertNormal,
+  }
+  const regimeColor = REGIME_TOKEN_COLORS[regime]
 
   return (
     <div style={{
-      flex: 1,
       display: 'grid',
-      gridTemplateColumns: '40fr 30fr 30fr',
-      gridTemplateRows: '45fr 30fr 25fr',
+      gridTemplateColumns: '52fr 24fr 24fr',
+      gridTemplateRows: '1fr 96px',
+      gridTemplateAreas: '"pulse feed kpi" "genmix genmix kpi"',
       gap: '8px',
       padding: '8px',
-      minHeight: 0,
+      height: '100%',
+      width: '100%',
+      backgroundColor: C.bgBase,
+      boxSizing: 'border-box' as const,
       overflow: 'hidden',
-      backgroundColor: '#0D0D0E'
     }}>
-      {/* Market Pulse - spans 2 rows */}
-      <BentoCard title="MARKET PULSE" status="live" style={{ gridRow: 'span 2', cursor: 'pointer' }} onTitleClick={() => setMarketPulseExpanded(true)}>
+      {/* Market Pulse — left column, row 1 */}
+      <BentoCard title="MARKET PULSE" status="live" style={{ gridArea: 'pulse', cursor: 'pointer' }} onTitleClick={() => setMarketPulseExpanded(true)}>
         <ErrorBoundary label="MARKET PULSE">
           <div style={{ position: 'absolute', inset: 0 }}>
-            <PJMNodeGraph onZoneSelect={(id) => setSelectedZone(id || null)} expanded={false} ghostTime={ghostTime} />
+            <PJMNodeGraph onZoneSelect={(id) => { setSelectedZone(id || null); if (id) setActiveKPI('lmp'); }} expanded={false} ghostTime={ghostTime} />
           </div>
         </ErrorBoundary>
       </BentoCard>
@@ -584,12 +497,12 @@ function NestView() {
             width: '78vw',
             height: '78vh',
             backgroundColor: '#0A0A0B',
-            border: '0.5px solid rgba(0,163,255,0.3)',
+            border: '0.5px solid rgba(6,182,212,0.3)',
             borderRadius: '12px',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '0 0 60px rgba(0,163,255,0.15), 0 0 120px rgba(0,163,255,0.05)',
+            boxShadow: '0 0 60px rgba(6,182,212,0.15), 0 0 120px rgba(6,182,212,0.05)',
             animation: marketPulseClosing
               ? 'modal-collapse 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards'
               : 'modal-expand 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -631,7 +544,7 @@ function NestView() {
                   <span style={{
                     fontFamily: "'Geist Mono', monospace",
                     fontSize: '11px',
-                    color: '#00FFF0',
+                    color: C.electricBlueLight,
                     letterSpacing: '0.1em',
                   }}>
                     {selectedZone} · ${ZONE_LMP[selectedZone]?.price.toFixed(2)} /MWh
@@ -658,7 +571,7 @@ function NestView() {
             {/* 3D canvas */}
             <div style={{ flex: 1, position: 'relative' }}>
               <PJMNodeGraph
-                onZoneSelect={(id) => setSelectedZone(id || null)}
+                onZoneSelect={(id) => { setSelectedZone(id || null); if (id) setActiveKPI('lmp'); }}
                 expanded={true}
                 ghostTime={ghostTime}
               />
@@ -687,7 +600,7 @@ function NestView() {
                 </span>
                 {/* Color legend */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00A3FF' }} />
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: C.electricBlue }} />
                   <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
                     CHEAP (ZONE 24H LOW)
                   </span>
@@ -735,7 +648,7 @@ function NestView() {
       )}
 
       {/* Peregrine Feed */}
-      <BentoCard title="PEREGRINE FEED" status="live">
+      <BentoCard title="PEREGRINE FEED" status="live" style={{ gridArea: 'feed' }}>
         <ErrorBoundary label="PEREGRINE FEED">
         <div style={{ position: 'absolute', inset: 0, padding: '12px', overflowY: 'auto' }}>
           {/* Regime Detection Badge */}
@@ -780,7 +693,7 @@ function NestView() {
             <div
               key={i}
               className={`flex items-center gap-2 pl-2${i === 0 && flashAlertZone === selectedZone ? ' alert-flash' : ''}`}
-              style={{ borderLeft: `2px solid ${alert.severity === "critical" ? "#DC2626" : alert.severity === "warning" ? "#FFB800" : "#00FFF0"}`, marginBottom: '6px' }}
+              style={{ borderLeft: `2px solid ${alert.severity === "critical" ? C.alertCritical : alert.severity === "warning" ? C.falconGold : C.electricBlue}`, marginBottom: '6px' }}
             >
               <span className="text-[9px] tabular-nums" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "rgba(255, 255, 255, 0.3)" }}>{alert.time}</span>
               <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.6)" }}>{alert.msg}</span>
@@ -789,171 +702,187 @@ function NestView() {
           {/* Blinking terminal cursor */}
           <div className="flex items-center gap-2 pl-2 mt-2" style={{ borderLeft: "2px solid transparent" }}>
             <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.3)" }}>09:50</span>
-            <span className="text-[10px] animate-pulse" style={{ fontFamily: "'Geist Mono', monospace", color: "#00FFF0" }}>█</span>
+            <span className="text-[10px] animate-pulse" style={{ fontFamily: "'Geist Mono', monospace", color: C.electricBlueLight }}>█</span>
           </div>
         </div>
         </ErrorBoundary>
       </BentoCard>
 
-      {/* LMP Hub — redesigned card with expanded overlay */}
-      <BentoCard title="LMP / HUB" status="live">
-        <ErrorBoundary label="LMP HUB">
-          <LMPCard selectedZone={selectedZone} />
-        </ErrorBoundary>
-      </BentoCard>
-
-      {/* Spark Spread */}
-      <BentoCard title="SPARK SPREAD" status="live">
-        <ErrorBoundary label="SPARK SPREAD">
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', marginBottom: '4px' }}>
-            {selectedZone ?? 'SYSTEM'} SPARK
-          </div>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '32px', color: '#00A3FF', fontVariantNumeric: 'tabular-nums' }}>{sparkValue.toFixed(1)}</span>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>$/MWh</span>
-          <div style={{ width: '100%', marginTop: '16px' }}><MiniSparkline /></div>
+      {/* KPI Panel — right column, spans both rows */}
+      <div style={{
+        gridArea: 'kpi',
+        display: 'flex',
+        flexDirection: 'column',
+        background: C.bgElevated,
+        border: `1px solid ${C.borderDefault}`,
+        borderTop: `1px solid ${C.borderAccent}`,
+        borderRadius: R.lg,
+        overflow: 'hidden',
+      }}>
+        {/* Tab strip — 36px */}
+        <div style={{
+          display: 'flex',
+          height: '36px',
+          flexShrink: 0,
+          borderBottom: `1px solid ${C.borderDefault}`,
+          background: C.bgBase,
+        }}>
+          {(['lmp', 'spark', 'battery', 'gap'] as const).map((tab) => {
+            const labels = { lmp: 'LMP', spark: 'SPREAD', battery: 'BATTERY', gap: 'RES GAP' };
+            const isActive = activeKPI === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveKPI(tab)}
+                style={{
+                  flex: 1,
+                  height: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: isActive ? `2px solid ${C.electricBlue}` : '2px solid transparent',
+                  color: isActive ? C.electricBlue : C.textMuted,
+                  fontFamily: F.mono,
+                  fontSize: '10px',
+                  fontWeight: '500',
+                  letterSpacing: '0.10em',
+                  textTransform: 'uppercase' as const,
+                  cursor: 'pointer',
+                  transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              >
+                {labels[tab]}
+              </button>
+            );
+          })}
         </div>
-        </ErrorBoundary>
-      </BentoCard>
-
-      {/* Battery ARB */}
-      <BentoCard title="BATTERY ARB" status="stale">
-        <ErrorBoundary label="BATTERY ARB">
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em', textAlign: 'right', alignSelf: 'flex-end' }}>
-            {selectedZone ?? 'WEST HUB'} ARB
-          </div>
-          <div style={{ position: 'relative', width: '88px', height: '88px' }}>
-            <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
-              <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-              <circle cx="18" cy="18" r="16" fill="none" stroke="#00FFF0" strokeWidth="2" strokeDasharray={`${battData.soc} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" />
-            </svg>
-            <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Geist Mono', monospace", fontSize: '18px', color: '#00FFF0' }}>{battData.soc}%</span>
-          </div>
-          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.5)' }}>CHARGE {battData.charge}</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: '#FFB800' }}>DISCHARGE {battData.discharge}</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>EST. DAILY REVENUE</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: '#FFB800' }}>${battData.revenue.toLocaleString()} /MWh</span>
-          </div>
+        {/* Active KPI content */}
+        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
+          {activeKPI === 'lmp' && (
+            <ErrorBoundary label="LMP HUB">
+              <LMPCard selectedZone={selectedZone} />
+            </ErrorBoundary>
+          )}
+          {activeKPI === 'spark' && (
+            <ErrorBoundary label="SPARK SPREAD">
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+                <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.15em', marginBottom: '4px' }}>
+                  {selectedZone ?? 'SYSTEM'} SPARK
+                </div>
+                <span style={{ fontFamily: F.mono, fontSize: '32px', color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>{sparkValue.toFixed(1)}</span>
+                <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textSecondary, marginTop: '4px' }}>$/MWh</span>
+                <div style={{ width: '100%', marginTop: '16px' }}><MiniSparkline /></div>
+              </div>
+            </ErrorBoundary>
+          )}
+          {activeKPI === 'battery' && (
+            <ErrorBoundary label="BATTERY ARB">
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px' }}>
+                <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.15em', textAlign: 'right', alignSelf: 'flex-end' }}>
+                  {selectedZone ?? 'WEST HUB'} ARB
+                </div>
+                <div style={{ position: 'relative', width: '88px', height: '88px' }}>
+                  <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
+                    <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
+                    <circle cx="18" cy="18" r="16" fill="none" stroke={C.electricBlueLight} strokeWidth="2" strokeDasharray={`${battData.soc} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" />
+                  </svg>
+                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: F.mono, fontSize: '18px', color: C.electricBlueLight }}>{battData.soc}%</span>
+                </div>
+                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textSecondary }}>CHARGE {battData.charge}</span>
+                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.falconGold }}>DISCHARGE {battData.discharge}</span>
+                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, marginTop: '4px' }}>EST. DAILY REVENUE</span>
+                  <span style={{ fontFamily: F.mono, fontSize: '14px', color: C.falconGold }}>${battData.revenue.toLocaleString()} /MWh</span>
+                </div>
+              </div>
+            </ErrorBoundary>
+          )}
+          {activeKPI === 'gap' && (
+            <ErrorBoundary label="RESOURCE GAP">
+              <div style={{ position: 'absolute', inset: 0 }}>
+                <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: `${reserveColor}15`, border: `1px solid ${reserveColor}50` }}>
+                  <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: F.mono, color: reserveColor }}>RESERVE MARGIN: {reserveMargin.toFixed(1)}%</span>
+                </div>
+                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255, 184, 0, 0.1)", border: "1px solid rgba(255, 184, 0, 0.3)" }}>
+                  <span className="text-[7px] tracking-wider" style={{ fontFamily: F.mono, color: C.falconGold }}>±σ NOAA</span>
+                </div>
+                <svg viewBox="0 0 200 80" className="w-full h-full">
+                  <defs>
+                    <linearGradient id="confidenceGradient95" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor={C.electricBlue} stopOpacity="0.08" />
+                      <stop offset="50%" stopColor={C.electricBlue} stopOpacity="0.12" />
+                      <stop offset="100%" stopColor={C.electricBlue} stopOpacity="0.08" />
+                    </linearGradient>
+                    <linearGradient id="confidenceGradient68" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor={C.electricBlue} stopOpacity="0.15" />
+                      <stop offset="50%" stopColor={C.electricBlue} stopOpacity="0.25" />
+                      <stop offset="100%" stopColor={C.electricBlue} stopOpacity="0.15" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,40 Q30,32 60,38 T120,36 T180,42 L200,40 L200,68 Q170,72 140,66 T80,70 T20,64 L0,66 Z" fill="url(#confidenceGradient95)" className="animate-confidence-breathe" />
+                  <path d="M0,45 Q30,40 60,44 T120,42 T180,48 L200,46 L200,62 Q170,66 140,60 T80,64 T20,58 L0,60 Z" fill="url(#confidenceGradient68)" className="animate-confidence-breathe" style={{ animationDelay: "0.5s" }} />
+                  <path d="M0,25 Q50,20 100,22 T200,18 L200,55 Q150,50 100,52 T0,50 Z" fill="rgba(6,182,212,0.05)" />
+                  <path d="M0,25 Q50,20 100,22 T200,18" fill="none" stroke={C.electricBlue} strokeWidth="2" />
+                  <path d="M0,52 Q30,48 60,54 T120,50 T180,56 L200,53" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" />
+                  <line x1="100" y1="42" x2="100" y2="64" stroke="rgba(255,184,0,0.3)" strokeWidth="1" strokeDasharray="2 2" />
+                  <text x="103" y="53" fill={C.falconGold} fontSize="5" fontFamily="'Geist Mono', monospace" opacity="0.6">±8%</text>
+                  <text x="5" y="20" fill={C.electricBlue} fontSize="7" fontFamily="'Geist Mono', monospace">CAPACITY</text>
+                  <text x="5" y="62" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="'Geist Mono', monospace">LOAD</text>
+                </svg>
+                <div className="absolute bottom-2 right-2 text-[9px]" style={{ fontFamily: F.mono, color: C.textSecondary }}>Oasis PTI</div>
+              </div>
+            </ErrorBoundary>
+          )}
         </div>
-        </ErrorBoundary>
-      </BentoCard>
+      </div>
 
-      {/* Generation Mix - spans 2 columns */}
-      <BentoCard title="GENERATION MIX" status="live" style={{ gridColumn: 'span 2' }}>
+      {/* Generation Mix — bottom strip, spans cols 1-2 */}
+      <BentoCard title="GENERATION MIX" status="live" style={{ gridArea: 'genmix' }}>
         <ErrorBoundary label="GENERATION MIX">
-        <div style={{ position: 'absolute', inset: 0, padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          {/* MW labels above bar */}
-          <div className="flex h-4 mb-1">
+        <div style={{ height: '100%', padding: '6px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+          {/* GW labels above bar */}
+          <div style={{ display: 'flex', width: '100%' }}>
             {[
-              { w: "32%", mw: "28.4", c: "#A855F7" },
-              { w: "28%", mw: "24.8", c: "#F97316" },
-              { w: "14%", mw: "12.4", c: "#00FFF0" },
-              { w: "10%", mw: "8.9", c: "#FFB800" },
-              { w: "9%", mw: "8.0", c: "#64748B" },
-              { w: "7%", mw: "6.2", c: "#3B82F6" },
+              { w: "32%", mw: "28.4", c: C.fuelNuclear },
+              { w: "28%", mw: "24.8", c: C.fuelGas },
+              { w: "14%", mw: "12.4", c: C.fuelWind },
+              { w: "10%", mw: "8.9", c: C.fuelSolar },
+              { w: "9%", mw: "8.0", c: C.fuelCoal },
+              { w: "7%", mw: "6.2", c: C.fuelHydro },
             ].map((s, i) => (
-              <div key={i} style={{ width: s.w }} className="flex justify-center">
-                <span className="text-[8px]" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: s.c }}>{s.mw}</span>
+              <div key={i} style={{ width: s.w, display: 'flex', justifyContent: 'center' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '8px', fontVariantNumeric: 'tabular-nums', color: s.c }}>{s.mw}</span>
               </div>
             ))}
           </div>
-          {/* Stacked bar */}
-          <div className="flex h-6 rounded overflow-hidden">
+          {/* Stacked bar — explicit height, inline styles only */}
+          <div style={{ height: '20px', width: '100%', display: 'flex', borderRadius: R.sm, overflow: 'hidden', flexShrink: 0 }}>
             {[
-              { w: "32%", c: "#A855F7", l: "Nuclear" },
-              { w: "28%", c: "#F97316", l: "Gas" },
-              { w: "14%", c: "#00FFF0", l: "Wind" },
-              { w: "10%", c: "#FFB800", l: "Solar" },
-              { w: "9%", c: "#64748B", l: "Coal" },
-              { w: "7%", c: "#3B82F6", l: "Hydro" },
+              { w: "32%", c: C.fuelNuclear },
+              { w: "28%", c: C.fuelGas },
+              { w: "14%", c: C.fuelWind },
+              { w: "10%", c: C.fuelSolar },
+              { w: "9%", c: C.fuelCoal },
+              { w: "7%", c: C.fuelHydro },
             ].map((s, i) => (
-              <div key={i} style={{ width: s.w, backgroundColor: s.c }} className="relative group">
-                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] whitespace-nowrap" style={{ fontFamily: "'Geist Mono', monospace", color: s.c }}>{s.l}</div>
-              </div>
+              <div key={i} style={{ width: s.w, height: '100%', backgroundColor: s.c, flexShrink: 0 }} />
             ))}
           </div>
           {/* Legend */}
-          <div className="flex gap-4 mt-4 flex-wrap">
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             {[
-              { c: "#A855F7", l: "Nuclear", v: "32%" },
-              { c: "#F97316", l: "Gas", v: "28%" },
-              { c: "#00FFF0", l: "Wind", v: "14%" },
-              { c: "#FFB800", l: "Solar", v: "10%" },
-              { c: "#64748B", l: "Coal", v: "9%" },
-              { c: "#3B82F6", l: "Hydro", v: "7%" },
+              { c: C.fuelNuclear, l: "Nuclear", v: "32%" },
+              { c: C.fuelGas, l: "Gas", v: "28%" },
+              { c: C.fuelWind, l: "Wind", v: "14%" },
+              { c: C.fuelSolar, l: "Solar", v: "10%" },
+              { c: C.fuelCoal, l: "Coal", v: "9%" },
+              { c: C.fuelHydro, l: "Hydro", v: "7%" },
             ].map((s, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: s.c }} />
-                <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>{s.l} {s.v}</span>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: R.sm, backgroundColor: s.c, flexShrink: 0 }} />
+                <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textSecondary }}>{s.l} {s.v}</span>
               </div>
             ))}
           </div>
-        </div>
-        </ErrorBoundary>
-      </BentoCard>
-
-      {/* Resource Gap */}
-      <BentoCard title="RESOURCE GAP" status="live">
-        <ErrorBoundary label="RESOURCE GAP">
-        <div style={{ position: 'absolute', inset: 0 }}>
-          {/* Reserve Margin Badge */}
-          <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: `${reserveColor}15`, border: `1px solid ${reserveColor}50` }}>
-            <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: reserveColor }}>RESERVE MARGIN: {reserveMargin.toFixed(1)}%</span>
-          </div>
-          {/* NOAA Uncertainty Badge */}
-          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255, 184, 0, 0.1)", border: "1px solid rgba(255, 184, 0, 0.3)" }}>
-            <span className="text-[7px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>±σ NOAA</span>
-          </div>
-          <svg viewBox="0 0 200 80" className="w-full h-full">
-            <defs>
-              {/* Confidence band gradients */}
-              <linearGradient id="confidenceGradient95" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#00A3FF" stopOpacity="0.08" />
-                <stop offset="50%" stopColor="#00A3FF" stopOpacity="0.12" />
-                <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.08" />
-              </linearGradient>
-              <linearGradient id="confidenceGradient68" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#00A3FF" stopOpacity="0.15" />
-                <stop offset="50%" stopColor="#00A3FF" stopOpacity="0.25" />
-                <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.15" />
-              </linearGradient>
-            </defs>
-
-            {/* 95% Confidence Band (outer) - wider uncertainty */}
-            <path
-              d="M0,40 Q30,32 60,38 T120,36 T180,42 L200,40 L200,68 Q170,72 140,66 T80,70 T20,64 L0,66 Z"
-              fill="url(#confidenceGradient95)"
-              className="animate-confidence-breathe"
-            />
-
-            {/* 68% Confidence Band (inner) - tighter uncertainty */}
-            <path
-              d="M0,45 Q30,40 60,44 T120,42 T180,48 L200,46 L200,62 Q170,66 140,60 T80,64 T20,58 L0,60 Z"
-              fill="url(#confidenceGradient68)"
-              className="animate-confidence-breathe"
-              style={{ animationDelay: "0.5s" }}
-            />
-
-            {/* Fill between capacity and load */}
-            <path d="M0,25 Q50,20 100,22 T200,18 L200,55 Q150,50 100,52 T0,50 Z" fill="rgba(0,163,255,0.05)" />
-
-            {/* Capacity line (Electric Blue) */}
-            <path d="M0,25 Q50,20 100,22 T200,18" fill="none" stroke="#00A3FF" strokeWidth="2" />
-
-            {/* Load forecast line (White) with real-time feel */}
-            <path d="M0,52 Q30,48 60,54 T120,50 T180,56 L200,53" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" />
-
-            {/* Uncertainty markers */}
-            <line x1="100" y1="42" x2="100" y2="64" stroke="rgba(255,184,0,0.3)" strokeWidth="1" strokeDasharray="2 2" />
-            <text x="103" y="53" fill="#FFB800" fontSize="5" fontFamily="'Geist Mono', monospace" opacity="0.6">±8%</text>
-
-            {/* Line labels */}
-            <text x="5" y="20" fill="#00A3FF" fontSize="7" fontFamily="'Geist Mono', monospace">CAPACITY</text>
-            <text x="5" y="62" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="'Geist Mono', monospace">LOAD</text>
-          </svg>
-          <div className="absolute bottom-2 right-2 text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>Oasis PTI</div>
         </div>
         </ErrorBoundary>
       </BentoCard>
@@ -986,7 +915,7 @@ function ContextualDrawer({ asset, onClose, onViewNeighbors }: { asset: AssetDat
       {/* Header */}
       <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full animate-status-pulse" style={{ backgroundColor: "#00FFF0" }} />
+          <div className="w-2 h-2 rounded-full animate-status-pulse" style={{ backgroundColor: C.alertNormal }} />
           <span className="text-[11px] font-semibold tracking-wider uppercase" style={{ fontFamily: "'Geist', sans-serif", color: "#EDEDED" }}>
             {asset.name}
           </span>
@@ -1004,20 +933,20 @@ function ContextualDrawer({ asset, onClose, onViewNeighbors }: { asset: AssetDat
           <span className="text-[9px] tracking-widest uppercase" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>LIVE TELEMETRY</span>
           <div className="mt-3 grid grid-cols-2 gap-3">
             {/* MW Output */}
-            <div className="p-3 rounded-lg" style={{ backgroundColor: "rgba(0, 163, 255, 0.05)", border: "0.5px solid rgba(0, 163, 255, 0.15)" }}>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: "rgba(6, 182, 212, 0.05)", border: "0.5px solid rgba(6, 182, 212, 0.15)" }}>
               <span className="text-[8px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>MW OUTPUT</span>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-2xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00FFF0" }}>
+                <span className="text-2xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: C.electricBlueLight }}>
                   {asset.mwOutput}
                 </span>
                 <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.3)" }}>/ {asset.capacity}</span>
               </div>
             </div>
             {/* Real-time LMP */}
-            <div className="p-3 rounded-lg" style={{ backgroundColor: "rgba(0, 163, 255, 0.05)", border: "0.5px solid rgba(0, 163, 255, 0.15)" }}>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: "rgba(6, 182, 212, 0.05)", border: "0.5px solid rgba(6, 182, 212, 0.15)" }}>
               <span className="text-[8px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>REAL-TIME LMP</span>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-2xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: "#00A3FF" }}>
+                <span className="text-2xl font-medium" style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: C.electricBlue }}>
                   ${asset.lmp.toFixed(2)}
                 </span>
                 <span className="text-[10px]" style={{ fontFamily: "'Geist Mono', monospace", color: asset.lmpDelta >= 0 ? "#22C55E" : "#DC2626" }}>
@@ -1060,7 +989,7 @@ function ContextualDrawer({ asset, onClose, onViewNeighbors }: { asset: AssetDat
               <rect x="25" y="50" width="45" height="35" fill="rgba(34, 197, 94, 0.1)" rx="2" />
               <text x="47" y="70" textAnchor="middle" fill="#22C55E" fontSize="6" fontFamily="'Geist Mono', monospace">PROFIT</text>
               {/* Current position dot */}
-              <circle cx="55" cy="42" r="4" fill="#00FFF0" className="animate-status-pulse" />
+              <circle cx="55" cy="42" r="4" fill={C.electricBlueLight} className="animate-status-pulse" />
               {/* Gradient definition */}
               <defs>
                 <linearGradient id="heatRateGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -1091,12 +1020,12 @@ function ContextualDrawer({ asset, onClose, onViewNeighbors }: { asset: AssetDat
           onClick={() => onViewNeighbors(asset.neighbors)}
           className="w-full mt-4 py-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02]"
           style={{
-            backgroundColor: "rgba(0, 163, 255, 0.1)",
-            border: "1px solid rgba(0, 163, 255, 0.3)",
-            boxShadow: "0 0 20px rgba(0, 163, 255, 0.1)",
+            backgroundColor: "rgba(6, 182, 212, 0.1)",
+            border: "1px solid rgba(6, 182, 212, 0.3)",
+            boxShadow: "0 0 20px rgba(6, 182, 212, 0.1)",
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00A3FF" strokeWidth="1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.electricBlue} strokeWidth="1.5">
             <circle cx="12" cy="12" r="3" />
             <circle cx="5" cy="6" r="2" />
             <circle cx="19" cy="6" r="2" />
@@ -1104,7 +1033,7 @@ function ContextualDrawer({ asset, onClose, onViewNeighbors }: { asset: AssetDat
             <circle cx="19" cy="18" r="2" />
             <path d="M12 9V6M12 9L7 7M12 9L17 7M12 15V18M12 15L7 17M12 15L17 17" />
           </svg>
-          <span className="text-[10px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>
+          <span className="text-[10px] font-medium tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: C.electricBlue }}>
             VIEW NEIGHBORS ({asset.neighbors.length})
           </span>
         </button>
@@ -1158,8 +1087,8 @@ function LayerControlPill({ flowEnabled = true, onFlowToggle }: { flowEnabled?: 
         onClick={onFlowToggle}
         className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 mb-1"
         style={{
-          backgroundColor: flowEnabled ? "rgba(0, 255, 240, 0.15)" : "transparent",
-          boxShadow: flowEnabled ? "0 0 12px rgba(0, 255, 240, 0.5)" : "none",
+          backgroundColor: flowEnabled ? "rgba(34, 211, 238, 0.15)" : "transparent",
+          boxShadow: flowEnabled ? "0 0 12px rgba(34, 211, 238, 0.5)" : "none",
           borderBottom: "0.5px solid rgba(255, 255, 255, 0.08)",
         }}
       >
@@ -1168,7 +1097,7 @@ function LayerControlPill({ flowEnabled = true, onFlowToggle }: { flowEnabled?: 
           height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke={flowEnabled ? "#00FFF0" : "rgba(255,255,255,0.3)"}
+          stroke={flowEnabled ? C.electricBlueLight : "rgba(255,255,255,0.3)"}
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -1186,8 +1115,8 @@ function LayerControlPill({ flowEnabled = true, onFlowToggle }: { flowEnabled?: 
             onClick={() => toggleLayer(key)}
             className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200"
             style={{
-              backgroundColor: isActive ? "rgba(0, 163, 255, 0.12)" : "transparent",
-              boxShadow: isActive ? "0 0 8px rgba(0, 163, 255, 0.4)" : "none",
+              backgroundColor: isActive ? "rgba(6, 182, 212, 0.12)" : "transparent",
+              boxShadow: isActive ? "0 0 8px rgba(6, 182, 212, 0.4)" : "none",
             }}
           >
             <svg
@@ -1195,7 +1124,7 @@ function LayerControlPill({ flowEnabled = true, onFlowToggle }: { flowEnabled?: 
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              stroke={isActive ? "#00A3FF" : "rgba(255,255,255,0.3)"}
+              stroke={isActive ? C.electricBlue : "rgba(255,255,255,0.3)"}
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -1212,7 +1141,7 @@ function LayerControlPill({ flowEnabled = true, onFlowToggle }: { flowEnabled?: 
           className="text-[8px] tracking-wider mb-1"
           style={{
             fontFamily: "'Geist Mono', monospace",
-            color: flowEnabled ? "#00FFF0" : "rgba(255,255,255,0.2)",
+            color: flowEnabled ? C.electricBlueLight : "rgba(255,255,255,0.2)",
           }}
         >
           FLOW
@@ -1223,7 +1152,7 @@ function LayerControlPill({ flowEnabled = true, onFlowToggle }: { flowEnabled?: 
             className="text-[8px] tracking-wider"
             style={{
               fontFamily: "'Geist Mono', monospace",
-              color: layers[["zones", "plants", "nodes"][i] as keyof typeof layers] ? "#00A3FF" : "rgba(255,255,255,0.2)",
+              color: layers[["zones", "plants", "nodes"][i] as keyof typeof layers] ? C.electricBlue : "rgba(255,255,255,0.2)",
             }}
           >
             {label}
@@ -1267,12 +1196,12 @@ function TimeSpine() {
         <div className="absolute top-1/2 -translate-y-1/2 left-4 right-4 h-1 rounded-full overflow-hidden">
           <div
             className="h-full w-full rounded-full"
-            style={{ background: "linear-gradient(90deg, #1E293B 0%, #334155 30%, #00A3FF 100%)" }}
+            style={{ background: `linear-gradient(90deg, #1E293B 0%, #334155 30%, ${C.electricBlue} 100%)` }}
           />
           {/* Active portion glow */}
           <div
             className="absolute top-0 left-0 h-full rounded-full"
-            style={{ width: `${value}%`, backgroundColor: "#00A3FF", boxShadow: "0 0 6px rgba(0, 163, 255, 0.5)" }}
+            style={{ width: `${value}%`, backgroundColor: C.electricBlue, boxShadow: "0 0 6px rgba(6, 182, 212, 0.5)" }}
           />
         </div>
 
@@ -1281,8 +1210,8 @@ function TimeSpine() {
           className="absolute top-1.5 bottom-1.5 w-3 rounded-full transition-all duration-75"
           style={{
             left: `calc(${value}% - 6px + 8px - ${value * 0.16}px)`,
-            backgroundColor: "#00FFF0",
-            boxShadow: "0 0 12px rgba(0, 255, 240, 0.6)",
+            backgroundColor: C.electricBlueLight,
+            boxShadow: "0 0 12px rgba(34, 211, 238, 0.6)",
           }}
         />
       </div>
@@ -1295,7 +1224,7 @@ function TimeSpine() {
             className="text-[8px] tracking-wider"
             style={{
               fontFamily: "'Geist Mono', monospace",
-              color: i === markers.length - 1 ? "#00A3FF" : "rgba(255, 255, 255, 0.3)",
+              color: i === markers.length - 1 ? C.electricBlue : "rgba(255, 255, 255, 0.3)",
             }}
           >
             {marker}
@@ -1320,7 +1249,7 @@ function StatusBadge() {
             height="38"
             rx="19"
             fill="none"
-            stroke="#00FFF0"
+            stroke={C.electricBlueLight}
             strokeWidth="1"
             strokeDasharray="200"
             className="animate-badge-scan"
@@ -1346,19 +1275,19 @@ function ContextualInfoPanel() {
     >
       <div className="flex items-center gap-3">
         <span className="text-[9px] tracking-wide" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>
-          ZONES: <span style={{ color: "#00A3FF" }}>20</span>
+          ZONES: <span style={{ color: C.electricBlue }}>20</span>
         </span>
         <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
         <span className="text-[9px] tracking-wide" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>
-          PLANTS: <span style={{ color: "#00A3FF" }}>163</span>
+          PLANTS: <span style={{ color: C.electricBlue }}>163</span>
         </span>
         <span className="text-[9px]" style={{ color: "rgba(255,255,255,0.2)" }}>·</span>
         <div className="flex items-center gap-1.5">
           <span className="text-[9px] tracking-wide" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.5)" }}>
-            LAST UPDATE: <span style={{ color: "#00FFF0" }}>06:35 EPT</span>
+            LAST UPDATE: <span style={{ color: C.electricBlueLight }}>06:35 EPT</span>
           </span>
           {/* Rotating refresh icon */}
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#00FFF0" strokeWidth="2" className="animate-spin-slow">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.electricBlueLight} strokeWidth="2" className="animate-spin-slow">
             <path d="M21 12a9 9 0 11-6.219-8.56" />
           </svg>
         </div>
@@ -1385,7 +1314,7 @@ function VolumetricFlowLayer({ enabled }: { enabled: boolean }) {
     if (loading >= 75) {
       return { stroke: "#F97316", glow: "rgba(249, 115, 22, 0.5)" }; // Warning orange
     }
-    return { stroke: "#00FFF0", glow: "rgba(0, 255, 240, 0.4)" }; // Cyan pulse
+    return { stroke: C.electricBlueLight, glow: "rgba(34, 211, 238, 0.4)" }; // Cyan pulse
   };
 
   return (
@@ -1508,7 +1437,7 @@ function SwoopOverlay({ active, direction: _direction }: { active: boolean; dire
       <div 
         className="absolute inset-0 animate-swoop-blur"
         style={{
-          background: "radial-gradient(ellipse at center, transparent 20%, rgba(0, 163, 255, 0.1) 50%, rgba(0, 163, 255, 0.3) 80%, rgba(0, 10, 20, 0.8) 100%)",
+          background: "radial-gradient(ellipse at center, transparent 20%, rgba(6, 182, 212, 0.1) 50%, rgba(6, 182, 212, 0.3) 80%, rgba(0, 10, 20, 0.8) 100%)",
         }}
       />
       
@@ -1521,7 +1450,7 @@ function SwoopOverlay({ active, direction: _direction }: { active: boolean; dire
             top: `${15 + i * 10}%`,
             left: 0,
             right: 0,
-            background: "linear-gradient(90deg, transparent, #00FFF0 30%, #00A3FF 70%, transparent)",
+            background: `linear-gradient(90deg, transparent, ${C.electricBlueLight} 30%, ${C.electricBlue} 70%, transparent)`,
             animationDelay: `${i * 0.03}s`,
             opacity: 0.6,
           }}
@@ -1537,7 +1466,7 @@ function SwoopOverlay({ active, direction: _direction }: { active: boolean; dire
             left: `${20 + i * 20}%`,
             top: 0,
             bottom: 0,
-            background: "linear-gradient(180deg, transparent, rgba(0, 255, 240, 0.3) 30%, rgba(0, 163, 255, 0.3) 70%, transparent)",
+            background: "linear-gradient(180deg, transparent, rgba(34, 211, 238, 0.3) 30%, rgba(6, 182, 212, 0.3) 70%, transparent)",
             animationDelay: `${i * 0.05}s`,
             transform: "rotate(90deg)",
           }}
@@ -1548,22 +1477,22 @@ function SwoopOverlay({ active, direction: _direction }: { active: boolean; dire
       <div 
         className="absolute inset-0 animate-border-flash"
         style={{
-          boxShadow: "inset 0 0 60px 20px rgba(0, 163, 255, 0.4), inset 0 0 120px 40px rgba(0, 255, 240, 0.2)",
+          boxShadow: "inset 0 0 60px 20px rgba(6, 182, 212, 0.4), inset 0 0 120px 40px rgba(34, 211, 238, 0.2)",
         }}
       />
       
       {/* Corner velocity indicators */}
       <svg className="absolute top-4 left-4 w-12 h-12 animate-border-flash" viewBox="0 0 48 48">
-        <path d="M4 24 L4 4 L24 4" fill="none" stroke="#00FFF0" strokeWidth="2" opacity="0.8" />
+        <path d="M4 24 L4 4 L24 4" fill="none" stroke={C.electricBlueLight} strokeWidth="2" opacity="0.8" />
       </svg>
       <svg className="absolute top-4 right-4 w-12 h-12 animate-border-flash" viewBox="0 0 48 48">
-        <path d="M44 24 L44 4 L24 4" fill="none" stroke="#00FFF0" strokeWidth="2" opacity="0.8" />
+        <path d="M44 24 L44 4 L24 4" fill="none" stroke={C.electricBlueLight} strokeWidth="2" opacity="0.8" />
       </svg>
       <svg className="absolute bottom-4 left-4 w-12 h-12 animate-border-flash" viewBox="0 0 48 48">
-        <path d="M4 24 L4 44 L24 44" fill="none" stroke="#00FFF0" strokeWidth="2" opacity="0.8" />
+        <path d="M4 24 L4 44 L24 44" fill="none" stroke={C.electricBlueLight} strokeWidth="2" opacity="0.8" />
       </svg>
       <svg className="absolute bottom-4 right-4 w-12 h-12 animate-border-flash" viewBox="0 0 48 48">
-        <path d="M44 24 L44 44 L24 44" fill="none" stroke="#00FFF0" strokeWidth="2" opacity="0.8" />
+        <path d="M44 24 L44 44 L24 44" fill="none" stroke={C.electricBlueLight} strokeWidth="2" opacity="0.8" />
       </svg>
       
       {/* Destination indicator */}
@@ -1571,8 +1500,8 @@ function SwoopOverlay({ active, direction: _direction }: { active: boolean; dire
         <div 
           className="w-16 h-16 rounded-full animate-border-flash"
           style={{
-            border: "2px solid #00FFF0",
-            boxShadow: "0 0 30px rgba(0, 255, 240, 0.5)",
+            border: `2px solid ${C.electricBlueLight}`,
+            boxShadow: "0 0 30px rgba(34, 211, 238, 0.5)",
           }}
         />
       </div>
@@ -1615,14 +1544,14 @@ function CommandPalette({
         style={{ 
           backgroundColor: "rgba(10, 10, 11, 0.95)", 
           backdropFilter: "blur(20px)",
-          border: "0.5px solid rgba(0, 163, 255, 0.3)",
-          boxShadow: "0 0 40px rgba(0, 163, 255, 0.2), 0 20px 60px rgba(0, 0, 0, 0.5)",
+          border: "0.5px solid rgba(6, 182, 212, 0.3)",
+          boxShadow: "0 0 40px rgba(6, 182, 212, 0.2), 0 20px 60px rgba(0, 0, 0, 0.5)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search input */}
         <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00A3FF" strokeWidth="2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.electricBlue} strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
@@ -1646,8 +1575,8 @@ function CommandPalette({
               className="w-full px-4 py-2.5 flex items-center gap-3 transition-colors hover:bg-white/5"
               onClick={() => onSelect(hub)}
             >
-              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(0, 163, 255, 0.15)" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00A3FF" strokeWidth="2">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(6, 182, 212, 0.15)" }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.electricBlue} strokeWidth="2">
                   <path d="M12 2L12 22M12 2L8 6M12 2L16 6" />
                 </svg>
               </div>
@@ -1660,10 +1589,10 @@ function CommandPalette({
         {/* Footer hint */}
         <div className="px-4 py-2 flex items-center gap-4" style={{ borderTop: "0.5px solid rgba(255, 255, 255, 0.06)", backgroundColor: "rgba(0, 0, 0, 0.2)" }}>
           <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.3)" }}>
-            <span style={{ color: "#00A3FF" }}>↵</span> to fly
+            <span style={{ color: C.electricBlue }}>↵</span> to fly
           </span>
           <span className="text-[9px]" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255,255,255,0.3)" }}>
-            <span style={{ color: "#00A3FF" }}>⌘K</span> toggle
+            <span style={{ color: C.electricBlue }}>⌘K</span> toggle
           </span>
         </div>
       </div>
@@ -1716,7 +1645,7 @@ function GridAtlasView() {
   };
 
   return (
-    <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: "#0D0D0E" }}>
+    <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: C.bgBase }}>
       {/* Swoop Engine Motion Blur Overlay */}
       <SwoopOverlay active={swoopActive} direction="in" />
       
@@ -1741,10 +1670,10 @@ function GridAtlasView() {
           style={{ 
             backgroundColor: "rgba(10, 10, 11, 0.7)", 
             backdropFilter: "blur(12px)", 
-            border: "0.5px solid rgba(0, 163, 255, 0.2)",
+            border: "0.5px solid rgba(6, 182, 212, 0.2)",
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00A3FF" strokeWidth="2">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.electricBlue} strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <path d="M21 21l-4.35-4.35" />
           </svg>
@@ -1754,9 +1683,9 @@ function GridAtlasView() {
           <span className="text-[8px] px-1 py-0.5 rounded" style={{ backgroundColor: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.4)", fontFamily: "'Geist Mono', monospace" }}>⌘K</span>
         </button>
         {currentHub && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: "rgba(0, 163, 255, 0.1)", border: "0.5px solid rgba(0, 163, 255, 0.3)" }}>
-            <div className="w-2 h-2 rounded-full animate-status-pulse" style={{ backgroundColor: "#00FFF0" }} />
-            <span className="text-[9px] tracking-wider font-medium" style={{ fontFamily: "'Geist Mono', monospace", color: "#00A3FF" }}>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ backgroundColor: "rgba(6, 182, 212, 0.1)", border: "0.5px solid rgba(6, 182, 212, 0.3)" }}>
+            <div className="w-2 h-2 rounded-full animate-status-pulse" style={{ backgroundColor: C.alertNormal }} />
+            <span className="text-[9px] tracking-wider font-medium" style={{ fontFamily: "'Geist Mono', monospace", color: C.electricBlue }}>
               {currentHub}
             </span>
           </div>
@@ -1764,7 +1693,7 @@ function GridAtlasView() {
       </div>
 
       {/* Grid Background */}
-      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(0, 163, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 163, 255, 0.3) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(6, 182, 212, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.3) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
       {/* Volumetric Flow Layer - Transmission lines with particles */}
       <VolumetricFlowLayer enabled={flowLayerEnabled} />
@@ -1796,7 +1725,7 @@ function GridAtlasView() {
                   className="absolute inset-0 rounded-full animate-dot-pulse"
                   style={{ 
                     width: 24, height: 24, 
-                    backgroundColor: isHighlighted ? "#FFB800" : "#00A3FF",
+                    backgroundColor: isHighlighted ? "#FFB800" : C.electricBlue,
                     opacity: 0.3,
                     transform: "translate(-4px, -4px)",
                   }} 
@@ -1805,8 +1734,8 @@ function GridAtlasView() {
                 <div 
                   className="w-4 h-4 rounded-full flex items-center justify-center"
                   style={{ 
-                    backgroundColor: asset.type === "plant" ? "#00A3FF" : "#00FFF0",
-                    boxShadow: `0 0 12px ${asset.type === "plant" ? "rgba(0,163,255,0.6)" : "rgba(0,255,240,0.6)"}`,
+                    backgroundColor: asset.type === "plant" ? C.electricBlue : C.electricBlueLight,
+                    boxShadow: `0 0 12px ${asset.type === "plant" ? "rgba(6,182,212,0.6)" : "rgba(34,211,238,0.6)"}`,
                     border: isHighlighted ? "2px solid #FFB800" : "none",
                   }}
                 >
@@ -1853,8 +1782,8 @@ function GhostlyLineChart() {
     <svg viewBox="0 0 80 40" className="w-full h-10 mb-3">
       <defs>
         <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#00A3FF" stopOpacity="0.1" />
-          <stop offset="100%" stopColor="#00A3FF" stopOpacity="0.6" />
+          <stop offset="0%" stopColor={C.electricBlue} stopOpacity="0.1" />
+          <stop offset="100%" stopColor={C.electricBlue} stopOpacity="0.6" />
         </linearGradient>
       </defs>
       <path
@@ -1884,7 +1813,7 @@ function AnimatedStackedBar() {
             className="w-full rounded-t-sm animate-bar-fill"
             style={{
               height: `${h}%`,
-              background: `linear-gradient(to top, rgba(0,163,255,0.2), rgba(0,163,255,0.5))`,
+              background: `linear-gradient(to top, rgba(6,182,212,0.2), rgba(6,182,212,0.5))`,
               animationDelay: `${i * 0.1}s`,
             }}
           />
@@ -1906,7 +1835,7 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
         backdropFilter: "blur(12px)",
         border: "0.5px solid rgba(255, 255, 255, 0.08)",
         transform: hovered ? "translateY(-4px)" : "none",
-        boxShadow: hovered ? "0 0 30px rgba(0, 163, 255, 0.1)" : "none",
+        boxShadow: hovered ? "0 0 30px rgba(6, 182, 212, 0.1)" : "none",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -1923,7 +1852,7 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
               className="text-[9px] whitespace-nowrap transform -rotate-3" 
               style={{ 
                 fontFamily: "'Geist Mono', monospace", 
-                color: "rgba(0, 163, 255, 0.08)",
+                color: "rgba(6, 182, 212, 0.08)",
                 letterSpacing: "0.05em",
               }}
             >
@@ -1947,15 +1876,15 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
         <div className="space-y-2 mb-4">
           {subModules.map((mod, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: "rgba(0, 163, 255, 0.5)" }} />
+              <div className="w-1 h-1 rounded-full" style={{ backgroundColor: "rgba(6, 182, 212, 0.5)" }} />
               <span className="text-[9px] tracking-wide" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>{mod}</span>
             </div>
           ))}
         </div>
         {/* Coming Soon Badge */}
         <div className="mt-auto flex justify-center">
-          <div className="px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(0, 255, 240, 0.1)", border: "1px solid rgba(0, 255, 240, 0.3)" }}>
-            <span className="text-[9px] font-medium tracking-widest" style={{ fontFamily: "'Geist Mono', monospace", color: "#00FFF0" }}>COMING SOON</span>
+          <div className="px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(34, 211, 238, 0.1)", border: "1px solid rgba(34, 211, 238, 0.3)" }}>
+            <span className="text-[9px] font-medium tracking-widest" style={{ fontFamily: "'Geist Mono', monospace", color: C.electricBlueLight }}>COMING SOON</span>
           </div>
         </div>
       </div>
@@ -1966,7 +1895,7 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
 // ANALYTICS View
 function AnalyticsView() {
   return (
-    <div className="flex-1 flex items-center justify-center p-8" style={{ backgroundColor: "#0D0D0E" }}>
+    <div className="flex-1 flex items-center justify-center p-8" style={{ backgroundColor: C.bgBase }}>
       <div className="flex gap-6 w-full max-w-5xl h-[500px]">
         <SuiteCard title="INTELLIGENCE SUITE" subModules={["Price Intelligence", "Convergence Monitor", "Marginal Fuel Tracker", "DA/RT Spread Analysis"]} cardType="intelligence" />
         <SuiteCard title="RESOURCE SUITE" subModules={["Generation Mix", "Resource Gap", "Load Forecast", "Capacity Analysis"]} cardType="resource" />
@@ -1982,15 +1911,15 @@ function VaultView() {
   const [activeSection, setActiveSection] = useState("overview");
 
   return (
-    <div className="flex-1 flex p-6 gap-4" style={{ backgroundColor: "#0D0D0E" }}>
+    <div className="flex-1 flex p-6 gap-4" style={{ backgroundColor: C.bgBase }}>
       <div className="w-56 shrink-0 rounded-lg overflow-hidden" style={{ backgroundColor: "rgba(10, 10, 11, 0.7)", backdropFilter: "blur(12px)", border: "0.5px solid rgba(255, 255, 255, 0.08)" }}>
         <div className="px-4 py-3" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
           <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: "'Geist', sans-serif", color: "#EDEDED" }}>INDEX</span>
         </div>
         <nav className="py-2">
           {sections.map((s) => (
-            <button key={s.id} onClick={() => setActiveSection(s.id)} className="w-full text-left px-4 py-2 transition-colors" style={{ backgroundColor: activeSection === s.id ? "rgba(0, 163, 255, 0.08)" : "transparent" }}>
-              <span className="text-[11px] tracking-wide" style={{ fontFamily: "'Geist', sans-serif", color: activeSection === s.id ? "#00A3FF" : "rgba(255, 255, 255, 0.4)" }}>{s.label}</span>
+            <button key={s.id} onClick={() => setActiveSection(s.id)} className="w-full text-left px-4 py-2 transition-colors" style={{ backgroundColor: activeSection === s.id ? "rgba(6, 182, 212, 0.08)" : "transparent" }}>
+              <span className="text-[11px] tracking-wide" style={{ fontFamily: "'Geist', sans-serif", color: activeSection === s.id ? C.electricBlue : "rgba(255, 255, 255, 0.4)" }}>{s.label}</span>
             </button>
           ))}
         </nav>
@@ -2016,11 +1945,71 @@ function VaultView() {
   );
 }
 
+function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (id: string) => void }) {
+  const [lmpValue] = useState(31.85);
+  const [isLive] = useState(true);
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 64,
+      zIndex: 100,
+      display: 'flex',
+      alignItems: 'center',
+      backgroundColor: 'rgba(12,13,16,0.88)',
+      backdropFilter: 'blur(12px)',
+      borderBottom: `1px solid ${C.borderDefault}`,
+      padding: '0 20px',
+      gap: '24px',
+    }}>
+      <FalconLogo collapsed={false} />
+      <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {navItems.map(item => (
+          <button
+            key={item.id}
+            onClick={() => onNavChange(item.id)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
+              backgroundColor: activeNav === item.id ? C.electricBlueWash : 'transparent',
+              border: `1px solid ${activeNav === item.id ? C.borderActive : 'transparent'}`,
+              borderRadius: R.md,
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ color: activeNav === item.id ? C.electricBlue : C.textSecondary }}>
+              {item.icon}
+            </span>
+            <span style={{
+              fontFamily: F.mono,
+              fontSize: T.labelSize,
+              color: activeNav === item.id ? C.electricBlue : C.textSecondary,
+              letterSpacing: T.labelSpacing,
+            }}>
+              {item.label}
+            </span>
+          </button>
+        ))}
+      </nav>
+      <div style={{ flex: 1 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: F.mono, fontSize: '11px' }}>
+        <span style={{ color: C.textSecondary }}>LMP</span>
+        <span style={{ color: C.electricBlue }}>${lmpValue.toFixed(2)}</span>
+        <StatusDot status={isLive ? 'live' : 'stale'} />
+        <span style={{ color: isLive ? C.alertNormal : C.alertWarning }}>{isLive ? 'LIVE' : 'STALE'}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function GlobalShell() {
-  const [collapsed, setCollapsed] = useState(true);
   const [activeNav, setActiveNav] = useState("nest");
   const [entryDismissed, setEntryDismissed] = useState(false);
-  const sidebarWidth = collapsed ? 64 : 200;
 
   const renderContent = () => {
     switch (activeNav) {
@@ -2035,20 +2024,19 @@ export default function GlobalShell() {
   return (
     <>
       {!entryDismissed && <EntryOverlay onDismiss={() => setEntryDismissed(true)} />}
-      <div className="flex h-screen w-screen overflow-hidden" style={{ backgroundColor: "#0A0A0B" }}>
-        <aside className="flex flex-col h-full shrink-0 border-r transition-all duration-200 ease-out" style={{ width: sidebarWidth, backgroundColor: "#0A0A0B", borderColor: "rgba(255, 255, 255, 0.06)" }}>
-          <div className="pt-4 pb-2"><FalconLogo collapsed={collapsed} /></div>
-          <nav className="flex-1 flex flex-col pt-4">
-            {navItems.map((item) => <NavButton key={item.id} item={item} active={activeNav === item.id} collapsed={collapsed} onClick={() => setActiveNav(item.id)} />)}
-          </nav>
-          <div className="border-t" style={{ borderColor: "rgba(255, 255, 255, 0.06)" }}>
-            <CollapseToggle collapsed={collapsed} onClick={() => setCollapsed(!collapsed)} />
-          </div>
-        </aside>
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <HeaderBar activeView={activeNav} />
-          {renderContent()}
-        </main>
+      <TopBar activeNav={activeNav} onNavChange={setActiveNav} />
+      <div style={{
+        position: 'fixed',
+        top: 64,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        backgroundColor: C.bgBase,
+      }}>
+        {renderContent()}
       </div>
     </>
   );

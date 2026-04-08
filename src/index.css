@@ -1,3 +1,105 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GridAlpha V2 — CSS Custom Properties
+   Mirrors src/design/tokens.ts — keep in sync.
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  /* Backgrounds */
+  --bg-base:     #0C0D10;
+  --bg-elevated: #151619;
+  --bg-surface:  #1C1D22;
+  --bg-overlay:  #252730;
+
+  /* Text */
+  --text-primary:   #E5E7EB;
+  --text-secondary: rgba(229,231,235,0.60);
+  --text-muted:     rgba(229,231,235,0.35);
+
+  /* Accents */
+  --electric-blue:      #06B6D4;
+  --electric-blue-wash: rgba(6,182,212,0.10);
+  --falcon-gold:        #F59E0B;
+  --falcon-gold-wash:   rgba(245,158,11,0.10);
+
+  /* Status */
+  --alert-critical: #EF4444;
+  --alert-high:     #F97316;
+  --alert-warning:  #F59E0B;
+  --alert-normal:   #10B981;
+  --alert-info:     #3B82F6;
+
+  /* Borders */
+  --border-default: rgba(42,43,51,0.70);
+  --border-accent:  rgba(6,182,212,0.18);
+  --border-active:  rgba(6,182,212,0.35);
+
+  /* Typography */
+  --font-mono: 'Geist Mono', 'Fira Code', monospace;
+  --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
+
+  /* Spacing */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   12px;
+  --space-lg:   16px;
+  --space-xl:   24px;
+  --space-xxl:  32px;
+  --space-xxxl: 48px;
+}
+
+/* Noise texture layer — imperceptible grain at 2.5% opacity */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Card surface system */
+.ga-card {
+  background:    var(--bg-elevated);
+  border:        1px solid var(--border-default);
+  border-top:    1px solid var(--border-accent);
+  border-radius: 8px;
+  transition:    border-top-color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ga-card:hover { border-top-color: var(--border-active); }
+.ga-card--active { border-top-color: var(--electric-blue); }
+
+/* Label style — all card/section titles */
+.ga-label {
+  font-family:    var(--font-mono);
+  font-size:      10px;
+  font-weight:    500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color:          var(--text-muted);
+}
+
+/* Regime badges */
+.ga-badge {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            5px;
+  padding:        3px 8px;
+  border-radius:  4px;
+  font-family:    var(--font-mono);
+  font-size:      10px;
+  font-weight:    500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.ga-badge--normal  { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.22); color: var(--electric-blue); }
+.ga-badge--burning { background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.30); color: var(--falcon-gold); }
+.ga-badge--alert   { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.30); color: var(--alert-critical); }
+
+/* Tabular numbers for all financial/data values */
+.ga-data { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+
 @font-face {
   font-family: 'Geist Mono';
   src: url('/fonts/GeistMono-Variable.woff2') format('woff2');
@@ -26,7 +128,7 @@ html, body, #root {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: #0A0A0B;
+  background: var(--bg-base);
   font-family: 'Geist Mono', monospace;
 }
 
@@ -109,12 +211,12 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 163, 255, 0.3);
+  background: rgba(6, 182, 212, 0.3);
   border-radius: 1px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 163, 255, 0.5);
+  background: rgba(6, 182, 212, 0.5);
 }
 
 /* Circuit trace breathing animation */
@@ -264,8 +366,8 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 }
 
 @keyframes alert-flash {
-  0%   { background: rgba(0, 255, 240, 0.18); border-left-color: #00FFF0; }
-  60%  { background: rgba(0, 255, 240, 0.08); border-left-color: #00FFF0; }
+  0%   { background: rgba(6, 182, 212, 0.18); border-left-color: var(--electric-blue); }
+  60%  { background: rgba(6, 182, 212, 0.08); border-left-color: var(--electric-blue); }
   100% { background: transparent; border-left-color: inherit; }
 }
 
@@ -444,7 +546,7 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   padding: 6px 0;
 }
 .lmp-genmix-row:hover {
-  background: rgba(0, 212, 255, 0.04);
+  background: rgba(6, 182, 212, 0.04);
 }
 
 .lmp-metric-tile {
@@ -476,8 +578,8 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   transition: border-left-color 0.2s ease, background 0.2s ease;
 }
 .lmp-panel-genmix:hover {
-  border-left-color: rgba(0, 212, 255, 0.55) !important;
-  background: rgba(0, 212, 255, 0.03) !important;
+  border-left-color: rgba(6, 182, 212, 0.55) !important;
+  background: rgba(6, 182, 212, 0.03) !important;
 }
 
 .lmp-panel-forecast {
@@ -521,6 +623,6 @@ html, body, #root, [data-reactroot] {
   margin: 0 !important;
   padding: 0 !important;
   display: block !important;
-  background-color: #0A0A0B !important;
+  background-color: var(--bg-base) !important;
   font-family: 'Geist Mono', monospace !important;
 }

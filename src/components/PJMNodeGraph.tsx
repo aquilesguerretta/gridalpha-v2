@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useMemo } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Text, Line } from '@react-three/drei'
 import * as THREE from 'three'
+import { C } from '@/design/tokens'
 
 // === Z-AXIS PRICE SURFACE ===
 // Expensive zones float toward viewer, cheap zones recede
@@ -211,7 +212,7 @@ function loadingToLineWidth(loading: number): number {
 function loadingToLineColor(loading: number): THREE.Color {
   if (loading >= 0.90) return new THREE.Color('#FF4444')
   if (loading >= 0.75) return new THREE.Color('#FFB800')
-  return new THREE.Color('#00A3FF')
+  return new THREE.Color(C.electricBlue)
 }
 
 // === FEATURE 3: HISTORICAL LMP FOR GHOST MODE ===
@@ -410,7 +411,7 @@ function ConnectionLine({
         <mesh ref={waveRef}>
           <sphereGeometry args={[0.09, 8, 8]} />
           <meshBasicMaterial
-            color="#00FFF0"
+            color={C.electricBlueLight}
             transparent
             opacity={0.6}
           />
@@ -489,7 +490,7 @@ function StarField() {
       <bufferGeometry ref={bufferRef} />
       <pointsMaterial
         size={0.06}
-        color="#00A3FF"
+        color={C.electricBlue}
         transparent
         opacity={0.3}
         sizeAttenuation
@@ -561,7 +562,7 @@ function ReferencePlane() {
     <mesh rotation={[0, 0, 0]} position={[0, -8, 0]}>
       <planeGeometry args={[35, 35, 20, 20]} />
       <meshBasicMaterial
-        color="#00A3FF"
+        color={C.electricBlue}
         transparent
         opacity={0.03}
         wireframe
@@ -624,8 +625,8 @@ function Scene({ selectedZone, onZoneSelect, expanded, ghostTime }: {
 
       {/* Ambient and point lights */}
       <ambientLight intensity={0.2} />
-      <pointLight position={[0, 5, 5]} intensity={1} color="#00A3FF" />
-      <pointLight position={[0, -5, -5]} intensity={0.5} color="#00FFF0" />
+      <pointLight position={[0, 5, 5]} intensity={1} color={C.electricBlue} />
+      <pointLight position={[0, -5, -5]} intensity={0.5} color={C.electricBlueLight} />
 
       {/* Connection lines — directional flow + loading + contagion */}
       {CONNECTIONS.map(([fromId, toId]) => {

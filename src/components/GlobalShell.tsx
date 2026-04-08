@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { C, F, R, T } from '@/design/tokens';
+import { C, F, R, S, T } from '@/design/tokens';
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
 import { LMPCard } from "./LMPCard";

@@ -2,6 +2,7 @@ import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
+import { C } from '@/design/tokens';
 
 // Generate spark spread surface data
 // X: Time (0-23 hours), Y: Fuel Price ($2-$6/MMBtu), Z: Profitability
@@ -118,13 +119,13 @@ function SpreadSurface() {
       
       {/* Wireframe overlay for grid effect */}
       <lineSegments geometry={wireframeGeometry}>
-        <lineBasicMaterial color="#00A3FF" opacity={0.15} transparent />
+        <lineBasicMaterial color={C.electricBlue} opacity={0.15} transparent />
       </lineSegments>
       
       {/* Glow plane underneath */}
       <mesh position={[0, 0, -0.5]} rotation={[0, 0, 0]}>
         <planeGeometry args={[4.5, 4.5]} />
-        <meshBasicMaterial color="#00A3FF" opacity={0.05} transparent />
+        <meshBasicMaterial color={C.electricBlue} opacity={0.05} transparent />
       </mesh>
     </group>
   );
@@ -137,7 +138,7 @@ function AxisLabels() {
       <group position={[2.5, -2, 0]}>
         <mesh>
           <planeGeometry args={[0.8, 0.2]} />
-          <meshBasicMaterial color="#00A3FF" opacity={0} transparent />
+          <meshBasicMaterial color={C.electricBlue} opacity={0} transparent />
         </mesh>
       </group>
       
@@ -145,7 +146,7 @@ function AxisLabels() {
       <group position={[-2.5, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
         <mesh>
           <planeGeometry args={[0.8, 0.2]} />
-          <meshBasicMaterial color="#00A3FF" opacity={0} transparent />
+          <meshBasicMaterial color={C.electricBlue} opacity={0} transparent />
         </mesh>
       </group>
     </group>
@@ -212,7 +213,7 @@ export function SparkSpreadSurface3D() {
       >
         <ambientLight intensity={0.4} />
         <directionalLight position={[5, 5, 5]} intensity={0.8} />
-        <directionalLight position={[-5, -5, 2]} intensity={0.3} color="#00A3FF" />
+        <directionalLight position={[-5, -5, 2]} intensity={0.3} color={C.electricBlue} />
         
         <SpreadSurface />
         <AxisLabels />
@@ -227,7 +228,7 @@ export function SparkSpreadSurface3D() {
         />
         
         {/* Grid helper for reference */}
-        <gridHelper args={[6, 12, "#00A3FF", "#0A0A0B"]} position={[0, -1.5, 0]} rotation={[0, 0, 0]} />
+        <gridHelper args={[6, 12, C.electricBlue, C.bgBase]} position={[0, -1.5, 0]} rotation={[0, 0, 0]} />
       </Canvas>
     </div>
   );

@@ -233,11 +233,11 @@ export const ZONE_CONSTRAINTS: Record<string, Array<{ name: string; impact: numb
 };
 
 export const ZONE_GEN_MIX: Record<string, Array<{ fuel: string; pct: number; color: string }>> = {
-  'PSEG':     [{ fuel: 'Nuclear', pct: 48, color: '#9B59B6' }, { fuel: 'Gas', pct: 38, color: '#E67E22' }, { fuel: 'Solar', pct: 9,  color: '#F1C40F' }, { fuel: 'Other', pct: 5,  color: '#555' }],
-  'COMED':    [{ fuel: 'Nuclear', pct: 62, color: '#9B59B6' }, { fuel: 'Gas', pct: 18, color: '#E67E22' }, { fuel: 'Wind',  pct: 14, color: '#00A3FF' }, { fuel: 'Other', pct: 6,  color: '#555' }],
-  'AEP':      [{ fuel: 'Coal',   pct: 38, color: '#7F8C8D' }, { fuel: 'Gas', pct: 31, color: '#E67E22' }, { fuel: 'Wind',  pct: 22, color: '#00A3FF' }, { fuel: 'Other', pct: 9,  color: '#555' }],
-  'DOMINION': [{ fuel: 'Nuclear', pct: 34, color: '#9B59B6' }, { fuel: 'Gas', pct: 42, color: '#E67E22' }, { fuel: 'Solar', pct: 14, color: '#F1C40F' }, { fuel: 'Other', pct: 10, color: '#555' }],
-  'DEFAULT':  [{ fuel: 'Gas',    pct: 42, color: '#E67E22' }, { fuel: 'Nuclear', pct: 28, color: '#9B59B6' }, { fuel: 'Wind', pct: 18, color: '#00A3FF' }, { fuel: 'Other', pct: 12, color: '#555' }],
+  'PSEG':     [{ fuel: 'Nuclear', pct: 48, color: '#FBBF24' }, { fuel: 'Gas', pct: 38, color: '#F97316' }, { fuel: 'Solar', pct: 9,  color: '#FDE047' }, { fuel: 'Other', pct: 5,  color: '#9CA3AF' }],
+  'COMED':    [{ fuel: 'Nuclear', pct: 62, color: '#FBBF24' }, { fuel: 'Gas', pct: 18, color: '#F97316' }, { fuel: 'Wind',  pct: 14, color: '#38BDF8' }, { fuel: 'Other', pct: 6,  color: '#9CA3AF' }],
+  'AEP':      [{ fuel: 'Coal',   pct: 38, color: '#6B7280' }, { fuel: 'Gas', pct: 31, color: '#F97316' }, { fuel: 'Wind',  pct: 22, color: '#38BDF8' }, { fuel: 'Other', pct: 9,  color: '#9CA3AF' }],
+  'DOMINION': [{ fuel: 'Nuclear', pct: 34, color: '#FBBF24' }, { fuel: 'Gas', pct: 42, color: '#F97316' }, { fuel: 'Solar', pct: 14, color: '#FDE047' }, { fuel: 'Other', pct: 10, color: '#9CA3AF' }],
+  'DEFAULT':  [{ fuel: 'Gas',    pct: 42, color: '#F97316' }, { fuel: 'Nuclear', pct: 28, color: '#FBBF24' }, { fuel: 'Wind', pct: 18, color: '#38BDF8' }, { fuel: 'Other', pct: 12, color: '#9CA3AF' }],
 };
 
 export const ZONE_FORECAST: Record<string, Array<{ hour: string; price: number }>> = {

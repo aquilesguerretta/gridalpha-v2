@@ -13,7 +13,6 @@ import {
 } from "../lib/pjm/mock-data";
 import { ErrorBoundary } from "./shared/ErrorBoundary";
 import { CardSkeleton } from "./shared/CardSkeleton";
-import { GridAtlasMap, type LayersEnabled } from "./atlas/GridAtlasMap";
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -2040,18 +2039,9 @@ function ContextualDrawer({ asset, onClose, onViewNeighbors }: { asset: AssetDat
 }
 
 // Layer Control Pill for Grid Atlas - High precision icons with glow
-function LayerControlPill({
-  flowEnabled = true,
-  onFlowToggle,
-  layers,
-  onLayerToggle,
-}: {
-  flowEnabled?: boolean;
-  onFlowToggle?: () => void;
-  layers: LayersEnabled;
-  onLayerToggle: (key: keyof LayersEnabled) => void;
-}) {
-  const toggleLayer = (layer: keyof LayersEnabled) => onLayerToggle(layer);
+function LayerControlPill({ flowEnabled = true, onFlowToggle }: { flowEnabled?: boolean; onFlowToggle?: () => void }) {
+  const [layers, setLayers] = useState({ zones: true, plants: false, nodes: false });
+  const toggleLayer = (layer: keyof typeof layers) => setLayers(p => ({ ...p, [layer]: !p[layer] }));
 
   const icons = {
     zones: ( // Hexagonal grid
@@ -2614,7 +2604,6 @@ function GridAtlasView() {
   const [swoopActive, setSwoopActive] = useState(false);
   const [currentHub, setCurrentHub] = useState<string | null>(null);
   const [flowLayerEnabled, setFlowLayerEnabled] = useState(true);
-  const [layersEnabled, setLayersEnabled] = useState<LayersEnabled>({ zones: true, plants: false, nodes: false });
 
   // Cmd+K keyboard listener
   useEffect(() => {
@@ -2699,24 +2688,14 @@ function GridAtlasView() {
         )}
       </div>
 
-      {/* DeckGL + Mapbox map — fills the view */}
-      <div className="absolute inset-0" style={{ zIndex: 0 }}>
-        <GridAtlasMap layersEnabled={layersEnabled} />
-      </div>
-
-      {/* Grid overlay — terminal aesthetic on top of map */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none" style={{ zIndex: 1, backgroundImage: "linear-gradient(rgba(6, 182, 212, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.3) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+      {/* Grid Background */}
+      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(rgba(6, 182, 212, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(6, 182, 212, 0.3) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
 
       {/* Volumetric Flow Layer - Transmission lines with particles */}
       <VolumetricFlowLayer enabled={flowLayerEnabled} />
 
       {/* Layer Control with Flow toggle */}
-      <LayerControlPill
-        flowEnabled={flowLayerEnabled}
-        onFlowToggle={() => setFlowLayerEnabled(!flowLayerEnabled)}
-        layers={layersEnabled}
-        onLayerToggle={(key) => setLayersEnabled(p => ({ ...p, [key]: !p[key] }))}
-      />
+      <LayerControlPill flowEnabled={flowLayerEnabled} onFlowToggle={() => setFlowLayerEnabled(!flowLayerEnabled)} />
 
       {/* Demo Asset Markers */}
       <div className="absolute inset-0 pointer-events-none">
@@ -2775,6 +2754,10 @@ function GridAtlasView() {
         })}
       </div>
 
+      {/* Placeholder Map Content */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <span className="text-white/20 text-lg tracking-wider" style={{ fontFamily: "'Geist Mono', monospace" }}>[DECKGL MAP COMPONENT]</span>
+      </div>
 
       {/* Time Spine */}
       <TimeSpine />

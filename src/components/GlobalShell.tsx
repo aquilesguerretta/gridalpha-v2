@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { C, F, R, S, T } from '@/design/tokens';
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
@@ -604,6 +605,21 @@ function SparkSpreadChart({
 
 // ── SparkKPIView ──────────────────────────────────────────────────
 function SparkKPIView({ selectedZone }: { selectedZone: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  const closeOverlay = () => {
+    setClosing(true);
+    setTimeout(() => { setExpanded(false); setClosing(false); }, 300);
+  };
+
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeOverlay(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [expanded]);
+
   const SPARK_DATA = {
     zone: selectedZone ?? 'SYSTEM',
     regime: 'BURNING' as 'BURNING' | 'SUPPRESSED' | 'NEUTRAL',
@@ -641,187 +657,195 @@ function SparkKPIView({ selectedZone }: { selectedZone: string | null }) {
       ? 'rgba(239,68,68,0.30)'
       : 'rgba(255,255,255,0.20)';
 
-  return (
+  const RegimeBadge = () => (
     <div style={{
-      display:       'flex',
-      flexDirection: 'column',
-      position:      'absolute',
-      inset:         0,
-      padding:       `${S.lg} ${S.lg} ${S.md} ${S.lg}`,
-      gap:           S.md,
-      overflow:      'hidden',
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 8px', background: regimeBg,
+      border: `1px solid ${regimeBorder}`, borderRadius: R.sm,
+      color: regimeColor, fontFamily: F.mono, fontSize: '10px',
+      fontWeight: '500', letterSpacing: '0.10em', textTransform: 'uppercase' as const,
     }}>
+      <div style={{ width: 6, height: 6, borderRadius: '50%', background: regimeColor, flexShrink: 0 }} />
+      {SPARK_DATA.regime}
+    </div>
+  );
 
-      {/* SECTION 1 — Header row */}
-      <div style={{
-        display:        'flex',
-        alignItems:     'center',
-        justifyContent: 'space-between',
-        flexShrink:     0,
-      }}>
-        <span style={{
-          fontFamily:    F.mono,
-          fontSize:      T.labelSize,
-          fontWeight:    T.labelWeight,
-          letterSpacing: T.labelSpacing,
-          textTransform: 'uppercase' as const,
-          color:         C.textMuted,
-        }}>
-          SPARK SPREAD · {SPARK_DATA.zone}
-        </span>
-
-        <div style={{
-          display:       'inline-flex',
-          alignItems:    'center',
-          gap:           5,
-          padding:       '3px 8px',
-          background:    regimeBg,
-          border:        `1px solid ${regimeBorder}`,
-          borderRadius:  R.sm,
-          color:         regimeColor,
-          fontFamily:    F.mono,
-          fontSize:      '10px',
-          fontWeight:    '500',
-          letterSpacing: '0.10em',
-          textTransform: 'uppercase' as const,
-        }}>
-          <div style={{
-            width:        6,
-            height:       6,
-            borderRadius: '50%',
-            background:   regimeColor,
-            flexShrink:   0,
-          }} />
-          {SPARK_DATA.regime}
+  return (
+    <>
+      {/* ── COMPACT STATE ── */}
+      <div
+        onClick={() => setExpanded(true)}
+        style={{
+          display: 'flex', flexDirection: 'column', position: 'absolute', inset: 0,
+          padding: `${S.lg} ${S.lg} ${S.md} ${S.lg}`, gap: S.md,
+          overflow: 'hidden', cursor: 'pointer',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, fontWeight: T.labelWeight, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const, color: C.textMuted }}>
+            SPARK SPREAD · {SPARK_DATA.zone}
+          </span>
+          <RegimeBadge />
         </div>
-      </div>
 
-      {/* SECTION 2 — Dominant spread value */}
-      <div style={{ flexShrink: 0 }}>
-        <div style={{
-          fontFamily:          F.mono,
-          fontSize:            T.dataLgSize,
-          fontWeight:          T.dataLgWeight,
-          color:               regimeColor,
-          lineHeight:          1,
-          fontVariantNumeric:  'tabular-nums',
-          fontFeatureSettings: '"tnum"',
-        }}>
-          {SPARK_DATA.regime === 'BURNING' ? '+' : ''}{SPARK_DATA.spreadValue.toFixed(1)}
-        </div>
-        <div style={{
-          fontFamily:    F.mono,
-          fontSize:      T.labelSize,
-          color:         C.textMuted,
-          marginTop:     S.xs,
-          letterSpacing: '0.08em',
-        }}>
-          $/MWh NET SPREAD
-        </div>
-      </div>
-
-      {/* SECTION 3 — Input breakdown */}
-      <div style={{
-        display:       'flex',
-        flexDirection: 'column',
-        gap:           S.xs,
-        flexShrink:    0,
-        paddingTop:    S.xs,
-        borderTop:     `1px solid ${C.borderDefault}`,
-      }}>
-        {[
-          { label: 'PWR PRICE',  value: `$${SPARK_DATA.powerPrice.toFixed(2)}`,    color: C.electricBlue },
-          { label: 'GAS EQUIV',  value: `$${SPARK_DATA.gasEquivPrice.toFixed(2)}`, color: C.falconGold },
-          { label: 'NET SPREAD', value: `$${SPARK_DATA.netSpread.toFixed(2)}`,     color: regimeColor },
-        ].map(row => (
-          <div key={row.label} style={{
-            display:        'flex',
-            justifyContent: 'space-between',
-            alignItems:     'center',
-          }}>
-            <span style={{
-              fontFamily:    F.mono,
-              fontSize:      '11px',
-              color:         C.textMuted,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase' as const,
-            }}>
-              {row.label}
-            </span>
-            <span style={{
-              fontFamily:          F.mono,
-              fontSize:            T.dataSmSize,
-              fontWeight:          '500',
-              color:               row.color,
-              fontVariantNumeric:  'tabular-nums',
-              fontFeatureSettings: '"tnum"',
-            }}>
-              {row.value}
-              <span style={{ color: C.textMuted, fontSize: '10px', marginLeft: 3 }}>/MWh</span>
-            </span>
+        {/* Dominant number */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ fontFamily: F.mono, fontSize: T.dataLgSize, fontWeight: T.dataLgWeight, color: regimeColor, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+            {SPARK_DATA.regime === 'BURNING' ? '+' : ''}{SPARK_DATA.spreadValue.toFixed(1)}
           </div>
-        ))}
+          <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, marginTop: S.xs, letterSpacing: '0.08em' }}>
+            $/MWh NET SPREAD
+          </div>
+        </div>
 
-        {/* Sub-line: gas price + heat rate */}
-        <div style={{ display: 'flex', gap: S.xl, marginTop: S.xs }}>
+        {/* Input breakdown */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs, flexShrink: 0, paddingTop: S.xs, borderTop: `1px solid ${C.borderDefault}` }}>
           {[
-            { label: 'GAS', value: `$${SPARK_DATA.gasPrice}/MMBtu` },
-            { label: 'HR',  value: `${SPARK_DATA.heatRate}×` },
-          ].map(item => (
-            <div key={item.label} style={{ display: 'flex', gap: S.xs, alignItems: 'baseline' }}>
-              <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.08em' }}>
-                {item.label}
-              </span>
-              <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textSecondary }}>
-                {item.value}
+            { label: 'PWR PRICE',  value: `$${SPARK_DATA.powerPrice.toFixed(2)}`,    color: C.electricBlue },
+            { label: 'GAS EQUIV',  value: `$${SPARK_DATA.gasEquivPrice.toFixed(2)}`, color: C.falconGold },
+            { label: 'NET SPREAD', value: `$${SPARK_DATA.netSpread.toFixed(2)}`,     color: regimeColor },
+          ].map(row => (
+            <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textMuted, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>{row.label}</span>
+              <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, fontWeight: '500', color: row.color, fontVariantNumeric: 'tabular-nums' }}>
+                {row.value}<span style={{ color: C.textMuted, fontSize: '10px', marginLeft: 3 }}>/MWh</span>
               </span>
             </div>
           ))}
+          <div style={{ display: 'flex', gap: S.xl, marginTop: S.xs }}>
+            {[{ label: 'GAS', value: `$${SPARK_DATA.gasPrice}/MMBtu` }, { label: 'HR', value: `${SPARK_DATA.heatRate}×` }].map(item => (
+              <div key={item.label} style={{ display: 'flex', gap: S.xs, alignItems: 'baseline' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.08em' }}>{item.label}</span>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textSecondary }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom stats */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexShrink: 0, paddingTop: S.sm, borderTop: `1px solid ${C.borderDefault}` }}>
+          {[
+            { label: '24H AVG',     value: `+${SPARK_DATA.avg24h.toFixed(1)}`,    color: C.falconGold },
+            { label: 'HRS BURNING', value: `${SPARK_DATA.hoursBurning}/24`,        color: C.textPrimary },
+            { label: 'PEAK SPREAD', value: `+${SPARK_DATA.peak.value.toFixed(1)}`, color: C.falconGold },
+          ].map(stat => (
+            <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const }}>{stat.label}</span>
+              <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: '600', color: stat.color, fontVariantNumeric: 'tabular-nums' }}>{stat.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Expand hint */}
+        <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.10em', textAlign: 'center' as const, paddingTop: S.sm, opacity: 0.6 }}>
+          › CLICK TO EXPAND
         </div>
       </div>
 
-      {/* SECTION 4 — 24H chart */}
-      <div style={{ flex: 1, minHeight: 0, paddingTop: S.xs }}>
-        <SparkSpreadChart history={SPARK_DATA.history} regime={SPARK_DATA.regime} />
-      </div>
+      {/* ── EXPANDED OVERLAY ── */}
+      {expanded && createPortal(
+        <>
+          <div onClick={closeOverlay} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,10,11,0.82)', backdropFilter: 'blur(2px)' }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 61, width: '95vw', height: '95vh',
+            background: C.bgBase,
+            border: `0.5px solid ${C.borderAccent}`,
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            animation: closing
+              ? 'modal-collapse 300ms cubic-bezier(0.16,1,0.3,1) forwards'
+              : 'modal-expand 300ms cubic-bezier(0.16,1,0.3,1) forwards',
+            boxShadow: `0 0 80px ${C.falconGold}14`,
+          }}>
+            {/* Header bar */}
+            <div style={{ height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', borderBottom: `0.5px solid ${C.borderDefault}`, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textMuted, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>SPARK SPREAD INTELLIGENCE</span>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.electricBlue, letterSpacing: '0.10em' }}>/ {SPARK_DATA.zone}</span>
+                <RegimeBadge />
+              </div>
+              <button onClick={closeOverlay} style={{ fontFamily: F.mono, fontSize: '9px', color: C.textSecondary, background: C.bgOverlay, border: `0.5px solid ${C.borderDefault}`, borderRadius: R.md, padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.10em' }}>
+                ESC / CLOSE
+              </button>
+            </div>
 
-      {/* SECTION 5 — Bottom stats */}
-      <div style={{
-        display:        'flex',
-        justifyContent: 'space-between',
-        flexShrink:     0,
-        paddingTop:     S.sm,
-        borderTop:      `1px solid ${C.borderDefault}`,
-      }}>
-        {[
-          { label: '24H AVG',     value: `+${SPARK_DATA.avg24h.toFixed(1)}`,    color: C.falconGold },
-          { label: 'HRS BURNING', value: `${SPARK_DATA.hoursBurning}/24`,        color: C.textPrimary },
-          { label: 'PEAK SPREAD', value: `+${SPARK_DATA.peak.value.toFixed(1)}`, color: C.falconGold },
-        ].map(stat => (
-          <div key={stat.label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <span style={{
-              fontFamily:    F.mono,
-              fontSize:      '9px',
-              color:         C.textMuted,
-              letterSpacing: '0.10em',
-              textTransform: 'uppercase' as const,
-            }}>
-              {stat.label}
-            </span>
-            <span style={{
-              fontFamily:          F.mono,
-              fontSize:            '13px',
-              fontWeight:          '600',
-              color:               stat.color,
-              fontVariantNumeric:  'tabular-nums',
-              fontFeatureSettings: '"tnum"',
-            }}>
-              {stat.value}
-            </span>
+            {/* Body */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', gap: '24px', overflow: 'hidden' }}>
+              {/* Top: dominant + metrics strip */}
+              <div style={{ display: 'flex', gap: '48px', flexShrink: 0, alignItems: 'flex-end' }}>
+                <div>
+                  <div style={{ fontFamily: F.mono, fontSize: '64px', fontWeight: '700', color: regimeColor, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                    {SPARK_DATA.regime === 'BURNING' ? '+' : ''}{SPARK_DATA.spreadValue.toFixed(1)}
+                  </div>
+                  <div style={{ fontFamily: F.mono, fontSize: '13px', color: C.textMuted, marginTop: '8px' }}>$/MWh NET SPREAD · {SPARK_DATA.zone}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '1px', flex: 1 }}>
+                  {[
+                    { label: 'CURRENT SPREAD', value: `+${SPARK_DATA.spreadValue.toFixed(1)}`, color: regimeColor },
+                    { label: '24H AVG',         value: `+${SPARK_DATA.avg24h.toFixed(1)}`,      color: C.textPrimary },
+                    { label: 'GAS PRICE',        value: `$${SPARK_DATA.gasPrice}`,               color: C.textPrimary },
+                    { label: 'HEAT RATE',        value: `${SPARK_DATA.heatRate}×`,               color: C.textPrimary },
+                  ].map(tile => (
+                    <div key={tile.label} style={{ flex: 1, background: C.bgOverlay, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const }}>{tile.label}</span>
+                      <span style={{ fontFamily: F.mono, fontSize: '22px', fontWeight: '600', color: tile.color, fontVariantNumeric: 'tabular-nums' }}>{tile.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chart */}
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <SparkSpreadChart history={SPARK_DATA.history} regime={SPARK_DATA.regime} />
+              </div>
+
+              {/* Bottom panels */}
+              <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '140px' }}>
+                {[
+                  {
+                    label: 'GAS PRICE INPUTS', color: C.falconGold,
+                    rows: [
+                      { k: 'Henry Hub',       v: `$${SPARK_DATA.gasPrice}/MMBtu` },
+                      { k: 'Heat rate',       v: `${SPARK_DATA.heatRate}×` },
+                      { k: 'Gas equiv price', v: `$${SPARK_DATA.gasEquivPrice.toFixed(2)}/MWh` },
+                    ],
+                  },
+                  {
+                    label: 'PLANT ECONOMICS', color: C.electricBlue,
+                    rows: [
+                      { k: 'Power price', v: `$${SPARK_DATA.powerPrice.toFixed(2)}/MWh` },
+                      { k: 'Net spread',  v: `+$${SPARK_DATA.netSpread.toFixed(2)}/MWh` },
+                      { k: 'Hrs burning', v: `${SPARK_DATA.hoursBurning}/24` },
+                    ],
+                  },
+                  {
+                    label: 'DISPATCH SIGNAL', color: C.textPrimary,
+                    rows: [
+                      { k: 'Status',      v: SPARK_DATA.regime },
+                      { k: '24H avg',     v: `+$${SPARK_DATA.avg24h.toFixed(1)}/MWh` },
+                      { k: 'Peak spread', v: `+$${SPARK_DATA.peak.value.toFixed(1)} at ${SPARK_DATA.peak.hour}` },
+                    ],
+                  },
+                ].map(panel => (
+                  <div key={panel.label} style={{ flex: 1, background: C.bgOverlay, borderLeft: `2px solid ${panel.color}`, padding: '12px 16px' }}>
+                    <div style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const, marginBottom: '10px' }}>{panel.label}</div>
+                    {panel.rows.map(row => (
+                      <div key={row.k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.textMuted }}>{row.k}</span>
+                        <span style={{ fontFamily: F.mono, fontSize: '12px', color: C.textPrimary, fontVariantNumeric: 'tabular-nums' }}>{row.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
+        </>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -909,10 +933,96 @@ function SOCGauge({ soc }: { soc: number }) {
   );
 }
 
+// ── SOCProfileChart ───────────────────────────────────────────────
+function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const W = 500; const H = 160;
+  const PAD = { top: 12, right: 8, bottom: 24, left: 36 };
+
+  const toX = (i: number) => PAD.left + (i / (socHistory.length - 1)) * (W - PAD.left - PAD.right);
+  const toY = (v: number) => PAD.top + ((100 - v) / 100) * (H - PAD.top - PAD.bottom);
+
+  const linePath = socHistory.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`).join(' ');
+  const fillPath = linePath + ` L ${toX(socHistory.length - 1)},${H - PAD.bottom} L ${toX(0)},${H - PAD.bottom} Z`;
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (W / rect.width);
+    const idx = Math.round(((x - PAD.left) / (W - PAD.left - PAD.right)) * (socHistory.length - 1));
+    setHoverIdx(Math.max(0, Math.min(socHistory.length - 1, idx)));
+  };
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%"
+      preserveAspectRatio="none" style={{ display: 'block', cursor: 'crosshair' }}
+      onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
+      <defs>
+        <linearGradient id="socFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={C.electricBlue} stopOpacity="0.25" />
+          <stop offset="100%" stopColor={C.electricBlue} stopOpacity="0.03" />
+        </linearGradient>
+      </defs>
+      {/* Charge window shade (hours 6-10) */}
+      <rect x={toX(6)} y={PAD.top} width={toX(10) - toX(6)} height={H - PAD.top - PAD.bottom} fill={C.electricBlue} opacity="0.06" />
+      {/* Discharge window shade (hours 16-20) */}
+      <rect x={toX(16)} y={PAD.top} width={toX(20) - toX(16)} height={H - PAD.top - PAD.bottom} fill={C.falconGold} opacity="0.08" />
+      {/* Y labels */}
+      {[100, 50, 0].map(v => (
+        <text key={v} x={PAD.left - 4} y={toY(v) + 4} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}>{v}%</text>
+      ))}
+      {/* Hour labels */}
+      {[0, 6, 12, 18, 23].map((i, idx) => (
+        <text key={i} x={toX(i)} y={H - 6} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}>
+          {['12A','6A','12P','6P','11P'][idx]}
+        </text>
+      ))}
+      {/* Window labels */}
+      <text x={(toX(6) + toX(10)) / 2} y={PAD.top + 10} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.electricBlue, opacity: 0.7 }}>CHARGE</text>
+      <text x={(toX(16) + toX(20)) / 2} y={PAD.top + 10} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.falconGold, opacity: 0.7 }}>DISCHARGE</text>
+      {/* Fill + line */}
+      <path d={fillPath} fill="url(#socFill)" />
+      <path d={linePath} fill="none" stroke={C.electricBlue} strokeWidth="2" />
+      {/* Hover */}
+      {hoverIdx !== null && (
+        <g>
+          <line x1={toX(hoverIdx)} y1={PAD.top} x2={toX(hoverIdx)} y2={H - PAD.bottom} stroke={C.electricBlue} strokeWidth="1" strokeDasharray="2 2" opacity="0.5" />
+          <circle cx={toX(hoverIdx)} cy={toY(socHistory[hoverIdx])} r="4" fill={C.electricBlue} stroke={C.bgBase} strokeWidth="1.5" />
+          {(() => {
+            const tipX = toX(hoverIdx) + (hoverIdx > 18 ? -68 : 8);
+            const tipY = toY(socHistory[hoverIdx]) - 20;
+            return (
+              <g>
+                <rect x={tipX} y={tipY} width="60" height="18" rx="3" fill={C.bgElevated} stroke={C.borderDefault} strokeWidth="1" />
+                <text x={tipX + 30} y={tipY + 12} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textPrimary }}>
+                  {hoverIdx}H · {socHistory[hoverIdx]}%
+                </text>
+              </g>
+            );
+          })()}
+        </g>
+      )}
+    </svg>
+  );
+}
+
 // ── BatteryKPIView ────────────────────────────────────────────────
 function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
   const [animSoc, setAnimSoc] = useState(0);
+  const [expanded, setExpanded] = useState(false);
+  const [closing, setClosing] = useState(false);
   const targetSoc = 71;
+
+  const closeOverlay = () => {
+    setClosing(true);
+    setTimeout(() => { setExpanded(false); setClosing(false); }, 300);
+  };
+
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeOverlay(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [expanded]);
 
   useEffect(() => {
     setAnimSoc(0);
@@ -930,101 +1040,156 @@ function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
   }, [selectedZone]);
 
   const isCharging = true;
+  const stateBadgeColor = isCharging ? C.alertNormal : C.falconGold;
+
+  const socHistory = [45,42,38,35,33,31,30,40,58,72,75,74,73,71,70,68,65,55,42,30,28,32,36,40];
+
+  const StateBadge = () => (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: R.sm, backgroundColor: `${stateBadgeColor}18`, border: `1px solid ${stateBadgeColor}50` }}>
+      <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: stateBadgeColor, letterSpacing: T.labelSpacing }}>{isCharging ? 'CHARGING' : 'DISCHARGING'}</span>
+    </div>
+  );
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: S.lg, gap: S.sm, overflow: 'hidden' }}>
-      {/* Header row */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>
-          {selectedZone ?? 'WEST HUB'} ARB
-        </span>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '4px',
-          padding: '2px 8px',
-          borderRadius: R.sm,
-          backgroundColor: isCharging ? `${C.alertNormal}18` : `${C.falconGold}18`,
-          border: `1px solid ${isCharging ? C.alertNormal : C.falconGold}50`,
-        }}>
-          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: isCharging ? C.alertNormal : C.falconGold, letterSpacing: T.labelSpacing }}>
-            {isCharging ? 'CHARGING' : 'DISCHARGING'}
-          </span>
+    <>
+      {/* ── COMPACT STATE ── */}
+      <div
+        onClick={() => setExpanded(true)}
+        style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: S.lg, gap: S.sm, overflow: 'hidden', cursor: 'pointer' }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>{selectedZone ?? 'WEST HUB'} ARB</span>
+          <StateBadge />
+        </div>
+        {/* Gauge */}
+        <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+          <SOCGauge soc={animSoc} />
+        </div>
+        {/* Three columns */}
+        <div style={{ display: 'flex', gap: S.sm, flexShrink: 0 }}>
+          <div style={{ flex: 1, padding: '6px 8px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}`, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>CHARGE</span>
+            <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.alertNormal, fontWeight: T.dataSmWeight }}>$21.40</span>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>06:00–10:00</span>
+          </div>
+          <div style={{ flex: 1, padding: '6px 8px', borderRadius: R.sm, backgroundColor: `${C.falconGold}0A`, border: `1px solid ${C.falconGold}30`, display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>CYCLE SPREAD</span>
+            <span style={{ fontFamily: F.mono, fontSize: '18px', color: C.falconGold, fontWeight: 600 }}>+21.80</span>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>$/MWh</span>
+          </div>
+          <div style={{ flex: 1, padding: '6px 8px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}`, display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>DISCHARGE</span>
+            <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.falconGold, fontWeight: T.dataSmWeight }}>$43.20</span>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>16:00–20:00</span>
+          </div>
+        </div>
+        {/* Revenue */}
+        <div style={{ flexShrink: 0, padding: '8px 12px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>EST. DAILY REVENUE</span>
+          <span style={{ fontFamily: F.mono, fontSize: T.dataMdSize, color: C.falconGold, fontWeight: 600 }}>$4,240</span>
+        </div>
+        {/* Expand hint */}
+        <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.10em', textAlign: 'center' as const, paddingTop: S.sm, opacity: 0.6 }}>
+          › CLICK TO EXPAND
         </div>
       </div>
 
-      {/* Gauge — centered */}
-      <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <SOCGauge soc={animSoc} />
-      </div>
+      {/* ── EXPANDED OVERLAY ── */}
+      {expanded && createPortal(
+        <>
+          <div onClick={closeOverlay} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,10,11,0.82)', backdropFilter: 'blur(2px)' }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            zIndex: 61, width: '95vw', height: '95vh',
+            background: C.bgBase, border: `0.5px solid ${C.borderAccent}`,
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            animation: closing ? 'modal-collapse 300ms cubic-bezier(0.16,1,0.3,1) forwards' : 'modal-expand 300ms cubic-bezier(0.16,1,0.3,1) forwards',
+            boxShadow: `0 0 80px ${C.electricBlue}14`,
+          }}>
+            {/* Header */}
+            <div style={{ height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', borderBottom: `0.5px solid ${C.borderDefault}`, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textMuted, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>BATTERY ARBITRAGE</span>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.electricBlue, letterSpacing: '0.10em' }}>/ {selectedZone ?? 'WEST HUB'}</span>
+                <StateBadge />
+              </div>
+              <button onClick={closeOverlay} style={{ fontFamily: F.mono, fontSize: '9px', color: C.textSecondary, background: C.bgOverlay, border: `0.5px solid ${C.borderDefault}`, borderRadius: R.md, padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.10em' }}>
+                ESC / CLOSE
+              </button>
+            </div>
 
-      {/* Three-column charge/spread/discharge */}
-      <div style={{ display: 'flex', gap: S.sm, flexShrink: 0 }}>
-        {/* CHARGE */}
-        <div style={{
-          flex: 1,
-          padding: '6px 8px',
-          borderRadius: R.sm,
-          backgroundColor: C.bgOverlay,
-          border: `1px solid ${C.borderDefault}`,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '3px',
-        }}>
-          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>CHARGE</span>
-          <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.alertNormal, fontWeight: T.dataSmWeight }}>$21.40</span>
-          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>06:00–10:00</span>
-        </div>
+            {/* Body */}
+            <div style={{ flex: 1, display: 'flex', padding: '24px', gap: '32px', overflow: 'hidden' }}>
+              {/* Left: large gauge */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0, width: '200px' }}>
+                <SOCGauge soc={targetSoc} />
+                <div style={{ textAlign: 'center' as const }}>
+                  <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const, marginBottom: '8px' }}>CURRENT CYCLE</div>
+                  {[
+                    { k: 'Charge price',  v: '$21.40/MWh', c: C.alertNormal },
+                    { k: 'Discharge',     v: '$43.20/MWh', c: C.falconGold },
+                    { k: 'Cycle spread',  v: '+$21.80/MWh', c: C.falconGold },
+                    { k: 'Efficiency',    v: '88%', c: C.textPrimary },
+                    { k: 'Hrs remaining', v: '6.5h', c: C.textSecondary },
+                  ].map(row => (
+                    <div key={row.k} style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '5px' }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textMuted }}>{row.k}</span>
+                      <span style={{ fontFamily: F.mono, fontSize: '11px', color: row.c, fontVariantNumeric: 'tabular-nums' }}>{row.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-        {/* SPREAD — hero */}
-        <div style={{
-          flex: 1,
-          padding: '6px 8px',
-          borderRadius: R.sm,
-          backgroundColor: `${C.falconGold}0A`,
-          border: `1px solid ${C.falconGold}30`,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '3px',
-          alignItems: 'center',
-        }}>
-          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>CYCLE SPREAD</span>
-          <span style={{ fontFamily: F.mono, fontSize: '18px', color: C.falconGold, fontWeight: 600 }}>+21.80</span>
-          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>$/MWh</span>
-        </div>
+              {/* Right: metrics + chart */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
+                {/* Metrics strip */}
+                <div style={{ display: 'flex', gap: '1px', flexShrink: 0 }}>
+                  {[
+                    { label: 'SOC',           value: `${targetSoc}%`,  color: C.electricBlue },
+                    { label: 'DAILY REVENUE', value: '$4,240',          color: C.falconGold },
+                    { label: 'CYCLE SPREAD',  value: '+$21.80',         color: C.falconGold },
+                    { label: 'HRS REMAINING', value: '6.5h',            color: C.textPrimary },
+                  ].map(tile => (
+                    <div key={tile.label} style={{ flex: 1, background: C.bgOverlay, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const }}>{tile.label}</span>
+                      <span style={{ fontFamily: F.mono, fontSize: '22px', fontWeight: '600', color: tile.color, fontVariantNumeric: 'tabular-nums' }}>{tile.value}</span>
+                    </div>
+                  ))}
+                </div>
+                {/* SOC profile chart */}
+                <div style={{ flex: 1, minHeight: 0 }}>
+                  <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, marginBottom: '8px', textTransform: 'uppercase' as const }}>24H SOC PROFILE</div>
+                  <div style={{ height: 'calc(100% - 24px)' }}>
+                    <SOCProfileChart socHistory={socHistory} />
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        {/* DISCHARGE */}
-        <div style={{
-          flex: 1,
-          padding: '6px 8px',
-          borderRadius: R.sm,
-          backgroundColor: C.bgOverlay,
-          border: `1px solid ${C.borderDefault}`,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '3px',
-        }}>
-          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>DISCHARGE</span>
-          <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.falconGold, fontWeight: T.dataSmWeight }}>$43.20</span>
-          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>16:00–20:00</span>
-        </div>
-      </div>
-
-      {/* Daily revenue */}
-      <div style={{
-        flexShrink: 0,
-        padding: '8px 12px',
-        borderRadius: R.sm,
-        backgroundColor: C.bgOverlay,
-        border: `1px solid ${C.borderDefault}`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
-        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>EST. DAILY REVENUE</span>
-        <span style={{ fontFamily: F.mono, fontSize: T.dataMdSize, color: C.falconGold, fontWeight: 600 }}>$4,240</span>
-      </div>
-    </div>
+            {/* Bottom panels */}
+            <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '100px', borderTop: `0.5px solid ${C.borderDefault}` }}>
+              {[
+                { label: 'CHARGE WINDOW', color: C.alertNormal, rows: [{ k: 'Window', v: '06:00–10:00' }, { k: 'Price', v: '$21.40/MWh' }, { k: 'Duration', v: '4h' }] },
+                { label: 'DISCHARGE WINDOW', color: C.falconGold, rows: [{ k: 'Window', v: '16:00–20:00' }, { k: 'Price', v: '$43.20/MWh' }, { k: 'Duration', v: '4h' }] },
+                { label: 'ARBITRAGE ECONOMICS', color: C.electricBlue, rows: [{ k: 'Gross spread', v: '+$21.80/MWh' }, { k: 'Round-trip eff.', v: '88%' }, { k: 'Net revenue', v: '$4,240/day' }] },
+              ].map(panel => (
+                <div key={panel.label} style={{ flex: 1, background: C.bgOverlay, borderLeft: `2px solid ${panel.color}`, padding: '12px 16px' }}>
+                  <div style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const, marginBottom: '8px' }}>{panel.label}</div>
+                  {panel.rows.map(row => (
+                    <div key={row.k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textMuted }}>{row.k}</span>
+                      <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textPrimary, fontVariantNumeric: 'tabular-nums' }}>{row.v}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -1131,55 +1296,160 @@ function ResourceGapChart({ reserveMargin, gapColor }: { reserveMargin: number; 
 
 // ── GapKPIView ────────────────────────────────────────────────────
 function GapKPIView({ selectedZone }: { selectedZone: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  const closeOverlay = () => {
+    setClosing(true);
+    setTimeout(() => { setExpanded(false); setClosing(false); }, 300);
+  };
+
+  useEffect(() => {
+    if (!expanded) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeOverlay(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [expanded]);
+
   const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4;
-  const gapColor  = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue;
-  const badgeLabel = reserveMargin < 15 ? 'EMERGENCY' : reserveMargin < 18 ? 'TIGHT' : 'ADEQUATE';
-  const badgeBg   = reserveMargin < 15 ? `${C.alertCritical}18` : reserveMargin < 18 ? `${C.falconGold}18` : `${C.electricBlue}18`;
+  const gapColor   = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue;
+  const badgeLabel = reserveMargin < 15 ? 'EMERGENCY'   : reserveMargin < 18 ? 'TIGHT'      : 'ADEQUATE';
+  const badgeBg    = reserveMargin < 15 ? `${C.alertCritical}18` : reserveMargin < 18 ? `${C.falconGold}18` : `${C.electricBlue}18`;
   const badgeBorder= reserveMargin < 15 ? `${C.alertCritical}50` : reserveMargin < 18 ? `${C.falconGold}50` : `${C.electricBlue}50`;
 
-  return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: S.lg, gap: S.sm, overflow: 'hidden' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>
-          {selectedZone ?? 'WEST HUB'} RESOURCE GAP
-        </span>
-        <div style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: R.sm, backgroundColor: badgeBg, border: `1px solid ${badgeBorder}` }}>
-          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: gapColor, letterSpacing: T.labelSpacing }}>{badgeLabel}</span>
-        </div>
-      </div>
-
-      {/* Reserve margin hero */}
-      <div style={{ flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: S.sm }}>
-          <span style={{ fontFamily: F.mono, fontSize: '36px', fontWeight: 300, color: gapColor, lineHeight: 1 }}>
-            {reserveMargin.toFixed(1)}%
-          </span>
-          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>
-            RESERVE MARGIN
-          </span>
-        </div>
-      </div>
-
-      {/* Metrics strip */}
-      <div style={{ display: 'flex', gap: S.sm, flexShrink: 0 }}>
-        {[
-          { label: 'SYSTEM LOAD', value: '65.2 GW', color: C.textSecondary },
-          { label: 'CAPACITY', value: '78.4 GW', color: C.electricBlue },
-          { label: 'PEAK FCST', value: '67.8 GW', color: C.falconGold },
-        ].map(m => (
-          <div key={m.label} style={{ flex: 1, padding: '5px 8px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}` }}>
-            <div style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase', marginBottom: '3px' }}>{m.label}</div>
-            <div style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: m.color, fontWeight: T.dataSmWeight }}>{m.value}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Chart */}
-      <div style={{ flex: 1, minHeight: 0 }}>
-        <ResourceGapChart reserveMargin={reserveMargin} gapColor={gapColor} />
-      </div>
+  const StatusBadge = () => (
+    <div style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: R.sm, backgroundColor: badgeBg, border: `1px solid ${badgeBorder}` }}>
+      <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: gapColor, letterSpacing: T.labelSpacing }}>{badgeLabel}</span>
     </div>
+  );
+
+  const metrics = [
+    { label: 'SYSTEM LOAD', value: '65.2 GW', color: C.textSecondary },
+    { label: 'CAPACITY',    value: '78.4 GW', color: C.electricBlue },
+    { label: 'PEAK FCST',   value: '67.8 GW', color: C.falconGold },
+  ];
+
+  return (
+    <>
+      {/* ── COMPACT STATE ── */}
+      <div
+        onClick={() => setExpanded(true)}
+        style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: S.lg, gap: S.sm, overflow: 'hidden', cursor: 'pointer' }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>
+            {selectedZone ?? 'WEST HUB'} RESOURCE GAP
+          </span>
+          <StatusBadge />
+        </div>
+        {/* Hero number */}
+        <div style={{ flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: S.sm }}>
+            <span style={{ fontFamily: F.mono, fontSize: '36px', fontWeight: 300, color: gapColor, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {reserveMargin.toFixed(1)}%
+            </span>
+          </div>
+          <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const, marginTop: S.xs }}>
+            RESERVE MARGIN
+          </div>
+        </div>
+        {/* Metrics strip */}
+        <div style={{ display: 'flex', gap: S.sm, flexShrink: 0 }}>
+          {metrics.map(m => (
+            <div key={m.label} style={{ flex: 1, padding: '5px 8px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}` }}>
+              <div style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const, marginBottom: '3px' }}>{m.label}</div>
+              <div style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: m.color, fontWeight: T.dataSmWeight }}>{m.value}</div>
+            </div>
+          ))}
+        </div>
+        {/* Expand hint */}
+        <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.10em', textAlign: 'center' as const, paddingTop: S.sm, opacity: 0.6 }}>
+          › CLICK TO EXPAND
+        </div>
+      </div>
+
+      {/* ── EXPANDED OVERLAY ── */}
+      {expanded && createPortal(
+        <>
+          <div onClick={closeOverlay} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,10,11,0.82)', backdropFilter: 'blur(2px)' }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            zIndex: 61, width: '95vw', height: '95vh',
+            background: C.bgBase, border: `0.5px solid ${C.borderAccent}`,
+            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            animation: closing ? 'modal-collapse 300ms cubic-bezier(0.16,1,0.3,1) forwards' : 'modal-expand 300ms cubic-bezier(0.16,1,0.3,1) forwards',
+            boxShadow: `0 0 80px ${gapColor}14`,
+          }}>
+            {/* Header */}
+            <div style={{ height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', borderBottom: `0.5px solid ${C.borderDefault}`, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textMuted, letterSpacing: '0.15em', textTransform: 'uppercase' as const }}>RESOURCE GAP ANALYSIS</span>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.electricBlue, letterSpacing: '0.10em' }}>/ {selectedZone ?? 'WEST HUB'}</span>
+                <StatusBadge />
+              </div>
+              <button onClick={closeOverlay} style={{ fontFamily: F.mono, fontSize: '9px', color: C.textSecondary, background: C.bgOverlay, border: `0.5px solid ${C.borderDefault}`, borderRadius: R.md, padding: '4px 12px', cursor: 'pointer', letterSpacing: '0.10em' }}>
+                ESC / CLOSE
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px', gap: '24px', overflow: 'hidden' }}>
+              {/* Top: dominant + metrics strip */}
+              <div style={{ display: 'flex', gap: '48px', flexShrink: 0, alignItems: 'flex-end' }}>
+                <div>
+                  <div style={{ fontFamily: F.mono, fontSize: '64px', fontWeight: 300, color: gapColor, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                    {reserveMargin.toFixed(1)}%
+                  </div>
+                  <div style={{ fontFamily: F.mono, fontSize: '13px', color: C.textMuted, marginTop: '8px' }}>RESERVE MARGIN · {selectedZone ?? 'WEST HUB'}</div>
+                  <div style={{ fontFamily: F.mono, fontSize: '12px', color: C.textSecondary, marginTop: '4px' }}>
+                    15.0% REQUIRED · <span style={{ color: gapColor }}>+{(reserveMargin - 15).toFixed(1)}% BUFFER</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1px', flex: 1 }}>
+                  {[
+                    { label: 'RESERVE MARGIN', value: `${reserveMargin.toFixed(1)}%`, color: gapColor },
+                    { label: 'SYSTEM LOAD',    value: '65.2 GW',                       color: C.textPrimary },
+                    { label: 'INSTALLED CAP',  value: '78.4 GW',                       color: C.electricBlue },
+                    { label: 'PEAK FORECAST',  value: '67.8 GW',                       color: C.falconGold },
+                  ].map(tile => (
+                    <div key={tile.label} style={{ flex: 1, background: C.bgOverlay, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const }}>{tile.label}</span>
+                      <span style={{ fontFamily: F.mono, fontSize: '22px', fontWeight: '600', color: tile.color, fontVariantNumeric: 'tabular-nums' }}>{tile.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chart */}
+              <div style={{ flex: 1, minHeight: 0 }}>
+                <ResourceGapChart reserveMargin={reserveMargin} gapColor={gapColor} />
+              </div>
+
+              {/* Bottom panels */}
+              <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '120px', borderTop: `0.5px solid ${C.borderDefault}` }}>
+                {[
+                  { label: 'CAPACITY POSITION', color: C.electricBlue, rows: [{ k: 'Installed', v: '78.4 GW' }, { k: 'Committed', v: '74.2 GW' }, { k: 'Available', v: '4.2 GW' }] },
+                  { label: 'LOAD ANALYSIS', color: C.textSecondary, rows: [{ k: 'Current load', v: '65.2 GW' }, { k: 'Peak forecast', v: '67.8 GW' }, { k: 'Avg 24H', v: '63.1 GW' }] },
+                  { label: 'SYSTEM STATUS', color: gapColor, rows: [{ k: 'Reserve margin', v: `${reserveMargin.toFixed(1)}%` }, { k: 'Status', v: badgeLabel }, { k: 'Required min', v: '15.0%' }] },
+                ].map(panel => (
+                  <div key={panel.label} style={{ flex: 1, background: C.bgOverlay, borderLeft: `2px solid ${panel.color}`, padding: '12px 16px' }}>
+                    <div style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const, marginBottom: '8px' }}>{panel.label}</div>
+                    {panel.rows.map(row => (
+                      <div key={row.k} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                        <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textMuted }}>{row.k}</span>
+                        <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textPrimary, fontVariantNumeric: 'tabular-nums' }}>{row.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
+    </>
   );
 }
 

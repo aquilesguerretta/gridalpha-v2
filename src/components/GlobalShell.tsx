@@ -6,7 +6,7 @@ import { LMPCard } from "./LMPCard";
 import {
   type Regime,
   type AssetData,
-  ZONE_LMP, ZONE_SPARK, ZONE_BATTERY, ZONE_RESERVE,
+  ZONE_LMP, ZONE_SPARK, ZONE_RESERVE,
   REGIME_DESCRIPTIONS, ZONE_ALERTS,
   sampleAssets, transmissionLines, hubLocations,
 } from "../lib/pjm/mock-data";
@@ -405,9 +405,11 @@ function SparkSpreadChart({
   history: number[];
   regime: 'BURNING' | 'SUPPRESSED' | 'NEUTRAL';
 }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+
   const W = 300;
-  const H = 120;
-  const PAD = { top: 12, right: 8, bottom: 20, left: 32 };
+  const H = 140;
+  const PAD = { top: 16, right: 8, bottom: 24, left: 36 };
 
   const minVal = Math.min(...history, -5);
   const maxVal = Math.max(...history, 5);
@@ -420,8 +422,16 @@ function SparkSpreadChart({
 
   const zeroY = toY(0);
 
-  const points = history.map((v, i) => `${toX(i)},${toY(v)}`);
-  const linePath = `M ${points.join(' L ')}`;
+  // Smooth quadratic bezier path
+  const linePath = history.reduce((acc, _v, i) => {
+    const x = toX(i);
+    const y = toY(history[i]);
+    if (i === 0) return `M ${x},${y}`;
+    const px = toX(i - 1);
+    const py = toY(history[i - 1]);
+    const mx = (px + x) / 2;
+    return `${acc} Q ${mx},${py} ${mx},${(py + y) / 2} Q ${mx},${y} ${x},${y}`;
+  }, '');
 
   // Fill above zero (BURNING — gold)
   const abovePath = [
@@ -439,12 +449,24 @@ function SparkSpreadChart({
     'Z',
   ].join(' ');
 
-  const peakIdx   = history.indexOf(Math.max(...history));
-  const troughIdx = history.indexOf(Math.min(...history));
-
   const lineColor = regime === 'BURNING' ? C.falconGold
     : regime === 'SUPPRESSED' ? C.alertCritical
     : C.textSecondary;
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * W;
+    const chartLeft = PAD.left;
+    const chartRight = W - PAD.right;
+    const clampedX = Math.max(chartLeft, Math.min(chartRight, svgX));
+    const rawIdx = ((clampedX - chartLeft) / (chartRight - chartLeft)) * (history.length - 1);
+    setHoverIdx(Math.round(rawIdx));
+  };
+
+  const hoverX = hoverIdx !== null ? toX(hoverIdx) : null;
+  const hoverY = hoverIdx !== null ? toY(history[hoverIdx]) : null;
+  const hoverVal = hoverIdx !== null ? history[hoverIdx] : null;
+  const hourLabels = ['12A','1A','2A','3A','4A','5A','6A','7A','8A','9A','10A','11A','12P','1P','2P','3P','4P','5P','6P','7P','8P','9P','10P','11P'];
 
   return (
     <svg
@@ -452,7 +474,9 @@ function SparkSpreadChart({
       width="100%"
       height="100%"
       preserveAspectRatio="none"
-      style={{ display: 'block' }}
+      style={{ display: 'block', cursor: 'crosshair' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoverIdx(null)}
     >
       <defs>
         <linearGradient id="aboveGrad" x1="0" y1="0" x2="0" y2="1">
@@ -522,11 +546,58 @@ function SparkSpreadChart({
         strokeWidth="1.5"
       />
 
-      {/* Peak marker */}
-      <circle cx={toX(peakIdx)} cy={toY(history[peakIdx])} r="3" fill={C.falconGold} />
-
-      {/* Trough marker */}
-      <circle cx={toX(troughIdx)} cy={toY(history[troughIdx])} r="3" fill={C.alertCritical} />
+      {/* Crosshair + tooltip on hover */}
+      {hoverIdx !== null && hoverX !== null && hoverY !== null && hoverVal !== null && (
+        <>
+          {/* Vertical crosshair */}
+          <line
+            x1={hoverX} y1={PAD.top}
+            x2={hoverX} y2={H - PAD.bottom}
+            stroke={C.electricBlue}
+            strokeWidth="1"
+            strokeDasharray="3 3"
+            opacity="0.7"
+          />
+          {/* Dot on line */}
+          <circle cx={hoverX} cy={hoverY} r="3.5" fill={C.bgBase} stroke={lineColor} strokeWidth="1.5" />
+          <circle cx={hoverX} cy={hoverY} r="2" fill={lineColor} />
+          {/* Tooltip */}
+          {(() => {
+            const tipW = 56;
+            const tipH = 28;
+            const tipX = Math.min(hoverX + 6, W - PAD.right - tipW);
+            const tipY = Math.max(PAD.top, Math.min(hoverY - tipH / 2, H - PAD.bottom - tipH));
+            return (
+              <g>
+                <rect
+                  x={tipX} y={tipY}
+                  width={tipW} height={tipH}
+                  rx="3"
+                  fill={C.bgElevated}
+                  stroke={C.borderDefault}
+                  strokeWidth="1"
+                />
+                <text
+                  x={tipX + tipW / 2}
+                  y={tipY + 10}
+                  textAnchor="middle"
+                  style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}
+                >
+                  {hourLabels[hoverIdx]}
+                </text>
+                <text
+                  x={tipX + tipW / 2}
+                  y={tipY + 21}
+                  textAnchor="middle"
+                  style={{ fontFamily: F.mono, fontSize: '10px', fill: hoverVal >= 0 ? C.falconGold : C.alertCritical, fontWeight: 600 }}
+                >
+                  {hoverVal >= 0 ? `+${hoverVal.toFixed(1)}` : hoverVal.toFixed(1)}
+                </text>
+              </g>
+            );
+          })()}
+        </>
+      )}
     </svg>
   );
 }
@@ -754,6 +825,364 @@ function SparkKPIView({ selectedZone }: { selectedZone: string | null }) {
   );
 }
 
+// ── SOCGauge ──────────────────────────────────────────────────────
+function SOCGauge({ soc }: { soc: number }) {
+  const SIZE = 140;
+  const CX = SIZE / 2;
+  const CY = SIZE / 2;
+  const RADIUS = 52;
+  const START_DEG = -220;
+  const SWEEP_DEG = 260;
+  const STROKE = 8;
+
+  const degToRad = (d: number) => (d * Math.PI) / 180;
+  const polarToXY = (deg: number, r: number) => ({
+    x: CX + r * Math.cos(degToRad(deg)),
+    y: CY + r * Math.sin(degToRad(deg)),
+  });
+
+  const arcPath = (startDeg: number, sweepDeg: number, r: number) => {
+    const start = polarToXY(startDeg, r);
+    const end   = polarToXY(startDeg + sweepDeg, r);
+    const large = sweepDeg > 180 ? 1 : 0;
+    return `M ${start.x},${start.y} A ${r},${r} 0 ${large} 1 ${end.x},${end.y}`;
+  };
+
+  const trackPath  = arcPath(START_DEG, SWEEP_DEG, RADIUS);
+  const filledSweep = (soc / 100) * SWEEP_DEG;
+  const filledPath = arcPath(START_DEG, filledSweep, RADIUS);
+
+  const arcLen = (SWEEP_DEG / 360) * 2 * Math.PI * RADIUS;
+  const filledLen = (soc / 100) * arcLen;
+
+  return (
+    <svg
+      width={SIZE}
+      height={SIZE}
+      viewBox={`0 0 ${SIZE} ${SIZE}`}
+      style={{ display: 'block', flexShrink: 0 }}
+    >
+      <defs>
+        <filter id="socGlow">
+          <feGaussianBlur stdDeviation="2.5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+      {/* Track */}
+      <path
+        d={trackPath}
+        fill="none"
+        stroke={C.borderDefault}
+        strokeWidth={STROKE}
+        strokeLinecap="round"
+      />
+      {/* Filled arc */}
+      {soc > 0 && (
+        <path
+          d={filledPath}
+          fill="none"
+          stroke={C.electricBlue}
+          strokeWidth={STROKE}
+          strokeLinecap="round"
+          strokeDasharray={`${filledLen} ${arcLen}`}
+          filter="url(#socGlow)"
+        />
+      )}
+      {/* SOC value */}
+      <text
+        x={CX}
+        y={CY - 4}
+        textAnchor="middle"
+        style={{ fontFamily: F.mono, fontSize: '24px', fontWeight: 600, fill: C.electricBlue }}
+      >
+        {soc}%
+      </text>
+      <text
+        x={CX}
+        y={CY + 14}
+        textAnchor="middle"
+        style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted, letterSpacing: '0.12em' }}
+      >
+        STATE OF CHARGE
+      </text>
+    </svg>
+  );
+}
+
+// ── BatteryKPIView ────────────────────────────────────────────────
+function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
+  const [animSoc, setAnimSoc] = useState(0);
+  const targetSoc = 71;
+
+  useEffect(() => {
+    setAnimSoc(0);
+    let start: number | null = null;
+    const duration = 1200;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setAnimSoc(Math.round(eased * targetSoc));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    const raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [selectedZone]);
+
+  const isCharging = true;
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: S.lg, gap: S.sm, overflow: 'hidden' }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>
+          {selectedZone ?? 'WEST HUB'} ARB
+        </span>
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 8px',
+          borderRadius: R.sm,
+          backgroundColor: isCharging ? `${C.alertNormal}18` : `${C.falconGold}18`,
+          border: `1px solid ${isCharging ? C.alertNormal : C.falconGold}50`,
+        }}>
+          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: isCharging ? C.alertNormal : C.falconGold, letterSpacing: T.labelSpacing }}>
+            {isCharging ? 'CHARGING' : 'DISCHARGING'}
+          </span>
+        </div>
+      </div>
+
+      {/* Gauge — centered */}
+      <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
+        <SOCGauge soc={animSoc} />
+      </div>
+
+      {/* Three-column charge/spread/discharge */}
+      <div style={{ display: 'flex', gap: S.sm, flexShrink: 0 }}>
+        {/* CHARGE */}
+        <div style={{
+          flex: 1,
+          padding: '6px 8px',
+          borderRadius: R.sm,
+          backgroundColor: C.bgOverlay,
+          border: `1px solid ${C.borderDefault}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '3px',
+        }}>
+          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>CHARGE</span>
+          <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.alertNormal, fontWeight: T.dataSmWeight }}>$21.40</span>
+          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>06:00–10:00</span>
+        </div>
+
+        {/* SPREAD — hero */}
+        <div style={{
+          flex: 1,
+          padding: '6px 8px',
+          borderRadius: R.sm,
+          backgroundColor: `${C.falconGold}0A`,
+          border: `1px solid ${C.falconGold}30`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '3px',
+          alignItems: 'center',
+        }}>
+          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>CYCLE SPREAD</span>
+          <span style={{ fontFamily: F.mono, fontSize: '18px', color: C.falconGold, fontWeight: 600 }}>+21.80</span>
+          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>$/MWh</span>
+        </div>
+
+        {/* DISCHARGE */}
+        <div style={{
+          flex: 1,
+          padding: '6px 8px',
+          borderRadius: R.sm,
+          backgroundColor: C.bgOverlay,
+          border: `1px solid ${C.borderDefault}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '3px',
+        }}>
+          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>DISCHARGE</span>
+          <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.falconGold, fontWeight: T.dataSmWeight }}>$43.20</span>
+          <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>16:00–20:00</span>
+        </div>
+      </div>
+
+      {/* Daily revenue */}
+      <div style={{
+        flexShrink: 0,
+        padding: '8px 12px',
+        borderRadius: R.sm,
+        backgroundColor: C.bgOverlay,
+        border: `1px solid ${C.borderDefault}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>EST. DAILY REVENUE</span>
+        <span style={{ fontFamily: F.mono, fontSize: T.dataMdSize, color: C.falconGold, fontWeight: 600 }}>$4,240</span>
+      </div>
+    </div>
+  );
+}
+
+// ── ResourceGapChart ──────────────────────────────────────────────
+function ResourceGapChart({ reserveMargin, gapColor }: { reserveMargin: number; gapColor: string }) {
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const W = 300;
+  const H = 100;
+  const PAD = { top: 10, right: 8, bottom: 20, left: 28 };
+
+  const capacityData = [68,69,70,71,72,72,73,74,74,73,72,71,70,70,71,72,73,74,73,72,71,70,69,68];
+  const loadData     = [52,50,49,48,50,54,60,65,66,67,68,67,66,65,64,65,67,70,71,70,66,62,58,55];
+
+  const allVals = [...capacityData, ...loadData];
+  const minV = Math.min(...allVals) - 2;
+  const maxV = Math.max(...allVals) + 2;
+  const range = maxV - minV;
+
+  const toX = (i: number) => PAD.left + (i / (capacityData.length - 1)) * (W - PAD.left - PAD.right);
+  const toY = (v: number) => PAD.top + ((maxV - v) / range) * (H - PAD.top - PAD.bottom);
+
+  const capacityPath = capacityData.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`).join(' ');
+  const loadPath     = loadData.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`).join(' ');
+
+  // Gap fill polygon: capacity top → load bottom (reversed)
+  const gapFill = [
+    ...capacityData.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`),
+    ...loadData.slice().reverse().map((v, i) => `L ${toX(loadData.length - 1 - i)},${toY(v)}`),
+    'Z',
+  ].join(' ');
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const svgX = ((e.clientX - rect.left) / rect.width) * W;
+    const clamped = Math.max(PAD.left, Math.min(W - PAD.right, svgX));
+    const raw = ((clamped - PAD.left) / (W - PAD.left - PAD.right)) * (capacityData.length - 1);
+    setHoverIdx(Math.round(raw));
+  };
+
+  const hourLabels = ['12A','1A','2A','3A','4A','5A','6A','7A','8A','9A','10A','11A','12P','1P','2P','3P','4P','5P','6P','7P','8P','9P','10P','11P'];
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%"
+      height="100%"
+      preserveAspectRatio="none"
+      style={{ display: 'block', cursor: 'crosshair' }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHoverIdx(null)}
+    >
+      {/* Gap fill */}
+      <path d={gapFill} fill={gapColor} fillOpacity="0.10" />
+
+      {/* Y-axis labels */}
+      {[maxV, minV].map((v, i) => (
+        <text key={i} x={PAD.left - 3} y={toY(v) + 4} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}>
+          {v.toFixed(0)}
+        </text>
+      ))}
+
+      {/* Hour labels */}
+      {[0, 6, 12, 18, 23].map(i => (
+        <text key={i} x={toX(i)} y={H - 4} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}>
+          {i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : '11P'}
+        </text>
+      ))}
+
+      {/* Load line */}
+      <path d={loadPath} fill="none" stroke={C.textSecondary} strokeWidth="1.5" strokeOpacity="0.6" />
+
+      {/* Capacity line */}
+      <path d={capacityPath} fill="none" stroke={C.electricBlue} strokeWidth="1.5" />
+
+      {/* Line labels */}
+      <text x={toX(23) - 2} y={toY(capacityData[23]) - 4} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.electricBlue }}>CAP</text>
+      <text x={toX(23) - 2} y={toY(loadData[23]) + 10} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textSecondary }}>LOAD</text>
+
+      {/* Hover crosshair */}
+      {hoverIdx !== null && (() => {
+        const cx = toX(hoverIdx);
+        const cy_cap = toY(capacityData[hoverIdx]);
+        const cy_load = toY(loadData[hoverIdx]);
+        const gap = capacityData[hoverIdx] - loadData[hoverIdx];
+        const tipW = 58;
+        const tipH = 40;
+        const tipX = Math.min(cx + 6, W - PAD.right - tipW);
+        const tipY = Math.max(PAD.top, Math.min((cy_cap + cy_load) / 2 - tipH / 2, H - PAD.bottom - tipH));
+        return (
+          <g>
+            <line x1={cx} y1={PAD.top} x2={cx} y2={H - PAD.bottom} stroke={C.electricBlue} strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+            <circle cx={cx} cy={cy_cap} r="3" fill={C.bgBase} stroke={C.electricBlue} strokeWidth="1.5" />
+            <circle cx={cx} cy={cy_load} r="3" fill={C.bgBase} stroke={C.textSecondary} strokeWidth="1.5" />
+            <rect x={tipX} y={tipY} width={tipW} height={tipH} rx="3" fill={C.bgElevated} stroke={C.borderDefault} strokeWidth="1" />
+            <text x={tipX + tipW / 2} y={tipY + 10} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}>{hourLabels[hoverIdx]}</text>
+            <text x={tipX + tipW / 2} y={tipY + 22} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.electricBlue }}>CAP {capacityData[hoverIdx]}GW</text>
+            <text x={tipX + tipW / 2} y={tipY + 33} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: gapColor }}>GAP {gap.toFixed(0)}GW</text>
+          </g>
+        );
+      })()}
+    </svg>
+  );
+}
+
+// ── GapKPIView ────────────────────────────────────────────────────
+function GapKPIView({ selectedZone }: { selectedZone: string | null }) {
+  const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4;
+  const gapColor  = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue;
+  const badgeLabel = reserveMargin < 15 ? 'EMERGENCY' : reserveMargin < 18 ? 'TIGHT' : 'ADEQUATE';
+  const badgeBg   = reserveMargin < 15 ? `${C.alertCritical}18` : reserveMargin < 18 ? `${C.falconGold}18` : `${C.electricBlue}18`;
+  const badgeBorder= reserveMargin < 15 ? `${C.alertCritical}50` : reserveMargin < 18 ? `${C.falconGold}50` : `${C.electricBlue}50`;
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', padding: S.lg, gap: S.sm, overflow: 'hidden' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>
+          {selectedZone ?? 'WEST HUB'} RESOURCE GAP
+        </span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 8px', borderRadius: R.sm, backgroundColor: badgeBg, border: `1px solid ${badgeBorder}` }}>
+          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: gapColor, letterSpacing: T.labelSpacing }}>{badgeLabel}</span>
+        </div>
+      </div>
+
+      {/* Reserve margin hero */}
+      <div style={{ flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: S.sm }}>
+          <span style={{ fontFamily: F.mono, fontSize: '36px', fontWeight: 300, color: gapColor, lineHeight: 1 }}>
+            {reserveMargin.toFixed(1)}%
+          </span>
+          <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' }}>
+            RESERVE MARGIN
+          </span>
+        </div>
+      </div>
+
+      {/* Metrics strip */}
+      <div style={{ display: 'flex', gap: S.sm, flexShrink: 0 }}>
+        {[
+          { label: 'SYSTEM LOAD', value: '65.2 GW', color: C.textSecondary },
+          { label: 'CAPACITY', value: '78.4 GW', color: C.electricBlue },
+          { label: 'PEAK FCST', value: '67.8 GW', color: C.falconGold },
+        ].map(m => (
+          <div key={m.label} style={{ flex: 1, padding: '5px 8px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}` }}>
+            <div style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase', marginBottom: '3px' }}>{m.label}</div>
+            <div style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: m.color, fontWeight: T.dataSmWeight }}>{m.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ResourceGapChart reserveMargin={reserveMargin} gapColor={gapColor} />
+      </div>
+    </div>
+  );
+}
+
 // THE NEST View - Volumetric Bento
 function NestView() {
   const [selectedZone, setSelectedZone] = useState<string | null>(null)
@@ -793,9 +1222,6 @@ function NestView() {
   }
 
   const alerts = ZONE_ALERTS[selectedZone ?? 'WEST_HUB'] ?? ZONE_ALERTS['DEFAULT']
-  const battData = ZONE_BATTERY[selectedZone ?? 'WEST_HUB'] ?? ZONE_BATTERY['WEST_HUB']
-  const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4
-  const reserveColor = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue
   const regime = detectRegime(selectedZone)
   const REGIME_TOKEN_COLORS: Record<Regime, string> = {
     SCARCITY:   C.alertCritical,
@@ -1124,60 +1550,12 @@ function NestView() {
           )}
           {activeKPI === 'battery' && (
             <ErrorBoundary label="BATTERY ARB">
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '16px' }}>
-                <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.15em', textAlign: 'right', alignSelf: 'flex-end' }}>
-                  {selectedZone ?? 'WEST HUB'} ARB
-                </div>
-                <div style={{ position: 'relative', width: '88px', height: '88px' }}>
-                  <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
-                    <circle cx="18" cy="18" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="2" />
-                    <circle cx="18" cy="18" r="16" fill="none" stroke={C.electricBlueLight} strokeWidth="2" strokeDasharray={`${battData.soc} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" />
-                  </svg>
-                  <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: F.mono, fontSize: '18px', color: C.electricBlueLight }}>{battData.soc}%</span>
-                </div>
-                <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textSecondary }}>CHARGE {battData.charge}</span>
-                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.falconGold }}>DISCHARGE {battData.discharge}</span>
-                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, marginTop: '4px' }}>EST. DAILY REVENUE</span>
-                  <span style={{ fontFamily: F.mono, fontSize: '14px', color: C.falconGold }}>${battData.revenue.toLocaleString()} /MWh</span>
-                </div>
-              </div>
+              <BatteryKPIView selectedZone={selectedZone} />
             </ErrorBoundary>
           )}
           {activeKPI === 'gap' && (
             <ErrorBoundary label="RESOURCE GAP">
-              <div style={{ position: 'absolute', inset: 0 }}>
-                <div className="absolute top-2 right-2 px-2 py-0.5 rounded" style={{ backgroundColor: `${reserveColor}15`, border: `1px solid ${reserveColor}50` }}>
-                  <span className="text-[8px] font-medium tracking-wider" style={{ fontFamily: F.mono, color: reserveColor }}>RESERVE MARGIN: {reserveMargin.toFixed(1)}%</span>
-                </div>
-                <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255, 184, 0, 0.1)", border: "1px solid rgba(255, 184, 0, 0.3)" }}>
-                  <span className="text-[7px] tracking-wider" style={{ fontFamily: F.mono, color: C.falconGold }}>±σ NOAA</span>
-                </div>
-                <svg viewBox="0 0 200 80" className="w-full h-full">
-                  <defs>
-                    <linearGradient id="confidenceGradient95" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={C.electricBlue} stopOpacity="0.08" />
-                      <stop offset="50%" stopColor={C.electricBlue} stopOpacity="0.12" />
-                      <stop offset="100%" stopColor={C.electricBlue} stopOpacity="0.08" />
-                    </linearGradient>
-                    <linearGradient id="confidenceGradient68" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor={C.electricBlue} stopOpacity="0.15" />
-                      <stop offset="50%" stopColor={C.electricBlue} stopOpacity="0.25" />
-                      <stop offset="100%" stopColor={C.electricBlue} stopOpacity="0.15" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0,40 Q30,32 60,38 T120,36 T180,42 L200,40 L200,68 Q170,72 140,66 T80,70 T20,64 L0,66 Z" fill="url(#confidenceGradient95)" className="animate-confidence-breathe" />
-                  <path d="M0,45 Q30,40 60,44 T120,42 T180,48 L200,46 L200,62 Q170,66 140,60 T80,64 T20,58 L0,60 Z" fill="url(#confidenceGradient68)" className="animate-confidence-breathe" style={{ animationDelay: "0.5s" }} />
-                  <path d="M0,25 Q50,20 100,22 T200,18 L200,55 Q150,50 100,52 T0,50 Z" fill="rgba(6,182,212,0.05)" />
-                  <path d="M0,25 Q50,20 100,22 T200,18" fill="none" stroke={C.electricBlue} strokeWidth="2" />
-                  <path d="M0,52 Q30,48 60,54 T120,50 T180,56 L200,53" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" />
-                  <line x1="100" y1="42" x2="100" y2="64" stroke="rgba(255,184,0,0.3)" strokeWidth="1" strokeDasharray="2 2" />
-                  <text x="103" y="53" fill={C.falconGold} fontSize="5" fontFamily="'Geist Mono', monospace" opacity="0.6">±8%</text>
-                  <text x="5" y="20" fill={C.electricBlue} fontSize="7" fontFamily="'Geist Mono', monospace">CAPACITY</text>
-                  <text x="5" y="62" fill="rgba(255,255,255,0.5)" fontSize="7" fontFamily="'Geist Mono', monospace">LOAD</text>
-                </svg>
-                <div className="absolute bottom-2 right-2 text-[9px]" style={{ fontFamily: F.mono, color: C.textSecondary }}>Oasis PTI</div>
-              </div>
+              <GapKPIView selectedZone={selectedZone} />
             </ErrorBoundary>
           )}
         </div>

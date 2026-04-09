@@ -398,6 +398,22 @@ function detectRegime(zone: string | null): Regime {
   return 'NORMAL'
 }
 
+// ── Chart helper — smooth cubic Catmull-Rom to Bezier ────────────
+function smoothLine(points: Array<[number, number]>): string {
+  if (points.length < 2) return '';
+  return points.reduce((path, point, i) => {
+    if (i === 0) return `M ${point[0]},${point[1]}`;
+    const prev     = points[i - 1];
+    const prevPrev = points[i - 2] ?? prev;
+    const next     = points[i + 1] ?? point;
+    const cp1x = prev[0]  + (point[0] - prevPrev[0]) / 6;
+    const cp1y = prev[1]  + (point[1] - prevPrev[1]) / 6;
+    const cp2x = point[0] - (next[0]  - prev[0])     / 6;
+    const cp2y = point[1] - (next[1]  - prev[1])      / 6;
+    return `${path} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${point[0]},${point[1]}`;
+  }, '');
+}
+
 // ── SparkSpreadChart ─────────────────────────────────────────────
 function SparkSpreadChart({
   history,
@@ -423,32 +439,17 @@ function SparkSpreadChart({
 
   const zeroY = toY(0);
 
-  // Smooth quadratic bezier path
-  const linePath = history.reduce((acc, _v, i) => {
-    const x = toX(i);
-    const y = toY(history[i]);
-    if (i === 0) return `M ${x},${y}`;
-    const px = toX(i - 1);
-    const py = toY(history[i - 1]);
-    const mx = (px + x) / 2;
-    return `${acc} Q ${mx},${py} ${mx},${(py + y) / 2} Q ${mx},${y} ${x},${y}`;
-  }, '');
+  // Smooth cubic bezier paths
+  const pts: Array<[number, number]> = history.map((v, i) => [toX(i), toY(v)]);
+  const linePath = smoothLine(pts);
 
-  // Fill above zero (BURNING — gold)
-  const abovePath = [
-    `M ${toX(0)},${zeroY}`,
-    ...history.map((v, i) => `L ${toX(i)},${Math.min(toY(v), zeroY)}`),
-    `L ${toX(history.length - 1)},${zeroY}`,
-    'Z',
-  ].join(' ');
+  // Fill above zero — clamp points to zeroY so fill stays in positive region
+  const abovePts: Array<[number, number]> = history.map((v, i) => [toX(i), Math.min(toY(v), zeroY)]);
+  const abovePath = smoothLine(abovePts) + ` L ${toX(history.length - 1)},${zeroY} L ${toX(0)},${zeroY} Z`;
 
-  // Fill below zero (SUPPRESSED — red)
-  const belowPath = [
-    `M ${toX(0)},${zeroY}`,
-    ...history.map((v, i) => `L ${toX(i)},${Math.max(toY(v), zeroY)}`),
-    `L ${toX(history.length - 1)},${zeroY}`,
-    'Z',
-  ].join(' ');
+  // Fill below zero — clamp points to zeroY so fill stays in negative region
+  const belowPts: Array<[number, number]> = history.map((v, i) => [toX(i), Math.max(toY(v), zeroY)]);
+  const belowPath = smoothLine(belowPts) + ` L ${toX(history.length - 1)},${zeroY} L ${toX(0)},${zeroY} Z`;
 
   const lineColor = regime === 'BURNING' ? C.falconGold
     : regime === 'SUPPRESSED' ? C.alertCritical
@@ -472,10 +473,7 @@ function SparkSpreadChart({
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      width="100%"
-      height="100%"
-      preserveAspectRatio="none"
-      style={{ display: 'block', cursor: 'crosshair' }}
+      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoverIdx(null)}
     >
@@ -797,12 +795,12 @@ function SparkKPIView({ selectedZone }: { selectedZone: string | null }) {
               </div>
 
               {/* Chart */}
-              <div style={{ flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, minHeight: '280px' }}>
                 <SparkSpreadChart history={SPARK_DATA.history} regime={SPARK_DATA.regime} />
               </div>
 
               {/* Bottom panels */}
-              <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '140px' }}>
+              <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '120px' }}>
                 {[
                   {
                     label: 'GAS PRICE INPUTS', color: C.falconGold,
@@ -850,11 +848,11 @@ function SparkKPIView({ selectedZone }: { selectedZone: string | null }) {
 }
 
 // ── SOCGauge ──────────────────────────────────────────────────────
-function SOCGauge({ soc }: { soc: number }) {
-  const SIZE = 140;
+function SOCGauge({ soc, size = 140 }: { soc: number; size?: number }) {
+  const SIZE = size;
   const CX = SIZE / 2;
   const CY = SIZE / 2;
-  const RADIUS = 52;
+  const RADIUS = Math.round(SIZE * 0.371); // ~52px at 140, ~74px at 200
   const START_DEG = -220;
   const SWEEP_DEG = 260;
   const STROKE = 8;
@@ -917,15 +915,15 @@ function SOCGauge({ soc }: { soc: number }) {
         x={CX}
         y={CY - 4}
         textAnchor="middle"
-        style={{ fontFamily: F.mono, fontSize: '24px', fontWeight: 600, fill: C.electricBlue }}
+        style={{ fontFamily: F.mono, fontSize: `${Math.round(SIZE * 0.171)}px`, fontWeight: 600, fill: C.electricBlue }}
       >
         {soc}%
       </text>
       <text
         x={CX}
-        y={CY + 14}
+        y={CY + Math.round(SIZE * 0.1)}
         textAnchor="middle"
-        style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted, letterSpacing: '0.12em' }}
+        style={{ fontFamily: F.mono, fontSize: `${Math.round(SIZE * 0.064)}px`, fill: C.textMuted, letterSpacing: '0.12em' }}
       >
         STATE OF CHARGE
       </text>
@@ -942,8 +940,10 @@ function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
   const toX = (i: number) => PAD.left + (i / (socHistory.length - 1)) * (W - PAD.left - PAD.right);
   const toY = (v: number) => PAD.top + ((100 - v) / 100) * (H - PAD.top - PAD.bottom);
 
-  const linePath = socHistory.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`).join(' ');
-  const fillPath = linePath + ` L ${toX(socHistory.length - 1)},${H - PAD.bottom} L ${toX(0)},${H - PAD.bottom} Z`;
+  const socPts: Array<[number, number]> = socHistory.map((v, i) => [toX(i), toY(v)]);
+  const linePath = smoothLine(socPts);
+  const baseY = H - PAD.bottom;
+  const fillPath = linePath + ` L ${toX(socHistory.length - 1)},${baseY} L ${toX(0)},${baseY} Z`;
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -953,8 +953,8 @@ function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
   };
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%"
-      preserveAspectRatio="none" style={{ display: 'block', cursor: 'crosshair' }}
+    <svg viewBox={`0 0 ${W} ${H}`}
+      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
       onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
       <defs>
         <linearGradient id="socFill" x1="0" y1="0" x2="0" y2="1">
@@ -1122,8 +1122,8 @@ function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
             {/* Body */}
             <div style={{ flex: 1, display: 'flex', padding: '24px', gap: '32px', overflow: 'hidden' }}>
               {/* Left: large gauge */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0, width: '200px' }}>
-                <SOCGauge soc={targetSoc} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', flexShrink: 0, width: '220px' }}>
+                <SOCGauge soc={targetSoc} size={200} />
                 <div style={{ textAlign: 'center' as const }}>
                   <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const, marginBottom: '8px' }}>CURRENT CYCLE</div>
                   {[
@@ -1158,7 +1158,7 @@ function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
                   ))}
                 </div>
                 {/* SOC profile chart */}
-                <div style={{ flex: 1, minHeight: 0 }}>
+                <div style={{ flex: 1, minHeight: '240px' }}>
                   <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, marginBottom: '8px', textTransform: 'uppercase' as const }}>24H SOC PROFILE</div>
                   <div style={{ height: 'calc(100% - 24px)' }}>
                     <SOCProfileChart socHistory={socHistory} />
@@ -1168,7 +1168,7 @@ function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
             </div>
 
             {/* Bottom panels */}
-            <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '100px', borderTop: `0.5px solid ${C.borderDefault}` }}>
+            <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '110px', borderTop: `0.5px solid ${C.borderDefault}` }}>
               {[
                 { label: 'CHARGE WINDOW', color: C.alertNormal, rows: [{ k: 'Window', v: '06:00–10:00' }, { k: 'Price', v: '$21.40/MWh' }, { k: 'Duration', v: '4h' }] },
                 { label: 'DISCHARGE WINDOW', color: C.falconGold, rows: [{ k: 'Window', v: '16:00–20:00' }, { k: 'Price', v: '$43.20/MWh' }, { k: 'Duration', v: '4h' }] },
@@ -1211,15 +1211,17 @@ function ResourceGapChart({ reserveMargin, gapColor }: { reserveMargin: number; 
   const toX = (i: number) => PAD.left + (i / (capacityData.length - 1)) * (W - PAD.left - PAD.right);
   const toY = (v: number) => PAD.top + ((maxV - v) / range) * (H - PAD.top - PAD.bottom);
 
-  const capacityPath = capacityData.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`).join(' ');
-  const loadPath     = loadData.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`).join(' ');
+  const capPts:  Array<[number, number]> = capacityData.map((v, i) => [toX(i), toY(v)]);
+  const loadPts: Array<[number, number]> = loadData.map((v, i) => [toX(i), toY(v)]);
 
-  // Gap fill polygon: capacity top → load bottom (reversed)
-  const gapFill = [
-    ...capacityData.map((v, i) => `${i === 0 ? 'M' : 'L'} ${toX(i)},${toY(v)}`),
-    ...loadData.slice().reverse().map((v, i) => `L ${toX(loadData.length - 1 - i)},${toY(v)}`),
-    'Z',
-  ].join(' ');
+  const capacityPath = smoothLine(capPts);
+  const loadPath     = smoothLine(loadPts);
+
+  // Gap fill: smooth capacity path forward + smooth load path reversed
+  const loadReversed: Array<[number, number]> = [...loadPts].reverse();
+  const gapFill = smoothLine(capPts)
+    + ' ' + smoothLine(loadReversed).replace(/^M/, 'L')
+    + ' Z';
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -1234,15 +1236,18 @@ function ResourceGapChart({ reserveMargin, gapColor }: { reserveMargin: number; 
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      width="100%"
-      height="100%"
-      preserveAspectRatio="none"
-      style={{ display: 'block', cursor: 'crosshair' }}
+      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoverIdx(null)}
     >
+      <defs>
+        <linearGradient id="gapFillGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor={gapColor} stopOpacity="0.28" />
+          <stop offset="100%" stopColor={gapColor} stopOpacity="0.07" />
+        </linearGradient>
+      </defs>
       {/* Gap fill */}
-      <path d={gapFill} fill={gapColor} fillOpacity="0.10" />
+      <path d={gapFill} fill="url(#gapFillGrad)" />
 
       {/* Y-axis labels */}
       {[maxV, minV].map((v, i) => (
@@ -1262,7 +1267,7 @@ function ResourceGapChart({ reserveMargin, gapColor }: { reserveMargin: number; 
       <path d={loadPath} fill="none" stroke={C.textSecondary} strokeWidth="1.5" strokeOpacity="0.6" />
 
       {/* Capacity line */}
-      <path d={capacityPath} fill="none" stroke={C.electricBlue} strokeWidth="1.5" />
+      <path d={capacityPath} fill="none" stroke={C.electricBlue} strokeWidth="2" />
 
       {/* Line labels */}
       <text x={toX(23) - 2} y={toY(capacityData[23]) - 4} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.electricBlue }}>CAP</text>
@@ -1422,12 +1427,12 @@ function GapKPIView({ selectedZone }: { selectedZone: string | null }) {
               </div>
 
               {/* Chart */}
-              <div style={{ flex: 1, minHeight: 0 }}>
+              <div style={{ flex: 1, minHeight: '260px' }}>
                 <ResourceGapChart reserveMargin={reserveMargin} gapColor={gapColor} />
               </div>
 
               {/* Bottom panels */}
-              <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '120px', borderTop: `0.5px solid ${C.borderDefault}` }}>
+              <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '110px', borderTop: `0.5px solid ${C.borderDefault}` }}>
                 {[
                   { label: 'CAPACITY POSITION', color: C.electricBlue, rows: [{ k: 'Installed', v: '78.4 GW' }, { k: 'Committed', v: '74.2 GW' }, { k: 'Available', v: '4.2 GW' }] },
                   { label: 'LOAD ANALYSIS', color: C.textSecondary, rows: [{ k: 'Current load', v: '65.2 GW' }, { k: 'Peak forecast', v: '67.8 GW' }, { k: 'Avg 24H', v: '63.1 GW' }] },

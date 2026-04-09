@@ -52,6 +52,12 @@ NEVER hardcode hex values, px values, or font stacks outside tokens.ts.
 - Animate ONLY: opacity, transform. Nothing else.
 - Every animation must communicate a state change. If it's decorative: delete it.
 
+## LAYOUT-CRITICAL ELEMENTS
+Never use Tailwind classes for height, width, padding, or gap on any element
+that is a direct child of a CSS Grid area or flex container that owns layout.
+Use inline styles with explicit px values. Tailwind layout classes are permitted
+only on decorative or content elements that do not participate in grid/flex sizing.
+
 ## WHAT THIS PLATFORM IS NOT
 - Not a SaaS dashboard (no pill buttons, no gradient cards)
 - Not a landing page (no scroll animations, no "coming soon" cards)

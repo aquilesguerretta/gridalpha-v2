@@ -1,11 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { C } from '@/design/tokens';
 import { createPortal } from 'react-dom'
+import {
+  AreaChart, Area, ComposedChart, Line,
+  XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts'
 
 import {
   ZONE_LMP_DETAIL, ZONE_SPARKLINE, ZONE_24H_PRICES,
   ZONE_CONSTRAINTS, ZONE_GEN_MIX, ZONE_FORECAST,
-  CHART_HEIGHT, CHART_WIDTH, PRICE_MIN, PRICE_MAX,
+  PRICE_MIN, PRICE_MAX,
 } from '../lib/pjm/mock-data'
 
 /* ─── HELPERS ─────────────────────────────────────────────────── */
@@ -14,15 +19,6 @@ import {
 function sparklinePoints(values: number[]): string {
   const w = 100 / (values.length - 1)
   return values.map((v, i) => `${i * w},${82 - v * 37}`).join(' ')
-}
-
-
-function priceToY(price: number): number {
-  return CHART_HEIGHT - 20 - ((price - PRICE_MIN) / (PRICE_MAX - PRICE_MIN)) * (CHART_HEIGHT - 40)
-}
-
-function indexToX(i: number): number {
-  return (i / 23) * CHART_WIDTH
 }
 
 /* ─── SUB-COMPONENTS ──────────────────────────────────────────── */
@@ -50,34 +46,28 @@ function LMPExpandedSystem() {
       </div>
 
       {/* 24h trend chart */}
-      <div style={{ flexShrink: 0, height: '200px', minHeight: '200px', position: 'relative' }}>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
+      <div style={{ flexShrink: 0, height: '200px', minHeight: '200px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', flexShrink: 0 }}>
           24H LMP TREND — WEST HUB
         </span>
-        <svg width="100%" height={200} viewBox="0 0 1000 200" preserveAspectRatio="none" style={{ marginTop: '8px' }}>
-          {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
-            <line key={i} x1="0" y1={t * 180 + 10} x2="1000" y2={t * 180 + 10}
-              stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-          ))}
-          <polyline
-            points={hubPrices.map((p, i) => {
-              const x = (i / 23) * 1000
-              const y = 190 - ((p - 25) / 35) * 180
-              return `${x},${y}`
-            }).join(' ')}
-            fill="none"
-            stroke={C.electricBlue}
-            strokeWidth="2"
-          />
-          <polygon
-            points={`0,190 ${hubPrices.map((p, i) => {
-              const x = (i / 23) * 1000
-              const y = 190 - ((p - 25) / 35) * 180
-              return `${x},${y}`
-            }).join(' ')} 1000,190`}
-            fill="rgba(6,182,212,0.05)"
-          />
-        </svg>
+        <div style={{ flex: 1, minHeight: 0, marginTop: '8px' }}>
+          <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: '8px', padding: '4px', boxSizing: 'border-box' as const }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={hubPrices.map((p, i) => ({ hour: i, price: p }))} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="hubAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor={C.electricBlue} stopOpacity={0.30} />
+                    <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.04} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.08)" vertical={false} />
+                <XAxis dataKey="hour" hide />
+                <YAxis hide domain={['auto', 'auto']} />
+                <Area dataKey="price" fill="url(#hubAreaGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={false} type="monotone" isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
       </div>
 
       {/* Market Drivers row */}
@@ -136,19 +126,6 @@ function LMPExpandedZone({ zone }: { zone: string }) {
   const lossAbs = Math.abs(data.loss)
   const total = energyAbs + congestionAbs + lossAbs
 
-  /* FIX 1 — Interactive chart state */
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
-  const chartRef = useRef<SVGSVGElement>(null)
-
-  const handleChartMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const pct = x / rect.width
-    const index = Math.round(pct * 23)
-    setHoverIndex(Math.min(23, Math.max(0, index)))
-  }
-
-  const handleChartMouseLeave = () => setHoverIndex(null)
 
   return (
     <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px', height: '100%', overflow: 'auto' }}>
@@ -307,16 +284,18 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         ))}
       </div>
 
-      {/* ── INTERACTIVE CHART WITH MOUSE TRACKING ── */}
+      {/* ── 24H PRICE CHART ── */}
       <div className="lmp-section-enter" style={{
         background: 'rgba(255,255,255,0.01)',
         padding: '16px 24px',
         minHeight: '240px',
         flex: '1 1 240px',
         borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {/* Chart header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
           <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
             24H PRICE TREND — {zone} vs WEST HUB
           </span>
@@ -329,188 +308,85 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               <div style={{ width: '20px', height: '0', borderTop: '1.5px dashed rgba(255,255,255,0.3)' }} />
               <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>WEST HUB</span>
             </div>
-            {hoverIndex !== null && (
-              <div style={{
-                fontFamily: "'Geist Mono', monospace",
-                fontSize: '11px',
-                color: C.electricBlue,
-                fontWeight: 'bold',
-                transition: 'color 0.1s',
-              }}>
-                {hoverIndex}:00 · ${prices[hoverIndex]?.toFixed(2)}/MWh
-              </div>
-            )}
           </div>
         </div>
 
-        {/* SVG Chart */}
-        <svg
-          ref={chartRef}
-          width="100%"
-          height={CHART_HEIGHT}
-          viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-          preserveAspectRatio="none"
-          style={{ cursor: 'crosshair', display: 'block' }}
-          onMouseMove={handleChartMouseMove}
-          onMouseLeave={handleChartMouseLeave}
-        >
-          {/* Horizontal grid lines */}
-          {[25, 30, 35, 40, 45, 50, 55, 60].map(price => {
-            const y = priceToY(price)
+        {/* Recharts ComposedChart */}
+        {(() => {
+          const chartData = prices.map((p, i) => ({ hour: i, zone: p, hub: hubPrices[i] }))
+          const peakIdx = prices.indexOf(Math.max(...prices))
+          const lowIdx  = prices.indexOf(Math.min(...prices))
+
+          const LMPTooltip = ({ active, payload, label }: any) => {
+            if (!active || !payload?.length) return null
+            const zonePrice = payload.find((p: any) => p.dataKey === 'zone')?.value
+            const hubPrice  = payload.find((p: any) => p.dataKey === 'hub')?.value
+            if (zonePrice == null) return null
+            const spread = hubPrice != null ? zonePrice - hubPrice : null
             return (
-              <g key={price}>
-                <line x1="0" y1={y} x2={CHART_WIDTH} y2={y}
-                  stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
-                <text x="8" y={y - 4}
-                  fontFamily="monospace" fontSize="12" fill="rgba(255,255,255,0.20)">
-                  ${price}
-                </text>
-              </g>
+              <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: '6px', padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: 'rgba(229,231,235,0.55)', marginBottom: '5px', letterSpacing: '0.06em' }}>{label}:00</div>
+                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '15px', fontWeight: '600', color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>${zonePrice.toFixed(2)}/MWh</div>
+                {spread != null && (
+                  <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: spread > 0 ? 'rgba(255,183,0,0.9)' : 'rgba(6,182,212,0.9)', marginTop: '3px', fontVariantNumeric: 'tabular-nums' }}>
+                    {spread >= 0 ? '+' : ''}{spread.toFixed(2)} vs Hub
+                  </div>
+                )}
+              </div>
             )
-          })}
+          }
 
-          {/* Hour labels on X axis */}
-          {[0, 3, 6, 9, 12, 15, 18, 21, 23].map(i => (
-            <text key={i}
-              x={indexToX(i)}
-              y={CHART_HEIGHT - 4}
-              fontFamily="monospace"
-              fontSize="11"
-              fill="rgba(255,255,255,0.20)"
-              textAnchor="middle"
-            >
-              {i}:00
-            </text>
-          ))}
+          const PeakDot = (props: any) => {
+            const { cx, cy, index } = props
+            if (index === peakIdx) return <circle cx={cx} cy={cy} r={5} fill="#FF4444" stroke="#0A0A0B" strokeWidth={2} />
+            if (index === lowIdx)  return <circle cx={cx} cy={cy} r={5} fill={C.electricBlue} stroke="#0A0A0B" strokeWidth={2} />
+            return null
+          }
 
-          {/* 24h average line */}
-          {(() => {
-            const avgY = priceToY(data.avg24h)
-            return (
-              <line x1="0" y1={avgY} x2={CHART_WIDTH} y2={avgY}
-                stroke="rgba(255,255,255,0.12)"
-                strokeWidth="1"
-                strokeDasharray="4,4" />
-            )
-          })()}
-
-          {/* Spread fill between zone and hub */}
-          <polygon
-            points={`${prices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')} ${hubPrices.slice().reverse().map((p, i) => `${indexToX(23 - i)},${priceToY(p)}`).join(' ')}`}
-            fill={data.congestion > 0 ? 'rgba(255,183,0,0.07)' : 'rgba(6,182,212,0.05)'}
-          />
-
-          {/* West Hub reference line — dashed, faint */}
-          <polyline
-            points={hubPrices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')}
-            fill="none"
-            stroke="rgba(255,255,255,0.18)"
-            strokeWidth="1.5"
-            strokeDasharray="4,4"
-          />
-
-          {/* Zone area fill */}
-          <polygon
-            points={`${indexToX(0)},${CHART_HEIGHT} ${prices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')} ${indexToX(23)},${CHART_HEIGHT}`}
-            fill="rgba(6,182,212,0.04)"
-          />
-
-          {/* Zone price line */}
-          <polyline
-            points={prices.map((p, i) => `${indexToX(i)},${priceToY(p)}`).join(' ')}
-            fill="none"
-            stroke={C.electricBlue}
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-
-          {/* Peak marker */}
-          {(() => {
-            const peakIdx = prices.indexOf(Math.max(...prices))
-            const x = indexToX(peakIdx)
-            const y = priceToY(prices[peakIdx])
-            return (
-              <g>
-                <circle cx={x} cy={y} r="5" fill="#FF4444" stroke="#0A0A0B" strokeWidth="2" />
-                <text x={x + 10} y={y - 8} fontFamily="monospace" fontSize="12" fill="rgba(255,80,80,0.9)" fontWeight="bold">
-                  {data.peak.hour} ${data.peak.price}
-                </text>
-              </g>
-            )
-          })()}
-
-          {/* Cheapest marker */}
-          {(() => {
-            const lowIdx = prices.indexOf(Math.min(...prices))
-            const x = indexToX(lowIdx)
-            const y = priceToY(prices[lowIdx])
-            return (
-              <g>
-                <circle cx={x} cy={y} r="5" fill={C.electricBlue} stroke="#0A0A0B" strokeWidth="2" />
-                <text x={x + 10} y={y + 16} fontFamily="monospace" fontSize="12" fill="rgba(6,182,212,0.9)" fontWeight="bold">
-                  {data.cheapest.hour} ${data.cheapest.price}
-                </text>
-              </g>
-            )
-          })()}
-
-          {/* HOVER LAYER — only when hovering */}
-          {hoverIndex !== null && (() => {
-            const x = indexToX(hoverIndex)
-            const price = prices[hoverIndex]
-            const y = priceToY(price)
-            const hubPrice = hubPrices[hoverIndex]
-            const hubY = priceToY(hubPrice)
-
-            return (
-              <g>
-                {/* Vertical crosshair */}
-                <line x1={x} y1="0" x2={x} y2={CHART_HEIGHT}
-                  stroke="rgba(255,255,255,0.15)" strokeWidth="1" strokeDasharray="3,3" />
-
-                {/* Zone price dot — large, glowing */}
-                <circle cx={x} cy={y} r="6" fill={C.electricBlue} opacity="0.15" />
-                <circle cx={x} cy={y} r="4" fill={C.electricBlue} stroke="#0A0A0B" strokeWidth="2" />
-
-                {/* Hub price dot — smaller */}
-                <circle cx={x} cy={hubY} r="3" fill="rgba(255,255,255,0.4)" stroke="#0A0A0B" strokeWidth="1.5" />
-
-                {/* Tooltip box — flip side if near right edge */}
-                {(() => {
-                  const tooltipX = hoverIndex > 18 ? x - 160 : x + 12
-                  const tooltipY = Math.max(10, y - 48)
-                  const spread = price - hubPrice
-
-                  return (
-                    <g>
-                      <rect x={tooltipX} y={tooltipY} width="148" height="76" rx="0"
-                        fill="#0A0A0B" stroke="rgba(6,182,212,0.25)" strokeWidth="0.5" />
-                      {/* Hour */}
-                      <text x={tooltipX + 10} y={tooltipY + 16}
-                        fontFamily="monospace" fontSize="11" fill="rgba(255,255,255,0.4)" letterSpacing="2">
-                        {hoverIndex}:00
-                      </text>
-                      {/* Zone price */}
-                      <text x={tooltipX + 10} y={tooltipY + 36}
-                        fontFamily="monospace" fontSize="16" fill="#FFFFFF" fontWeight="bold">
-                        ${price.toFixed(2)}/MWh
-                      </text>
-                      {/* Hub spread */}
-                      <text x={tooltipX + 10} y={tooltipY + 52}
-                        fontFamily="monospace" fontSize="10"
-                        fill={spread > 0 ? 'rgba(255,183,0,0.8)' : 'rgba(6,182,212,0.8)'}>
-                        {spread >= 0 ? '+' : ''}{spread.toFixed(2)} vs Hub
-                      </text>
-                      {/* Zone indicator dot */}
-                      <circle cx={tooltipX + 136} cy={tooltipY + 12} r="3"
-                        fill={C.electricBlue} />
-                    </g>
-                  )
-                })()}
-              </g>
-            )
-          })()}
-        </svg>
+          return (
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: '8px', padding: '4px', boxSizing: 'border-box' as const }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 16, bottom: 20, left: 8 }}>
+                    <defs>
+                      <linearGradient id="zoneAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={C.electricBlue} stopOpacity={0.30} />
+                        <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
+                    <XAxis
+                      dataKey="hour"
+                      type="number"
+                      domain={[0, 23]}
+                      ticks={[0, 3, 6, 9, 12, 15, 18, 21, 23]}
+                      tickFormatter={h => `${h}:00`}
+                      tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+                      axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[PRICE_MIN, PRICE_MAX]}
+                      ticks={[25, 30, 35, 40, 45, 50, 55, 60]}
+                      tickFormatter={v => `$${v}`}
+                      tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                    />
+                    <ReferenceLine y={data.avg24h} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" strokeWidth={1} />
+                    <Tooltip
+                      content={<LMPTooltip />}
+                      cursor={{ stroke: 'rgba(255,255,255,0.20)', strokeWidth: 1, strokeDasharray: '3 3' }}
+                    />
+                    <Area dataKey="zone" fill="url(#zoneAreaGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={<PeakDot />} type="monotone" isAnimationActive={false} />
+                    <Line dataKey="hub" stroke="rgba(255,255,255,0.28)" strokeDasharray="4 4" strokeWidth={1.5} dot={false} type="monotone" isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* BOTTOM SECTION — Three panels, fixed 200px, never shrinks */}

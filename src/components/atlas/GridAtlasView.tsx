@@ -215,6 +215,30 @@ export default function GridAtlasView() {
     })),
   };
 
+  // Manage terrain when style changes (CARTO doesn't support Mapbox DEM)
+  useEffect(() => {
+    const handle = mapRef.current;
+    if (!handle) return;
+    const timer = setTimeout(() => {
+      try {
+        const nativeMap = (handle as any).getMap?.() ?? (handle as any);
+        if (!nativeMap?.getSource) return;
+        if (activeStyle === 'terminal') {
+          if (nativeMap.getTerrain?.()) nativeMap.setTerrain(null);
+        } else {
+          if (!nativeMap.getSource('mapbox-dem')) {
+            nativeMap.addSource('mapbox-dem', {
+              type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+              tileSize: 512, maxzoom: 14,
+            });
+          }
+          nativeMap.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+        }
+      } catch { /* style not ready — ignore */ }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [activeStyle]);
+
   // Search
   const handleSearch = useCallback((q: string) => {
     setSearchQuery(q);

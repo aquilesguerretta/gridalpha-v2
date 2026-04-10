@@ -30,7 +30,7 @@ export const MAPBOX_MINIMAL =
 const INITIAL_VIEW = {
   longitude:  -79.5,
   latitude:    39.8,
-  zoom:         5.8,
+  zoom:         3.5,
   pitch:         0,
   bearing:       0,
 };
@@ -369,43 +369,27 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       const map = mapRef.current?.getMap();
       if (!map) return;
 
-      // Fog for depth (Mapbox styles only)
+      // 3D terrain — real elevation DEM tiles
+      try {
+        map.addSource('mapbox-dem', {
+          type:     'raster-dem',
+          url:      'mapbox://mapbox.mapbox-terrain-dem-v1',
+          tileSize:  512,
+          maxzoom:   14,
+        });
+        map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
+      } catch { /* CARTO may not support DEM — ignore */ }
+
+      // Atmosphere and stars for globe mode
       try {
         map.setFog({
-          color:           '#0A0A0B',
-          'high-color':    '#0D1520',
-          'horizon-blend':  0.06,
-          'space-color':   '#000005',
-          'star-intensity': 0.5,
+          color:            'rgb(10, 10, 20)',
+          'high-color':     'rgb(15, 20, 40)',
+          'horizon-blend':   0.04,
+          'space-color':    'rgb(0, 0, 8)',
+          'star-intensity':  0.8,
         } as any);
-      } catch { /* CARTO doesn't support fog */ }
-
-      // Register custom fuel-type SVG icons
-      const icons: [string, string][] = [
-        ['fuel-nuclear',  circleIcon('#9B59B6', '☢')],
-        ['fuel-gas',      circleIcon('#E67E22', '⚡')],
-        ['fuel-wind',     circleIcon('#00A3FF', '↻')],
-        ['fuel-solar',    circleIcon('#F1C40F', '☀')],
-        ['fuel-coal',     circleIcon('#636E72', '■')],
-        ['fuel-hydro',    circleIcon('#3498DB', '≈')],
-        ['fuel-battery',  circleIcon('#00E676', '⬡')],
-        ['fuel-geo',      circleIcon('#FF6B35', '◆')],
-        ['fuel-oil',      circleIcon('#A0522D', '●')],
-        ['fuel-default',  circleIcon('#BDC3C7', '●')],
-      ];
-
-      const loadIcon = (name: string, svg: string): Promise<void> =>
-        new Promise(resolve => {
-          const img = new Image(32, 32);
-          img.onload = () => {
-            if (!map.hasImage(name)) map.addImage(name, img);
-            resolve();
-          };
-          img.onerror = () => resolve();
-          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-        });
-
-      Promise.all(icons.map(([n, s]) => loadIcon(n, s)));
+      } catch { /* CARTO may not support fog */ }
     }, []);
 
     const interactiveLayerIds = [
@@ -421,6 +405,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         mapStyle={mapStyle}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN as string}
         style={{ position: 'absolute', inset: 0 }}
+        projection={{ name: 'globe' } as any}
         interactiveLayerIds={interactiveLayerIds}
         onClick={onMapClick}
         onMouseMove={onMouseMove}

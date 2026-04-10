@@ -1,6 +1,11 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { createPortal } from "react-dom";
 import { C, F, R, S, T } from '@/design/tokens';
+import {
+  AreaChart, Area, ComposedChart, Line,
+  XAxis, YAxis, Tooltip, ReferenceLine, ReferenceArea,
+  ResponsiveContainer,
+} from 'recharts';
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
 import { LMPCard } from "./LMPCard";
@@ -398,22 +403,6 @@ function detectRegime(zone: string | null): Regime {
   return 'NORMAL'
 }
 
-// ── Chart helper — smooth cubic Catmull-Rom to Bezier ────────────
-function smoothLine(points: Array<[number, number]>): string {
-  if (points.length < 2) return '';
-  return points.reduce((path, point, i) => {
-    if (i === 0) return `M ${point[0]},${point[1]}`;
-    const prev     = points[i - 1];
-    const prevPrev = points[i - 2] ?? prev;
-    const next     = points[i + 1] ?? point;
-    const cp1x = prev[0]  + (point[0] - prevPrev[0]) / 6;
-    const cp1y = prev[1]  + (point[1] - prevPrev[1]) / 6;
-    const cp2x = point[0] - (next[0]  - prev[0])     / 6;
-    const cp2y = point[1] - (next[1]  - prev[1])      / 6;
-    return `${path} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${point[0]},${point[1]}`;
-  }, '');
-}
-
 // ── SparkSpreadChart ─────────────────────────────────────────────
 function SparkSpreadChart({
   history,
@@ -422,182 +411,85 @@ function SparkSpreadChart({
   history: number[];
   regime: 'BURNING' | 'SUPPRESSED' | 'NEUTRAL';
 }) {
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-
-  const W = 300;
-  const H = 140;
-  const PAD = { top: 16, right: 8, bottom: 24, left: 36 };
-
-  const minVal = Math.min(...history, -5);
-  const maxVal = Math.max(...history, 5);
-  const range  = maxVal - minVal;
-
-  const toX = (i: number) =>
-    PAD.left + (i / (history.length - 1)) * (W - PAD.left - PAD.right);
-  const toY = (v: number) =>
-    PAD.top + ((maxVal - v) / range) * (H - PAD.top - PAD.bottom);
-
-  const zeroY = toY(0);
-
-  // Smooth cubic bezier paths
-  const pts: Array<[number, number]> = history.map((v, i) => [toX(i), toY(v)]);
-  const linePath = smoothLine(pts);
-
-  // Fill above zero — clamp points to zeroY so fill stays in positive region
-  const abovePts: Array<[number, number]> = history.map((v, i) => [toX(i), Math.min(toY(v), zeroY)]);
-  const abovePath = smoothLine(abovePts) + ` L ${toX(history.length - 1)},${zeroY} L ${toX(0)},${zeroY} Z`;
-
-  // Fill below zero — clamp points to zeroY so fill stays in negative region
-  const belowPts: Array<[number, number]> = history.map((v, i) => [toX(i), Math.max(toY(v), zeroY)]);
-  const belowPath = smoothLine(belowPts) + ` L ${toX(history.length - 1)},${zeroY} L ${toX(0)},${zeroY} Z`;
-
   const lineColor = regime === 'BURNING' ? C.falconGold
     : regime === 'SUPPRESSED' ? C.alertCritical
     : C.textSecondary;
 
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const svgX = ((e.clientX - rect.left) / rect.width) * W;
-    const chartLeft = PAD.left;
-    const chartRight = W - PAD.right;
-    const clampedX = Math.max(chartLeft, Math.min(chartRight, svgX));
-    const rawIdx = ((clampedX - chartLeft) / (chartRight - chartLeft)) * (history.length - 1);
-    setHoverIdx(Math.round(rawIdx));
+  const hourTickMap: Record<number, string> = { 0: '12A', 6: '6A', 12: '12P', 18: '6P', 23: '11P' };
+  const fullHourMap: Record<number, string> = { 0:'12A',1:'1A',2:'2A',3:'3A',4:'4A',5:'5A',6:'6A',7:'7A',8:'8A',9:'9A',10:'10A',11:'11A',12:'12P',13:'1P',14:'2P',15:'3P',16:'4P',17:'5P',18:'6P',19:'7P',20:'8P',21:'9P',22:'10P',23:'11P' };
+
+  const minVal = Math.min(...history, -5);
+  const maxVal = Math.max(...history, 5);
+
+  const data = history.map((v, i) => ({
+    hour: i,
+    positive: Math.max(v, 0),
+    negative: Math.min(v, 0),
+    value: v,
+  }));
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const entry = payload.find((p: any) => p.dataKey === 'value');
+    if (!entry) return null;
+    const val: number = entry.value;
+    return (
+      <div style={{ background: C.bgElevated, border: `1px solid ${C.borderAccent}`, borderRadius: R.sm, padding: '6px 10px', fontFamily: F.mono }}>
+        <div style={{ fontSize: '8px', color: C.textMuted, letterSpacing: '0.1em' }}>{fullHourMap[entry.payload.hour]}</div>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: val >= 0 ? C.falconGold : C.alertCritical, marginTop: '2px' }}>
+          {val >= 0 ? `+${val.toFixed(1)}` : val.toFixed(1)}
+        </div>
+      </div>
+    );
   };
 
-  const hoverX = hoverIdx !== null ? toX(hoverIdx) : null;
-  const hoverY = hoverIdx !== null ? toY(history[hoverIdx]) : null;
-  const hoverVal = hoverIdx !== null ? history[hoverIdx] : null;
-  const hourLabels = ['12A','1A','2A','3A','4A','5A','6A','7A','8A','9A','10A','11A','12P','1P','2P','3P','4P','5P','6P','7P','8P','9P','10P','11P'];
-
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => setHoverIdx(null)}
-    >
-      <defs>
-        <linearGradient id="aboveGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={C.falconGold}    stopOpacity="0.25" />
-          <stop offset="100%" stopColor={C.falconGold}    stopOpacity="0.04" />
-        </linearGradient>
-        <linearGradient id="belowGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={C.alertCritical} stopOpacity="0.04" />
-          <stop offset="100%" stopColor={C.alertCritical} stopOpacity="0.20" />
-        </linearGradient>
-      </defs>
-
-      {/* Y-axis labels */}
-      {[maxVal, 0, minVal].map((v, i) => (
-        <text
-          key={i}
-          x={PAD.left - 4}
-          y={toY(v) + 4}
-          textAnchor="end"
-          style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}
-        >
-          {v > 0 ? `+${v.toFixed(0)}` : v.toFixed(0)}
-        </text>
-      ))}
-
-      {/* Hour labels */}
-      {[0, 6, 12, 18, 23].map(i => (
-        <text
-          key={i}
-          x={toX(i)}
-          y={H - 4}
-          textAnchor="middle"
-          style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}
-        >
-          {i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : '11P'}
-        </text>
-      ))}
-
-      {/* Fill above zero — gold */}
-      <path d={abovePath} fill="url(#aboveGrad)" />
-
-      {/* Fill below zero — red */}
-      <path d={belowPath} fill="url(#belowGrad)" />
-
-      {/* Zero threshold line */}
-      <line
-        x1={PAD.left}  y1={zeroY}
-        x2={W - PAD.right} y2={zeroY}
-        stroke={C.textMuted}
-        strokeWidth="1"
-        strokeDasharray="3 3"
-        opacity="0.5"
-      />
-      <text
-        x={PAD.left + 2}
-        y={zeroY - 3}
-        style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}
-      >
-        BREAKEVEN
-      </text>
-
-      {/* Main line */}
-      <path
-        d={linePath}
-        fill="none"
-        stroke={lineColor}
-        strokeWidth="1.5"
-      />
-
-      {/* Crosshair + tooltip on hover */}
-      {hoverIdx !== null && hoverX !== null && hoverY !== null && hoverVal !== null && (
-        <>
-          {/* Vertical crosshair */}
-          <line
-            x1={hoverX} y1={PAD.top}
-            x2={hoverX} y2={H - PAD.bottom}
-            stroke={C.electricBlue}
-            strokeWidth="1"
-            strokeDasharray="3 3"
-            opacity="0.7"
-          />
-          {/* Dot on line */}
-          <circle cx={hoverX} cy={hoverY} r="3.5" fill={C.bgBase} stroke={lineColor} strokeWidth="1.5" />
-          <circle cx={hoverX} cy={hoverY} r="2" fill={lineColor} />
-          {/* Tooltip */}
-          {(() => {
-            const tipW = 56;
-            const tipH = 28;
-            const tipX = Math.min(hoverX + 6, W - PAD.right - tipW);
-            const tipY = Math.max(PAD.top, Math.min(hoverY - tipH / 2, H - PAD.bottom - tipH));
-            return (
-              <g>
-                <rect
-                  x={tipX} y={tipY}
-                  width={tipW} height={tipH}
-                  rx="3"
-                  fill={C.bgElevated}
-                  stroke={C.borderDefault}
-                  strokeWidth="1"
-                />
-                <text
-                  x={tipX + tipW / 2}
-                  y={tipY + 10}
-                  textAnchor="middle"
-                  style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}
-                >
-                  {hourLabels[hoverIdx]}
-                </text>
-                <text
-                  x={tipX + tipW / 2}
-                  y={tipY + 21}
-                  textAnchor="middle"
-                  style={{ fontFamily: F.mono, fontSize: '10px', fill: hoverVal >= 0 ? C.falconGold : C.alertCritical, fontWeight: 600 }}
-                >
-                  {hoverVal >= 0 ? `+${hoverVal.toFixed(1)}` : hoverVal.toFixed(1)}
-                </text>
-              </g>
-            );
-          })()}
-        </>
-      )}
-    </svg>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data} margin={{ top: 16, right: 8, bottom: 24, left: 36 }}>
+        <defs>
+          <linearGradient id="ssAboveGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.falconGold} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={C.falconGold} stopOpacity={0.04} />
+          </linearGradient>
+          <linearGradient id="ssBelowGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.alertCritical} stopOpacity={0.04} />
+            <stop offset="100%" stopColor={C.alertCritical} stopOpacity={0.20} />
+          </linearGradient>
+        </defs>
+        <XAxis
+          dataKey="hour"
+          type="number"
+          domain={[0, 23]}
+          ticks={[0, 6, 12, 18, 23]}
+          tickFormatter={h => hourTickMap[h] ?? ''}
+          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          domain={[minVal, maxVal]}
+          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
+          axisLine={false}
+          tickLine={false}
+          tickFormatter={v => v > 0 ? `+${Number(v).toFixed(0)}` : Number(v).toFixed(0)}
+          width={34}
+        />
+        <ReferenceLine
+          y={0}
+          stroke={C.textMuted}
+          strokeDasharray="3 3"
+          strokeOpacity={0.5}
+          label={{ value: 'BREAKEVEN', position: 'insideTopLeft', offset: 4, style: { fontFamily: F.mono, fontSize: 8, fill: C.textMuted } }}
+        />
+        <Tooltip
+          content={<CustomTooltip />}
+          cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.7 }}
+        />
+        <Area dataKey="positive" fill="url(#ssAboveGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
+        <Area dataKey="negative" fill="url(#ssBelowGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
+        <Area dataKey="value" fill="none" stroke={lineColor} strokeWidth={1.5} dot={false} type="monotone" baseValue={0} isAnimationActive={false} />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -795,8 +687,10 @@ function SparkKPIView({ selectedZone }: { selectedZone: string | null }) {
               </div>
 
               {/* Chart */}
-              <div style={{ flex: 1, minHeight: '280px' }}>
-                <SparkSpreadChart history={SPARK_DATA.history} regime={SPARK_DATA.regime} />
+              <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0 }}>
+                  <SparkSpreadChart history={SPARK_DATA.history} regime={SPARK_DATA.regime} />
+                </div>
               </div>
 
               {/* Bottom panels */}
@@ -933,75 +827,62 @@ function SOCGauge({ soc, size = 140 }: { soc: number; size?: number }) {
 
 // ── SOCProfileChart ───────────────────────────────────────────────
 function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const W = 500; const H = 160;
-  const PAD = { top: 12, right: 8, bottom: 24, left: 36 };
+  const hourTickMap: Record<number, string> = { 0: '12A', 6: '6A', 12: '12P', 18: '6P', 23: '11P' };
 
-  const toX = (i: number) => PAD.left + (i / (socHistory.length - 1)) * (W - PAD.left - PAD.right);
-  const toY = (v: number) => PAD.top + ((100 - v) / 100) * (H - PAD.top - PAD.bottom);
+  const data = socHistory.map((v, i) => ({ hour: i, value: v }));
 
-  const socPts: Array<[number, number]> = socHistory.map((v, i) => [toX(i), toY(v)]);
-  const linePath = smoothLine(socPts);
-  const baseY = H - PAD.bottom;
-  const fillPath = linePath + ` L ${toX(socHistory.length - 1)},${baseY} L ${toX(0)},${baseY} Z`;
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * (W / rect.width);
-    const idx = Math.round(((x - PAD.left) / (W - PAD.left - PAD.right)) * (socHistory.length - 1));
-    setHoverIdx(Math.max(0, Math.min(socHistory.length - 1, idx)));
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.[0]) return null;
+    const h = payload[0].payload.hour;
+    const v = payload[0].value;
+    return (
+      <div style={{ background: C.bgElevated, border: `1px solid ${C.borderAccent}`, borderRadius: R.sm, padding: '5px 8px', fontFamily: F.mono }}>
+        <div style={{ fontSize: '9px', color: C.textPrimary, fontWeight: 600 }}>{h}H · {v}%</div>
+      </div>
+    );
   };
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`}
-      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
-      onMouseMove={handleMouseMove} onMouseLeave={() => setHoverIdx(null)}>
-      <defs>
-        <linearGradient id="socFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={C.electricBlue} stopOpacity="0.25" />
-          <stop offset="100%" stopColor={C.electricBlue} stopOpacity="0.03" />
-        </linearGradient>
-      </defs>
-      {/* Charge window shade (hours 6-10) */}
-      <rect x={toX(6)} y={PAD.top} width={toX(10) - toX(6)} height={H - PAD.top - PAD.bottom} fill={C.electricBlue} opacity="0.06" />
-      {/* Discharge window shade (hours 16-20) */}
-      <rect x={toX(16)} y={PAD.top} width={toX(20) - toX(16)} height={H - PAD.top - PAD.bottom} fill={C.falconGold} opacity="0.08" />
-      {/* Y labels */}
-      {[100, 50, 0].map(v => (
-        <text key={v} x={PAD.left - 4} y={toY(v) + 4} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}>{v}%</text>
-      ))}
-      {/* Hour labels */}
-      {[0, 6, 12, 18, 23].map((i, idx) => (
-        <text key={i} x={toX(i)} y={H - 6} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textMuted }}>
-          {['12A','6A','12P','6P','11P'][idx]}
-        </text>
-      ))}
-      {/* Window labels */}
-      <text x={(toX(6) + toX(10)) / 2} y={PAD.top + 10} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.electricBlue, opacity: 0.7 }}>CHARGE</text>
-      <text x={(toX(16) + toX(20)) / 2} y={PAD.top + 10} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.falconGold, opacity: 0.7 }}>DISCHARGE</text>
-      {/* Fill + line */}
-      <path d={fillPath} fill="url(#socFill)" />
-      <path d={linePath} fill="none" stroke={C.electricBlue} strokeWidth="2" />
-      {/* Hover */}
-      {hoverIdx !== null && (
-        <g>
-          <line x1={toX(hoverIdx)} y1={PAD.top} x2={toX(hoverIdx)} y2={H - PAD.bottom} stroke={C.electricBlue} strokeWidth="1" strokeDasharray="2 2" opacity="0.5" />
-          <circle cx={toX(hoverIdx)} cy={toY(socHistory[hoverIdx])} r="4" fill={C.electricBlue} stroke={C.bgBase} strokeWidth="1.5" />
-          {(() => {
-            const tipX = toX(hoverIdx) + (hoverIdx > 18 ? -68 : 8);
-            const tipY = toY(socHistory[hoverIdx]) - 20;
-            return (
-              <g>
-                <rect x={tipX} y={tipY} width="60" height="18" rx="3" fill={C.bgElevated} stroke={C.borderDefault} strokeWidth="1" />
-                <text x={tipX + 30} y={tipY + 12} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.textPrimary }}>
-                  {hoverIdx}H · {socHistory[hoverIdx]}%
-                </text>
-              </g>
-            );
-          })()}
-        </g>
-      )}
-    </svg>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data} margin={{ top: 12, right: 8, bottom: 24, left: 36 }}>
+        <defs>
+          <linearGradient id="socFillGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.electricBlue} stopOpacity={0.25} />
+            <stop offset="100%" stopColor={C.electricBlue} stopOpacity={0.03} />
+          </linearGradient>
+        </defs>
+        <XAxis
+          dataKey="hour"
+          type="number"
+          domain={[0, 23]}
+          ticks={[0, 6, 12, 18, 23]}
+          tickFormatter={h => hourTickMap[h] ?? ''}
+          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          domain={[0, 100]}
+          ticks={[0, 50, 100]}
+          tickFormatter={v => `${v}%`}
+          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
+          axisLine={false}
+          tickLine={false}
+          width={34}
+        />
+        <ReferenceArea x1={6} x2={10} fill={C.electricBlue} fillOpacity={0.06}
+          label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 8, fill: C.electricBlue, fillOpacity: 0.7 } }}
+        />
+        <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.08}
+          label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 8, fill: C.falconGold, fillOpacity: 0.7 } }}
+        />
+        <Tooltip
+          content={<CustomTooltip />}
+          cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '2 2', strokeOpacity: 0.5 }}
+        />
+        <Area dataKey="value" fill="url(#socFillGrad)" stroke={C.electricBlue} strokeWidth={2} dot={false} type="monotone" isAnimationActive={false} />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -1158,10 +1039,12 @@ function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
                   ))}
                 </div>
                 {/* SOC profile chart */}
-                <div style={{ flex: 1, minHeight: '240px' }}>
-                  <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, marginBottom: '8px', textTransform: 'uppercase' as const }}>24H SOC PROFILE</div>
-                  <div style={{ height: 'calc(100% - 24px)' }}>
-                    <SOCProfileChart socHistory={socHistory} />
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const, flexShrink: 0 }}>24H SOC PROFILE</div>
+                  <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                    <div style={{ position: 'absolute', inset: 0 }}>
+                      <SOCProfileChart socHistory={socHistory} />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1194,108 +1077,66 @@ function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
 }
 
 // ── ResourceGapChart ──────────────────────────────────────────────
-function ResourceGapChart({ reserveMargin, gapColor }: { reserveMargin: number; gapColor: string }) {
-  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
-  const W = 300;
-  const H = 100;
-  const PAD = { top: 10, right: 8, bottom: 20, left: 28 };
-
+function ResourceGapChart({ gapColor }: { reserveMargin: number; gapColor: string }) {
   const capacityData = [68,69,70,71,72,72,73,74,74,73,72,71,70,70,71,72,73,74,73,72,71,70,69,68];
   const loadData     = [52,50,49,48,50,54,60,65,66,67,68,67,66,65,64,65,67,70,71,70,66,62,58,55];
+  const hourTickMap: Record<number, string> = { 0: '12A', 6: '6A', 12: '12P', 18: '6P', 23: '11P' };
+  const fullHourMap: Record<number, string> = { 0:'12A',1:'1A',2:'2A',3:'3A',4:'4A',5:'5A',6:'6A',7:'7A',8:'8A',9:'9A',10:'10A',11:'11A',12:'12P',13:'1P',14:'2P',15:'3P',16:'4P',17:'5P',18:'6P',19:'7P',20:'8P',21:'9P',22:'10P',23:'11P' };
 
-  const allVals = [...capacityData, ...loadData];
-  const minV = Math.min(...allVals) - 2;
-  const maxV = Math.max(...allVals) + 2;
-  const range = maxV - minV;
+  const data = capacityData.map((cap, i) => ({
+    hour: i,
+    load: loadData[i],
+    gap: cap - loadData[i],
+  }));
 
-  const toX = (i: number) => PAD.left + (i / (capacityData.length - 1)) * (W - PAD.left - PAD.right);
-  const toY = (v: number) => PAD.top + ((maxV - v) / range) * (H - PAD.top - PAD.bottom);
-
-  const capPts:  Array<[number, number]> = capacityData.map((v, i) => [toX(i), toY(v)]);
-  const loadPts: Array<[number, number]> = loadData.map((v, i) => [toX(i), toY(v)]);
-
-  const capacityPath = smoothLine(capPts);
-  const loadPath     = smoothLine(loadPts);
-
-  // Gap fill: smooth capacity path forward + smooth load path reversed
-  const loadReversed: Array<[number, number]> = [...loadPts].reverse();
-  const gapFill = smoothLine(capPts)
-    + ' ' + smoothLine(loadReversed).replace(/^M/, 'L')
-    + ' Z';
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const svgX = ((e.clientX - rect.left) / rect.width) * W;
-    const clamped = Math.max(PAD.left, Math.min(W - PAD.right, svgX));
-    const raw = ((clamped - PAD.left) / (W - PAD.left - PAD.right)) * (capacityData.length - 1);
-    setHoverIdx(Math.round(raw));
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
+    const h = payload[0]?.payload?.hour;
+    const load = payload[0]?.value ?? 0;
+    const gap  = payload[1]?.value ?? 0;
+    return (
+      <div style={{ background: C.bgElevated, border: `1px solid ${C.borderAccent}`, borderRadius: R.sm, padding: '6px 10px', fontFamily: F.mono }}>
+        <div style={{ fontSize: '8px', color: C.textMuted }}>{fullHourMap[h]}</div>
+        <div style={{ fontSize: '9px', color: C.electricBlue, marginTop: '3px' }}>CAP {(load + gap).toFixed(0)}GW</div>
+        <div style={{ fontSize: '9px', color: gapColor }}>GAP {gap.toFixed(0)}GW</div>
+      </div>
+    );
   };
 
-  const hourLabels = ['12A','1A','2A','3A','4A','5A','6A','7A','8A','9A','10A','11A','12P','1P','2P','3P','4P','5P','6P','7P','8P','9P','10P','11P'];
-
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible', cursor: 'crosshair' }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => setHoverIdx(null)}
-    >
-      <defs>
-        <linearGradient id="gapFillGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={gapColor} stopOpacity="0.28" />
-          <stop offset="100%" stopColor={gapColor} stopOpacity="0.07" />
-        </linearGradient>
-      </defs>
-      {/* Gap fill */}
-      <path d={gapFill} fill="url(#gapFillGrad)" />
-
-      {/* Y-axis labels */}
-      {[maxV, minV].map((v, i) => (
-        <text key={i} x={PAD.left - 3} y={toY(v) + 4} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}>
-          {v.toFixed(0)}
-        </text>
-      ))}
-
-      {/* Hour labels */}
-      {[0, 6, 12, 18, 23].map(i => (
-        <text key={i} x={toX(i)} y={H - 4} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}>
-          {i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : '11P'}
-        </text>
-      ))}
-
-      {/* Load line */}
-      <path d={loadPath} fill="none" stroke={C.textSecondary} strokeWidth="1.5" strokeOpacity="0.6" />
-
-      {/* Capacity line */}
-      <path d={capacityPath} fill="none" stroke={C.electricBlue} strokeWidth="2" />
-
-      {/* Line labels */}
-      <text x={toX(23) - 2} y={toY(capacityData[23]) - 4} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.electricBlue }}>CAP</text>
-      <text x={toX(23) - 2} y={toY(loadData[23]) + 10} textAnchor="end" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textSecondary }}>LOAD</text>
-
-      {/* Hover crosshair */}
-      {hoverIdx !== null && (() => {
-        const cx = toX(hoverIdx);
-        const cy_cap = toY(capacityData[hoverIdx]);
-        const cy_load = toY(loadData[hoverIdx]);
-        const gap = capacityData[hoverIdx] - loadData[hoverIdx];
-        const tipW = 58;
-        const tipH = 40;
-        const tipX = Math.min(cx + 6, W - PAD.right - tipW);
-        const tipY = Math.max(PAD.top, Math.min((cy_cap + cy_load) / 2 - tipH / 2, H - PAD.bottom - tipH));
-        return (
-          <g>
-            <line x1={cx} y1={PAD.top} x2={cx} y2={H - PAD.bottom} stroke={C.electricBlue} strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
-            <circle cx={cx} cy={cy_cap} r="3" fill={C.bgBase} stroke={C.electricBlue} strokeWidth="1.5" />
-            <circle cx={cx} cy={cy_load} r="3" fill={C.bgBase} stroke={C.textSecondary} strokeWidth="1.5" />
-            <rect x={tipX} y={tipY} width={tipW} height={tipH} rx="3" fill={C.bgElevated} stroke={C.borderDefault} strokeWidth="1" />
-            <text x={tipX + tipW / 2} y={tipY + 10} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '8px', fill: C.textMuted }}>{hourLabels[hoverIdx]}</text>
-            <text x={tipX + tipW / 2} y={tipY + 22} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: C.electricBlue }}>CAP {capacityData[hoverIdx]}GW</text>
-            <text x={tipX + tipW / 2} y={tipY + 33} textAnchor="middle" style={{ fontFamily: F.mono, fontSize: '9px', fill: gapColor }}>GAP {gap.toFixed(0)}GW</text>
-          </g>
-        );
-      })()}
-    </svg>
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data} margin={{ top: 10, right: 8, bottom: 20, left: 28 }}>
+        <defs>
+          <linearGradient id="gapFillGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={gapColor} stopOpacity={0.28} />
+            <stop offset="100%" stopColor={gapColor} stopOpacity={0.07} />
+          </linearGradient>
+        </defs>
+        <XAxis
+          dataKey="hour"
+          type="number"
+          domain={[0, 23]}
+          ticks={[0, 6, 12, 18, 23]}
+          tickFormatter={h => hourTickMap[h] ?? ''}
+          tick={{ fontFamily: F.mono, fontSize: 8, fill: C.textMuted }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          tick={{ fontFamily: F.mono, fontSize: 8, fill: C.textMuted }}
+          axisLine={false}
+          tickLine={false}
+          width={28}
+          tickFormatter={v => Number(v).toFixed(0)}
+        />
+        <Tooltip
+          content={<CustomTooltip />}
+          cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.6 }}
+        />
+        <Area dataKey="load" stackId="1" fill="transparent" stroke={C.textSecondary} strokeWidth={1.5} strokeOpacity={0.6} dot={false} type="monotone" isAnimationActive={false} />
+        <Area dataKey="gap" stackId="1" fill="url(#gapFillGrad)" stroke={C.electricBlue} strokeWidth={2} dot={false} type="monotone" isAnimationActive={false} />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -1427,8 +1268,10 @@ function GapKPIView({ selectedZone }: { selectedZone: string | null }) {
               </div>
 
               {/* Chart */}
-              <div style={{ flex: 1, minHeight: '260px' }}>
-                <ResourceGapChart reserveMargin={reserveMargin} gapColor={gapColor} />
+              <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+                <div style={{ position: 'absolute', inset: 0 }}>
+                  <ResourceGapChart reserveMargin={reserveMargin} gapColor={gapColor} />
+                </div>
               </div>
 
               {/* Bottom panels */}

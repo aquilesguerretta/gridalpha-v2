@@ -3,7 +3,7 @@ import { C } from '@/design/tokens';
 import { createPortal } from 'react-dom'
 import {
   AreaChart, Area, ComposedChart, Line,
-  XAxis, YAxis, Tooltip, ReferenceLine,
+  XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid,
   ResponsiveContainer,
 } from 'recharts'
 
@@ -51,19 +51,22 @@ function LMPExpandedSystem() {
           24H LMP TREND — WEST HUB
         </span>
         <div style={{ flex: 1, minHeight: 0, marginTop: '8px' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={hubPrices.map((p, i) => ({ hour: i, price: p }))} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="hubAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={C.electricBlue} stopOpacity={0.05} />
-                  <stop offset="100%" stopColor={C.electricBlue} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="hour" hide />
-              <YAxis hide domain={['auto', 'auto']} />
-              <Area dataKey="price" fill="url(#hubAreaGrad)" stroke={C.electricBlue} strokeWidth={2} dot={false} type="monotone" isAnimationActive={false} />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: '8px', padding: '4px', boxSizing: 'border-box' as const }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={hubPrices.map((p, i) => ({ hour: i, price: p }))} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="hubAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor={C.electricBlue} stopOpacity={0.30} />
+                    <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.04} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.08)" vertical={false} />
+                <XAxis dataKey="hour" hide />
+                <YAxis hide domain={['auto', 'auto']} />
+                <Area dataKey="price" fill="url(#hubAreaGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={false} type="monotone" isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
@@ -321,11 +324,11 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             if (zonePrice == null) return null
             const spread = hubPrice != null ? zonePrice - hubPrice : null
             return (
-              <div style={{ background: '#0A0A0B', border: '0.5px solid rgba(6,182,212,0.25)', padding: '8px 12px', fontFamily: "'Geist Mono', monospace" }}>
-                <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', letterSpacing: '2px', marginBottom: '4px' }}>{label}:00</div>
-                <div style={{ fontSize: '16px', color: '#FFFFFF', fontWeight: 'bold' }}>${zonePrice.toFixed(2)}/MWh</div>
+              <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: '6px', padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+                <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: 'rgba(229,231,235,0.55)', marginBottom: '5px', letterSpacing: '0.06em' }}>{label}:00</div>
+                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '15px', fontWeight: '600', color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>${zonePrice.toFixed(2)}/MWh</div>
                 {spread != null && (
-                  <div style={{ fontSize: '10px', color: spread > 0 ? 'rgba(255,183,0,0.8)' : 'rgba(6,182,212,0.8)', marginTop: '2px' }}>
+                  <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: spread > 0 ? 'rgba(255,183,0,0.9)' : 'rgba(6,182,212,0.9)', marginTop: '3px', fontVariantNumeric: 'tabular-nums' }}>
                     {spread >= 0 ? '+' : ''}{spread.toFixed(2)} vs Hub
                   </div>
                 )}
@@ -342,42 +345,45 @@ function LMPExpandedZone({ zone }: { zone: string }) {
 
           return (
             <div style={{ flex: 1, minHeight: 0 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 10, right: 16, bottom: 20, left: 8 }}>
-                  <defs>
-                    <linearGradient id="zoneAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={C.electricBlue} stopOpacity={0.08} />
-                      <stop offset="100%" stopColor={C.electricBlue} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="hour"
-                    type="number"
-                    domain={[0, 23]}
-                    ticks={[0, 3, 6, 9, 12, 15, 18, 21, 23]}
-                    tickFormatter={h => `${h}:00`}
-                    tick={{ fontFamily: 'monospace', fontSize: 11, fill: 'rgba(255,255,255,0.20)' }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    domain={[PRICE_MIN, PRICE_MAX]}
-                    ticks={[25, 30, 35, 40, 45, 50, 55, 60]}
-                    tickFormatter={v => `$${v}`}
-                    tick={{ fontFamily: 'monospace', fontSize: 12, fill: 'rgba(255,255,255,0.20)' }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={40}
-                  />
-                  <ReferenceLine y={data.avg24h} stroke="rgba(255,255,255,0.12)" strokeDasharray="4 4" strokeWidth={1} />
-                  <Tooltip
-                    content={<LMPTooltip />}
-                    cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1, strokeDasharray: '3 3' }}
-                  />
-                  <Area dataKey="zone" fill="url(#zoneAreaGrad)" stroke={C.electricBlue} strokeWidth={2} dot={<PeakDot />} type="monotone" isAnimationActive={false} />
-                  <Line dataKey="hub" stroke="rgba(255,255,255,0.18)" strokeDasharray="4 4" strokeWidth={1.5} dot={false} type="monotone" isAnimationActive={false} />
-                </ComposedChart>
-              </ResponsiveContainer>
+              <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: '8px', padding: '4px', boxSizing: 'border-box' as const }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={chartData} margin={{ top: 10, right: 16, bottom: 20, left: 8 }}>
+                    <defs>
+                      <linearGradient id="zoneAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={C.electricBlue} stopOpacity={0.30} />
+                        <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
+                    <XAxis
+                      dataKey="hour"
+                      type="number"
+                      domain={[0, 23]}
+                      ticks={[0, 3, 6, 9, 12, 15, 18, 21, 23]}
+                      tickFormatter={h => `${h}:00`}
+                      tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+                      axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      domain={[PRICE_MIN, PRICE_MAX]}
+                      ticks={[25, 30, 35, 40, 45, 50, 55, 60]}
+                      tickFormatter={v => `$${v}`}
+                      tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={40}
+                    />
+                    <ReferenceLine y={data.avg24h} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" strokeWidth={1} />
+                    <Tooltip
+                      content={<LMPTooltip />}
+                      cursor={{ stroke: 'rgba(255,255,255,0.20)', strokeWidth: 1, strokeDasharray: '3 3' }}
+                    />
+                    <Area dataKey="zone" fill="url(#zoneAreaGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={<PeakDot />} type="monotone" isAnimationActive={false} />
+                    <Line dataKey="hub" stroke="rgba(255,255,255,0.28)" strokeDasharray="4 4" strokeWidth={1.5} dot={false} type="monotone" isAnimationActive={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )
         })()}

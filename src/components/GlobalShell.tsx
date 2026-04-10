@@ -4,7 +4,7 @@ import { C, F, R, S, T } from '@/design/tokens';
 import {
   AreaChart, Area, ComposedChart, Line,
   XAxis, YAxis, Tooltip, ReferenceLine, ReferenceArea,
-  ResponsiveContainer,
+  ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
@@ -434,9 +434,11 @@ function SparkSpreadChart({
     if (!entry) return null;
     const val: number = entry.value;
     return (
-      <div style={{ background: C.bgElevated, border: `1px solid ${C.borderAccent}`, borderRadius: R.sm, padding: '6px 10px', fontFamily: F.mono }}>
-        <div style={{ fontSize: '8px', color: C.textMuted, letterSpacing: '0.1em' }}>{fullHourMap[entry.payload.hour]}</div>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: val >= 0 ? C.falconGold : C.alertCritical, marginTop: '2px' }}>
+      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: R.md, padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+        <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: C.textMuted, marginBottom: '5px', letterSpacing: '0.06em' }}>
+          {fullHourMap[entry.payload.hour]}
+        </div>
+        <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: 600, color: val >= 0 ? C.falconGold : C.alertCritical, fontVariantNumeric: 'tabular-nums' }}>
           {val >= 0 ? `+${val.toFixed(1)}` : val.toFixed(1)}
         </div>
       </div>
@@ -444,52 +446,55 @@ function SparkSpreadChart({
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 16, right: 8, bottom: 24, left: 36 }}>
-        <defs>
-          <linearGradient id="ssAboveGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={C.falconGold} stopOpacity={0.25} />
-            <stop offset="100%" stopColor={C.falconGold} stopOpacity={0.04} />
-          </linearGradient>
-          <linearGradient id="ssBelowGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={C.alertCritical} stopOpacity={0.04} />
-            <stop offset="100%" stopColor={C.alertCritical} stopOpacity={0.20} />
-          </linearGradient>
-        </defs>
-        <XAxis
-          dataKey="hour"
-          type="number"
-          domain={[0, 23]}
-          ticks={[0, 6, 12, 18, 23]}
-          tickFormatter={h => hourTickMap[h] ?? ''}
-          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          domain={[minVal, maxVal]}
-          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
-          axisLine={false}
-          tickLine={false}
-          tickFormatter={v => v > 0 ? `+${Number(v).toFixed(0)}` : Number(v).toFixed(0)}
-          width={34}
-        />
-        <ReferenceLine
-          y={0}
-          stroke={C.textMuted}
-          strokeDasharray="3 3"
-          strokeOpacity={0.5}
-          label={{ value: 'BREAKEVEN', position: 'insideTopLeft', offset: 4, style: { fontFamily: F.mono, fontSize: 8, fill: C.textMuted } }}
-        />
-        <Tooltip
-          content={<CustomTooltip />}
-          cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.7 }}
-        />
-        <Area dataKey="positive" fill="url(#ssAboveGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
-        <Area dataKey="negative" fill="url(#ssBelowGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
-        <Area dataKey="value" fill="none" stroke={lineColor} strokeWidth={1.5} dot={false} type="monotone" baseValue={0} isAnimationActive={false} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: '4px', boxSizing: 'border-box' as const }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 16, right: 8, bottom: 24, left: 36 }}>
+          <defs>
+            <linearGradient id="ssAboveGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor={C.falconGold}    stopOpacity={0.45} />
+              <stop offset="95%" stopColor={C.falconGold}    stopOpacity={0.08} />
+            </linearGradient>
+            <linearGradient id="ssBelowGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor={C.alertCritical} stopOpacity={0.08} />
+              <stop offset="95%" stopColor={C.alertCritical} stopOpacity={0.40} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
+          <XAxis
+            dataKey="hour"
+            type="number"
+            domain={[0, 23]}
+            ticks={[0, 6, 12, 18, 23]}
+            tickFormatter={h => hourTickMap[h] ?? ''}
+            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+            axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[minVal, maxVal]}
+            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={v => v > 0 ? `+${Number(v).toFixed(0)}` : Number(v).toFixed(0)}
+            width={34}
+          />
+          <ReferenceLine
+            y={0}
+            stroke={C.textMuted}
+            strokeDasharray="3 3"
+            strokeOpacity={0.5}
+            label={{ value: 'BREAKEVEN', position: 'insideTopLeft', offset: 4, style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.textMuted } }}
+          />
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.7 }}
+          />
+          <Area dataKey="positive" fill="url(#ssAboveGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
+          <Area dataKey="negative" fill="url(#ssBelowGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
+          <Area dataKey="value" fill="none" stroke={lineColor} strokeWidth={2.5} dot={false} type="monotone" baseValue={0} isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -836,53 +841,61 @@ function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
     const h = payload[0].payload.hour;
     const v = payload[0].value;
     return (
-      <div style={{ background: C.bgElevated, border: `1px solid ${C.borderAccent}`, borderRadius: R.sm, padding: '5px 8px', fontFamily: F.mono }}>
-        <div style={{ fontSize: '9px', color: C.textPrimary, fontWeight: 600 }}>{h}H · {v}%</div>
+      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: R.md, padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+        <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: C.textMuted, marginBottom: '5px', letterSpacing: '0.06em' }}>
+          {hourTickMap[h] ?? `${h}H`}
+        </div>
+        <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: 600, color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>
+          {v}%
+        </div>
       </div>
     );
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 12, right: 8, bottom: 24, left: 36 }}>
-        <defs>
-          <linearGradient id="socFillGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={C.electricBlue} stopOpacity={0.25} />
-            <stop offset="100%" stopColor={C.electricBlue} stopOpacity={0.03} />
-          </linearGradient>
-        </defs>
-        <XAxis
-          dataKey="hour"
-          type="number"
-          domain={[0, 23]}
-          ticks={[0, 6, 12, 18, 23]}
-          tickFormatter={h => hourTickMap[h] ?? ''}
-          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          domain={[0, 100]}
-          ticks={[0, 50, 100]}
-          tickFormatter={v => `${v}%`}
-          tick={{ fontFamily: F.mono, fontSize: 9, fill: C.textMuted }}
-          axisLine={false}
-          tickLine={false}
-          width={34}
-        />
-        <ReferenceArea x1={6} x2={10} fill={C.electricBlue} fillOpacity={0.06}
-          label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 8, fill: C.electricBlue, fillOpacity: 0.7 } }}
-        />
-        <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.08}
-          label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 8, fill: C.falconGold, fillOpacity: 0.7 } }}
-        />
-        <Tooltip
-          content={<CustomTooltip />}
-          cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '2 2', strokeOpacity: 0.5 }}
-        />
-        <Area dataKey="value" fill="url(#socFillGrad)" stroke={C.electricBlue} strokeWidth={2} dot={false} type="monotone" isAnimationActive={false} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: '4px', boxSizing: 'border-box' as const }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 12, right: 8, bottom: 24, left: 36 }}>
+          <defs>
+            <linearGradient id="socFillGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor={C.electricBlue} stopOpacity={0.40} />
+              <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.06} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
+          <XAxis
+            dataKey="hour"
+            type="number"
+            domain={[0, 23]}
+            ticks={[0, 6, 12, 18, 23]}
+            tickFormatter={h => hourTickMap[h] ?? ''}
+            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+            axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[0, 100]}
+            ticks={[0, 50, 100]}
+            tickFormatter={v => `${v}%`}
+            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+            axisLine={false}
+            tickLine={false}
+            width={34}
+          />
+          <ReferenceArea x1={6} x2={10} fill={C.electricBlue} fillOpacity={0.06}
+            label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 8, fill: C.electricBlue, fillOpacity: 0.7 } }}
+          />
+          <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.08}
+            label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 8, fill: C.falconGold, fillOpacity: 0.7 } }}
+          />
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '2 2', strokeOpacity: 0.5 }}
+          />
+          <Area dataKey="value" fill="url(#socFillGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={false} type="monotone" isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -1095,48 +1108,57 @@ function ResourceGapChart({ gapColor }: { reserveMargin: number; gapColor: strin
     const load = payload[0]?.value ?? 0;
     const gap  = payload[1]?.value ?? 0;
     return (
-      <div style={{ background: C.bgElevated, border: `1px solid ${C.borderAccent}`, borderRadius: R.sm, padding: '6px 10px', fontFamily: F.mono }}>
-        <div style={{ fontSize: '8px', color: C.textMuted }}>{fullHourMap[h]}</div>
-        <div style={{ fontSize: '9px', color: C.electricBlue, marginTop: '3px' }}>CAP {(load + gap).toFixed(0)}GW</div>
-        <div style={{ fontSize: '9px', color: gapColor }}>GAP {gap.toFixed(0)}GW</div>
+      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: R.md, padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+        <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: C.textMuted, marginBottom: '5px', letterSpacing: '0.06em' }}>
+          {fullHourMap[h]}
+        </div>
+        <div style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>
+          CAP {(load + gap).toFixed(0)} GW
+        </div>
+        <div style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: gapColor, fontVariantNumeric: 'tabular-nums', marginTop: '2px' }}>
+          GAP {gap.toFixed(0)} GW
+        </div>
       </div>
     );
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 10, right: 8, bottom: 20, left: 28 }}>
-        <defs>
-          <linearGradient id="gapFillGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={gapColor} stopOpacity={0.28} />
-            <stop offset="100%" stopColor={gapColor} stopOpacity={0.07} />
-          </linearGradient>
-        </defs>
-        <XAxis
-          dataKey="hour"
-          type="number"
-          domain={[0, 23]}
-          ticks={[0, 6, 12, 18, 23]}
-          tickFormatter={h => hourTickMap[h] ?? ''}
-          tick={{ fontFamily: F.mono, fontSize: 8, fill: C.textMuted }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <YAxis
-          tick={{ fontFamily: F.mono, fontSize: 8, fill: C.textMuted }}
-          axisLine={false}
-          tickLine={false}
-          width={28}
-          tickFormatter={v => Number(v).toFixed(0)}
-        />
-        <Tooltip
-          content={<CustomTooltip />}
-          cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.6 }}
-        />
-        <Area dataKey="load" stackId="1" fill="transparent" stroke={C.textSecondary} strokeWidth={1.5} strokeOpacity={0.6} dot={false} type="monotone" isAnimationActive={false} />
-        <Area dataKey="gap" stackId="1" fill="url(#gapFillGrad)" stroke={C.electricBlue} strokeWidth={2} dot={false} type="monotone" isAnimationActive={false} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: '4px', boxSizing: 'border-box' as const }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 10, right: 8, bottom: 20, left: 28 }}>
+          <defs>
+            <linearGradient id="gapFillGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor={gapColor} stopOpacity={0.35} />
+              <stop offset="95%" stopColor={gapColor} stopOpacity={0.06} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
+          <XAxis
+            dataKey="hour"
+            type="number"
+            domain={[0, 23]}
+            ticks={[0, 6, 12, 18, 23]}
+            tickFormatter={h => hourTickMap[h] ?? ''}
+            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+            axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+            axisLine={false}
+            tickLine={false}
+            width={28}
+            tickFormatter={v => Number(v).toFixed(0)}
+          />
+          <Tooltip
+            content={<CustomTooltip />}
+            cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.6 }}
+          />
+          <Area dataKey="load" stackId="1" fill="transparent" stroke={C.textSecondary} strokeWidth={2} strokeOpacity={0.6} dot={false} type="monotone" isAnimationActive={false} />
+          <Area dataKey="gap" stackId="1" fill="url(#gapFillGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={false} type="monotone" isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

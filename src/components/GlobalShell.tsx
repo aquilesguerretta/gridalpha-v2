@@ -404,94 +404,50 @@ function detectRegime(zone: string | null): Regime {
 }
 
 // ── SparkSpreadChart ─────────────────────────────────────────────
-function SparkSpreadChart({
-  history,
-  regime,
-}: {
-  history: number[];
-  regime: 'BURNING' | 'SUPPRESSED' | 'NEUTRAL';
-}) {
-  const lineColor = regime === 'BURNING' ? C.falconGold
-    : regime === 'SUPPRESSED' ? C.alertCritical
-    : C.textSecondary;
-
-  const hourTickMap: Record<number, string> = { 0: '12A', 6: '6A', 12: '12P', 18: '6P', 23: '11P' };
-  const fullHourMap: Record<number, string> = { 0:'12A',1:'1A',2:'2A',3:'3A',4:'4A',5:'5A',6:'6A',7:'7A',8:'8A',9:'9A',10:'10A',11:'11A',12:'12P',13:'1P',14:'2P',15:'3P',16:'4P',17:'5P',18:'6P',19:'7P',20:'8P',21:'9P',22:'10P',23:'11P' };
-
-  const minVal = Math.min(...history, -5);
-  const maxVal = Math.max(...history, 5);
-
-  const data = history.map((v, i) => ({
-    hour: i,
-    positive: Math.max(v, 0),
-    negative: Math.min(v, 0),
-    value: v,
+function SparkSpreadChart({ history, regime }: { history: number[]; regime: 'BURNING' | 'SUPPRESSED' | 'NEUTRAL' }) {
+  const lineColor = regime === 'BURNING' ? C.falconGold : regime === 'SUPPRESSED' ? C.alertCritical : C.textSecondary;
+  void lineColor; // referenced by regime, kept for future use
+  const data = history.map((value, i) => ({
+    i,
+    label: i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : i === 23 ? '11P' : String(i),
+    positive: value >= 0 ? value : 0,
+    negative: value < 0 ? value : 0,
+    value,
   }));
-
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
-    const entry = payload.find((p: any) => p.dataKey === 'value');
-    if (!entry) return null;
-    const val: number = entry.value;
+    const v = payload[0]?.payload?.value ?? 0;
+    const lbl = payload[0]?.payload?.label;
     return (
-      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: R.md, padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-        <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: C.textMuted, marginBottom: '5px', letterSpacing: '0.06em' }}>
-          {fullHourMap[entry.payload.hour]}
-        </div>
-        <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: 600, color: val >= 0 ? C.falconGold : C.alertCritical, fontVariantNumeric: 'tabular-nums' }}>
-          {val >= 0 ? `+${val.toFixed(1)}` : val.toFixed(1)}
+      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
+        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{lbl}</div>
+        <div style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: v >= 0 ? C.falconGold : C.alertCritical, fontVariantNumeric: 'tabular-nums' }}>
+          {v >= 0 ? '+' : ''}{v.toFixed(1)} $/MWh
         </div>
       </div>
     );
   };
-
   return (
-    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: '4px', boxSizing: 'border-box' as const }}>
+    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: 4, boxSizing: 'border-box' }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 16, right: 8, bottom: 24, left: 36 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: 8 }}>
           <defs>
-            <linearGradient id="ssAboveGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={C.falconGold}    stopOpacity={0.45} />
-              <stop offset="95%" stopColor={C.falconGold}    stopOpacity={0.08} />
+            <linearGradient id="posGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={C.falconGold} stopOpacity={0.45} />
+              <stop offset="95%" stopColor={C.falconGold} stopOpacity={0.08} />
             </linearGradient>
-            <linearGradient id="ssBelowGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={C.alertCritical} stopOpacity={0.08} />
+            <linearGradient id="negGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={C.alertCritical} stopOpacity={0.08} />
               <stop offset="95%" stopColor={C.alertCritical} stopOpacity={0.40} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis
-            dataKey="hour"
-            type="number"
-            domain={[0, 23]}
-            ticks={[0, 6, 12, 18, 23]}
-            tickFormatter={h => hourTickMap[h] ?? ''}
-            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
-            axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
-            tickLine={false}
-          />
-          <YAxis
-            domain={[minVal, maxVal]}
-            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
-            axisLine={false}
-            tickLine={false}
-            tickFormatter={v => v > 0 ? `+${Number(v).toFixed(0)}` : Number(v).toFixed(0)}
-            width={34}
-          />
-          <ReferenceLine
-            y={0}
-            stroke={C.textMuted}
-            strokeDasharray="3 3"
-            strokeOpacity={0.5}
-            label={{ value: 'BREAKEVEN', position: 'insideTopLeft', offset: 4, style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.textMuted } }}
-          />
-          <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.7 }}
-          />
-          <Area dataKey="positive" fill="url(#ssAboveGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
-          <Area dataKey="negative" fill="url(#ssBelowGrad)" stroke="none" baseValue={0} isAnimationActive={false} />
-          <Area dataKey="value" fill="none" stroke={lineColor} strokeWidth={2.5} dot={false} type="monotone" baseValue={0} isAnimationActive={false} />
+          <XAxis dataKey="label" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
+          <YAxis tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => v > 0 ? `+${v}` : String(v)} width={36} />
+          <ReferenceLine y={0} stroke={C.textMuted} strokeDasharray="4 4" strokeOpacity={0.6} label={{ value: 'BREAKEVEN', position: 'insideTopLeft', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.textMuted } }} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
+          <Area type="monotone" dataKey="positive" stroke={C.falconGold} strokeWidth={2.5} fill="url(#posGrad)" dot={false} activeDot={{ r: 5, fill: C.falconGold, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} />
+          <Area type="monotone" dataKey="negative" stroke={C.alertCritical} strokeWidth={2.5} fill="url(#negGrad)" dot={false} activeDot={{ r: 5, fill: C.alertCritical, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -832,67 +788,36 @@ function SOCGauge({ soc, size = 140 }: { soc: number; size?: number }) {
 
 // ── SOCProfileChart ───────────────────────────────────────────────
 function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
-  const hourTickMap: Record<number, string> = { 0: '12A', 6: '6A', 12: '12P', 18: '6P', 23: '11P' };
-
-  const data = socHistory.map((v, i) => ({ hour: i, value: v }));
-
+  const data = socHistory.map((soc, i) => ({
+    i, soc,
+    label: i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : i === 23 ? '11P' : String(i),
+  }));
   const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload?.[0]) return null;
-    const h = payload[0].payload.hour;
-    const v = payload[0].value;
+    if (!active || !payload?.length) return null;
     return (
-      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: R.md, padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-        <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: C.textMuted, marginBottom: '5px', letterSpacing: '0.06em' }}>
-          {hourTickMap[h] ?? `${h}H`}
-        </div>
-        <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: 600, color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>
-          {v}%
-        </div>
+      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
+        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{payload[0]?.payload?.label}</div>
+        <div style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>{payload[0]?.value}% SOC</div>
       </div>
     );
   };
-
   return (
-    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: '4px', boxSizing: 'border-box' as const }}>
+    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: 4, boxSizing: 'border-box' }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 12, right: 8, bottom: 24, left: 36 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: 8 }}>
           <defs>
-            <linearGradient id="socFillGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={C.electricBlue} stopOpacity={0.40} />
+            <linearGradient id="socGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={C.electricBlue} stopOpacity={0.40} />
               <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.06} />
             </linearGradient>
           </defs>
+          <ReferenceArea x1={2} x2={6} fill={C.electricBlue} fillOpacity={0.08} label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.electricBlue } }} />
+          <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.10} label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.falconGold } }} />
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis
-            dataKey="hour"
-            type="number"
-            domain={[0, 23]}
-            ticks={[0, 6, 12, 18, 23]}
-            tickFormatter={h => hourTickMap[h] ?? ''}
-            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
-            axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
-            tickLine={false}
-          />
-          <YAxis
-            domain={[0, 100]}
-            ticks={[0, 50, 100]}
-            tickFormatter={v => `${v}%`}
-            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
-            axisLine={false}
-            tickLine={false}
-            width={34}
-          />
-          <ReferenceArea x1={6} x2={10} fill={C.electricBlue} fillOpacity={0.06}
-            label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 8, fill: C.electricBlue, fillOpacity: 0.7 } }}
-          />
-          <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.08}
-            label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 8, fill: C.falconGold, fillOpacity: 0.7 } }}
-          />
-          <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '2 2', strokeOpacity: 0.5 }}
-          />
-          <Area dataKey="value" fill="url(#socFillGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={false} type="monotone" isAnimationActive={false} />
+          <XAxis dataKey="label" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
+          <YAxis domain={[0, 100]} tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
+          <Area type="monotone" dataKey="soc" stroke={C.electricBlue} strokeWidth={2.5} fill="url(#socGrad)" dot={false} activeDot={{ r: 5, fill: C.electricBlue, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -1090,73 +1015,43 @@ function BatteryKPIView({ selectedZone }: { selectedZone: string | null }) {
 }
 
 // ── ResourceGapChart ──────────────────────────────────────────────
-function ResourceGapChart({ gapColor }: { reserveMargin: number; gapColor: string }) {
-  const capacityData = [68,69,70,71,72,72,73,74,74,73,72,71,70,70,71,72,73,74,73,72,71,70,69,68];
-  const loadData     = [52,50,49,48,50,54,60,65,66,67,68,67,66,65,64,65,67,70,71,70,66,62,58,55];
-  const hourTickMap: Record<number, string> = { 0: '12A', 6: '6A', 12: '12P', 18: '6P', 23: '11P' };
-  const fullHourMap: Record<number, string> = { 0:'12A',1:'1A',2:'2A',3:'3A',4:'4A',5:'5A',6:'6A',7:'7A',8:'8A',9:'9A',10:'10A',11:'11A',12:'12P',13:'1P',14:'2P',15:'3P',16:'4P',17:'5P',18:'6P',19:'7P',20:'8P',21:'9P',22:'10P',23:'11P' };
-
-  const data = capacityData.map((cap, i) => ({
-    hour: i,
-    load: loadData[i],
-    gap: cap - loadData[i],
+function ResourceGapChart({ capacity, load, regime }: { capacity: number[]; load: number[]; regime: 'ADEQUATE' | 'TIGHT' | 'EMERGENCY' }) {
+  const gapColor = regime === 'ADEQUATE' ? C.alertNormal : regime === 'TIGHT' ? C.falconGold : C.alertCritical;
+  const data = capacity.map((cap, i) => ({
+    i, cap, load: load[i],
+    label: i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : i === 23 ? '11P' : String(i),
   }));
-
   const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload?.length) return null;
-    const h = payload[0]?.payload?.hour;
-    const load = payload[0]?.value ?? 0;
-    const gap  = payload[1]?.value ?? 0;
+    const cap = payload.find((p: any) => p.dataKey === 'cap')?.value;
+    const ld  = payload.find((p: any) => p.dataKey === 'load')?.value;
     return (
-      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: R.md, padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-        <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: C.textMuted, marginBottom: '5px', letterSpacing: '0.06em' }}>
-          {fullHourMap[h]}
-        </div>
-        <div style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>
-          CAP {(load + gap).toFixed(0)} GW
-        </div>
-        <div style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 600, color: gapColor, fontVariantNumeric: 'tabular-nums', marginTop: '2px' }}>
-          GAP {gap.toFixed(0)} GW
-        </div>
+      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
+        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 6 }}>{payload[0]?.payload?.label}</div>
+        <div style={{ fontFamily: F.mono, fontSize: 12, color: C.electricBlue, marginBottom: 3 }}>CAP {cap} GW</div>
+        <div style={{ fontFamily: F.mono, fontSize: 12, color: C.textSecondary, marginBottom: 3 }}>LOAD {ld} GW</div>
+        <div style={{ fontFamily: F.mono, fontSize: 12, color: gapColor, fontWeight: 600 }}>GAP {cap != null && ld != null ? (cap - ld).toFixed(1) : '—'} GW</div>
       </div>
     );
   };
-
   return (
-    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: '4px', boxSizing: 'border-box' as const }}>
+    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: 4, boxSizing: 'border-box' }}>
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 8, bottom: 20, left: 28 }}>
+        <ComposedChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: 8 }}>
           <defs>
-            <linearGradient id="gapFillGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor={gapColor} stopOpacity={0.35} />
+            <linearGradient id="gapGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={gapColor} stopOpacity={0.35} />
               <stop offset="95%" stopColor={gapColor} stopOpacity={0.06} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis
-            dataKey="hour"
-            type="number"
-            domain={[0, 23]}
-            ticks={[0, 6, 12, 18, 23]}
-            tickFormatter={h => hourTickMap[h] ?? ''}
-            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
-            axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
-            tickLine={false}
-          />
-          <YAxis
-            tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
-            axisLine={false}
-            tickLine={false}
-            width={28}
-            tickFormatter={v => Number(v).toFixed(0)}
-          />
-          <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3', strokeOpacity: 0.6 }}
-          />
-          <Area dataKey="load" stackId="1" fill="transparent" stroke={C.textSecondary} strokeWidth={2} strokeOpacity={0.6} dot={false} type="monotone" isAnimationActive={false} />
-          <Area dataKey="gap" stackId="1" fill="url(#gapFillGrad)" stroke={C.electricBlue} strokeWidth={2.5} dot={false} type="monotone" isAnimationActive={false} />
-        </AreaChart>
+          <XAxis dataKey="label" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
+          <YAxis tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} width={40} domain={['auto', 'auto']} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
+          <Area type="monotone" dataKey="cap" fill="url(#gapGrad)" stroke="none" isAnimationActive={false} legendType="none" />
+          <Line type="monotone" dataKey="cap"  stroke={C.electricBlue}   strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C.electricBlue,   stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} name="CAPACITY" />
+          <Line type="monotone" dataKey="load" stroke={C.textSecondary} strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C.textSecondary, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} name="LOAD" />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
@@ -1178,6 +1073,9 @@ function GapKPIView({ selectedZone }: { selectedZone: string | null }) {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [expanded]);
+
+  const capacityData = [68,69,70,71,72,72,73,74,74,73,72,71,70,70,71,72,73,74,73,72,71,70,69,68];
+  const loadData     = [52,50,49,48,50,54,60,65,66,67,68,67,66,65,64,65,67,70,71,70,66,62,58,55];
 
   const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4;
   const gapColor   = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue;
@@ -1292,7 +1190,7 @@ function GapKPIView({ selectedZone }: { selectedZone: string | null }) {
               {/* Chart */}
               <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
                 <div style={{ position: 'absolute', inset: 0 }}>
-                  <ResourceGapChart reserveMargin={reserveMargin} gapColor={gapColor} />
+                  <ResourceGapChart capacity={capacityData} load={loadData} regime={badgeLabel as 'ADEQUATE' | 'TIGHT' | 'EMERGENCY'} />
                 </div>
               </div>
 

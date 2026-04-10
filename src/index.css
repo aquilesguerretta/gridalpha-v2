@@ -626,3 +626,27 @@ html, body, #root, [data-reactroot] {
   background-color: var(--bg-base) !important;
   font-family: 'Geist Mono', monospace !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Grid Atlas — Range Input Thumb
+   ═══════════════════════════════════════════════════════════════════ */
+input[type='range']::-webkit-slider-thumb {
+  appearance:    none;
+  width:         14px;
+  height:        14px;
+  border-radius: 50%;
+  background:    #00A3FF;
+  border:        2px solid rgba(10,10,11,0.9);
+  cursor:        pointer;
+  box-shadow:    0 0 6px rgba(0,163,255,0.5);
+}
+
+input[type='range']::-moz-range-thumb {
+  width:         14px;
+  height:        14px;
+  border-radius: 50%;
+  background:    #00A3FF;
+  border:        2px solid rgba(10,10,11,0.9);
+  cursor:        pointer;
+  box-shadow:    0 0 6px rgba(0,163,255,0.5);
+}

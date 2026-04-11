@@ -12,6 +12,15 @@ import Map, {
   type LayerProps,
 } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import {
+  gasPipelineLayer,
+  substationLayer,
+  substationLabelLayer,
+} from './layers/infrastructureLayers';
+import {
+  earthquakeLayer,
+  earthquakeLabelLayer,
+} from './layers/intelligenceLayers';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -291,19 +300,27 @@ export interface GridAtlasMapHandle {
 // ── Props ─────────────────────────────────────────────────────────────────
 
 export interface GridAtlasMapProps {
-  mapStyle:      string;
-  zoneGeoJson:   GeoJSON.FeatureCollection | null;
-  txGeoJson:     GeoJSON.FeatureCollection | null;
-  plantGeoJson:  GeoJSON.FeatureCollection | null;
-  hubGeoJson:    GeoJSON.FeatureCollection | null;
-  showZones:     boolean;
-  showTx:        boolean;
-  showPlants:    boolean;
-  showNodes:     boolean;
-  showExtrusion: boolean;
-  onZoneClick:   (zoneId: string | null) => void;
-  onPlantHover:  (props: Record<string, unknown> | null, x: number, y: number) => void;
-  onZoneHover:   (name: string | null) => void;
+  mapStyle:           string;
+  zoneGeoJson:        GeoJSON.FeatureCollection | null;
+  txGeoJson:          GeoJSON.FeatureCollection | null;
+  plantGeoJson:       GeoJSON.FeatureCollection | null;
+  hubGeoJson:         GeoJSON.FeatureCollection | null;
+  substationGeoJson:  GeoJSON.FeatureCollection | null;
+  pipelineGeoJson:    GeoJSON.FeatureCollection | null;
+  earthquakeGeoJson:  GeoJSON.FeatureCollection | null;
+  flowArrowsGeoJson:  GeoJSON.FeatureCollection | null;
+  showZones:          boolean;
+  showTx:             boolean;
+  showPlants:         boolean;
+  showNodes:          boolean;
+  showExtrusion:      boolean;
+  showSubstations:    boolean;
+  showGasPipelines:   boolean;
+  showEarthquakes:    boolean;
+  showInterfaceFlows: boolean;
+  onZoneClick:        (zoneId: string | null) => void;
+  onPlantHover:       (props: Record<string, unknown> | null, x: number, y: number) => void;
+  onZoneHover:        (name: string | null) => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -312,7 +329,9 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
   function GridAtlasMap(
     {
       mapStyle, zoneGeoJson, txGeoJson, plantGeoJson, hubGeoJson,
+      substationGeoJson, pipelineGeoJson, earthquakeGeoJson, flowArrowsGeoJson,
       showZones, showTx, showPlants, showNodes, showExtrusion,
+      showSubstations, showGasPipelines, showEarthquakes, showInterfaceFlows,
       onZoneClick, onPlantHover, onZoneHover,
     },
     ref,
@@ -461,6 +480,59 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           <Source id="hub-nodes" type="geojson" data={hubGeoJson}>
             <Layer {...hubDotLayer} />
             <Layer {...hubLabelLayer} />
+          </Source>
+        )}
+
+        {/* Gas Pipelines */}
+        {styleLoaded && showGasPipelines && pipelineGeoJson && (
+          <Source id="gas-pipelines" type="geojson" data={pipelineGeoJson}>
+            <Layer {...gasPipelineLayer} />
+          </Source>
+        )}
+
+        {/* Substations */}
+        {styleLoaded && showSubstations && substationGeoJson && (
+          <Source id="substations" type="geojson" data={substationGeoJson}>
+            <Layer {...substationLayer} />
+            <Layer {...substationLabelLayer} />
+          </Source>
+        )}
+
+        {/* Earthquakes */}
+        {styleLoaded && showEarthquakes && earthquakeGeoJson && (
+          <Source id="earthquakes" type="geojson" data={earthquakeGeoJson}>
+            <Layer {...earthquakeLayer} />
+            <Layer {...earthquakeLabelLayer} />
+          </Source>
+        )}
+
+        {/* Interface Flow Arrows */}
+        {styleLoaded && showInterfaceFlows && flowArrowsGeoJson && flowArrowsGeoJson.features.length > 0 && (
+          <Source id="interface-flows" type="geojson" data={flowArrowsGeoJson}>
+            <Layer
+              id="flow-lines"
+              type="line"
+              paint={{
+                'line-color':   ['get', 'loading_color'] as any,
+                'line-width':    4,
+                'line-opacity':  0.9,
+              }}
+            />
+            <Layer
+              id="flow-labels"
+              type="symbol"
+              layout={{
+                'text-field':       ['get', 'flow_label'] as any,
+                'text-size':         11,
+                'text-font':        ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                'symbol-placement': 'line-center',
+              }}
+              paint={{
+                'text-color':       '#FFFFFF',
+                'text-halo-color':  'rgba(0,0,0,0.9)',
+                'text-halo-width':   2,
+              }}
+            />
           </Source>
         )}
       </Map>

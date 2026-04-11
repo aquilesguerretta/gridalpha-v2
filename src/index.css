@@ -631,6 +631,21 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   50%      { opacity: 0.4; }
 }
 
+@keyframes drawerIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); opacity: 0.4; }
+  50%      { transform: translateY(-4px); opacity: 1; }
+}
+
 /* FORCE FULLSCREEN OVERRIDE */
 html, body, #root, [data-reactroot] {
   height: 100vh !important;

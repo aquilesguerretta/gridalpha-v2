@@ -15,6 +15,7 @@ import {
 import { ErrorBoundary } from "./shared/ErrorBoundary";
 import { CardSkeleton } from "./shared/CardSkeleton";
 import GridAtlasView from "./atlas/GridAtlasView";
+import PeregrineFullPage from "./peregrine/PeregrineFullPage";
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -1519,7 +1520,7 @@ function GapFullPage({ selectedZone }: { selectedZone: string | null }) {
 }
 
 // ── PeregrineFeed ────────────────────────────────────────────────
-function PeregrineFeed({ onZoneClick }: { onZoneClick: (zoneId: string) => void }) {
+function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: string) => void; onOpenFull?: () => void }) {
   const [feedMode, setFeedMode]         = useState<'market' | 'news'>('market');
   const [activeFilter, setActiveFilter] = useState<AlertCategory | 'ALL'>('ALL');
   const [expandedId, setExpandedId]     = useState<string | null>(null);
@@ -1687,6 +1688,99 @@ function PeregrineFeed({ onZoneClick }: { onZoneClick: (zoneId: string) => void 
           </div>
         </div>
       )}
+
+      {/* Open full feed hint */}
+      {onOpenFull && (
+        <div onClick={onOpenFull} style={{
+          flexShrink: 0, textAlign: 'center' as const,
+          padding: `${S.sm} 0`, borderTop: `1px solid ${C.borderDefault}`,
+          cursor: 'pointer',
+        }}>
+          <span style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.10em', opacity: 0.6 }}>
+            › OPEN FULL FEED
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── PeregrineFeedMarketAlerts (standalone alert stream for full page) ──
+function PeregrineFeedMarketAlerts({ onZoneClick }: { onZoneClick: (zoneId: string) => void }) {
+  const [activeFilter, setActiveFilter] = useState<AlertCategory | 'ALL'>('ALL');
+  const [expandedId, setExpandedId]     = useState<string | null>(null);
+  const filteredAlerts = activeFilter === 'ALL' ? FEED_ALERTS : FEED_ALERTS.filter(a => a.category === activeFilter);
+  const activeCategories = Array.from(new Set(FEED_ALERTS.map(a => a.category)));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Filter chips */}
+      <div style={{ display: 'flex', gap: S.xs, padding: `${S.md} ${S.lg}`, flexShrink: 0, flexWrap: 'wrap' as const, borderBottom: `1px solid ${C.borderDefault}` }}>
+        <button onClick={() => setActiveFilter('ALL')} style={{
+          padding: '2px 8px', background: activeFilter === 'ALL' ? C.electricBlueWash : 'transparent',
+          border: `1px solid ${activeFilter === 'ALL' ? C.electricBlue : C.borderDefault}`, borderRadius: R.sm,
+          color: activeFilter === 'ALL' ? C.electricBlue : C.textMuted, fontFamily: F.mono, fontSize: '9px',
+          fontWeight: '500', letterSpacing: '0.10em', textTransform: 'uppercase' as const, cursor: 'pointer',
+        }}>ALL {FEED_ALERTS.length}</button>
+        {activeCategories.map(cat => {
+          const count = FEED_ALERTS.filter(a => a.category === cat).length;
+          const color = CATEGORY_COLORS[cat];
+          const active = activeFilter === cat;
+          return (
+            <button key={cat} onClick={() => setActiveFilter(active ? 'ALL' : cat)} style={{
+              padding: '2px 8px', background: active ? `${color}18` : 'transparent',
+              border: `1px solid ${active ? color : C.borderDefault}`, borderRadius: R.sm,
+              color: active ? color : C.textMuted, fontFamily: F.mono, fontSize: '9px',
+              fontWeight: '500', letterSpacing: '0.10em', textTransform: 'uppercase' as const, cursor: 'pointer',
+            }}>{cat} {count}</button>
+          );
+        })}
+      </div>
+      {/* Alert stream */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: `${S.sm} 0` }}>
+        {filteredAlerts.map(alert => {
+          const catColor = CATEGORY_COLORS[alert.category];
+          const priConfig = PRIORITY_CONFIG[alert.priority];
+          const isExpanded = expandedId === alert.id;
+          return (
+            <div key={alert.id} onClick={() => setExpandedId(isExpanded ? null : alert.id)} style={{
+              padding: `${S.sm} ${S.lg}`,
+              borderLeft: `2px solid ${alert.priority === 'CRITICAL' ? C.alertCritical : alert.priority === 'HIGH' ? catColor : 'transparent'}`,
+              opacity: priConfig.rowOpacity, cursor: 'pointer',
+              background: isExpanded ? 'rgba(255,255,255,0.03)' : 'transparent',
+              borderBottom: `1px solid ${C.borderDefault}`, transition: 'background 120ms ease',
+            }}
+              onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)'; }}
+              onMouseLeave={e => { if (!isExpanded) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, marginBottom: S.xs }}>
+                <div style={{ width: 5, height: 5, borderRadius: '50%', background: priConfig.dot, flexShrink: 0 }} />
+                <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{alert.time}</span>
+                <span style={{ padding: '1px 5px', background: `${catColor}15`, border: `1px solid ${catColor}40`, borderRadius: '3px', color: catColor, fontFamily: F.mono, fontSize: '8px', fontWeight: '600', letterSpacing: '0.10em', textTransform: 'uppercase' as const, flexShrink: 0 }}>{alert.category}</span>
+                {alert.value && (
+                  <span style={{ marginLeft: 'auto', fontFamily: F.mono, fontSize: '10px', fontWeight: '600', color: catColor, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{alert.value}</span>
+                )}
+              </div>
+              <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', color: alert.priority === 'CRITICAL' || alert.priority === 'HIGH' ? C.textPrimary : C.textSecondary, lineHeight: 1.4, paddingLeft: S.lg }}>
+                {alert.headline}
+              </div>
+              {isExpanded && alert.detail && (
+                <div style={{ marginTop: S.sm, paddingLeft: S.lg, paddingTop: S.sm, borderTop: `1px solid ${C.borderDefault}` }}>
+                  <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, lineHeight: 1.6, marginBottom: S.sm }}>{alert.detail}</div>
+                  {alert.zone && (
+                    <button onClick={e => { e.stopPropagation(); onZoneClick(alert.zone!); }} style={{
+                      display: 'inline-flex', alignItems: 'center', gap: S.xs, padding: '3px 8px',
+                      background: C.electricBlueWash, border: '1px solid rgba(6,182,212,0.25)', borderRadius: R.sm,
+                      color: C.electricBlue, fontFamily: F.mono, fontSize: '9px', fontWeight: '500',
+                      letterSpacing: '0.10em', textTransform: 'uppercase' as const, cursor: 'pointer',
+                    }}>→ VIEW {alert.zone} IN NEST</button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1699,7 +1793,7 @@ function NestView({
 }: {
   selectedZone: string | null;
   setSelectedZone: (z: string | null) => void;
-  onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap') => void;
+  onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine') => void;
 }) {
   const [marketPulseExpanded, setMarketPulseExpanded] = useState(false)
   const [marketPulseClosing, setMarketPulseClosing] = useState(false)
@@ -1927,7 +2021,7 @@ function NestView({
       {/* Peregrine Feed */}
       <div style={{ gridArea: 'feed', background: C.bgElevated, border: `1px solid ${C.borderDefault}`, borderTop: `1px solid ${C.borderAccent}`, borderRadius: R.lg, overflow: 'hidden' }}>
         <ErrorBoundary label="PEREGRINE FEED">
-          <PeregrineFeed onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveKPI('lmp'); }} />
+          <PeregrineFeed onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveKPI('lmp'); }} onOpenFull={() => onNavigateKPI('peregrine')} />
         </ErrorBoundary>
       </div>
 
@@ -2234,7 +2328,7 @@ function VaultView() {
 function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (id: string) => void }) {
   const [lmpValue] = useState(31.85);
   const [isLive] = useState(true);
-  const kpiPages = ['lmp', 'spread', 'battery', 'gap'];
+  const kpiPages = ['lmp', 'spread', 'battery', 'gap', 'peregrine'];
   const isKPI = kpiPages.includes(activeNav);
 
   return (
@@ -2330,7 +2424,7 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
   );
 }
 
-type NavState = 'nest' | 'atlas' | 'analytics' | 'vault' | 'lmp' | 'spread' | 'battery' | 'gap';
+type NavState = 'nest' | 'atlas' | 'analytics' | 'vault' | 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine';
 
 const viewLabels: Record<string, string> = {
   nest: 'THE NEST',
@@ -2341,6 +2435,7 @@ const viewLabels: Record<string, string> = {
   spread: 'SPARK SPREAD',
   battery: 'BATTERY ARB',
   gap: 'RESOURCE GAP',
+  peregrine: 'PEREGRINE INTELLIGENCE',
 };
 
 export default function GlobalShell() {
@@ -2348,7 +2443,7 @@ export default function GlobalShell() {
   const [entryDismissed, setEntryDismissed] = useState(false);
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
 
-  const kpiPages: NavState[] = ['lmp', 'spread', 'battery', 'gap'];
+  const kpiPages: NavState[] = ['lmp', 'spread', 'battery', 'gap', 'peregrine'];
 
   // ESC returns from KPI full page to Nest
   useEffect(() => {
@@ -2371,6 +2466,15 @@ export default function GlobalShell() {
       case "spread": return <SpreadFullPage selectedZone={selectedZone} />;
       case "battery": return <BatteryFullPage selectedZone={selectedZone} />;
       case "gap": return <GapFullPage selectedZone={selectedZone} />;
+      case "peregrine": return (
+        <PeregrineFullPage
+          selectedZone={selectedZone}
+          onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveNav('nest'); }}
+          marketAlerts={
+            <PeregrineFeedMarketAlerts onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveNav('nest'); }} />
+          }
+        />
+      );
       default: return <NestView selectedZone={selectedZone} setSelectedZone={setSelectedZone} onNavigateKPI={(tab) => setActiveNav(tab)} />;
     }
   };

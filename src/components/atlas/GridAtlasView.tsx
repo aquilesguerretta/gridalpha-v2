@@ -313,6 +313,7 @@ export default function GridAtlasView() {
       <ErrorBoundary label="GRID ATLAS">
         <Suspense fallback={<CardSkeleton rows={4} />}>
           <GridAtlasMap
+            key={currentStyle}
             ref={mapRef}
             mapStyle={currentStyle}
             zoneGeoJson={zoneGeoJson}

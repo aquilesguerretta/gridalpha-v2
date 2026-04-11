@@ -28,11 +28,11 @@ export const MAPBOX_MINIMAL =
   'mapbox://styles/mapbox/light-v11';
 
 const INITIAL_VIEW = {
-  longitude:  -79.5,
-  latitude:    39.8,
-  zoom:         3.5,
-  pitch:         0,
-  bearing:       0,
+  longitude:  -74.006,
+  latitude:    40.712,
+  zoom:        13,
+  pitch:       60,
+  bearing:    -20,
 };
 
 // ── Voltage colour mapping ────────────────────────────────────────────────
@@ -370,27 +370,36 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       const map = mapRef.current?.getMap();
       if (!map) return;
 
-      // 3D terrain — real elevation DEM tiles
+      // 3D terrain
       try {
-        map.addSource('mapbox-dem', {
-          type:     'raster-dem',
-          url:      'mapbox://mapbox.mapbox-terrain-dem-v1',
-          tileSize:  512,
-          maxzoom:   14,
-        });
+        if (!map.getSource('mapbox-dem')) {
+          map.addSource('mapbox-dem', {
+            type:     'raster-dem',
+            url:      'mapbox://mapbox.mapbox-terrain-dem-v1',
+            tileSize:  512,
+            maxzoom:   14,
+          });
+        }
         map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-      } catch { /* CARTO may not support DEM — ignore */ }
+      } catch { /* ignore */ }
 
-      // Atmosphere and stars for globe mode
+      // Force Standard style config for 3D buildings
+      try {
+        map.setConfigProperty('basemap', 'lightPreset', 'night');
+        map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+        map.setConfigProperty('basemap', 'showTransitLabels', false);
+      } catch { /* style may not support config */ }
+
+      // Fog/atmosphere
       try {
         map.setFog({
-          color:            'rgb(10, 10, 20)',
-          'high-color':     'rgb(15, 20, 40)',
+          color:            '#0A0A0B',
+          'high-color':     '#0D1520',
           'horizon-blend':   0.04,
-          'space-color':    'rgb(0, 0, 8)',
-          'star-intensity':  0.8,
+          'space-color':    '#000005',
+          'star-intensity':  0.7,
         } as any);
-      } catch { /* style may not support fog */ }
+      } catch { /* ignore */ }
 
       setStyleLoaded(true);
     }, []);

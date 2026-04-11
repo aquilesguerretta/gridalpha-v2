@@ -32,7 +32,8 @@ export function useNewsData(source?: string, category?: string) {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams({ limit: '40' });
+      // Backend caps at 100; request max so video items are not dropped after date sort
+      const params = new URLSearchParams({ limit: '100' });
       if (source)   params.set('source', source);
       if (category) params.set('category', category);
       const res  = await fetch(`${API_BASE}/api/news/feed?${params}`);

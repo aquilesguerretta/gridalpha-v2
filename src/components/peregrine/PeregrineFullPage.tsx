@@ -5,13 +5,22 @@ import VideoDrawer from './VideoDrawer';
 import IntelligenceBrief from './IntelligenceBrief';
 import ArticleAnalysis from './ArticleAnalysis';
 
+function isNewsVideo(item: NewsItem): boolean {
+  return (
+    item.contentType === 'video'
+    || (item.videoId != null && String(item.videoId).length > 0)
+  );
+}
+
 const SOURCE_COLORS: Record<string, string> = {
-  EIA:  '#10B981',
-  PJM:  '#06B6D4',
-  FERC: '#F59E0B',
+  EIA:        '#10B981',
+  PJM:        '#06B6D4',
+  FERC:       '#F59E0B',
+  BLOOMBERG:  '#F59E0B',
+  REUTERS:    '#3B82F6',
 };
 
-type NewsSource = 'ALL' | 'EIA' | 'PJM' | 'FERC';
+type NewsSource = 'ALL' | 'EIA' | 'PJM' | 'FERC' | 'BLOOMBERG' | 'REUTERS';
 type FeedTab    = 'news' | 'market';
 
 const CATEGORIES = [
@@ -45,7 +54,7 @@ export default function PeregrineFullPage({
       || item.title.toLowerCase().includes(searchQuery.toLowerCase())
       || item.summary.toLowerCase().includes(searchQuery.toLowerCase());
     const matchCat = catFilter === 'ALL'
-      || (catFilter === 'VIDEO' ? item.videoId !== null : item.category === catFilter);
+      || (catFilter === 'VIDEO' ? isNewsVideo(item) : item.category === catFilter);
     return matchSearch && matchCat;
   });
 
@@ -164,7 +173,7 @@ export default function PeregrineFullPage({
                 padding: `0 ${S.lg}`, marginBottom: S.md }}>
                 SOURCE
               </div>
-              {(['ALL','EIA','PJM','FERC'] as NewsSource[]).map(src => {
+              {(['ALL','EIA','PJM','FERC','BLOOMBERG','REUTERS'] as NewsSource[]).map(src => {
                 const count = src === 'ALL'
                   ? liveNews.length
                   : liveNews.filter(i => i.source === src).length;
@@ -201,7 +210,9 @@ export default function PeregrineFullPage({
                           fontSize: '10px', color: C.textMuted, marginTop: 2 }}>
                           {src === 'EIA' ? 'Energy data & analysis'
                            : src === 'PJM' ? 'Grid operator notices'
-                           : 'Regulatory orders'}
+                           : src === 'FERC' ? 'Regulatory orders'
+                           : src === 'BLOOMBERG' ? 'Video · markets & energy'
+                           : 'Video · world news wire'}
                         </div>
                       )}
                     </div>
@@ -260,9 +271,10 @@ export default function PeregrineFullPage({
 
               {!loading && filtered.map((item, idx) => (
                 <div key={`${item.id}-${idx}`}
-                  onClick={() => item.videoId
-                    ? setVideoItem(item)
-                    : window.open(item.url, '_blank')}
+                  onClick={() => {
+                    if (item.videoId && String(item.videoId).length > 0) setVideoItem(item);
+                    else window.open(item.url, '_blank');
+                  }}
                   style={{
                     display: 'flex', gap: S.xl,
                     padding: `${S.lg} ${S.xl}`,
@@ -290,7 +302,7 @@ export default function PeregrineFullPage({
                     }}>
                       {item.source}
                     </div>
-                    {item.videoId && (
+                    {isNewsVideo(item) && (
                       <div style={{ marginTop: S.xs, fontFamily: F.mono,
                         fontSize: '8px', color: C.alertCritical,
                         letterSpacing: '0.08em' }}>
@@ -324,7 +336,7 @@ export default function PeregrineFullPage({
                     }}>
                       {item.category}
                     </span>
-                    {item.videoId && (
+                    {isNewsVideo(item) && (
                       <span style={{
                         padding: '2px 6px', background: 'rgba(239,68,68,0.15)',
                         border: '1px solid rgba(239,68,68,0.40)', borderRadius: '3px',
@@ -358,10 +370,15 @@ export default function PeregrineFullPage({
                       ? <img src={item.thumbnail} alt=""
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <span style={{ fontSize: '22px', opacity: 0.3 }}>
-                          {item.source === 'PJM' ? '⚡' : item.source === 'EIA' ? '🔋' : item.source === 'FERC' ? '⚖️' : '📡'}
+                          {item.source === 'PJM' ? '⚡'
+                            : item.source === 'EIA' ? '🔋'
+                            : item.source === 'FERC' ? '⚖️'
+                            : item.source === 'BLOOMBERG' ? '📊'
+                            : item.source === 'REUTERS' ? '🌐'
+                            : '📡'}
                         </span>
                     }
-                    {item.videoId && (
+                    {isNewsVideo(item) && (
                       <div style={{
                         position: 'absolute', inset: 0,
                         background: 'rgba(0,0,0,0.5)',

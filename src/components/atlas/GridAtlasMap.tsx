@@ -4,7 +4,7 @@
 // CARTO Dark Matter basemap for perfect dark aesthetic.
 
 import {
-  useRef, useCallback, forwardRef, useImperativeHandle,
+  useState, useRef, useCallback, forwardRef, useImperativeHandle,
 } from 'react';
 import Map, {
   Source, Layer,
@@ -16,7 +16,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 // ── Constants ─────────────────────────────────────────────────────────────
 
 export const CARTO_DARK =
-  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+  'mapbox://styles/aquiles-guerretta/cmns0ux4s002s01s3au66boo8';
 
 export const MAPBOX_SATELLITE =
   'mapbox://styles/mapbox/satellite-streets-v12';
@@ -318,6 +318,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
     ref,
   ) {
     const mapRef = useRef<MapRef>(null);
+    const [styleLoaded, setStyleLoaded] = useState(false);
 
     useImperativeHandle(ref, () => ({
       flyTo: (lon, lat, zoom) => {
@@ -389,7 +390,9 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           'space-color':    'rgb(0, 0, 8)',
           'star-intensity':  0.8,
         } as any);
-      } catch { /* CARTO may not support fog */ }
+      } catch { /* style may not support fog */ }
+
+      setStyleLoaded(true);
     }, []);
 
     const interactiveLayerIds = [
@@ -414,7 +417,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         cursor="crosshair"
       >
         {/* PJM Zone Boundaries */}
-        {showZones && zoneGeoJson && (
+        {styleLoaded && showZones && zoneGeoJson && (
           <Source id="pjm-zones" type="geojson" data={zoneGeoJson} generateId={true}>
             {showExtrusion
               ? <Layer {...zoneExtrusionLayer} />
@@ -425,7 +428,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         )}
 
         {/* Transmission Lines */}
-        {showTx && txGeoJson && (
+        {styleLoaded && showTx && txGeoJson && (
           <Source id="transmission" type="geojson" data={txGeoJson}>
             <Layer {...txGlowLayer} />
             <Layer {...txCoreLayer} />
@@ -433,7 +436,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         )}
 
         {/* Power Plants */}
-        {showPlants && plantGeoJson && (
+        {styleLoaded && showPlants && plantGeoJson && (
           <Source
             id="plants" type="geojson" data={plantGeoJson}
             cluster={true} clusterMaxZoom={8} clusterRadius={40}
@@ -445,7 +448,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         )}
 
         {/* Hub Nodes */}
-        {showNodes && hubGeoJson && (
+        {styleLoaded && showNodes && hubGeoJson && (
           <Source id="hub-nodes" type="geojson" data={hubGeoJson}>
             <Layer {...hubDotLayer} />
             <Layer {...hubLabelLayer} />

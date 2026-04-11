@@ -143,7 +143,7 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
         pointerEvents: 'none',
       }} />
       <span style={{
-        fontFamily: "'Geist Mono', monospace",
+        fontFamily: F.mono,
         fontSize: '36px',
         fontWeight: 700,
         color: '#FFFFFF',
@@ -152,7 +152,7 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
         GRIDALPHA
       </span>
       <span style={{
-        fontFamily: "'Geist Mono', monospace",
+        fontFamily: F.mono,
         fontSize: '12px',
         fontWeight: 400,
         color: 'rgba(255,255,255,0.4)',
@@ -169,7 +169,7 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
           boxShadow: '0 0 12px rgba(6,182,212,0.8)',
         }} />
         <span style={{
-          fontFamily: "'Geist Mono', monospace",
+          fontFamily: F.mono,
           fontSize: '11px',
           color: C.electricBlue,
           letterSpacing: '0.2em',
@@ -180,7 +180,7 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
       <span style={{
         position: 'absolute',
         bottom: '32px',
-        fontFamily: "'Geist Mono', monospace",
+        fontFamily: F.mono,
         fontSize: '9px',
         color: 'rgba(255,255,255,0.2)',
         letterSpacing: '0.2em',
@@ -259,7 +259,7 @@ function PJMTerritory() {
             textAnchor="middle"
             fill="rgba(255,255,255,0.3)"
             fontSize="5"
-            fontFamily="'Geist Mono', monospace"
+            fontFamily={F.mono}
           >
             {hub.label}
           </text>
@@ -315,15 +315,15 @@ function BentoCard({ title, children, status = "live", className = "", style = {
       >
         <span style={{
           fontFamily: F.mono,
-          fontSize: T.labelSize,
-          fontWeight: 500,
-          letterSpacing: T.labelSpacing,
+          fontSize: '10px',
+          fontWeight: '600',
+          letterSpacing: '0.16em',
           textTransform: 'uppercase' as const,
           color: C.textMuted,
         }}>{title}</span>
         {onTitleClick && (
           <span style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '8px',
             color: 'rgba(255,255,255,0.2)',
             letterSpacing: '0.1em',
@@ -361,16 +361,16 @@ function PriceSparkline24h() {
 function LMPScorecard() {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full py-2">
-      <span className="text-[10px] tracking-wider mb-1" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>WEST HUB LMP</span>
+      <span className="text-[10px] tracking-wider mb-1" style={{ fontFamily: F.mono, color: "rgba(255, 255, 255, 0.4)" }}>WEST HUB LMP</span>
       <span
         className="text-5xl font-medium"
-        style={{ fontFamily: "'Geist Mono', monospace", fontVariantNumeric: "tabular-nums", color: C.electricBlueLight, textShadow: "0 0 20px rgba(34, 211, 238, 0.6), 0 0 40px rgba(34, 211, 238, 0.3)" }}
+        style={{ fontFamily: F.mono, fontVariantNumeric: "tabular-nums", color: C.electricBlueLight, textShadow: "0 0 20px rgba(34, 211, 238, 0.6), 0 0 40px rgba(34, 211, 238, 0.3)" }}
       >
         31.85
       </span>
       <div className="flex items-center gap-2 mt-1">
-        <span className="text-[10px] tracking-wider" style={{ fontFamily: "'Geist Mono', monospace", color: C.electricBlue }}>$/MWh</span>
-        <span className="text-[10px] font-medium" style={{ fontFamily: "'Geist Mono', monospace", color: "#FFB800" }}>▲ +2.4%</span>
+        <span className="text-[10px] tracking-wider" style={{ fontFamily: F.mono, color: C.electricBlue }}>$/MWh</span>
+        <span className="text-[10px] font-medium" style={{ fontFamily: F.mono, color: "#FFB800" }}>▲ +2.4%</span>
       </div>
       <PriceSparkline24h />
     </div>
@@ -499,7 +499,7 @@ function SparkSpreadChart({ history, regime }: { history: number[]; regime: 'BUR
     const lbl = payload[0]?.payload?.label;
     return (
       <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
-        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{lbl}</div>
+        <div style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{lbl}</div>
         <div style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: v >= 0 ? C.falconGold : C.alertCritical, fontVariantNumeric: 'tabular-nums' }}>
           {v >= 0 ? '+' : ''}{v.toFixed(1)} $/MWh
         </div>
@@ -521,9 +521,9 @@ function SparkSpreadChart({ history, regime }: { history: number[]; regime: 'BUR
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
-          <YAxis tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => v > 0 ? `+${v}` : String(v)} width={36} />
-          <ReferenceLine y={0} stroke={C.textMuted} strokeDasharray="4 4" strokeOpacity={0.6} label={{ value: 'BREAKEVEN', position: 'insideTopLeft', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.textMuted } }} />
+          <XAxis dataKey="label" tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
+          <YAxis tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => v > 0 ? `+${v}` : String(v)} width={36} />
+          <ReferenceLine y={0} stroke={C.textMuted} strokeDasharray="4 4" strokeOpacity={0.6} label={{ value: 'BREAKEVEN', position: 'insideTopLeft', style: { fontFamily: F.mono, fontSize: 9, fill: C.textMuted } }} />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
           <Area type="monotone" dataKey="positive" stroke={C.falconGold} strokeWidth={2.5} fill="url(#posGrad)" dot={false} activeDot={{ r: 5, fill: C.falconGold, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} />
           <Area type="monotone" dataKey="negative" stroke={C.alertCritical} strokeWidth={2.5} fill="url(#negGrad)" dot={false} activeDot={{ r: 5, fill: C.alertCritical, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} />
@@ -600,7 +600,7 @@ function SparkKPIView({ selectedZone, onNavigate }: { selectedZone: string | nul
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, fontWeight: T.labelWeight, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const, color: C.textMuted }}>
+        <span style={{ fontFamily: F.mono, fontSize: '10px', fontWeight: '600', letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: C.textMuted }}>
           SPARK SPREAD · {SPARK_DATA.zone}
         </span>
         <RegimeBadge />
@@ -766,7 +766,7 @@ function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
     if (!active || !payload?.length) return null;
     return (
       <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
-        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{payload[0]?.payload?.label}</div>
+        <div style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{payload[0]?.payload?.label}</div>
         <div style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>{payload[0]?.value}% SOC</div>
       </div>
     );
@@ -781,11 +781,11 @@ function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
               <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.06} />
             </linearGradient>
           </defs>
-          <ReferenceArea x1={2} x2={6} fill={C.electricBlue} fillOpacity={0.08} label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.electricBlue } }} />
-          <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.10} label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.falconGold } }} />
+          <ReferenceArea x1={2} x2={6} fill={C.electricBlue} fillOpacity={0.08} label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 9, fill: C.electricBlue } }} />
+          <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.10} label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 9, fill: C.falconGold } }} />
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
-          <YAxis domain={[0, 100]} tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
+          <XAxis dataKey="label" tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
+          <YAxis domain={[0, 100]} tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
           <Area type="monotone" dataKey="soc" stroke={C.electricBlue} strokeWidth={2.5} fill="url(#socGrad)" dot={false} activeDot={{ r: 5, fill: C.electricBlue, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} />
         </AreaChart>
@@ -830,7 +830,7 @@ function BatteryKPIView({ selectedZone, onNavigate }: { selectedZone: string | n
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>{selectedZone ?? 'WEST HUB'} ARB</span>
+        <span style={{ fontFamily: F.mono, fontSize: '10px', fontWeight: '600', color: C.textMuted, letterSpacing: '0.16em', textTransform: 'uppercase' as const }}>{selectedZone ?? 'WEST HUB'} ARB</span>
         <StateBadge />
         </div>
         {/* Gauge */}
@@ -883,7 +883,7 @@ function ResourceGapChart({ capacity, load, regime }: { capacity: number[]; load
     const ld  = payload.find((p: any) => p.dataKey === 'load')?.value;
     return (
       <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
-        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 6 }}>{payload[0]?.payload?.label}</div>
+        <div style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, marginBottom: 6 }}>{payload[0]?.payload?.label}</div>
         <div style={{ fontFamily: F.mono, fontSize: 12, color: C.electricBlue, marginBottom: 3 }}>CAP {cap} GW</div>
         <div style={{ fontFamily: F.mono, fontSize: 12, color: C.textSecondary, marginBottom: 3 }}>LOAD {ld} GW</div>
         <div style={{ fontFamily: F.mono, fontSize: 12, color: gapColor, fontWeight: 600 }}>GAP {cap != null && ld != null ? (cap - ld).toFixed(1) : '—'} GW</div>
@@ -901,8 +901,8 @@ function ResourceGapChart({ capacity, load, regime }: { capacity: number[]; load
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
-          <YAxis tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} width={40} domain={['auto', 'auto']} />
+          <XAxis dataKey="label" tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
+          <YAxis tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} width={40} domain={['auto', 'auto']} />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
           <Area type="monotone" dataKey="cap" fill="url(#gapGrad)" stroke="none" isAnimationActive={false} legendType="none" />
           <Line type="monotone" dataKey="cap"  stroke={C.electricBlue}   strokeWidth={2.5} dot={false} activeDot={{ r: 5, fill: C.electricBlue,   stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} name="CAPACITY" />
@@ -941,7 +941,7 @@ function GapKPIView({ selectedZone, onNavigate }: { selectedZone: string | null;
     >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>
+        <span style={{ fontFamily: F.mono, fontSize: '10px', fontWeight: '600', color: C.textMuted, letterSpacing: '0.16em', textTransform: 'uppercase' as const }}>
           {selectedZone ?? 'WEST HUB'} RESOURCE GAP
           </span>
           <StatusBadge />
@@ -1089,7 +1089,7 @@ function ChargeScheduleChart({ chargeLMP, dischargeLMP }: { chargeLMP: number; d
     const actionColor = d.action === 'charge' ? C.electricBlue : d.action === 'discharge' ? C.falconGold : C.textMuted;
     return (
       <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
-        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{d.label}</div>
+        <div style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{d.label}</div>
         <div style={{ fontFamily: F.mono, fontSize: 14, fontWeight: 600, color: C.textPrimary, marginBottom: 3, fontVariantNumeric: 'tabular-nums' }}>${d.price}/MWh</div>
         <div style={{ fontFamily: F.mono, fontSize: 11, color: actionColor, letterSpacing: '0.08em', textTransform: 'uppercase' as const }}>{d.action}</div>
       </div>
@@ -1102,11 +1102,11 @@ function ChargeScheduleChart({ chargeLMP, dischargeLMP }: { chargeLMP: number; d
         <ComposedChart data={priceData} margin={{ top: 10, right: 16, bottom: 0, left: 8 }}>
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
           <ReferenceLine y={chargeLMP} stroke={C.electricBlue} strokeDasharray="3 3" strokeOpacity={0.5}
-            label={{ value: 'CHARGE', position: 'insideTopRight', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.electricBlue } }} />
+            label={{ value: 'CHARGE', position: 'insideTopRight', style: { fontFamily: F.mono, fontSize: 9, fill: C.electricBlue } }} />
           <ReferenceLine y={dischargeLMP} stroke={C.falconGold} strokeDasharray="3 3" strokeOpacity={0.5}
-            label={{ value: 'DISCHARGE', position: 'insideTopRight', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.falconGold } }} />
-          <XAxis dataKey="label" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
-          <YAxis tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} width={40} />
+            label={{ value: 'DISCHARGE', position: 'insideTopRight', style: { fontFamily: F.mono, fontSize: 9, fill: C.falconGold } }} />
+          <XAxis dataKey="label" tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
+          <YAxis tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} width={40} />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
           <Bar dataKey="chargeBar" fill={C.electricBlue} opacity={0.35} isAnimationActive={false} name="CHARGE" />
           <Bar dataKey="dischargeBar" fill={C.falconGold} opacity={0.35} isAnimationActive={false} name="DISCHARGE" />
@@ -1234,7 +1234,7 @@ function BatteryFullPage({ selectedZone }: { selectedZone: string | null }) {
           <div style={{ background: C.bgSurface, padding: S.lg, borderRadius: R.md, borderLeft: `2px solid ${signalColor}` }}>
             <div style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', marginBottom: S.sm }}>ARB SIGNAL</div>
             <div style={{ fontFamily: F.mono, fontSize: '18px', fontWeight: '700', color: signalColor, marginBottom: S.xs }}>{signal}</div>
-            <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, lineHeight: 1.4 }}>
+            <div style={{ fontFamily: F.sans, fontSize: '11px', color: C.textMuted, lineHeight: 1.4 }}>
               {signal === 'HIGH' ? 'Strong price separation. Maximize cycles.'
                : signal === 'MODERATE' ? 'Moderate spread. Standard operations.'
                : 'Low spread. Consider reducing cycles.'}
@@ -1249,7 +1249,7 @@ function BatteryFullPage({ selectedZone }: { selectedZone: string | null }) {
               { label: 'Idle',        hours: 24 - durationH * 2, color: C.textMuted },
             ].map(op => (
               <div key={op.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: S.sm }}>
-                <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', color: C.textSecondary }}>{op.label}</span>
+                <span style={{ fontFamily: F.sans, fontSize: '12px', color: C.textSecondary }}>{op.label}</span>
                 <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: '600', color: op.color, fontVariantNumeric: 'tabular-nums' }}>{op.hours}h</span>
               </div>
             ))}
@@ -1337,7 +1337,7 @@ function SupplyGapWaterfall({ data, loadForecast }: { data: { name: string; valu
     const d = payload[0]?.payload;
     return (
       <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
-        <div style={{ fontFamily: "'Geist', sans-serif", fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{d.name.replace('\n', ' ')}</div>
+        <div style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{d.name.replace('\n', ' ')}</div>
         <div style={{ fontFamily: F.mono, fontSize: 14, fontWeight: 600, color: d.fill, fontVariantNumeric: 'tabular-nums' }}>{d.label}</div>
       </div>
     );
@@ -1348,11 +1348,11 @@ function SupplyGapWaterfall({ data, loadForecast }: { data: { name: string; valu
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 20, right: 24, bottom: 24, left: 48 }} barCategoryGap="30%">
           <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis dataKey="name" tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} />
-          <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} tick={{ fontFamily: "'Geist', 'Inter', sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} width={44} />
+          <XAxis dataKey="name" tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} />
+          <YAxis tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} width={44} />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
           <ReferenceLine y={loadForecast} stroke={C.falconGold} strokeDasharray="4 4" strokeOpacity={0.6}
-            label={{ value: 'LOAD FORECAST', position: 'insideTopRight', style: { fontFamily: "'Geist', sans-serif", fontSize: 9, fill: C.falconGold } }} />
+            label={{ value: 'LOAD FORECAST', position: 'insideTopRight', style: { fontFamily: F.mono, fontSize: 9, fill: C.falconGold } }} />
           <Bar dataKey="displayValue" isAnimationActive={false} radius={[3, 3, 0, 0]}>
             {chartData.map((entry, index) => (
               <Cell key={index} fill={entry.fill} fillOpacity={0.85} />
@@ -1476,15 +1476,15 @@ function GapFullPage({ selectedZone }: { selectedZone: string | null }) {
                 </div>
                 <div style={{ textAlign: 'center' as const }}>
                   <div style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: '600', color: riskColor, letterSpacing: '0.10em' }}>{STRUCTURAL.riskLabel}</div>
-                  <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, marginTop: S.xs }}>PJM system adequacy</div>
+                  <div style={{ fontFamily: F.sans, fontSize: '11px', color: C.textMuted, marginTop: S.xs }}>PJM system adequacy</div>
                 </div>
               </div>
 
               {/* Strategic Investment Signal */}
               <div style={{ background: C.bgSurface, borderRadius: R.lg, padding: S.lg, borderLeft: `2px solid ${C.electricBlue}` }}>
                 <div style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const, marginBottom: S.md }}>STRATEGIC SIGNAL</div>
-                <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', fontWeight: '600', color: C.textPrimary, marginBottom: S.sm, lineHeight: 1.4 }}>{STRUCTURAL.investmentSignal.headline}</div>
-                <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', color: C.textSecondary, lineHeight: 1.6 }}>{STRUCTURAL.investmentSignal.detail}</div>
+                <div style={{ fontFamily: F.sans, fontSize: '13px', fontWeight: '600', color: C.textPrimary, marginBottom: S.sm, lineHeight: 1.4 }}>{STRUCTURAL.investmentSignal.headline}</div>
+                <div style={{ fontFamily: F.sans, fontSize: '12px', color: C.textSecondary, lineHeight: 1.6 }}>{STRUCTURAL.investmentSignal.detail}</div>
               </div>
 
               {/* Gap summary */}
@@ -1504,7 +1504,7 @@ function GapFullPage({ selectedZone }: { selectedZone: string | null }) {
               {/* Methodology */}
               <div style={{ background: C.bgSurface, borderRadius: R.lg, padding: S.lg, opacity: 0.7 }}>
                 <div style={{ fontFamily: F.mono, fontSize: '9px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const, marginBottom: S.sm }}>METHODOLOGY</div>
-                <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, lineHeight: 1.6 }}>
+                <div style={{ fontFamily: F.sans, fontSize: '11px', color: C.textMuted, lineHeight: 1.6 }}>
                   <strong style={{ color: C.textSecondary }}>Resource Adequacy</strong> measures whether the grid has sufficient generation capacity to meet forecasted demand plus reserves. Reliability scores above 7 indicate supply deficits requiring new capacity additions. <strong style={{ color: C.textSecondary }}>RMR</strong> (Reliability Must Run) units are generators kept online specifically for local reliability despite being uneconomic.
                 </div>
               </div>
@@ -1558,12 +1558,22 @@ function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: stri
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
+      {/* Card label */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: `0.5px solid ${C.borderDefault}`, flexShrink: 0 }}>
+        <span style={{ fontFamily: F.mono, fontSize: '10px', fontWeight: '600', letterSpacing: '0.14em', textTransform: 'uppercase' as const, color: C.textMuted }}>PEREGRINE FEED</span>
+        {onOpenFull && (
+          <span onClick={onOpenFull} style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', cursor: 'pointer' }}>
+            ↗ EXPAND
+          </span>
+        )}
+      </div>
+
       {/* Top: regime badge + status */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: `${S.sm} ${S.lg}`, flexShrink: 0, background: 'rgba(6,182,212,0.04)', borderBottom: `1px solid ${C.borderDefault}` }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 8px', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: R.sm }}>
           <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.electricBlue, animation: 'livePulse 2s infinite' }} />
           <span style={{ fontFamily: F.mono, fontSize: '10px', fontWeight: '600', color: C.electricBlue, letterSpacing: '0.10em' }}>NORMAL</span>
-          <span style={{ fontFamily: "'Geist', sans-serif", fontSize: '10px', color: C.textMuted }}>· Balanced supply</span>
+          <span style={{ fontFamily: F.sans, fontSize: '10px', color: C.textMuted }}>· Balanced supply</span>
         </div>
       </div>
 
@@ -1577,7 +1587,7 @@ function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: stri
             flex: 1, padding: '9px 0', background: 'transparent', border: 'none',
             borderBottom: feedMode === tab.id ? `2px solid ${C.electricBlue}` : '2px solid transparent',
             color: feedMode === tab.id ? C.electricBlue : C.textMuted,
-            fontFamily: F.mono, fontSize: '9px', fontWeight: '500', letterSpacing: '0.10em',
+            fontFamily: F.mono, fontSize: '10px', fontWeight: '600', letterSpacing: '0.10em',
             textTransform: 'uppercase' as const, cursor: 'pointer',
             transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}>
@@ -1634,15 +1644,15 @@ function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: stri
                     <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{alert.time}</span>
                     <span style={{ padding: '1px 5px', background: `${catColor}15`, border: `1px solid ${catColor}40`, borderRadius: '3px', color: catColor, fontFamily: F.mono, fontSize: '8px', fontWeight: '600', letterSpacing: '0.10em', textTransform: 'uppercase' as const, flexShrink: 0 }}>{alert.category}</span>
                     {alert.value && (
-                      <span style={{ marginLeft: 'auto', fontFamily: F.mono, fontSize: '10px', fontWeight: '600', color: catColor, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{alert.value}</span>
+                      <span style={{ marginLeft: 'auto', fontFamily: F.mono, fontSize: '11px', fontWeight: '600', color: catColor, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{alert.value}</span>
                     )}
                   </div>
-                  <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', color: alert.priority === 'CRITICAL' || alert.priority === 'HIGH' ? C.textPrimary : C.textSecondary, lineHeight: 1.4, paddingLeft: S.lg }}>
+                  <div style={{ fontFamily: F.sans, fontSize: '13px', fontWeight: '500', color: alert.priority === 'CRITICAL' || alert.priority === 'HIGH' ? C.textPrimary : C.textSecondary, lineHeight: 1.4, paddingLeft: S.lg }}>
                     {alert.headline}
                   </div>
                   {isExpanded && alert.detail && (
                     <div style={{ marginTop: S.sm, paddingLeft: S.lg, paddingTop: S.sm, borderTop: `1px solid ${C.borderDefault}` }}>
-                      <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, lineHeight: 1.6, marginBottom: S.sm }}>{alert.detail}</div>
+                      <div style={{ fontFamily: F.sans, fontSize: '11px', color: C.textMuted, lineHeight: 1.6, marginBottom: S.sm }}>{alert.detail}</div>
                       {alert.zone && (
                         <button onClick={e => { e.stopPropagation(); onZoneClick(alert.zone!); }} style={{
                           display: 'inline-flex', alignItems: 'center', gap: S.xs, padding: '3px 8px',
@@ -1686,11 +1696,11 @@ function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: stri
 
               {/* Center: headline + summary + tags */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', fontWeight: '500', color: C.textPrimary, lineHeight: 1.4, marginBottom: item.summary ? S.xs : 0 }}>
+                <div style={{ fontFamily: F.sans, fontSize: '13px', fontWeight: '500', color: C.textPrimary, lineHeight: 1.4, marginBottom: item.summary ? S.xs : 0 }}>
                   {item.headline}
                 </div>
                 {item.summary && (
-                  <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, lineHeight: 1.5, marginBottom: S.xs }}>{item.summary}</div>
+                  <div style={{ fontFamily: F.sans, fontSize: '11px', color: C.textMuted, lineHeight: 1.5, marginBottom: S.xs }}>{item.summary}</div>
                 )}
                 <div style={{ display: 'flex', gap: S.xs, flexWrap: 'wrap' as const }}>
                   {item.tags.slice(0, 3).map(tag => (
@@ -1708,7 +1718,7 @@ function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: stri
             </div>
           ))}
           <div style={{ padding: `${S.sm} ${S.lg}`, opacity: 0.4 }}>
-            <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted }}>LIVE · Refreshes every 5 minutes</span>
+            <span style={{ fontFamily: F.sans, fontSize: '10px', color: C.textMuted }}>LIVE · Refreshes every 5 minutes</span>
           </div>
         </div>
       )}
@@ -1785,12 +1795,12 @@ function PeregrineFeedMarketAlerts({ onZoneClick }: { onZoneClick: (zoneId: stri
                   <span style={{ marginLeft: 'auto', fontFamily: F.mono, fontSize: '10px', fontWeight: '600', color: catColor, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{alert.value}</span>
                 )}
               </div>
-              <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', color: alert.priority === 'CRITICAL' || alert.priority === 'HIGH' ? C.textPrimary : C.textSecondary, lineHeight: 1.4, paddingLeft: S.lg }}>
+              <div style={{ fontFamily: F.sans, fontSize: '12px', color: alert.priority === 'CRITICAL' || alert.priority === 'HIGH' ? C.textPrimary : C.textSecondary, lineHeight: 1.4, paddingLeft: S.lg }}>
                 {alert.headline}
               </div>
               {isExpanded && alert.detail && (
                 <div style={{ marginTop: S.sm, paddingLeft: S.lg, paddingTop: S.sm, borderTop: `1px solid ${C.borderDefault}` }}>
-                  <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, lineHeight: 1.6, marginBottom: S.sm }}>{alert.detail}</div>
+                  <div style={{ fontFamily: F.sans, fontSize: '11px', color: C.textMuted, lineHeight: 1.6, marginBottom: S.sm }}>{alert.detail}</div>
                   {alert.zone && (
                     <button onClick={e => { e.stopPropagation(); onZoneClick(alert.zone!); }} style={{
                       display: 'inline-flex', alignItems: 'center', gap: S.xs, padding: '3px 8px',
@@ -1913,7 +1923,7 @@ function NestView({
               flexShrink: 0,
             }}>
               <span style={{
-                fontFamily: "'Geist Mono', monospace",
+                fontFamily: F.mono,
                 fontSize: '10px',
                 color: 'rgba(255,255,255,0.5)',
                 letterSpacing: '0.15em',
@@ -1923,7 +1933,7 @@ function NestView({
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                 {ghostTime && (
                   <span style={{
-                    fontFamily: "'Geist Mono', monospace",
+                    fontFamily: F.mono,
                     fontSize: '9px',
                     color: '#FFB800',
                     background: 'rgba(255,183,0,0.08)',
@@ -1937,7 +1947,7 @@ function NestView({
                 )}
                 {selectedZone && (
                   <span style={{
-                    fontFamily: "'Geist Mono', monospace",
+                    fontFamily: F.mono,
                     fontSize: '11px',
                     color: C.electricBlueLight,
                     letterSpacing: '0.1em',
@@ -1948,7 +1958,7 @@ function NestView({
                 <button
                   onClick={closeModal}
                   style={{
-                    fontFamily: "'Geist Mono', monospace",
+                    fontFamily: F.sans,
                     fontSize: '9px',
                     color: 'rgba(255,255,255,0.4)',
                     background: 'rgba(255,255,255,0.05)',
@@ -1985,7 +1995,7 @@ function NestView({
                 pointerEvents: 'none',
               }}>
                 <span style={{
-                  fontFamily: "'Geist Mono', monospace",
+                  fontFamily: F.mono,
                   fontSize: '7px',
                   color: 'rgba(255,255,255,0.35)',
                   letterSpacing: '0.15em',
@@ -1996,25 +2006,25 @@ function NestView({
                 {/* Color legend */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: C.electricBlue }} />
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
                     CHEAP (ZONE 24H LOW)
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FFB800' }} />
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
                     MID-RANGE
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FF4444' }} />
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
                     EXPENSIVE (ZONE 24H HIGH)
                   </span>
                 </div>
                 {/* Size + depth legend */}
                 <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', paddingTop: '5px', marginTop: '2px' }}>
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '7.5px', color: 'rgba(255,255,255,0.3)' }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '7.5px', color: 'rgba(255,255,255,0.3)' }}>
                     ● SIZE = PEAK LOAD MW &nbsp; ● DEPTH = LMP $/MWh
                   </span>
                 </div>
@@ -2030,7 +2040,7 @@ function NestView({
               flexShrink: 0,
             }}>
               <span style={{
-                fontFamily: "'Geist Mono', monospace",
+                fontFamily: F.mono,
                 fontSize: '8px',
                 color: 'rgba(255,255,255,0.2)',
                 letterSpacing: '0.15em',
@@ -2083,8 +2093,8 @@ function NestView({
                   borderBottom: isActive ? `2px solid ${C.electricBlue}` : '2px solid transparent',
                   color: isActive ? C.electricBlue : C.textMuted,
                   fontFamily: F.mono,
-                  fontSize: '10px',
-                  fontWeight: '500',
+                  fontSize: '11px',
+                  fontWeight: '600',
                   letterSpacing: '0.10em',
                   textTransform: 'uppercase' as const,
                   cursor: 'pointer',
@@ -2165,7 +2175,7 @@ function NestView({
             ].map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <div style={{ width: '6px', height: '6px', borderRadius: R.sm, backgroundColor: s.c, flexShrink: 0 }} />
-                <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textSecondary }}>{s.l} {s.v}</span>
+                <span style={{ fontFamily: F.sans, fontSize: '8px', color: C.textSecondary }}>{s.l} {s.v}</span>
               </div>
             ))}
           </div>
@@ -2246,7 +2256,7 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
     >
       <div className="px-4 py-3 relative" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
         <div className="absolute top-3 right-3"><StatusDot status="live" /></div>
-        <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: "'Geist', sans-serif", color: "#EDEDED" }}>{title}</span>
+        <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: F.sans, color: "#EDEDED" }}>{title}</span>
       </div>
       <div className="flex-1 flex flex-col p-4 relative">
         {/* Formula watermark for Optimizer - more visible */}
@@ -2254,8 +2264,8 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
             <span 
               className="text-[9px] whitespace-nowrap transform -rotate-3" 
-              style={{ 
-                fontFamily: "'Geist Mono', monospace", 
+              style={{
+                fontFamily: F.mono,
                 color: "rgba(6, 182, 212, 0.08)",
                 letterSpacing: "0.05em",
               }}
@@ -2281,14 +2291,14 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
           {subModules.map((mod, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="w-1 h-1 rounded-full" style={{ backgroundColor: "rgba(6, 182, 212, 0.5)" }} />
-              <span className="text-[9px] tracking-wide" style={{ fontFamily: "'Geist Mono', monospace", color: "rgba(255, 255, 255, 0.4)" }}>{mod}</span>
+              <span className="text-[9px] tracking-wide" style={{ fontFamily: F.sans, color: "rgba(255, 255, 255, 0.4)" }}>{mod}</span>
             </div>
           ))}
         </div>
         {/* Coming Soon Badge */}
         <div className="mt-auto flex justify-center">
           <div className="px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(34, 211, 238, 0.1)", border: "1px solid rgba(34, 211, 238, 0.3)" }}>
-            <span className="text-[9px] font-medium tracking-widest" style={{ fontFamily: "'Geist Mono', monospace", color: C.electricBlueLight }}>COMING SOON</span>
+            <span className="text-[9px] font-medium tracking-widest" style={{ fontFamily: F.mono, color: C.electricBlueLight }}>COMING SOON</span>
           </div>
         </div>
       </div>
@@ -2318,24 +2328,24 @@ function VaultView() {
     <div className="flex-1 flex p-6 gap-4" style={{ backgroundColor: C.bgBase }}>
       <div className="w-56 shrink-0 rounded-lg overflow-hidden" style={{ backgroundColor: "rgba(10, 10, 11, 0.7)", backdropFilter: "blur(12px)", border: "0.5px solid rgba(255, 255, 255, 0.08)" }}>
         <div className="px-4 py-3" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
-          <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: "'Geist', sans-serif", color: "#EDEDED" }}>INDEX</span>
+          <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ fontFamily: F.sans, color: "#EDEDED" }}>INDEX</span>
         </div>
         <nav className="py-2">
           {sections.map((s) => (
             <button key={s.id} onClick={() => setActiveSection(s.id)} className="w-full text-left px-4 py-2 transition-colors" style={{ backgroundColor: activeSection === s.id ? "rgba(6, 182, 212, 0.08)" : "transparent" }}>
-              <span className="text-[11px] tracking-wide" style={{ fontFamily: "'Geist', sans-serif", color: activeSection === s.id ? C.electricBlue : "rgba(255, 255, 255, 0.4)" }}>{s.label}</span>
+              <span className="text-[11px] tracking-wide" style={{ fontFamily: F.sans, color: activeSection === s.id ? C.electricBlue : "rgba(255, 255, 255, 0.4)" }}>{s.label}</span>
             </button>
           ))}
         </nav>
       </div>
       <div className="flex-1 rounded-lg overflow-hidden" style={{ backgroundColor: "rgba(10, 10, 11, 0.7)", backdropFilter: "blur(12px)", border: "0.5px solid rgba(255, 255, 255, 0.08)" }}>
         <div className="px-6 py-4" style={{ borderBottom: "0.5px solid rgba(255, 255, 255, 0.06)" }}>
-          <span className="text-xs font-semibold tracking-wide uppercase" style={{ fontFamily: "'Geist', sans-serif", color: "#EDEDED" }}>{sections.find((s) => s.id === activeSection)?.label}</span>
+          <span className="text-xs font-semibold tracking-wide uppercase" style={{ fontFamily: F.sans, color: "#EDEDED" }}>{sections.find((s) => s.id === activeSection)?.label}</span>
         </div>
         <div className="p-6 space-y-6">
           {["1.0", "1.1", "1.2"].map((sec) => (
             <div key={sec}>
-              <h3 className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ fontFamily: "'Geist', sans-serif", color: "rgba(255, 255, 255, 0.3)" }}>SECTION {sec}</h3>
+              <h3 className="text-[10px] font-semibold tracking-widest uppercase mb-2" style={{ fontFamily: F.sans, color: "rgba(255, 255, 255, 0.3)" }}>SECTION {sec}</h3>
               <div className="space-y-2">
                 {[80, 100, 70].slice(0, sec === "1.0" ? 1 : 3).map((w, i) => (
                   <div key={i} className="h-3 rounded" style={{ backgroundColor: "rgba(255, 255, 255, 0.06)", width: `${w}%` }} />
@@ -2371,16 +2381,47 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
       padding: '0 20px',
       gap: '24px',
     }}>
-      <FalconLogo collapsed={false} />
+      {/* Falcon icon + Wordmark */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: S.md }}>
+        <div style={{ width: '42px', height: '42px', flexShrink: 0, overflow: 'hidden', borderRadius: '6px' }}>
+          <FalconLogo collapsed={false} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          <span style={{
+            fontFamily: F.mono,
+            fontSize: '15px',
+            fontWeight: '700',
+            letterSpacing: '0.20em',
+            color: C.textPrimary,
+            lineHeight: 1,
+          }}>GRIDALPHA</span>
+          <span style={{
+            fontFamily: F.mono,
+            fontSize: '10px',
+            color: C.electricBlue,
+            letterSpacing: '0.15em',
+          }}>{viewLabels[activeNav]}</span>
+        </div>
+        <span style={{ color: C.textMuted, fontSize: '14px', opacity: 0.4 }}>/</span>
+        {isKPI && (
+          <span style={{
+            fontFamily: F.mono,
+            fontSize: '12px',
+            color: C.electricBlue,
+            letterSpacing: '0.15em',
+          }}>{viewLabels[activeNav]}</span>
+        )}
+      </div>
       {isKPI ? (
-        /* Breadcrumb: GRIDALPHA / THE NEST / KPI NAME */
+        /* Breadcrumb: back to THE NEST */
         <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
             onClick={() => onNavChange('nest')}
             style={{
-              fontFamily: F.mono,
-              fontSize: T.labelSize,
-              letterSpacing: T.labelSpacing,
+              fontFamily: F.sans,
+              fontSize: '12px',
+              fontWeight: '500',
+              letterSpacing: '0.02em',
               color: C.textSecondary,
               background: 'none',
               border: 'none',
@@ -2389,21 +2430,8 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
               borderRadius: R.md,
             }}
           >
-            THE NEST
+            ← THE NEST
           </button>
-          <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted }}>/</span>
-          <span style={{
-            fontFamily: F.mono,
-            fontSize: T.labelSize,
-            color: C.electricBlue,
-            letterSpacing: T.labelSpacing,
-            padding: '6px 12px',
-            backgroundColor: C.electricBlueWash,
-            border: `1px solid ${C.borderActive}`,
-            borderRadius: R.md,
-          }}>
-            {viewLabels[activeNav]}
-          </span>
         </nav>
       ) : (
         <nav style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -2426,10 +2454,11 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
                 {item.icon}
               </span>
               <span style={{
-                fontFamily: F.mono,
-                fontSize: T.labelSize,
+                fontFamily: F.sans,
+                fontSize: '12px',
                 color: activeNav === item.id ? C.electricBlue : C.textSecondary,
-                letterSpacing: T.labelSpacing,
+                letterSpacing: '0.02em',
+                fontWeight: '500',
               }}>
                 {item.label}
               </span>
@@ -2440,7 +2469,7 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
       <div style={{ flex: 1 }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: F.mono, fontSize: '11px' }}>
         <span style={{ color: C.textSecondary }}>LMP</span>
-        <span style={{ color: C.electricBlue }}>${lmpValue.toFixed(2)}</span>
+        <span style={{ fontSize: '15px', fontWeight: '700', color: C.falconGold }}>${lmpValue.toFixed(2)}</span>
         <StatusDot status={isLive ? 'live' : 'stale'} />
         <span style={{ color: isLive ? C.alertNormal : C.alertWarning }}>{isLive ? 'LIVE' : 'STALE'}</span>
       </div>

@@ -6,7 +6,7 @@
 import {
   useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense,
 } from 'react';
-import { C, F } from '../../config/design-tokens';
+import { C, F } from '@/design/tokens';
 import { CardSkeleton } from '../shared/CardSkeleton';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
 import { captureError } from '../../lib/shared/error-tracking';
@@ -465,7 +465,7 @@ export default function GridAtlasView() {
       }}>
         <div style={{
           background: 'rgba(10,10,11,0.88)',
-          border: `1px solid ${C.glassBorder}`,
+          border: `1px solid ${C.borderDefault}`,
           borderRadius: 20, padding: '6px 18px',
           backdropFilter: 'blur(12px)',
         }}>
@@ -475,7 +475,7 @@ export default function GridAtlasView() {
         </div>
         <div style={{
           background: 'rgba(10,10,11,0.88)',
-          border: `1px solid ${C.glassBorder}`,
+          border: `1px solid ${C.borderDefault}`,
           borderRadius: 6, padding: '5px 14px',
           backdropFilter: 'blur(12px)',
           display: 'flex', gap: 16,
@@ -522,7 +522,7 @@ export default function GridAtlasView() {
             />
           </div>
           {showResults && searchResults.length > 0 && (
-            <div style={{ borderTop: `1px solid ${C.glassBorder}`, maxHeight: 180, overflowY: 'auto' }}>
+            <div style={{ borderTop: `1px solid ${C.borderDefault}`, maxHeight: 180, overflowY: 'auto' }}>
               {searchResults.map(r => (
                 <button key={`${r.type}-${r.id}`}
                   onMouseDown={() => handleSelectResult(r)}
@@ -535,7 +535,7 @@ export default function GridAtlasView() {
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,163,255,0.08)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
-                  <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: r.type === 'zone' ? C.electricBlue : C.amber, minWidth: 30, letterSpacing: '0.1em' }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: r.type === 'zone' ? C.electricBlue : C.falconGold, minWidth: 30, letterSpacing: '0.1em' }}>
                     {r.type === 'zone' ? 'ZONE' : 'PLANT'}
                   </span>
                   <span style={{ fontFamily: F.mono, fontSize: '0.58rem', color: C.textPrimary }}>
@@ -551,8 +551,8 @@ export default function GridAtlasView() {
         <Panel label="LAYERS">
           <Toggle label="TRANSMISSION"    active={showTx}             color="#00FFF0"        onToggle={() => setShowTx(p => !p)} />
           <Toggle label="ZONE FILLS"      active={showZones}          color={C.electricBlue} onToggle={() => setShowZones(p => !p)} />
-          <Toggle label="3D EXTRUSION"    active={showExtrusion}      color={C.amber}        onToggle={() => setShowExtrusion(p => !p)} />
-          <Toggle label="POWER PLANTS"    active={showPlants}         color={C.cyan}         onToggle={() => setShowPlants(p => !p)} />
+          <Toggle label="3D EXTRUSION"    active={showExtrusion}      color={C.falconGold}        onToggle={() => setShowExtrusion(p => !p)} />
+          <Toggle label="POWER PLANTS"    active={showPlants}         color={C.electricBlueLight}         onToggle={() => setShowPlants(p => !p)} />
           <Toggle label="HUB NODES"       active={showNodes}          color="#FFB800"        onToggle={() => setShowNodes(p => !p)} />
           <Toggle label="GAS PIPELINES"   active={showGasPipelines}   color="#F97316"        onToggle={() => setShowGasPipelines(p => !p)} />
           <Toggle label="SUBSTATIONS"     active={showSubstations}    color="#FFFFFF"        onToggle={() => setShowSubstations(p => !p)} />
@@ -566,7 +566,7 @@ export default function GridAtlasView() {
           <Panel label="FUEL TYPE">
             <button onClick={toggleAll} style={{
               background: 'transparent',
-              border: `1px solid ${C.glassBorder}`,
+              border: `1px solid ${C.borderDefault}`,
               borderRadius: 4, color: C.textSecondary,
               fontFamily: F.mono, fontSize: '0.55rem',
               letterSpacing: '0.1em', cursor: 'pointer',
@@ -588,7 +588,7 @@ export default function GridAtlasView() {
                 </span>
               </button>
             ))}
-            <div style={{ marginTop: 8, borderTop: `1px solid ${C.glassBorder}`, paddingTop: 8 }}>
+            <div style={{ marginTop: 8, borderTop: `1px solid ${C.borderDefault}`, paddingTop: 8 }}>
               <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted }}>
                 MIN CAPACITY: {minCapacity === 0 ? 'ALL' : `${minCapacity} MW`}
               </span>
@@ -645,7 +645,7 @@ export default function GridAtlasView() {
             </div>
           )}
           {constraintData.constraints.length > 0 && (
-            <div style={{ marginBottom: 8, borderTop: `1px solid ${C.glassBorder}`, paddingTop: 8 }}>
+            <div style={{ marginBottom: 8, borderTop: `1px solid ${C.borderDefault}`, paddingTop: 8 }}>
               <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: '#FF3B3B', letterSpacing: '0.1em' }}>
                 BINDING CONSTRAINTS
               </span>
@@ -664,7 +664,7 @@ export default function GridAtlasView() {
             </div>
           )}
           {totalOutageMW > 0 && (
-            <div style={{ borderTop: `1px solid ${C.glassBorder}`, paddingTop: 8 }}>
+            <div style={{ borderTop: `1px solid ${C.borderDefault}`, paddingTop: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>OUTAGES</span>
                 <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: '#FFB800' }}>{totalOutageMW.toLocaleString()} MW</span>
@@ -672,7 +672,7 @@ export default function GridAtlasView() {
             </div>
           )}
           {showWeather && weatherData.points.length > 0 && (
-            <div style={{ borderTop: `1px solid ${C.glassBorder}`, paddingTop: 8, marginTop: 4 }}>
+            <div style={{ borderTop: `1px solid ${C.borderDefault}`, paddingTop: 8, marginTop: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>
                   WEATHER
@@ -743,7 +743,7 @@ export default function GridAtlasView() {
         <div style={{
           position: 'fixed', left: plantTooltip.x + 14, top: plantTooltip.y - 10,
           zIndex: 50, background: 'rgba(10,10,11,0.95)',
-          border: `1px solid ${C.glassBorder}`, borderRadius: 6,
+          border: `1px solid ${C.borderDefault}`, borderRadius: 6,
           backdropFilter: 'blur(12px)', padding: '8px 12px',
           pointerEvents: 'none', minWidth: 160,
         }}>
@@ -783,7 +783,7 @@ export default function GridAtlasView() {
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         zIndex: 10, background: 'rgba(10,10,11,0.92)',
-        borderTop: `1px solid ${C.glassBorder}`,
+        borderTop: `1px solid ${C.borderDefault}`,
         backdropFilter: 'blur(12px)', padding: '10px 32px 14px',
         pointerEvents: 'auto',
       }}>
@@ -819,7 +819,7 @@ function Panel({ label, children }: { label: string; children: React.ReactNode }
   return (
     <div style={{
       background: 'rgba(10,10,11,0.88)',
-      border: `1px solid ${C.glassBorder}`,
+      border: `1px solid ${C.borderDefault}`,
       borderRadius: 6, backdropFilter: 'blur(12px)',
       padding: '10px 12px',
       display: 'flex', flexDirection: 'column' as const, gap: 6,

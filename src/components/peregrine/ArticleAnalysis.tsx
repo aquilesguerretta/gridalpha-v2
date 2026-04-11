@@ -114,14 +114,14 @@ PUBLISHED: ${item.timeAgo}`;
               <span style={{ padding: '2px 6px', background: `${srcColor}18`, border: `1px solid ${srcColor}40`, borderRadius: '3px', fontFamily: F.mono, fontSize: '8px', fontWeight: '600', color: srcColor, letterSpacing: '0.10em' }}>{item.source}</span>
               <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted }}>{item.timeAgo}</span>
             </div>
-            <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '12px', fontWeight: '500', color: C.textPrimary, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.title}</div>
+            <div style={{ fontFamily: F.sans, fontSize: '12px', fontWeight: '500', color: C.textPrimary, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.title}</div>
           </div>
           <button onClick={onClose} style={{ background: 'transparent', border: `1px solid ${C.borderDefault}`, borderRadius: R.md, color: C.textSecondary, fontFamily: F.mono, fontSize: '10px', padding: '6px 12px', cursor: 'pointer', flexShrink: 0, marginLeft: S.lg, letterSpacing: '0.08em' }}>ESC</button>
         </div>
 
         {/* Article context */}
         <div style={{ flexShrink: 0, padding: `${S.sm} ${S.xl}`, background: C.bgSurface, borderBottom: `1px solid ${C.borderDefault}` }}>
-          <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '11px', color: C.textMuted, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.summary}</div>
+          <div style={{ fontFamily: F.sans, fontSize: '11px', color: C.textMuted, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{item.summary}</div>
         </div>
 
         {/* Suggested questions */}
@@ -129,7 +129,7 @@ PUBLISHED: ${item.timeAgo}`;
           {SUGGESTED_QUESTIONS.map(q => (
             <button key={q} onClick={() => generateAnalysis(q)} disabled={loading} style={{
               padding: '4px 10px', background: C.bgSurface, border: `1px solid ${C.borderDefault}`,
-              borderRadius: R.sm, color: C.textSecondary, fontFamily: "'Geist', sans-serif", fontSize: '11px',
+              borderRadius: R.sm, color: C.textSecondary, fontFamily: F.sans, fontSize: '11px',
               whiteSpace: 'nowrap' as const, cursor: loading ? 'default' : 'pointer',
               opacity: loading ? 0.5 : 1, flexShrink: 0,
             }}>{q}</button>
@@ -147,7 +147,7 @@ PUBLISHED: ${item.timeAgo}`;
                 border: msg.role === 'user' ? '1px solid rgba(6,182,212,0.20)' : `1px solid ${C.borderDefault}`,
                 borderLeft: msg.role === 'assistant' ? `2px solid ${C.electricBlue}` : undefined,
                 borderRadius: msg.role === 'user' ? `${R.lg} ${R.sm} ${R.lg} ${R.lg}` : `${R.sm} ${R.lg} ${R.lg} ${R.lg}`,
-                fontFamily: "'Geist', sans-serif", fontSize: '12px',
+                fontFamily: F.sans, fontSize: '12px',
                 color: msg.role === 'user' ? C.textPrimary : C.textSecondary,
                 lineHeight: 1.6, whiteSpace: 'pre-wrap' as const,
               }}>{msg.content}</div>

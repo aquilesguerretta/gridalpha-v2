@@ -12,7 +12,11 @@ from urllib.parse import urlencode
 
 import httpx
 
-from app.services.intelligence_cache import get_cached
+from app.services.intelligence_cache import (
+    PJMAuthenticationError,
+    get_cached,
+    pjm_auth_headers,
+)
 
 USER_AGENT = (
     "Mozilla/5.0 (compatible; GridAlpha/2.0; +https://gridalpha.vercel.app)"
@@ -30,15 +34,6 @@ class ConfigurationError(Exception):
 def _env(name: str) -> str:
     v = os.environ.get(name, "").strip()
     return v
-
-
-def _pjm_key() -> str:
-    k = _env("PJM_SUBSCRIPTION_KEY")
-    if not k:
-        raise ConfigurationError(
-            "PJM_SUBSCRIPTION_KEY is not set (required for PJM DataMiner API)"
-        )
-    return k
 
 
 def _eia_key() -> str:
@@ -78,18 +73,26 @@ def _fnum(x: Any) -> float:
 
 async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
     url = f"https://api.pjm.com/api/v1/{path}"
-    async with httpx.AsyncClient(timeout=45.0) as client:
-        r = await client.get(
-            url,
-            params=params,
-            headers={
-                "Ocp-Apim-Subscription-Key": _pjm_key(),
-                "Accept": "application/json",
-                "User-Agent": USER_AGENT,
-            },
-        )
+    for attempt in range(2):
+        try:
+            auth = await pjm_auth_headers(force_refresh=(attempt > 0))
+        except PJMAuthenticationError as e:
+            raise ConfigurationError(e.message) from e
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            r = await client.get(
+                url,
+                params=params,
+                headers={
+                    **auth,
+                    "Accept": "application/json",
+                    "User-Agent": USER_AGENT,
+                },
+            )
+        if r.status_code == 401 and attempt == 0:
+            continue
         r.raise_for_status()
         return _pjm_items(r.json())
+    raise RuntimeError("PJM fetch: auth retry exhausted unexpectedly")
 
 
 # ── PJM atlas ────────────────────────────────────────────────────────────────

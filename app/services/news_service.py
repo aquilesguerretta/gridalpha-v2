@@ -21,11 +21,10 @@ RSS_FEEDS = [
         "id": "pjm",
         "name": "PJM Interconnection",
         "short": "PJM",
-        # Inside Lines often works from browsers; Railway/datacenter IPs may get empty/error responses.
-        "url": "https://insidelines.pjm.com/feed/",
+        # Prefer pjm.com RSS first — insidelines often returns no entries from datacenter IPs.
+        "url": "https://www.pjm.com/about-pjm/who-we-are/pjm-board/public-disclosures.aspx?publicdisclosures=All&rss=1",
         "fallback_urls": [
-            # Official pjm.com RSS (verified 200 + application/rss+xml; user-suggested /library/rss etc. redirect to not-found)
-            "https://www.pjm.com/about-pjm/who-we-are/pjm-board/public-disclosures.aspx?publicdisclosures=All&rss=1",
+            "https://insidelines.pjm.com/feed/",
         ],
         "color": "#06B6D4",
         "priority": "CRITICAL",
@@ -60,7 +59,8 @@ RSS_FEEDS = [
         "id": "reuters_energy",
         "name": "Reuters",
         "short": "REUTERS",
-        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCRvhOd9vNQhpPtgoCgJsGpA",
+        # Official @reuters channel (previous ID UCRvhOd9vNQhpPtgoCgJsGpA returns 404 on YouTube RSS).
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UChqUTb7kYRX8-EiaN3XFrSQ",
         "color": "#3B82F6",
         "priority": "NORMAL",
         "type": "video",
@@ -75,7 +75,8 @@ _FETCH_HEADERS = {
     "Accept": "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
 }
 
-_cache: dict = {"items": [], "updated_at": 0, "ttl": 300}
+_cache: dict = {"items": [], "updated_at": 0.0, "ttl": 300, "seeded": False}
+_fetch_news_lock = asyncio.Lock()
 
 CATEGORY_KEYWORDS = {
     "CONGESTION": ["congestion", "transmission", "constraint", "interface", "flowgate"],
@@ -199,12 +200,18 @@ async def parse_feed(feed_config: dict) -> list[dict]:
 
 
 async def fetch_news() -> list[dict]:
+    """Merge RSS feeds with TTL cache. Uses a lock so concurrent requests share one upstream refresh."""
     now = time.time()
-    if now - _cache["updated_at"] < _cache["ttl"] and _cache["items"]:
+    if _cache["seeded"] and (now - _cache["updated_at"] < _cache["ttl"]):
         return _cache["items"]
-    results = await asyncio.gather(*[parse_feed(f) for f in RSS_FEEDS])
-    all_items = [item for sublist in results for item in sublist]
-    all_items.sort(key=lambda x: x["publishedAt"], reverse=True)
-    _cache["items"] = all_items
-    _cache["updated_at"] = now
-    return all_items
+    async with _fetch_news_lock:
+        now = time.time()
+        if _cache["seeded"] and (now - _cache["updated_at"] < _cache["ttl"]):
+            return _cache["items"]
+        results = await asyncio.gather(*[parse_feed(f) for f in RSS_FEEDS])
+        all_items = [item for sublist in results for item in sublist]
+        all_items.sort(key=lambda x: x["publishedAt"], reverse=True)
+        _cache["items"] = all_items
+        _cache["updated_at"] = now
+        _cache["seeded"] = True
+        return all_items

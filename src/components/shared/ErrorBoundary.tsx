@@ -4,7 +4,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { captureError } from "../../lib/shared/error-tracking";
-import { C, F } from "../../config/design-tokens";
+import { C, F } from '@/design/tokens';
 
 interface Props {
   children:  ReactNode;
@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
         gap:             12,
         fontFamily:      F.mono,
       }}>
-        <span style={{ fontSize: "0.6rem", letterSpacing: "0.15em", color: C.red, textTransform: "uppercase" }}>
+        <span style={{ fontSize: "0.6rem", letterSpacing: "0.15em", color: C.alertCritical, textTransform: "uppercase" }}>
           {this.props.label ?? "COMPONENT"} ERROR
         </span>
         <span style={{ fontSize: "0.55rem", color: C.textMuted, textAlign: "center", maxWidth: 200 }}>

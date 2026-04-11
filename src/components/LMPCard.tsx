@@ -1,4 +1,4 @@
-import { C } from '@/design/tokens';
+import { C, F } from '@/design/tokens';
 import {
   AreaChart, Area, ComposedChart, Line,
   XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid,
@@ -29,23 +29,23 @@ function LMPExpandedSystem() {
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', overflow: 'auto' }}>
       {/* West Hub dominant price */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '72px', fontWeight: 'bold', color: '#FFFFFF', lineHeight: 1 }}>
+        <span style={{ fontFamily: F.mono, fontSize: '72px', fontWeight: 'bold', color: '#FFFFFF', lineHeight: 1 }}>
           {hubData.price.toFixed(2)}
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>$/MWh</span>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: hubData.delta >= 0 ? '#FFB800' : C.electricBlue }}>
+          <span style={{ fontFamily: F.mono, fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>$/MWh</span>
+          <span style={{ fontFamily: F.mono, fontSize: '11px', color: hubData.delta >= 0 ? '#FFB800' : C.electricBlue }}>
             {hubData.delta >= 0 ? '▲' : '▼'} {Math.abs(hubData.delta).toFixed(2)} vs −1H
           </span>
         </div>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.2)', marginLeft: '8px' }}>
+        <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.2)', marginLeft: '8px' }}>
           WEST HUB · SYSTEM REFERENCE
         </span>
       </div>
 
       {/* 24h trend chart */}
       <div style={{ flexShrink: 0, height: '200px', minHeight: '200px', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', flexShrink: 0 }}>
+        <span style={{ fontFamily: F.mono, fontSize: '9px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', flexShrink: 0 }}>
           24H LMP TREND — WEST HUB
         </span>
         <div style={{ flex: 1, minHeight: 0, marginTop: '8px' }}>
@@ -72,17 +72,17 @@ function LMPExpandedSystem() {
       <div style={{ display: 'flex', gap: '16px' }}>
         {/* Weather */}
         <div style={{ flex: 1, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>WEATHER</div>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>41°F</div>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>Cloudy · Normal demand</div>
+          <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>WEATHER</div>
+          <div style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>41°F</div>
+          <div style={{ fontFamily: F.sans, fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>Cloudy · Normal demand</div>
         </div>
         {/* Load vs Forecast */}
         <div style={{ flex: 1, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>LOAD VS FORECAST</div>
+          <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>LOAD VS FORECAST</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>128.4</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>GW</span>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color: '#FF4444' }}>▼ 2.1 GW vs forecast</span>
+            <span style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>128.4</span>
+            <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>GW</span>
+            <span style={{ fontFamily: F.sans, fontSize: '10px', color: '#FF4444' }}>▼ 2.1 GW vs forecast</span>
           </div>
           <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', marginTop: '8px' }}>
             <div style={{ height: '100%', width: '92%', background: C.electricBlue }} />
@@ -90,7 +90,7 @@ function LMPExpandedSystem() {
         </div>
         {/* Zone extremes */}
         <div style={{ flex: 2, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '12px' }}>ZONE EXTREMES</div>
+          <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '12px' }}>ZONE EXTREMES</div>
           <div style={{ display: 'flex', gap: '24px' }}>
             {[
               { label: 'HIGHEST', zone: 'RECO',  price: 36.60, color: '#FF4444' },
@@ -98,9 +98,9 @@ function LMPExpandedSystem() {
               { label: 'MOST CONGESTED', zone: 'PSEG', price: 1.58, color: '#FFB800' },
             ].map(({ label, zone, price, color }) => (
               <div key={label}>
-                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', marginBottom: '4px' }}>{label}</div>
-                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '18px', color, fontWeight: 'bold' }}>{price.toFixed(2)}</div>
-                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>{zone}</div>
+                <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', marginBottom: '4px' }}>{label}</div>
+                <div style={{ fontFamily: F.mono, fontSize: '18px', color, fontWeight: 'bold' }}>{price.toFixed(2)}</div>
+                <div style={{ fontFamily: F.mono, fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>{zone}</div>
               </div>
             ))}
           </div>
@@ -132,13 +132,13 @@ function LMPExpandedZone({ zone }: { zone: string }) {
       <div className="lmp-section-enter" style={{ display: 'flex', gap: '32px', alignItems: 'flex-start', flexShrink: 0 }}>
         {/* Price block */}
         <div>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.2em', marginBottom: '4px' }}>
+          <div style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.2em', marginBottom: '4px' }}>
             {zone}
           </div>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '64px', fontWeight: 'bold', color: '#FFFFFF', lineHeight: 1 }}>
+          <div style={{ fontFamily: F.mono, fontSize: '64px', fontWeight: 'bold', color: '#FFFFFF', lineHeight: 1 }}>
             {data.price.toFixed(2)}
           </div>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>
+          <div style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>
             $/MWh
           </div>
           <div style={{
@@ -150,7 +150,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             background: data.delta >= 0 ? 'rgba(255,183,0,0.1)' : 'rgba(6,182,212,0.1)',
             border: `0.5px solid ${data.delta >= 0 ? 'rgba(255,183,0,0.3)' : 'rgba(6,182,212,0.3)'}`,
           }}>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: data.delta >= 0 ? '#FFB800' : C.electricBlue, fontWeight: 'bold' }}>
+            <span style={{ fontFamily: F.mono, fontSize: '11px', color: data.delta >= 0 ? '#FFB800' : C.electricBlue, fontWeight: 'bold' }}>
               {data.delta >= 0 ? '▲' : '▼'} {Math.abs(data.delta).toFixed(2)} vs −1H
             </span>
           </div>
@@ -158,7 +158,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
 
         {/* Component breakdown */}
         <div style={{ flex: 1, paddingTop: '8px' }}>
-          <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '12px' }}>
+          <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '12px' }}>
             LMP COMPONENT BREAKDOWN
           </div>
           <div style={{ display: 'flex', gap: '32px', marginBottom: '12px' }}>
@@ -174,8 +174,8 @@ function LMPExpandedZone({ zone }: { zone: string }) {
                 onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
                 onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', marginBottom: '4px' }}>{label}</div>
-                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '22px', color, fontWeight: 'bold' }}>
+                <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', marginBottom: '4px' }}>{label}</div>
+                <div style={{ fontFamily: F.mono, fontSize: '22px', color, fontWeight: 'bold' }}>
                   {value >= 0 ? '+' : ''}{value.toFixed(2)}
                 </div>
               </div>
@@ -195,7 +195,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             ].map(({ label, color }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <div style={{ width: '6px', height: '6px', background: color }} />
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.25)' }}>{label}</span>
+                <span style={{ fontFamily: F.sans, fontSize: '8px', color: 'rgba(255,255,255,0.25)' }}>{label}</span>
               </div>
             ))}
           </div>
@@ -252,7 +252,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             }}
           >
             <div style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: F.mono,
               fontSize: '8px',
               color: 'rgba(255,255,255,0.2)',
               letterSpacing: '0.15em',
@@ -262,7 +262,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               {label}
             </div>
             <div style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: F.mono,
               fontSize: '22px',
               fontWeight: 'bold',
               color,
@@ -271,7 +271,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               {value}
             </div>
             <div style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: F.mono,
               fontSize: '9px',
               color: 'rgba(255,255,255,0.3)',
               marginTop: '3px',
@@ -294,17 +294,17 @@ function LMPExpandedZone({ zone }: { zone: string }) {
       }}>
         {/* Chart header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
+          <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em' }}>
             24H PRICE TREND — {zone} vs WEST HUB
           </span>
           <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{ width: '20px', height: '2px', background: C.electricBlue }} />
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>{zone}</span>
+              <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>{zone}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{ width: '20px', height: '0', borderTop: '1.5px dashed rgba(255,255,255,0.3)' }} />
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>WEST HUB</span>
+              <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.08em' }}>WEST HUB</span>
             </div>
           </div>
         </div>
@@ -323,10 +323,10 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             const spread = hubPrice != null ? zonePrice - hubPrice : null
             return (
               <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: '6px', padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
-                <div style={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: '11px', color: 'rgba(229,231,235,0.55)', marginBottom: '5px', letterSpacing: '0.06em' }}>{label}:00</div>
-                <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '15px', fontWeight: '600', color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>${zonePrice.toFixed(2)}/MWh</div>
+                <div style={{ fontFamily: F.sans, fontSize: '11px', color: 'rgba(229,231,235,0.55)', marginBottom: '5px', letterSpacing: '0.06em' }}>{label}:00</div>
+                <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: '600', color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>${zonePrice.toFixed(2)}/MWh</div>
                 {spread != null && (
-                  <div style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: spread > 0 ? 'rgba(255,183,0,0.9)' : 'rgba(6,182,212,0.9)', marginTop: '3px', fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ fontFamily: F.mono, fontSize: '11px', color: spread > 0 ? 'rgba(255,183,0,0.9)' : 'rgba(6,182,212,0.9)', marginTop: '3px', fontVariantNumeric: 'tabular-nums' }}>
                     {spread >= 0 ? '+' : ''}{spread.toFixed(2)} vs Hub
                   </div>
                 )}
@@ -359,7 +359,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
                       domain={[0, 23]}
                       ticks={[0, 3, 6, 9, 12, 15, 18, 21, 23]}
                       tickFormatter={h => `${h}:00`}
-                      tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+                      tick={{ fontFamily: F.sans, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
                       axisLine={{ stroke: 'rgba(229,231,235,0.12)' }}
                       tickLine={false}
                     />
@@ -367,7 +367,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
                       domain={[PRICE_MIN, PRICE_MAX]}
                       ticks={[25, 30, 35, 40, 45, 50, 55, 60]}
                       tickFormatter={v => `$${v}`}
-                      tick={{ fontFamily: "'Geist', 'Inter', system-ui, sans-serif", fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
+                      tick={{ fontFamily: F.sans, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }}
                       axisLine={false}
                       tickLine={false}
                       width={40}
@@ -393,7 +393,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         {/* Panel 1: Congestion Intelligence — accent left border */}
         <div className="lmp-panel-congestion" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: 'none', borderLeft: '2px solid rgba(255,183,0,0.4)', background: 'rgba(255,183,0,0.02)', padding: '16px 20px' }}>
           <div style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '9px',
             color: 'rgba(255,183,0,0.6)',
             letterSpacing: '0.15em',
@@ -407,10 +407,10 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0' }}>
             {constraints.map((c, i) => (
               <div key={i} className="lmp-constraint-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="constraint-name" style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)', transition: 'color 0.15s ease' }}>
+                <span className="constraint-name" style={{ fontFamily: F.mono, fontSize: '9px', color: 'rgba(255,255,255,0.4)', transition: 'color 0.15s ease' }}>
                   {c.name}
                 </span>
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', fontWeight: 'bold', color: c.impact > 0.5 ? '#FFB800' : c.impact < 0 ? '#FF4444' : 'rgba(255,255,255,0.3)' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', fontWeight: 'bold', color: c.impact > 0.5 ? '#FFB800' : c.impact < 0 ? '#FF4444' : 'rgba(255,255,255,0.3)' }}>
                   {c.impact >= 0 ? '+' : ''}{c.impact.toFixed(2)}
                 </span>
               </div>
@@ -421,7 +421,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         {/* Panel 2: Zone Generation Mix — accent left border */}
         <div className="lmp-panel-genmix" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: 'none', borderLeft: '2px solid rgba(6,182,212,0.3)', background: 'rgba(6,182,212,0.01)', padding: '16px 20px' }}>
           <div style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '9px',
             color: 'rgba(6,182,212,0.6)',
             letterSpacing: '0.15em',
@@ -442,9 +442,9 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               <div key={fuel} className="lmp-genmix-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '6px', height: '6px', background: color }} />
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>{fuel}</span>
+                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>{fuel}</span>
                 </div>
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: 'bold' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.6)', fontWeight: 'bold' }}>
                   {pct}%
                 </span>
               </div>
@@ -455,7 +455,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
         {/* Panel 3: Price Forecast — accent left border */}
         <div className="lmp-panel-forecast" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', border: 'none', borderLeft: '2px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.01)', padding: '16px 20px' }}>
           <div style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '9px',
             color: 'rgba(255,255,255,0.35)',
             letterSpacing: '0.15em',
@@ -471,12 +471,12 @@ function LMPExpandedZone({ zone }: { zone: string }) {
               const delta = price - data.price
               return (
                 <div key={hour} className="lmp-forecast-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>{hour}</span>
+                  <span style={{ fontFamily: F.mono, fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>{hour}</span>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '13px', fontWeight: 'bold', color: '#FFFFFF' }}>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 'bold', color: '#FFFFFF' }}>
                       {price.toFixed(2)}
                     </span>
-                    <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '9px', color: delta >= 0 ? '#FFB800' : C.electricBlue }}>
+                    <span style={{ fontFamily: F.mono, fontSize: '9px', color: delta >= 0 ? '#FFB800' : C.electricBlue }}>
                       {delta >= 0 ? '▲' : '▼'}{Math.abs(delta).toFixed(2)}
                     </span>
                   </div>
@@ -533,7 +533,7 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
           padding: '0 16px',
         }}>
           <span style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '9px',
             color: 'rgba(255,255,255,0.35)',
             letterSpacing: '0.2em',
@@ -542,7 +542,7 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
             {selectedZone ?? 'WEST HUB'} LMP
           </span>
           <span style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '8px',
             color: C.alertNormal,
             letterSpacing: '0.15em',
@@ -565,7 +565,7 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
           gap: '8px',
         }}>
           <div style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '42px',
             fontWeight: 'bold',
             color: '#FFFFFF',
@@ -575,7 +575,7 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
             {lmpData.price.toFixed(2)}
           </div>
           <div style={{
-            fontFamily: "'Geist Mono', monospace",
+            fontFamily: F.mono,
             fontSize: '10px',
             color: 'rgba(255,255,255,0.3)',
             letterSpacing: '0.1em',
@@ -593,7 +593,7 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
             border: `0.5px solid ${lmpData.delta >= 0 ? 'rgba(255,183,0,0.3)' : 'rgba(6,182,212,0.3)'}`,
           }}>
             <span style={{
-              fontFamily: "'Geist Mono', monospace",
+              fontFamily: F.mono,
               fontSize: '10px',
               color: lmpData.delta >= 0 ? '#FFB800' : C.electricBlue,
               fontWeight: 'bold',
@@ -619,10 +619,10 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
             { label: 'LOSS',       value: lmpData.loss,        color: 'rgba(255,100,100,0.7)' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.15em' }}>
+              <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.15em' }}>
                 {label}
               </span>
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '10px', color, fontWeight: 'bold' }}>
+              <span style={{ fontFamily: F.mono, fontSize: '10px', color, fontWeight: 'bold' }}>
                 {value >= 0 ? '+' : ''}{value.toFixed(2)}
               </span>
             </div>
@@ -630,7 +630,7 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
           {/* Navigate hint */}
           {onExpand && (
             <div style={{ textAlign: 'center', marginTop: '2px' }}>
-              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em' }}>
+              <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em' }}>
                 › OPEN FULL VIEW
               </span>
             </div>
@@ -654,11 +654,11 @@ export function LMPFullPage({ selectedZone }: { selectedZone: string | null }) {
         flexShrink: 0,
         gap: '16px',
       }}>
-        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em' }}>
+        <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em' }}>
           LMP INTELLIGENCE
         </span>
         {selectedZone && (
-          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: C.electricBlue, letterSpacing: '0.1em' }}>
+          <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.electricBlue, letterSpacing: '0.1em' }}>
             / {selectedZone}
           </span>
         )}

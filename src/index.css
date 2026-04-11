@@ -1,3 +1,7 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,20 +11,20 @@
    Mirrors src/design/tokens.ts — keep in sync.
    ═══════════════════════════════════════════════════════════════════ */
 :root {
-  /* Backgrounds */
-  --bg-base:     #0C0D10;
-  --bg-elevated: #151619;
-  --bg-surface:  #1C1D22;
-  --bg-overlay:  #252730;
+  /* Backgrounds — warm dark */
+  --bg-base:     #111117;
+  --bg-elevated: #18181f;
+  --bg-surface:  #1f1f28;
+  --bg-overlay:  #27272f;
 
   /* Text */
-  --text-primary:   #E5E7EB;
-  --text-secondary: rgba(229,231,235,0.60);
-  --text-muted:     rgba(229,231,235,0.35);
+  --text-primary:   #F1F1F3;
+  --text-secondary: rgba(241,241,243,0.60);
+  --text-muted:     rgba(241,241,243,0.35);
 
-  /* Accents */
-  --electric-blue:      #06B6D4;
-  --electric-blue-wash: rgba(6,182,212,0.10);
+  /* Accents — calm blue-500 */
+  --electric-blue:      #3B82F6;
+  --electric-blue-wash: rgba(59,130,246,0.10);
   --falcon-gold:        #F59E0B;
   --falcon-gold-wash:   rgba(245,158,11,0.10);
 
@@ -33,9 +37,9 @@
 
   /* Borders */
   --border: 234 7% 18%;
-  --border-default: rgba(42,43,51,0.70);
-  --border-accent:  rgba(6,182,212,0.18);
-  --border-active:  rgba(6,182,212,0.35);
+  --border-default: rgba(255,255,255,0.07);
+  --border-accent:  rgba(59,130,246,0.18);
+  --border-active:  rgba(59,130,246,0.40);
 
   /* shadcn/ui base tokens */
   --background: 228 18% 4%;
@@ -46,7 +50,7 @@
 
   /* Typography */
   --font-mono: 'Geist Mono', 'Fira Code', monospace;
-  --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 
   /* Spacing */
   --space-xs:   4px;
@@ -103,7 +107,7 @@ body::before {
   letter-spacing: 0.10em;
   text-transform: uppercase;
 }
-.ga-badge--normal  { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.22); color: var(--electric-blue); }
+.ga-badge--normal  { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.22); color: var(--electric-blue); }
 .ga-badge--burning { background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.30); color: var(--falcon-gold); }
 .ga-badge--alert   { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.30); color: var(--alert-critical); }
 
@@ -141,7 +145,7 @@ html, body, #root {
   padding: 0;
   overflow: hidden;
   background: var(--bg-base);
-  font-family: 'Geist Mono', monospace;
+  font-family: var(--font-sans);
 }
 
 /* GridAlpha Custom Animations */
@@ -219,12 +223,12 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(6, 182, 212, 0.3);
+  background: rgba(59, 130, 246, 0.3);
   border-radius: 1px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 182, 212, 0.5);
+  background: rgba(59, 130, 246, 0.5);
 }
 
 /* Circuit trace breathing animation */
@@ -374,8 +378,8 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 }
 
 @keyframes alert-flash {
-  0%   { background: rgba(6, 182, 212, 0.18); border-left-color: var(--electric-blue); }
-  60%  { background: rgba(6, 182, 212, 0.08); border-left-color: var(--electric-blue); }
+  0%   { background: rgba(59, 130, 246, 0.18); border-left-color: var(--electric-blue); }
+  60%  { background: rgba(59, 130, 246, 0.08); border-left-color: var(--electric-blue); }
   100% { background: transparent; border-left-color: inherit; }
 }
 
@@ -500,7 +504,7 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 
 @layer base {
   body {
-    font-family: 'Geist Mono', 'SF Mono', 'Fira Code', monospace !important;
+    font-family: var(--font-sans);
     background-color: var(--bg-base);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
@@ -551,7 +555,7 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   padding: 6px 0;
 }
 .lmp-genmix-row:hover {
-  background: rgba(6, 182, 212, 0.04);
+  background: rgba(59, 130, 246, 0.04);
 }
 
 .lmp-metric-tile {
@@ -583,8 +587,8 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   transition: border-left-color 0.2s ease, background 0.2s ease;
 }
 .lmp-panel-genmix:hover {
-  border-left-color: rgba(6, 182, 212, 0.55) !important;
-  background: rgba(6, 182, 212, 0.03) !important;
+  border-left-color: rgba(59, 130, 246, 0.55) !important;
+  background: rgba(59, 130, 246, 0.03) !important;
 }
 
 .lmp-panel-forecast {
@@ -654,7 +658,7 @@ html, body, #root, [data-reactroot] {
   padding: 0 !important;
   display: block !important;
   background-color: var(--bg-base) !important;
-  font-family: 'Geist Mono', monospace !important;
+  font-family: var(--font-sans) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -665,18 +669,18 @@ input[type='range']::-webkit-slider-thumb {
   width:         14px;
   height:        14px;
   border-radius: 50%;
-  background:    #00A3FF;
+  background:    #3B82F6;
   border:        2px solid rgba(10,10,11,0.9);
   cursor:        pointer;
-  box-shadow:    0 0 6px rgba(0,163,255,0.5);
+  box-shadow:    0 0 6px rgba(59,130,246,0.5);
 }
 
 input[type='range']::-moz-range-thumb {
   width:         14px;
   height:        14px;
   border-radius: 50%;
-  background:    #00A3FF;
+  background:    #3B82F6;
   border:        2px solid rgba(10,10,11,0.9);
   cursor:        pointer;
-  box-shadow:    0 0 6px rgba(0,163,255,0.5);
+  box-shadow:    0 0 6px rgba(59,130,246,0.5);
 }

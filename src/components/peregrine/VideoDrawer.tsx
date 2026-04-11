@@ -44,7 +44,7 @@ export default function VideoDrawer({
               marginBottom: S.xs }}>
               {source}
             </div>
-            <div style={{ fontFamily: "'Geist', sans-serif",
+            <div style={{ fontFamily: F.sans,
               fontSize: '13px', fontWeight: '500',
               color: C.textPrimary, lineHeight: 1.4,
               maxWidth: '460px' }}>
@@ -81,7 +81,7 @@ export default function VideoDrawer({
             marginBottom: S.md }}>
             MORE FROM {source}
           </div>
-          <div style={{ fontFamily: "'Geist', sans-serif",
+          <div style={{ fontFamily: F.sans,
             fontSize: '12px', color: C.textMuted, lineHeight: 1.6 }}>
             Related items load when live data is wired.
           </div>

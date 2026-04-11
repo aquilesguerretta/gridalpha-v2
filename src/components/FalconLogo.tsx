@@ -45,13 +45,13 @@ export default function FalconLogo({ collapsed: _collapsed }: { collapsed: boole
   }, [falconState])
 
   return (
-    <div style={{ width: 48, height: 48, overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       <Spline
         scene="https://prod.spline.design/wOs78zfJDU6wipSz/scene.splinecode"
         onLoad={(spline) => {
           splineRef.current = spline
         }}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', background: 'transparent' }}
       />
     </div>
   )

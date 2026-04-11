@@ -124,7 +124,8 @@ Set these in the Railway dashboard for the **FastAPI** service that serves `app.
 |----------|---------|
 | `EIA_API_KEY` | Henry Hub + PJM fuel-mix (`/api/energy/*`) |
 | `TOMORROW_API_KEY` | `/api/weather/current` and `/api/weather/forecast` |
-| `PJM_SUBSCRIPTION_KEY` | PJM DataMiner API (`/api/atlas/*` except static GeoJSON) — [developer.pjm.com](https://developer.pjm.com) |
+| `PJM_USERNAME` | PJM Tools username for DataMiner API (`/api/atlas/*` except static GeoJSON) |
+| `PJM_PASSWORD` | Same account password; server obtains an SSO session via [PJM SSO](https://sso.pjm.com) and calls `api.pjm.com` with the session cookie |
 
 Use the **same key values** as in local `.env.local` (`VITE_EIA_API_KEY`, `VITE_TOMORROW_API_KEY`); server-side names **omit** the `VITE_` prefix.
 

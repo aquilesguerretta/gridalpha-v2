@@ -4,57 +4,57 @@
 // No component may hardcode a value that exists in this file.
 
 export const C = {
-  // ─── BACKGROUNDS (4-tier elevation) ───────────────────────────────
-  bgBase:       '#0C0D10',   // Page canvas — blue-shifted near-black
-  bgElevated:   '#151619',   // Cards, panels — 5% lift from base
-  bgSurface:    '#1C1D22',   // Interactive elements, hover states
-  bgOverlay:    '#252730',   // Modals, dropdowns, command palette
+  // ─── BACKGROUNDS (4-tier elevation) — warm dark ───────────────────
+  bgBase:       '#111117',
+  bgElevated:   '#18181f',
+  bgSurface:    '#1f1f28',
+  bgOverlay:    '#27272f',
 
   // ─── TEXT ─────────────────────────────────────────────────────────
-  textPrimary:   '#E5E7EB',               // Dominant data values, headings
-  textSecondary: 'rgba(229,231,235,0.6)', // Labels, supporting values
-  textMuted:     'rgba(229,231,235,0.35)',// Metadata, timestamps, units
-  textInverse:   '#0C0D10',              // Text on colored backgrounds
+  textPrimary:   '#F1F1F3',
+  textSecondary: 'rgba(241,241,243,0.60)',
+  textMuted:     'rgba(241,241,243,0.35)',
+  textInverse:   '#111117',
 
-  // ─── ACCENTS ──────────────────────────────────────────────────────
-  electricBlue:      '#06B6D4',               // Primary interactive, selected states
-  electricBlueLight: '#22D3EE',               // Hover, sparkline highlights
-  electricBlueMuted: '#0891B2',               // Secondary interactive
-  electricBlueWash:  'rgba(6,182,212,0.10)',  // Selected row bg, card glow
+  // ─── ACCENTS — calm blue-500, not neon cyan ───────────────────────
+  electricBlue:      '#3B82F6',
+  electricBlueLight: '#60A5FA',
+  electricBlueMuted: '#2563EB',
+  electricBlueWash:  'rgba(59,130,246,0.10)',
 
-  falconGold:        '#F59E0B',               // Profitability, positive spread, secondary accent
-  falconGoldLight:   '#FBBF24',               // Warning, approaching threshold
-  falconGoldWash:    'rgba(245,158,11,0.10)', // Gold-tinted backgrounds
+  falconGold:        '#F59E0B',
+  falconGoldLight:   '#FCD34D',
+  falconGoldWash:    'rgba(245,158,11,0.10)',
 
   // ─── STATUS / ALERTS (ISA-101 hierarchy) ─────────────────────────
-  alertCritical:  '#EF4444',              // Scarcity events, emergency, system trips
-  alertHigh:      '#F97316',              // Price spikes >$200, congestion threshold breach
-  alertWarning:   '#F59E0B',              // Reserve margin warnings (same as falconGold)
-  alertInfo:      '#3B82F6',              // Informational, scheduled events
-  alertNormal:    '#10B981',              // System nominal, within operating range
-  alertDiagnostic:'#8B5CF6',             // Background processes, system health
+  alertCritical:  '#EF4444',
+  alertHigh:      '#F97316',
+  alertWarning:   '#F59E0B',
+  alertInfo:      '#3B82F6',
+  alertNormal:    '#10B981',
+  alertDiagnostic:'#8B5CF6',
 
   // ─── BORDERS ─────────────────────────────────────────────────────
-  borderDefault: 'rgba(42,43,51,0.7)',   // Default card/panel border
-  borderStrong:  '#2A2B33',              // Dividers, section separators
-  borderActive:  'rgba(6,182,212,0.35)', // Hover/active card top edge
-  borderAccent:  'rgba(6,182,212,0.18)', // Resting card top edge (cyan whisper)
-  borderAlert:   'rgba(239,68,68,0.35)', // Alert state card border
+  borderDefault: 'rgba(255,255,255,0.07)',
+  borderStrong:  'rgba(255,255,255,0.12)',
+  borderActive:  'rgba(59,130,246,0.40)',
+  borderAccent:  'rgba(59,130,246,0.18)',
+  borderAlert:   'rgba(239,68,68,0.35)',
 
   // ─── FUEL MIX (energy industry conventions) ───────────────────────
-  fuelGas:     '#F97316',   // Orange — combustion, natural gas
-  fuelCoal:    '#6B7280',   // Gray — carbon, legacy
-  fuelNuclear: '#FBBF24',   // Amber — uranium yellow
-  fuelWind:    '#38BDF8',   // Sky blue — wind energy
-  fuelSolar:   '#FDE047',   // Yellow — solar
-  fuelHydro:   '#2563EB',   // Blue — water
-  fuelBattery: '#A78BFA',   // Violet — storage (distinct from all fuel types)
-  fuelOther:   '#9CA3AF',   // Gray fallback
+  fuelGas:     '#F97316',
+  fuelCoal:    '#6B7280',
+  fuelNuclear: '#FBBF24',
+  fuelWind:    '#38BDF8',
+  fuelSolar:   '#FDE047',
+  fuelHydro:   '#2563EB',
+  fuelBattery: '#A78BFA',
+  fuelOther:   '#9CA3AF',
 } as const;
 
 export const F = {
   mono: "'Geist Mono', 'Fira Code', monospace",
-  sans: "'Geist', 'Inter', system-ui, sans-serif",
+  sans: "'Inter', system-ui, -apple-system, sans-serif",
 } as const;
 
 export const R = {
@@ -75,24 +75,80 @@ export const S = {
 } as const;
 
 export const T = {
-  // Label — card titles, section headers (uppercase, spaced)
+  // Legacy scalar tokens — kept for backward compatibility
   labelSize:    '10px',
   labelWeight:  '500',
   labelSpacing: '0.12em',
-
-  // Data secondary — component values, supporting metrics
   dataSmSize:   '13px',
   dataSmWeight: '400',
-
-  // Data primary — dominant display values
   dataMdSize:   '18px',
   dataMdWeight: '600',
-
-  // Data large — hero metrics (LMP, spread, SOC%)
   dataLgSize:   '28px',
   dataLgWeight: '600',
-
-  // Display — oversized focal number (LMP expanded overlay)
   displaySize:  '48px',
   displayWeight:'700',
+
+  // ─── LEVEL 1 — PAGE IDENTITY ─────────────────────────────────
+  pageTitle: {
+    fontFamily:    F.mono,
+    fontSize:      '22px',
+    fontWeight:    '700',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color:         C.textPrimary,
+  },
+  pageSubtitle: {
+    fontFamily: F.sans,
+    fontSize:   '13px',
+    fontWeight: '400',
+    color:      C.textMuted,
+  },
+
+  // ─── LEVEL 2 — SECTION / CONTENT ─────────────────────────────
+  sectionHeader: {
+    fontFamily:    F.mono,
+    fontSize:      '11px',
+    fontWeight:    '600',
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase' as const,
+    color:         C.textSecondary,
+  },
+  headline: {
+    fontFamily: F.sans,
+    fontSize:   '15px',
+    fontWeight: '500',
+    lineHeight: '1.4',
+    color:      C.textPrimary,
+  },
+  body: {
+    fontFamily: F.sans,
+    fontSize:   '13px',
+    fontWeight: '400',
+    lineHeight: '1.6',
+    color:      C.textSecondary,
+  },
+
+  // ─── LEVEL 3 — LABELS / METADATA ─────────────────────────────
+  label: {
+    fontFamily:    F.mono,
+    fontSize:      '10px',
+    fontWeight:    '500',
+    letterSpacing: '0.10em',
+    textTransform: 'uppercase' as const,
+    color:         C.textMuted,
+  },
+  dataValue: {
+    fontFamily:         F.mono,
+    fontSize:           '13px',
+    fontWeight:         '600',
+    fontVariantNumeric: 'tabular-nums',
+    color:              C.textPrimary,
+  },
+  displayValue: {
+    fontFamily:         F.mono,
+    fontSize:           '32px',
+    fontWeight:         '700',
+    fontVariantNumeric: 'tabular-nums',
+    color:              C.textPrimary,
+  },
 } as const;

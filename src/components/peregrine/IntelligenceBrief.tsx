@@ -242,7 +242,7 @@ List 2-4 PJM zones most affected by today's news. One sentence each.
             {parseSections(briefContent).map((section, i) => (
               <div key={i} style={{ marginBottom: S.xl }}>
                 <div style={{ fontFamily: F.mono, fontSize: '10px', color: C.electricBlue, letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: S.md, borderBottom: `1px solid ${C.borderDefault}`, paddingBottom: S.sm }}>{section.title}</div>
-                <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', color: C.textSecondary, lineHeight: 1.7 }}>
+                <div style={{ fontFamily: F.sans, fontSize: '13px', color: C.textSecondary, lineHeight: 1.7 }}>
                   {section.content.split('\n').map((line, j) => {
                     const trimmed = line.trim();
                     if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
@@ -261,7 +261,7 @@ List 2-4 PJM zones most affected by today's news. One sentence each.
             ))}
             {/* Raw fallback if no sections parsed */}
             {parseSections(briefContent).length === 0 && (
-              <div style={{ fontFamily: "'Geist', sans-serif", fontSize: '13px', color: C.textSecondary, lineHeight: 1.7, whiteSpace: 'pre-wrap' as const }}>{briefContent}</div>
+              <div style={{ fontFamily: F.sans, fontSize: '13px', color: C.textSecondary, lineHeight: 1.7, whiteSpace: 'pre-wrap' as const }}>{briefContent}</div>
             )}
           </div>
         </div>

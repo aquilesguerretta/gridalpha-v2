@@ -69,60 +69,73 @@ export default function PeregrineFullPage({
       <div style={{
         display: 'flex', alignItems: 'center',
         justifyContent: 'space-between',
-        padding: `${S.lg} ${S.xl}`, flexShrink: 0,
+        padding: `${S.xl} ${S.xl} ${S.lg} ${S.xl}`, flexShrink: 0,
         borderBottom: `1px solid ${C.borderDefault}`,
-        background: C.bgElevated,
+        background: `linear-gradient(135deg, ${C.bgElevated} 0%, ${C.bgBase} 100%)`,
       }}>
-        <div>
-          <div style={{ fontFamily: F.mono, fontSize: '13px',
-            fontWeight: '600', color: C.textPrimary,
-            letterSpacing: '0.08em', marginBottom: S.xs }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
+          <div style={{
+            fontFamily: F.mono, fontSize: '10px', fontWeight: '500',
+            letterSpacing: '0.16em', textTransform: 'uppercase' as const,
+            color: C.electricBlue, marginBottom: S.xs,
+          }}>
+            PJM MARKET INTELLIGENCE
+          </div>
+          <div style={{
+            fontFamily: F.mono, fontSize: '26px', fontWeight: '700',
+            letterSpacing: '0.04em', textTransform: 'uppercase' as const,
+            color: C.textPrimary, lineHeight: 1,
+          }}>
             PEREGRINE INTELLIGENCE
           </div>
-          <div style={{ fontFamily: "'Geist', sans-serif",
-            fontSize: '12px', color: C.textMuted }}>
-            Live market alerts · Official energy intelligence · PJM / EIA / FERC
+          <div style={{
+            fontFamily: F.sans, fontSize: '13px', fontWeight: '400',
+            color: C.textMuted, marginTop: S.xs,
+          }}>
+            Live market alerts · Official energy intelligence · EIA / PJM / FERC
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: S.lg }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: S.md }}>
           <input
             type="text"
-            placeholder="SEARCH INTELLIGENCE..."
+            placeholder="Search intelligence..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             style={{
-              width: '240px', background: C.bgSurface,
+              width: '260px', background: C.bgSurface,
               border: `1px solid ${C.borderDefault}`,
               borderRadius: R.md, color: C.textPrimary,
-              fontFamily: F.mono, fontSize: '11px',
-              padding: '7px 12px', outline: 'none',
-              letterSpacing: '0.06em',
+              fontFamily: F.sans, fontSize: '13px',
+              padding: '8px 14px', outline: 'none',
             }}
           />
-          <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted }}>
+          <div style={{
+            fontFamily: F.mono, fontSize: '10px', color: C.textMuted,
+            letterSpacing: '0.06em', whiteSpace: 'nowrap' as const,
+          }}>
             {loading ? 'FETCHING...'
-             : error ? 'ERROR'
              : lastFetch
                ? `UPDATED ${lastFetch.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`
                : ''}
-          </span>
-          <button onClick={() => setShowBrief(true)} style={{
-            background: C.electricBlueWash,
-            border: `1px solid ${C.electricBlue}`,
-            borderRadius: R.md, color: C.electricBlue,
-            fontFamily: F.mono, fontSize: '10px', fontWeight: '600',
-            padding: '6px 14px', cursor: 'pointer',
-            letterSpacing: '0.10em',
-            transition: 'all 150ms cubic-bezier(0.4,0,0.2,1)',
-          }}>⚡ GENERATE REPORT</button>
+          </div>
           <button onClick={refetch} style={{
             background: 'transparent',
             border: `1px solid ${C.borderDefault}`,
             borderRadius: R.md, color: C.textSecondary,
             fontFamily: F.mono, fontSize: '10px',
-            padding: '6px 12px', cursor: 'pointer',
+            padding: '7px 14px', cursor: 'pointer',
             letterSpacing: '0.08em',
+            transition: 'all 150ms ease',
           }}>↻ REFRESH</button>
+          <button onClick={() => setShowBrief(true)} style={{
+            background: C.electricBlue, border: 'none',
+            borderRadius: R.md, color: '#fff',
+            fontFamily: F.mono, fontSize: '10px', fontWeight: '600',
+            padding: '7px 16px', cursor: 'pointer',
+            letterSpacing: '0.10em',
+            transition: 'all 150ms ease',
+            whiteSpace: 'nowrap' as const,
+          }}>⚡ GENERATE REPORT</button>
         </div>
       </div>
 
@@ -130,7 +143,7 @@ export default function PeregrineFullPage({
       <div style={{
         display: 'flex', flexShrink: 0,
         borderBottom: `1px solid ${C.borderDefault}`,
-        background: C.bgElevated, paddingLeft: S.xl,
+        background: C.bgElevated, paddingLeft: S.xl, gap: 0,
       }}>
         {([
           { id: 'news',   label: 'ENERGY INTELLIGENCE', count: filtered.length },
@@ -139,20 +152,27 @@ export default function PeregrineFullPage({
           <button key={tab.id}
             onClick={() => setFeedTab(tab.id)}
             style={{
-              padding: `${S.md} ${S.xl}`,
+              padding: '14px 24px',
               background: 'transparent', border: 'none',
               borderBottom: feedTab === tab.id
                 ? `2px solid ${C.electricBlue}`
                 : '2px solid transparent',
-              color: feedTab === tab.id ? C.electricBlue : C.textMuted,
-              fontFamily: F.mono, fontSize: '10px',
-              fontWeight: '500', letterSpacing: '0.10em',
-              textTransform: 'uppercase' as const,
+              color: feedTab === tab.id ? C.textPrimary : C.textMuted,
+              fontFamily: F.mono, fontSize: '11px',
+              fontWeight: feedTab === tab.id ? '600' : '400',
+              letterSpacing: '0.10em',
               cursor: 'pointer',
-              transition: 'all 150ms cubic-bezier(0.4,0,0.2,1)',
+              transition: 'all 150ms ease',
+              display: 'flex', alignItems: 'center', gap: S.sm,
             }}>
             {tab.label}
-            <span style={{ marginLeft: 8, opacity: 0.6 }}>{tab.count}</span>
+            <span style={{
+              background: feedTab === tab.id ? C.electricBlue : C.bgSurface,
+              color: feedTab === tab.id ? '#fff' : C.textMuted,
+              borderRadius: '10px', padding: '1px 7px',
+              fontSize: '10px', fontWeight: '500',
+              transition: 'all 150ms ease',
+            }}>{tab.count}</span>
           </button>
         ))}
       </div>
@@ -168,9 +188,13 @@ export default function PeregrineFullPage({
               borderRight: `1px solid ${C.borderDefault}`,
               padding: `${S.lg} 0`, overflowY: 'auto',
             }}>
-              <div style={{ fontFamily: F.mono, fontSize: '9px',
-                color: C.textMuted, letterSpacing: '0.12em',
-                padding: `0 ${S.lg}`, marginBottom: S.md }}>
+              <div style={{
+                fontFamily: F.mono, fontSize: '9px', fontWeight: '600',
+                color: C.textMuted, letterSpacing: '0.18em',
+                textTransform: 'uppercase' as const,
+                padding: `${S.sm} ${S.lg}`, marginBottom: S.xs,
+                borderLeft: `2px solid ${C.borderDefault}`,
+              }}>
                 SOURCE
               </div>
               {(['ALL','EIA','PJM','FERC','BLOOMBERG','REUTERS'] as NewsSource[]).map(src => {
@@ -183,7 +207,7 @@ export default function PeregrineFullPage({
                     style={{
                       display: 'flex', alignItems: 'center',
                       gap: S.sm, width: '100%',
-                      padding: `${S.sm} ${S.lg}`,
+                      padding: `10px ${S.lg}`,
                       background: newsSource === src
                         ? 'rgba(255,255,255,0.05)' : 'transparent',
                       border: 'none',
@@ -200,13 +224,13 @@ export default function PeregrineFullPage({
                       }} />
                     )}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: F.mono, fontSize: '11px',
+                      <div style={{ fontFamily: F.sans, fontSize: '13px',
                         color: newsSource === src ? C.textPrimary : C.textSecondary,
                         fontWeight: newsSource === src ? '600' : '400' }}>
                         {src === 'ALL' ? 'All Sources' : src}
                       </div>
                       {src !== 'ALL' && (
-                        <div style={{ fontFamily: "'Geist', sans-serif",
+                        <div style={{ fontFamily: F.sans,
                           fontSize: '10px', color: C.textMuted, marginTop: 2 }}>
                           {src === 'EIA' ? 'Energy data & analysis'
                            : src === 'PJM' ? 'Grid operator notices'
@@ -223,9 +247,13 @@ export default function PeregrineFullPage({
 
               <div style={{ height: 1, background: C.borderDefault, margin: `${S.lg} 0` }} />
 
-              <div style={{ fontFamily: F.mono, fontSize: '9px',
-                color: C.textMuted, letterSpacing: '0.12em',
-                padding: `0 ${S.lg}`, marginBottom: S.md }}>
+              <div style={{
+                fontFamily: F.mono, fontSize: '9px', fontWeight: '600',
+                color: C.textMuted, letterSpacing: '0.18em',
+                textTransform: 'uppercase' as const,
+                padding: `${S.sm} ${S.lg}`, marginBottom: S.xs,
+                borderLeft: `2px solid ${C.borderDefault}`,
+              }}>
                 CATEGORY
               </div>
               {CATEGORIES.map(cat => (
@@ -236,7 +264,8 @@ export default function PeregrineFullPage({
                     padding: `${S.xs} ${S.lg}`,
                     background: 'transparent', border: 'none',
                     cursor: 'pointer', textAlign: 'left' as const,
-                    fontFamily: F.mono, fontSize: '10px',
+                    fontFamily: F.mono, fontSize: '11px',
+                    letterSpacing: '0.08em',
                     color: catFilter === cat ? C.textPrimary : C.textMuted,
                     fontWeight: catFilter === cat ? '600' : '400',
                   }}>
@@ -262,7 +291,7 @@ export default function PeregrineFullPage({
                     color: C.alertCritical, marginBottom: S.sm }}>
                     FEED UNAVAILABLE — {error}
                   </div>
-                  <div style={{ fontFamily: "'Geist', sans-serif",
+                  <div style={{ fontFamily: F.sans,
                     fontSize: '12px', color: C.textMuted }}>
                     Backend deploying or unreachable. Check Railway status.
                   </div>
@@ -287,7 +316,7 @@ export default function PeregrineFullPage({
                 >
                   {/* Timestamp + source */}
                   <div style={{ width: '80px', flexShrink: 0 }}>
-                    <div style={{ fontFamily: F.mono, fontSize: '10px',
+                    <div style={{ fontFamily: F.mono, fontSize: '11px',
                       color: C.textMuted, marginBottom: S.xs,
                       fontVariantNumeric: 'tabular-nums' }}>
                       {item.timeAgo}
@@ -313,16 +342,16 @@ export default function PeregrineFullPage({
 
                   {/* Headline + summary + category */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: "'Geist', sans-serif",
-                      fontSize: '14px', fontWeight: '500',
+                    <div style={{ fontFamily: F.sans,
+                      fontSize: '15px', fontWeight: '500',
                       color: C.textPrimary, lineHeight: 1.4,
-                      marginBottom: S.xs }}>
+                      marginBottom: S.sm }}>
                       {item.title}
                     </div>
                     {item.summary && (
-                      <div style={{ fontFamily: "'Geist', sans-serif",
-                        fontSize: '12px', color: C.textSecondary,
-                        lineHeight: 1.6, marginBottom: S.sm }}>
+                      <div style={{ fontFamily: F.sans,
+                        fontSize: '13px', color: C.textSecondary,
+                        lineHeight: 1.65, marginBottom: S.sm }}>
                         {item.summary}
                       </div>
                     )}
@@ -393,7 +422,7 @@ export default function PeregrineFullPage({
               ))}
 
               <div style={{ padding: `${S.sm} ${S.xl}`, opacity: 0.4 }}>
-                <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted }}>
+                <span style={{ fontFamily: F.sans, fontSize: '10px', color: C.textMuted }}>
                   LIVE · Auto-refreshes every 5 minutes
                 </span>
               </div>

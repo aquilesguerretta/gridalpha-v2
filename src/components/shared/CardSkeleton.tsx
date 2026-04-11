@@ -2,7 +2,7 @@
 // Pulsing placeholder for card loading states.
 // Use as Suspense fallback and as pre-data loading state in Sprint 2C.
 
-import { C } from "../../config/design-tokens";
+import { C } from '@/design/tokens';
 
 interface CardSkeletonProps {
   rows?: number;
@@ -20,7 +20,7 @@ export function CardSkeleton({ rows = 3 }: CardSkeletonProps) {
       <div style={{
         height:       8,
         borderRadius: 4,
-        background:   C.glassBorder,
+        background:   C.borderDefault,
         width:        "40%",
         animation:    "card-pulse 1.5s ease-in-out infinite",
       }} />

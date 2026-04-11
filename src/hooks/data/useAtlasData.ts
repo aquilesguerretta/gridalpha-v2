@@ -1,6 +1,7 @@
 // src/hooks/data/useAtlasData.ts
 // Polling hooks for all Sprint 3B intelligence layers.
-// All data fetches go to our Railway backend — never directly to external APIs.
+// Tries Railway backend first — falls back to mock data if unreachable.
+// When backend goes live, hooks automatically switch to real data.
 
 import { useState, useEffect, useCallback } from 'react';
 
@@ -31,25 +32,66 @@ export interface PlantOutage {
   datetime:  string;
 }
 
-// Generic polling hook
+// ── Mock fallback data ────────────────────────────────────────────────────
+
+const MOCK_FUEL_MIX: FuelMix = {
+  timestamp: new Date().toISOString(),
+  fuels: [
+    { type: 'Gas',     mw: 38420 },
+    { type: 'Nuclear', mw: 32100 },
+    { type: 'Coal',    mw: 12800 },
+    { type: 'Wind',    mw:  8340 },
+    { type: 'Hydro',   mw:  2100 },
+    { type: 'Solar',   mw:  1640 },
+    { type: 'Other',   mw:   890 },
+  ],
+};
+
+const MOCK_CONSTRAINTS = {
+  constraints: [
+    { name: 'PENELEC-PPL INTERFACE',  shadow_price: 12.40, contingency: 'LINE-345KV' },
+    { name: 'AEP-DOM 500KV',          shadow_price:  8.75, contingency: 'N-1'        },
+    { name: 'COMED-MISO BORDER',      shadow_price:  5.20, contingency: 'LINE-230KV' },
+  ] as BindingConstraint[],
+};
+
+const MOCK_FLOWS = {
+  flows: [
+    { name: 'PJM-MISO',    actual_mw:  2340, max_mw: 4200, pct_loading: 0.56 },
+    { name: 'PJM-NYISO',   actual_mw:  1890, max_mw: 2800, pct_loading: 0.68 },
+    { name: 'PJM-SERC',    actual_mw: -540,  max_mw: 1500, pct_loading: 0.36 },
+  ] as InterfaceFlow[],
+};
+
+const MOCK_OUTAGES = {
+  outages: [
+    { fuel_type: 'Nuclear', mw: 1268, reason: 'PLANNED MAINTENANCE', datetime: new Date().toISOString() },
+    { fuel_type: 'Coal',    mw:  840, reason: 'FORCED OUTAGE',        datetime: new Date().toISOString() },
+    { fuel_type: 'Gas',     mw:  575, reason: 'PLANNED MAINTENANCE',  datetime: new Date().toISOString() },
+  ] as PlantOutage[],
+};
+
+// ── Generic polling hook with mock fallback ───────────────────────────────
+
 function usePolling<T>(
   endpoint: string,
   intervalMs: number,
-  fallback: T,
-): { data: T; loading: boolean; error: string | null } {
-  const [data,    setData]    = useState<T>(fallback);
+  mockData: T,
+): { data: T; loading: boolean; live: boolean } {
+  const [data,    setData]    = useState<T>(mockData);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [live,    setLive]    = useState(false);
 
   const fetch_ = useCallback(async () => {
     try {
-      const res = await fetch(`${BACKEND}${endpoint}`);
+      const res = await fetch(`${BACKEND}${endpoint}`, { signal: AbortSignal.timeout(5000) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json);
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
+      setLive(true);
+    } catch {
+      // Backend not ready — keep mock data
+      setLive(false);
     } finally {
       setLoading(false);
     }
@@ -61,20 +103,22 @@ function usePolling<T>(
     return () => clearInterval(id);
   }, [fetch_, intervalMs]);
 
-  return { data, loading, error };
+  return { data, loading, live };
 }
 
 export const useFuelMix = () =>
-  usePolling<FuelMix>('/api/atlas/generation-fuel', 5 * 60_000, { timestamp: '', fuels: [] });
+  usePolling<FuelMix>('/api/atlas/generation-fuel', 5 * 60_000, MOCK_FUEL_MIX);
 
 export const useBindingConstraints = () =>
-  usePolling<{ constraints: BindingConstraint[] }>('/api/atlas/binding-constraints', 5 * 60_000, { constraints: [] });
+  usePolling<{ constraints: BindingConstraint[] }>('/api/atlas/binding-constraints', 5 * 60_000, MOCK_CONSTRAINTS);
 
 export const useInterfaceFlows = () =>
-  usePolling<{ flows: InterfaceFlow[] }>('/api/atlas/interface-flows', 5 * 60_000, { flows: [] });
+  usePolling<{ flows: InterfaceFlow[] }>('/api/atlas/interface-flows', 5 * 60_000, MOCK_FLOWS);
 
 export const useOutages = () =>
-  usePolling<{ outages: PlantOutage[] }>('/api/atlas/outages', 30 * 60_000, { outages: [] });
+  usePolling<{ outages: PlantOutage[] }>('/api/atlas/outages', 30 * 60_000, MOCK_OUTAGES);
+
+// ── Static GeoJSON hooks ──────────────────────────────────────────────────
 
 export function useStaticGeoJSON(endpoint: string) {
   const [data,    setData]    = useState<GeoJSON.FeatureCollection | null>(null);
@@ -82,7 +126,7 @@ export function useStaticGeoJSON(endpoint: string) {
 
   useEffect(() => {
     fetch(`${BACKEND}${endpoint}`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(d => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, [endpoint]);

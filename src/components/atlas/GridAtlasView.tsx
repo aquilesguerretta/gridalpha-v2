@@ -157,6 +157,58 @@ function filterPlants(
   };
 }
 
+// ── Mock infrastructure data (replaced by backend when live) ──────────────
+
+const MOCK_GAS_PIPELINES: GeoJSON.FeatureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    { type:'Feature', properties:{ NAME:'Transcontinental Gas Pipeline', OPERATOR:'Williams' }, geometry:{ type:'LineString', coordinates:[[-80.5,36.8],[-79.2,37.4],[-77.5,38.2],[-76.1,39.0],[-75.2,39.8],[-74.5,40.5],[-74.0,40.9]] } },
+    { type:'Feature', properties:{ NAME:'Tennessee Gas Pipeline', OPERATOR:'Kinder Morgan' }, geometry:{ type:'LineString', coordinates:[[-88.5,39.2],[-86.8,39.5],[-84.9,39.8],[-83.2,40.1],[-81.5,40.4],[-79.8,40.6],[-78.1,40.8],[-76.4,41.0],[-74.9,41.2]] } },
+    { type:'Feature', properties:{ NAME:'Columbia Gas Transmission', OPERATOR:'TC Energy' }, geometry:{ type:'LineString', coordinates:[[-82.5,38.2],[-81.2,38.8],[-79.9,39.4],[-78.6,39.9],[-77.3,40.3],[-76.0,40.7],[-74.8,40.9]] } },
+    { type:'Feature', properties:{ NAME:'Texas Eastern Transmission', OPERATOR:'Enbridge' }, geometry:{ type:'LineString', coordinates:[[-89.2,38.5],[-87.5,38.9],[-85.8,39.3],[-84.1,39.7],[-82.4,40.1],[-80.7,40.4],[-79.0,40.7],[-77.3,41.0],[-75.6,41.2],[-74.1,40.8]] } },
+    { type:'Feature', properties:{ NAME:'Iroquois Gas Transmission', OPERATOR:'Iroquois' }, geometry:{ type:'LineString', coordinates:[[-74.2,41.5],[-73.8,41.8],[-73.3,42.1],[-72.8,42.3]] } },
+    { type:'Feature', properties:{ NAME:'Rockies Express Pipeline', OPERATOR:'Tallgrass' }, geometry:{ type:'LineString', coordinates:[[-90.5,39.8],[-88.8,39.9],[-87.1,40.0],[-85.4,40.1],[-83.7,40.2],[-82.0,40.3],[-80.3,40.3]] } },
+    { type:'Feature', properties:{ NAME:'Eastern Gas Transmission', OPERATOR:'EQT' }, geometry:{ type:'LineString', coordinates:[[-80.2,39.8],[-79.0,39.9],[-77.8,40.1],[-76.5,40.4],[-75.3,40.6]] } },
+    { type:'Feature', properties:{ NAME:'Algonquin Gas Transmission', OPERATOR:'Enbridge' }, geometry:{ type:'LineString', coordinates:[[-74.1,40.7],[-73.5,41.1],[-72.9,41.4],[-72.1,41.6],[-71.5,41.8],[-71.0,42.0]] } },
+  ],
+};
+
+const MOCK_SUBSTATIONS: GeoJSON.FeatureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    { type:'Feature', properties:{ NAME:'Susquehanna', VOLTAGE:500 }, geometry:{ type:'Point', coordinates:[-76.15,41.10] } },
+    { type:'Feature', properties:{ NAME:'Juniata', VOLTAGE:500 }, geometry:{ type:'Point', coordinates:[-77.86,40.47] } },
+    { type:'Feature', properties:{ NAME:'Keystone', VOLTAGE:500 }, geometry:{ type:'Point', coordinates:[-79.20,40.55] } },
+    { type:'Feature', properties:{ NAME:'Tabb', VOLTAGE:500 }, geometry:{ type:'Point', coordinates:[-76.42,37.09] } },
+    { type:'Feature', properties:{ NAME:'Doubs', VOLTAGE:500 }, geometry:{ type:'Point', coordinates:[-77.38,39.42] } },
+    { type:'Feature', properties:{ NAME:'Kemptown', VOLTAGE:500 }, geometry:{ type:'Point', coordinates:[-77.22,39.38] } },
+    { type:'Feature', properties:{ NAME:'Meadow Brook', VOLTAGE:500 }, geometry:{ type:'Point', coordinates:[-77.55,38.95] } },
+    { type:'Feature', properties:{ NAME:'Elroy', VOLTAGE:345 }, geometry:{ type:'Point', coordinates:[-75.31,40.08] } },
+    { type:'Feature', properties:{ NAME:'Burlington', VOLTAGE:345 }, geometry:{ type:'Point', coordinates:[-74.88,39.95] } },
+    { type:'Feature', properties:{ NAME:'Otter Creek', VOLTAGE:345 }, geometry:{ type:'Point', coordinates:[-82.54,41.32] } },
+    { type:'Feature', properties:{ NAME:'Beaver', VOLTAGE:345 }, geometry:{ type:'Point', coordinates:[-80.34,40.75] } },
+    { type:'Feature', properties:{ NAME:'Hatfield Ferry', VOLTAGE:345 }, geometry:{ type:'Point', coordinates:[-80.13,39.88] } },
+    { type:'Feature', properties:{ NAME:'Tidd', VOLTAGE:345 }, geometry:{ type:'Point', coordinates:[-80.70,40.35] } },
+    { type:'Feature', properties:{ NAME:'Marysville', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-77.02,40.08] } },
+    { type:'Feature', properties:{ NAME:'Peach Bottom', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-76.27,39.76] } },
+    { type:'Feature', properties:{ NAME:'Plymouth Meeting', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-75.28,40.10] } },
+    { type:'Feature', properties:{ NAME:'Whitpain', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-75.32,40.14] } },
+    { type:'Feature', properties:{ NAME:'Conemaugh', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-79.14,40.46] } },
+    { type:'Feature', properties:{ NAME:'Wylie Ridge', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-80.03,39.76] } },
+    { type:'Feature', properties:{ NAME:'Greensburg', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-79.53,40.30] } },
+    { type:'Feature', properties:{ NAME:'Cresap', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-79.05,39.55] } },
+    { type:'Feature', properties:{ NAME:'Loudoun', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-77.62,38.98] } },
+    { type:'Feature', properties:{ NAME:'Ox', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-77.35,38.78] } },
+    { type:'Feature', properties:{ NAME:'Possum Point', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-77.23,38.57] } },
+    { type:'Feature', properties:{ NAME:'Chalk Point', VOLTAGE:230 }, geometry:{ type:'Point', coordinates:[-76.67,38.53] } },
+    { type:'Feature', properties:{ NAME:'Conastone', VOLTAGE:115 }, geometry:{ type:'Point', coordinates:[-76.17,39.55] } },
+    { type:'Feature', properties:{ NAME:'Stony Point', VOLTAGE:115 }, geometry:{ type:'Point', coordinates:[-74.02,41.23] } },
+    { type:'Feature', properties:{ NAME:'Lambertville', VOLTAGE:115 }, geometry:{ type:'Point', coordinates:[-74.94,40.37] } },
+    { type:'Feature', properties:{ NAME:'Mickleton', VOLTAGE:115 }, geometry:{ type:'Point', coordinates:[-75.24,39.79] } },
+    { type:'Feature', properties:{ NAME:'Elsinboro', VOLTAGE:115 }, geometry:{ type:'Point', coordinates:[-75.46,39.49] } },
+  ],
+};
+
 // ── Main component ────────────────────────────────────────────────────────
 
 export default function GridAtlasView() {
@@ -197,12 +249,14 @@ export default function GridAtlasView() {
   const [timeOffset, setTimeOffset] = useState(48);
 
   // Live data hooks (gracefully return empty when backend not ready)
-  const { data: fuelMixData }        = useFuelMix();
-  const { data: constraintData }     = useBindingConstraints();
-  const { data: flowData }           = useInterfaceFlows();
-  const { data: outageData }         = useOutages();
-  const { data: substationGeoJson }  = useSubstations();
-  const { data: pipelineGeoJson }    = useGasPipelines();
+  const { data: fuelMixData,    live: fuelLive   } = useFuelMix();
+  const { data: constraintData, live: constLive  } = useBindingConstraints();
+  const { data: flowData,       live: flowLive   } = useInterfaceFlows();
+  const { data: outageData,     live: outageLive } = useOutages();
+  const { data: substationGeoJsonBackend } = useSubstations();
+  const { data: pipelineGeoJsonBackend }   = useGasPipelines();
+  const substationGeoJson = substationGeoJsonBackend ?? MOCK_SUBSTATIONS;
+  const pipelineGeoJson   = pipelineGeoJsonBackend   ?? MOCK_GAS_PIPELINES;
   const earthquakeGeoJson            = useEarthquakes();
 
   const flowArrowsGeoJson = useMemo(
@@ -523,6 +577,16 @@ export default function GridAtlasView() {
         {/* Map style */}
         {/* Live Intelligence Panel */}
         <Panel label="GRID INTELLIGENCE">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted }}>DATA SOURCE</span>
+            <span style={{
+              fontFamily: F.mono, fontSize: '0.5rem',
+              color: fuelLive ? '#10B981' : '#FFB800',
+              letterSpacing: '0.1em',
+            }}>
+              {fuelLive ? '\u25CF LIVE' : '\u25D0 SIMULATED'}
+            </span>
+          </div>
           {fuelMixData.fuels.length > 0 && (
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>
@@ -576,11 +640,6 @@ export default function GridAtlasView() {
                 <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: '#FFB800' }}>{totalOutageMW.toLocaleString()} MW</span>
               </div>
             </div>
-          )}
-          {fuelMixData.fuels.length === 0 && constraintData.constraints.length === 0 && totalOutageMW === 0 && (
-            <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted }}>
-              AWAITING BACKEND...
-            </span>
           )}
         </Panel>
 

@@ -16,6 +16,7 @@ import { ErrorBoundary } from "./shared/ErrorBoundary";
 import { CardSkeleton } from "./shared/CardSkeleton";
 import GridAtlasView from "./atlas/GridAtlasView";
 import PeregrineFullPage from "./peregrine/PeregrineFullPage";
+import { useHenryHub } from '../hooks/data/useEnergyPrices';
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -534,11 +535,15 @@ function SparkSpreadChart({ history, regime }: { history: number[]; regime: 'BUR
 
 // ── SparkKPIView ──────────────────────────────────────────────────
 function SparkKPIView({ selectedZone, onNavigate }: { selectedZone: string | null; onNavigate?: () => void }) {
+  const { data: henryHub } = useHenryHub();
+  const gasPrice = henryHub.current_price_mmbtu;
+  const gasPriceLive = henryHub.live;
+
   const SPARK_DATA = {
     zone: selectedZone ?? 'SYSTEM',
     regime: 'BURNING' as 'BURNING' | 'SUPPRESSED' | 'NEUTRAL',
     spreadValue: 12.4,
-    gasPrice: 3.42,
+    gasPrice,
     heatRate: 7.2,
     powerPrice: 35.90,
     gasEquivPrice: 24.62,
@@ -625,13 +630,21 @@ function SparkKPIView({ selectedZone, onNavigate }: { selectedZone: string | nul
               </span>
             </div>
           ))}
-          <div style={{ display: 'flex', gap: S.xl, marginTop: S.xs }}>
+          <div style={{ display: 'flex', gap: S.xl, marginTop: S.xs, alignItems: 'center' }}>
             {[{ label: 'GAS', value: `$${SPARK_DATA.gasPrice}/MMBtu` }, { label: 'HR', value: `${SPARK_DATA.heatRate}×` }].map(item => (
               <div key={item.label} style={{ display: 'flex', gap: S.xs, alignItems: 'baseline' }}>
                 <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.08em' }}>{item.label}</span>
                 <span style={{ fontFamily: F.mono, fontSize: '11px', color: C.textSecondary }}>{item.value}</span>
               </div>
             ))}
+            <span style={{
+              fontFamily: F.mono,
+              fontSize: '0.5rem',
+              color: gasPriceLive ? '#10B981' : '#FFB800',
+              letterSpacing: '0.1em',
+            }}>
+              {gasPriceLive ? '● LIVE' : '◐ EIA'}
+            </span>
           </div>
         </div>
 
@@ -966,10 +979,14 @@ function GapKPIView({ selectedZone, onNavigate }: { selectedZone: string | null;
 // ── Full-page KPI views ───────────────────────────────────────────
 
 function SpreadFullPage({ selectedZone }: { selectedZone: string | null }) {
+  const { data: henryHub } = useHenryHub();
+  const gasPrice = henryHub.current_price_mmbtu;
+  const gasPriceLive = henryHub.live;
+
   const SPARK_DATA = {
     zone: selectedZone ?? 'SYSTEM',
     regime: 'BURNING' as 'BURNING' | 'SUPPRESSED' | 'NEUTRAL',
-    spreadValue: 12.4, gasPrice: 3.42, heatRate: 7.2,
+    spreadValue: 12.4, gasPrice, heatRate: 7.2,
     powerPrice: 35.90, gasEquivPrice: 24.62, netSpread: 12.4,
     avg24h: 10.8, peak: { value: 18.2, hour: '8AM' }, hoursBurning: 18,
     history: [-2.4,-1.8,-0.6,2.1,4.8,8.2,14.1,18.2,16.8,15.2,13.4,12.8,11.9,10.4,9.8,11.2,13.6,14.9,12.4,10.8,9.2,7.6,5.4,3.8],
@@ -1004,11 +1021,18 @@ function SpreadFullPage({ selectedZone }: { selectedZone: string | null }) {
             {[
               { label: 'CURRENT SPREAD', value: `+${SPARK_DATA.spreadValue.toFixed(1)}`, color: regimeColor },
               { label: '24H AVG',         value: `+${SPARK_DATA.avg24h.toFixed(1)}`,      color: C.textPrimary },
-              { label: 'GAS PRICE',       value: `$${SPARK_DATA.gasPrice}`,               color: C.textPrimary },
+              { label: 'GAS PRICE',       value: `$${SPARK_DATA.gasPrice}`,               color: C.textPrimary, isGas: true },
               { label: 'HEAT RATE',       value: `${SPARK_DATA.heatRate}×`,               color: C.textPrimary },
             ].map(tile => (
               <div key={tile.label} style={{ flex: 1, background: C.bgOverlay, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const }}>{tile.label}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const }}>{tile.label}</span>
+                  {'isGas' in tile && tile.isGas && (
+                    <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: gasPriceLive ? '#10B981' : '#FFB800', letterSpacing: '0.1em' }}>
+                      {gasPriceLive ? '● LIVE' : '◐ EIA'}
+                    </span>
+                  )}
+                </div>
                 <span style={{ fontFamily: F.mono, fontSize: '22px', fontWeight: '600', color: tile.color, fontVariantNumeric: 'tabular-nums' }}>{tile.value}</span>
               </div>
             ))}

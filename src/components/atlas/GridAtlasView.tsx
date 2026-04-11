@@ -25,6 +25,7 @@ import {
   useEarthquakes,
 } from '../../hooks/data/useAtlasData';
 import { buildFlowArrows } from './utils/buildFlowArrows';
+import { useWeatherData } from '../../hooks/data/useWeatherData';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
 
@@ -222,6 +223,7 @@ export default function GridAtlasView() {
   const [showGasPipelines,   setShowGasPipelines]   = useState(false);
   const [showEarthquakes,    setShowEarthquakes]    = useState(true);
   const [showInterfaceFlows, setShowInterfaceFlows] = useState(true);
+  const [showWeather,        setShowWeather]        = useState(true);
 
   // Map style
   const [activeStyle, setActiveStyle] = useState<MapStyleId>('terminal');
@@ -258,6 +260,7 @@ export default function GridAtlasView() {
   const substationGeoJson = substationGeoJsonBackend ?? MOCK_SUBSTATIONS;
   const pipelineGeoJson   = pipelineGeoJsonBackend   ?? MOCK_GAS_PIPELINES;
   const earthquakeGeoJson            = useEarthquakes();
+  const { data: weatherData, live: weatherLive } = useWeatherData();
 
   const flowArrowsGeoJson = useMemo(
     () => buildFlowArrows(flowData?.flows ?? []),
@@ -267,6 +270,31 @@ export default function GridAtlasView() {
     () => outageData?.outages.reduce((sum, o) => sum + o.mw, 0) ?? 0,
     [outageData],
   );
+
+  const weatherGeoJson = useMemo((): GeoJSON.FeatureCollection => ({
+    type: 'FeatureCollection',
+    features: weatherData.points.map(p => ({
+      type: 'Feature',
+      properties: {
+        label:       p.label,
+        temp_c:      p.temperature_c,
+        temp_f:      Math.round(p.temperature_c * 9/5 + 32),
+        wind_ms:     p.wind_speed_ms,
+        wind_mph:    Math.round(p.wind_speed_ms * 2.237),
+        wind_dir:    p.wind_direction_deg,
+        cloud_pct:   p.cloud_cover_pct,
+        precip_mm:   p.precip_mm,
+        wind_color:  p.wind_speed_ms < 4 ? '#00A3FF'
+                   : p.wind_speed_ms < 8 ? '#FFB800'
+                   : '#FF3B3B',
+        temp_color:  p.temperature_c < 5  ? '#00A3FF'
+                   : p.temperature_c < 20 ? '#FFFFFF'
+                   : '#FF3B3B',
+        display_label: `${p.label}\n${Math.round(p.temperature_c * 9/5 + 32)}°F · ${Math.round(p.wind_speed_ms * 2.237)}mph`,
+      },
+      geometry: { type: 'Point' as const, coordinates: [p.lon, p.lat] },
+    })),
+  }), [weatherData]);
 
   // Map ref for flyTo
   const mapRef = useRef<GridAtlasMapHandle>(null);
@@ -420,6 +448,7 @@ export default function GridAtlasView() {
             showGasPipelines={showGasPipelines}
             showEarthquakes={showEarthquakes}
             showInterfaceFlows={showInterfaceFlows}
+            weatherGeoJson={showWeather ? weatherGeoJson : null}
             onZoneClick={setSelectedZone}
             onPlantHover={handlePlantHover}
             onZoneHover={setHoveredZone}
@@ -529,6 +558,7 @@ export default function GridAtlasView() {
           <Toggle label="SUBSTATIONS"     active={showSubstations}    color="#FFFFFF"        onToggle={() => setShowSubstations(p => !p)} />
           <Toggle label="SEISMIC ALERTS"  active={showEarthquakes}    color="#FF3B3B"        onToggle={() => setShowEarthquakes(p => !p)} />
           <Toggle label="INTERFACE FLOWS" active={showInterfaceFlows} color="#00E676"        onToggle={() => setShowInterfaceFlows(p => !p)} />
+          <Toggle label="WEATHER"         active={showWeather}        color="#00FFF0"        onToggle={() => setShowWeather(p => !p)} />
         </Panel>
 
         {/* Fuel type filter */}
@@ -639,6 +669,38 @@ export default function GridAtlasView() {
                 <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>OUTAGES</span>
                 <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: '#FFB800' }}>{totalOutageMW.toLocaleString()} MW</span>
               </div>
+            </div>
+          )}
+          {showWeather && weatherData.points.length > 0 && (
+            <div style={{ borderTop: `1px solid ${C.glassBorder}`, paddingTop: 8, marginTop: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>
+                  WEATHER
+                </span>
+                <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: weatherLive ? '#10B981' : '#FFB800' }}>
+                  {weatherLive ? '● LIVE' : '◐ SIMULATED'}
+                </span>
+              </div>
+              {(() => {
+                const windiest = [...weatherData.points].sort((a, b) => b.wind_speed_ms - a.wind_speed_ms)[0];
+                const hottest  = [...weatherData.points].sort((a, b) => b.temperature_c - a.temperature_c)[0];
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted }}>MAX WIND</span>
+                      <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: '#00A3FF' }}>
+                        {windiest.label} {Math.round(windiest.wind_speed_ms * 2.237)}mph
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted }}>MAX TEMP</span>
+                      <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: '#FF3B3B' }}>
+                        {hottest.label} {Math.round(hottest.temperature_c * 9/5 + 32)}°F
+                      </span>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           )}
         </Panel>

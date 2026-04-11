@@ -309,6 +309,7 @@ export interface GridAtlasMapProps {
   pipelineGeoJson:    GeoJSON.FeatureCollection | null;
   earthquakeGeoJson:  GeoJSON.FeatureCollection | null;
   flowArrowsGeoJson:  GeoJSON.FeatureCollection | null;
+  weatherGeoJson:     GeoJSON.FeatureCollection | null;
   showZones:          boolean;
   showTx:             boolean;
   showPlants:         boolean;
@@ -330,6 +331,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
     {
       mapStyle, zoneGeoJson, txGeoJson, plantGeoJson, hubGeoJson,
       substationGeoJson, pipelineGeoJson, earthquakeGeoJson, flowArrowsGeoJson,
+      weatherGeoJson,
       showZones, showTx, showPlants, showNodes, showExtrusion,
       showSubstations, showGasPipelines, showEarthquakes, showInterfaceFlows,
       onZoneClick, onPlantHover, onZoneHover,
@@ -531,6 +533,48 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
                 'text-color':       '#FFFFFF',
                 'text-halo-color':  'rgba(0,0,0,0.9)',
                 'text-halo-width':   2,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Weather Overlay */}
+        {styleLoaded && weatherGeoJson && (
+          <Source id="weather" type="geojson" data={weatherGeoJson}>
+            <Layer
+              id="weather-wind"
+              type="circle"
+              paint={{
+                'circle-radius': [
+                  'interpolate', ['linear'],
+                  ['get', 'wind_ms'],
+                  0,  8,
+                  5,  14,
+                  10, 20,
+                  15, 28,
+                ] as any,
+                'circle-color':        ['get', 'wind_color'] as any,
+                'circle-opacity':       0.15,
+                'circle-stroke-color': ['get', 'wind_color'] as any,
+                'circle-stroke-width':  1.5,
+                'circle-stroke-opacity': 0.7,
+              }}
+            />
+            <Layer
+              id="weather-labels"
+              type="symbol"
+              layout={{
+                'text-field':   ['get', 'display_label'] as any,
+                'text-size':     10,
+                'text-font':    ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+                'text-offset':  [0, 2.2] as any,
+                'text-anchor':  'top',
+                'text-optional': true,
+              }}
+              paint={{
+                'text-color':       ['get', 'temp_color'] as any,
+                'text-halo-color':  'rgba(0,0,0,0.85)',
+                'text-halo-width':   1.5,
               }}
             />
           </Source>

@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ═══════════════════════════════════════════════════════════════════
    GridAlpha V2 — CSS Custom Properties
    Mirrors src/design/tokens.ts — keep in sync.
@@ -28,9 +32,17 @@
   --alert-info:     #3B82F6;
 
   /* Borders */
+  --border: 234 7% 18%;
   --border-default: rgba(42,43,51,0.70);
   --border-accent:  rgba(6,182,212,0.18);
   --border-active:  rgba(6,182,212,0.35);
+
+  /* shadcn/ui base tokens */
+  --background: 228 18% 4%;
+  --foreground: 216 12% 89%;
+  --input: 234 7% 18%;
+  --ring: 186 95% 47%;
+  --radius: 8px;
 
   /* Typography */
   --font-mono: 'Geist Mono', 'Fira Code', monospace;
@@ -131,10 +143,6 @@ html, body, #root {
   background: var(--bg-base);
   font-family: 'Geist Mono', monospace;
 }
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 /* GridAlpha Custom Animations */
 @keyframes falcon-breathe {
@@ -491,13 +499,10 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
   body {
-    @apply bg-background text-foreground;
     font-family: 'Geist Mono', 'SF Mono', 'Fira Code', monospace !important;
+    background-color: var(--bg-base);
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     cursor: crosshair;
@@ -614,6 +619,16 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
 @keyframes card-pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
 }
 
 /* FORCE FULLSCREEN OVERRIDE */

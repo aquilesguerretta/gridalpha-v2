@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react'
 import { C } from '@/design/tokens';
-import { createPortal } from 'react-dom'
 import {
   AreaChart, Area, ComposedChart, Line,
   XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid,
@@ -494,46 +492,24 @@ function LMPExpandedZone({ zone }: { zone: string }) {
 
 /* ─── MAIN COMPONENT ──────────────────────────────────────────── */
 
-export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
-  const [lmpExpanded, setLmpExpanded] = useState(false)
-  const [lmpClosing, setLmpClosing] = useState(false)
-
-  const closeLmp = () => {
-    setLmpClosing(true)
-    setTimeout(() => {
-      setLmpExpanded(false)
-      setLmpClosing(false)
-    }, 300)
-  }
-
-  // ESC key closes overlay
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && lmpExpanded) closeLmp()
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [lmpExpanded])
-
+export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | null; onExpand?: () => void }) {
   const zoneKey = selectedZone ?? 'WEST_HUB'
   const lmpData = ZONE_LMP_DETAIL[zoneKey] ?? ZONE_LMP_DETAIL['DEFAULT']
   const sparkData = ZONE_SPARKLINE[zoneKey] ?? ZONE_SPARKLINE['DEFAULT']
 
   return (
-    <>
-      {/* ── COMPACT STATE — FIX 1: Three explicit zones 20/50/30 ── */}
-      <div
-        onClick={() => setLmpExpanded(true)}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          padding: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          cursor: 'pointer',
-        }}
-      >
+    <div
+      onClick={onExpand}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        padding: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        cursor: onExpand ? 'pointer' : 'default',
+      }}
+    >
         {/* FIX 2+10 — Background sparkline — opacity 0.12, strokeWidth 3 */}
         <svg
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.12, pointerEvents: 'none' }}
@@ -651,93 +627,46 @@ export function LMPCard({ selectedZone }: { selectedZone: string | null }) {
               </span>
             </div>
           ))}
-          {/* Expand hint */}
-          <div style={{ textAlign: 'center', marginTop: '2px' }}>
-            <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em' }}>
-              ↗ CLICK TO EXPAND
-            </span>
-          </div>
+          {/* Navigate hint */}
+          {onExpand && (
+            <div style={{ textAlign: 'center', marginTop: '2px' }}>
+              <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '8px', color: 'rgba(255,255,255,0.15)', letterSpacing: '0.1em' }}>
+                › OPEN FULL VIEW
+              </span>
+            </div>
+          )}
         </div>
       </div>
+  )
+}
 
-      {/* ── EXPANDED OVERLAY — portaled to body to escape BentoCard's backdropFilter containing block ── */}
-      {lmpExpanded && createPortal(
-        <>
-          {/* Dimmed backdrop */}
-          <div
-            onClick={closeLmp}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 60,
-              background: 'rgba(10,10,11,0.82)',
-              backdropFilter: 'blur(2px)',
-            }}
-          />
-          {/* Main overlay panel */}
-          <div style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 61,
-            width: '95vw',
-            height: '95vh',
-            background: '#0A0A0B',
-            border: '0.5px solid rgba(6,182,212,0.2)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            animation: lmpClosing
-              ? 'modal-collapse 300ms cubic-bezier(0.16,1,0.3,1) forwards'
-              : 'modal-expand 300ms cubic-bezier(0.16,1,0.3,1) forwards',
-            boxShadow: '0 0 80px rgba(6,182,212,0.08)',
-          }}>
-            {/* Header */}
-            <div style={{
-              height: '44px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 24px',
-              borderBottom: '0.5px solid rgba(255,255,255,0.06)',
-              flexShrink: 0,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em' }}>
-                  LMP INTELLIGENCE
-                </span>
-                {selectedZone && (
-                  <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: C.electricBlue, letterSpacing: '0.1em' }}>
-                    / {selectedZone}
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={closeLmp}
-                style={{
-                  fontFamily: "'Geist Mono', monospace",
-                  fontSize: '9px',
-                  color: 'rgba(255,255,255,0.3)',
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '0.5px solid rgba(255,255,255,0.08)',
-                  padding: '4px 12px',
-                  cursor: 'pointer',
-                  letterSpacing: '0.1em',
-                }}
-              >
-                ESC / CLOSE
-              </button>
-            </div>
-
-            {/* Content — branches based on zone selection */}
-            <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              {selectedZone ? <LMPExpandedZone zone={selectedZone} /> : <LMPExpandedSystem />}
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
-    </>
+// ── LMPFullPage ─────────────────────────────────────────────────
+export function LMPFullPage({ selectedZone }: { selectedZone: string | null }) {
+  return (
+    <div style={{ height: 'calc(100vh - 64px)', width: '100%', background: C.bgBase, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Sub-header */}
+      <div style={{
+        height: '44px',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 24px',
+        borderBottom: `0.5px solid ${C.borderDefault}`,
+        flexShrink: 0,
+        gap: '16px',
+      }}>
+        <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.15em' }}>
+          LMP INTELLIGENCE
+        </span>
+        {selectedZone && (
+          <span style={{ fontFamily: "'Geist Mono', monospace", fontSize: '11px', color: C.electricBlue, letterSpacing: '0.1em' }}>
+            / {selectedZone}
+          </span>
+        )}
+      </div>
+      {/* Content — branches based on zone selection */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {selectedZone ? <LMPExpandedZone zone={selectedZone} /> : <LMPExpandedSystem />}
+      </div>
+    </div>
   )
 }

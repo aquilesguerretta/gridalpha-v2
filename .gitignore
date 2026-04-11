@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 GridAlpha V2.zip
 gridalpha-extracted/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

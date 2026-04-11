@@ -4,7 +4,7 @@
 // No deck.gl. No floating layers.
 
 import {
-  useState, useEffect, useRef, useCallback, lazy, Suspense,
+  useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense,
 } from 'react';
 import { C, F } from '../../config/design-tokens';
 import { CardSkeleton } from '../shared/CardSkeleton';
@@ -14,6 +14,17 @@ import {
   CARTO_DARK, MAPBOX_SATELLITE, MAPBOX_TERRAIN, MAPBOX_MINIMAL,
   type GridAtlasMapHandle,
 } from './GridAtlasMap';
+
+import {
+  useFuelMix,
+  useBindingConstraints,
+  useInterfaceFlows,
+  useOutages,
+  useSubstations,
+  useGasPipelines,
+  useEarthquakes,
+} from '../../hooks/data/useAtlasData';
+import { buildFlowArrows } from './utils/buildFlowArrows';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
 
@@ -154,7 +165,11 @@ export default function GridAtlasView() {
   const [showTx,        setShowTx]        = useState(true);
   const [showPlants,    setShowPlants]    = useState(true);
   const [showNodes,     setShowNodes]     = useState(true);
-  const [showExtrusion, setShowExtrusion] = useState(false);
+  const [showExtrusion,     setShowExtrusion]     = useState(false);
+  const [showSubstations,    setShowSubstations]    = useState(false);
+  const [showGasPipelines,   setShowGasPipelines]   = useState(false);
+  const [showEarthquakes,    setShowEarthquakes]    = useState(true);
+  const [showInterfaceFlows, setShowInterfaceFlows] = useState(true);
 
   // Map style
   const [activeStyle, setActiveStyle] = useState<MapStyleId>('terminal');
@@ -180,6 +195,24 @@ export default function GridAtlasView() {
 
   // Timeline
   const [timeOffset, setTimeOffset] = useState(48);
+
+  // Live data hooks (gracefully return empty when backend not ready)
+  const { data: fuelMixData }        = useFuelMix();
+  const { data: constraintData }     = useBindingConstraints();
+  const { data: flowData }           = useInterfaceFlows();
+  const { data: outageData }         = useOutages();
+  const { data: substationGeoJson }  = useSubstations();
+  const { data: pipelineGeoJson }    = useGasPipelines();
+  const earthquakeGeoJson            = useEarthquakes();
+
+  const flowArrowsGeoJson = useMemo(
+    () => buildFlowArrows(flowData?.flows ?? []),
+    [flowData],
+  );
+  const totalOutageMW = useMemo(
+    () => outageData?.outages.reduce((sum, o) => sum + o.mw, 0) ?? 0,
+    [outageData],
+  );
 
   // Map ref for flyTo
   const mapRef = useRef<GridAtlasMapHandle>(null);
@@ -320,11 +353,19 @@ export default function GridAtlasView() {
             txGeoJson={txGeoJson}
             plantGeoJson={plantGeoJson}
             hubGeoJson={hubGeoJson}
+            substationGeoJson={substationGeoJson}
+            pipelineGeoJson={pipelineGeoJson}
+            earthquakeGeoJson={earthquakeGeoJson}
+            flowArrowsGeoJson={flowArrowsGeoJson}
             showZones={showZones}
             showTx={showTx}
             showPlants={showPlants}
             showNodes={showNodes}
             showExtrusion={showExtrusion}
+            showSubstations={showSubstations}
+            showGasPipelines={showGasPipelines}
+            showEarthquakes={showEarthquakes}
+            showInterfaceFlows={showInterfaceFlows}
             onZoneClick={setSelectedZone}
             onPlantHover={handlePlantHover}
             onZoneHover={setHoveredZone}
@@ -357,13 +398,14 @@ export default function GridAtlasView() {
           display: 'flex', gap: 16,
         }}>
           {[
-            { label: 'ZONES',       value: '20'                },
-            { label: 'PLANTS',      value: String(plantCount)  },
-            { label: 'LAST UPDATE', value: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' }) + ' EPT' },
+            { label: 'ZONES',   value: '20',               warn: false },
+            { label: 'PLANTS',  value: String(plantCount),  warn: false },
+            { label: 'OUTAGES', value: totalOutageMW > 0 ? `${(totalOutageMW/1000).toFixed(1)}GW` : '–', warn: totalOutageMW > 2000 },
+            { label: 'UPDATED', value: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' }) + ' EPT', warn: false },
           ].map(item => (
             <span key={item.label} style={{ fontFamily: F.mono, fontSize: '0.6rem' }}>
               <span style={{ color: C.textMuted, letterSpacing: '0.1em' }}>{item.label}: </span>
-              <span style={{ color: C.electricBlue }}>{item.value}</span>
+              <span style={{ color: item.warn ? '#FFB800' : C.electricBlue }}>{item.value}</span>
             </span>
           ))}
         </div>
@@ -424,11 +466,15 @@ export default function GridAtlasView() {
 
         {/* Layers */}
         <Panel label="LAYERS">
-          <Toggle label="TRANSMISSION"   active={showTx}        color="#00FFF0"        onToggle={() => setShowTx(p => !p)} />
-          <Toggle label="ZONE FILLS"     active={showZones}     color={C.electricBlue} onToggle={() => setShowZones(p => !p)} />
-          <Toggle label="3D EXTRUSION"   active={showExtrusion} color={C.amber}        onToggle={() => setShowExtrusion(p => !p)} />
-          <Toggle label="POWER PLANTS"   active={showPlants}    color={C.cyan}         onToggle={() => setShowPlants(p => !p)} />
-          <Toggle label="HUB NODES"      active={showNodes}     color="#FFB800"        onToggle={() => setShowNodes(p => !p)} />
+          <Toggle label="TRANSMISSION"    active={showTx}             color="#00FFF0"        onToggle={() => setShowTx(p => !p)} />
+          <Toggle label="ZONE FILLS"      active={showZones}          color={C.electricBlue} onToggle={() => setShowZones(p => !p)} />
+          <Toggle label="3D EXTRUSION"    active={showExtrusion}      color={C.amber}        onToggle={() => setShowExtrusion(p => !p)} />
+          <Toggle label="POWER PLANTS"    active={showPlants}         color={C.cyan}         onToggle={() => setShowPlants(p => !p)} />
+          <Toggle label="HUB NODES"       active={showNodes}          color="#FFB800"        onToggle={() => setShowNodes(p => !p)} />
+          <Toggle label="GAS PIPELINES"   active={showGasPipelines}   color="#F97316"        onToggle={() => setShowGasPipelines(p => !p)} />
+          <Toggle label="SUBSTATIONS"     active={showSubstations}    color="#FFFFFF"        onToggle={() => setShowSubstations(p => !p)} />
+          <Toggle label="SEISMIC ALERTS"  active={showEarthquakes}    color="#FF3B3B"        onToggle={() => setShowEarthquakes(p => !p)} />
+          <Toggle label="INTERFACE FLOWS" active={showInterfaceFlows} color="#00E676"        onToggle={() => setShowInterfaceFlows(p => !p)} />
         </Panel>
 
         {/* Fuel type filter */}
@@ -475,6 +521,69 @@ export default function GridAtlasView() {
         )}
 
         {/* Map style */}
+        {/* Live Intelligence Panel */}
+        <Panel label="GRID INTELLIGENCE">
+          {fuelMixData.fuels.length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>
+                GENERATION MIX
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+                {fuelMixData.fuels
+                  .sort((a, b) => b.mw - a.mw)
+                  .slice(0, 5)
+                  .map(f => {
+                    const total = fuelMixData.fuels.reduce((s, x) => s + x.mw, 0);
+                    const pct   = total > 0 ? (f.mw / total) * 100 : 0;
+                    const color = f.type === 'Gas' ? '#E67E22' : f.type === 'Nuclear' ? '#9B59B6'
+                                : f.type === 'Wind' ? '#00A3FF' : f.type === 'Solar' ? '#F1C40F'
+                                : f.type === 'Coal' ? '#636E72' : '#3498DB';
+                    return (
+                      <div key={f.type} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: `${pct}%`, maxWidth: '60%', height: 4, borderRadius: 2, background: color, flexShrink: 0 }} />
+                        <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textSecondary }}>
+                          {f.type} {f.mw.toLocaleString()}MW
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+          {constraintData.constraints.length > 0 && (
+            <div style={{ marginBottom: 8, borderTop: `1px solid ${C.glassBorder}`, paddingTop: 8 }}>
+              <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: '#FF3B3B', letterSpacing: '0.1em' }}>
+                BINDING CONSTRAINTS
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+                {constraintData.constraints.slice(0, 3).map((c, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textSecondary, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {c.name}
+                    </span>
+                    <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: '#FF3B3B' }}>
+                      ${c.shadow_price.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {totalOutageMW > 0 && (
+            <div style={{ borderTop: `1px solid ${C.glassBorder}`, paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>OUTAGES</span>
+                <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: '#FFB800' }}>{totalOutageMW.toLocaleString()} MW</span>
+              </div>
+            </div>
+          )}
+          {fuelMixData.fuels.length === 0 && constraintData.constraints.length === 0 && totalOutageMW === 0 && (
+            <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted }}>
+              AWAITING BACKEND...
+            </span>
+          )}
+        </Panel>
+
         <Panel label="MAP STYLE">
           {MAP_STYLES.map(s => (
             <button key={s.id} onClick={() => setActiveStyle(s.id)} style={{

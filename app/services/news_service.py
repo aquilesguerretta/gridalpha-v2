@@ -1,6 +1,7 @@
 import asyncio
 import time
 from datetime import datetime, timezone
+from typing import Optional
 
 import feedparser
 import httpx
@@ -20,7 +21,12 @@ RSS_FEEDS = [
         "id": "pjm",
         "name": "PJM Interconnection",
         "short": "PJM",
+        # Inside Lines often works from browsers; Railway/datacenter IPs may get empty/error responses.
         "url": "https://insidelines.pjm.com/feed/",
+        "fallback_urls": [
+            # Official pjm.com RSS (verified 200 + application/rss+xml; user-suggested /library/rss etc. redirect to not-found)
+            "https://www.pjm.com/about-pjm/who-we-are/pjm-board/public-disclosures.aspx?publicdisclosures=All&rss=1",
+        ],
         "color": "#06B6D4",
         "priority": "CRITICAL",
     },
@@ -35,7 +41,10 @@ RSS_FEEDS = [
 ]
 
 _FETCH_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; GridAlpha/2.0; +https://gridalpha.vercel.app)",
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 GridAlpha/2.0"
+    ),
     "Accept": "application/rss+xml, application/xml, text/xml;q=0.9, */*;q=0.8",
 }
 
@@ -71,14 +80,32 @@ def time_ago(dt: datetime) -> str:
 
 
 async def parse_feed(feed_config: dict) -> list[dict]:
+    urls = [feed_config["url"]] + list(feed_config.get("fallback_urls") or [])
+    body: Optional[str] = None
+    last_error: Optional[str] = None
+
     try:
-        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
-            resp = await client.get(
-                feed_config["url"],
-                headers=_FETCH_HEADERS,
-            )
-            resp.raise_for_status()
-            body = resp.text
+        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
+            for attempt_url in urls:
+                try:
+                    resp = await client.get(attempt_url, headers=_FETCH_HEADERS)
+                    resp.raise_for_status()
+                    candidate = resp.text
+                    parsed_probe = feedparser.parse(candidate)
+                    if not parsed_probe.entries:
+                        last_error = f"no RSS entries from {attempt_url}"
+                        print(f"[NewsService] {feed_config['id']}: {last_error}")
+                        continue
+                    body = candidate
+                    break
+                except Exception as e:
+                    last_error = f"{attempt_url}: {e}"
+                    print(f"[NewsService] Failed to parse {feed_config['id']} ({attempt_url}): {e}")
+        if body is None:
+            if last_error:
+                print(f"[NewsService] Failed to parse {feed_config['id']}: exhausted URLs — {last_error}")
+            return []
+
         parsed = feedparser.parse(body)
         items = []
         for entry in parsed.entries[:15]:

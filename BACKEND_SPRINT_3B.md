@@ -118,9 +118,16 @@ Returns: {
 
 ## Railway Environment Variables Required
 
-Set these in the Railway dashboard for the FastAPI service:
-- TOMORROW_API_KEY — from .env.local VITE_TOMORROW_API_KEY value
-- EIA_API_KEY — from .env.local VITE_EIA_API_KEY value
+Set these in the Railway dashboard for the **FastAPI** service that serves `app.main:app` (must match `VITE_BACKEND_URL` / `useAtlasData` base URL so the frontend hits these routes):
 
-These are already in the local .env.local file.
-Cursor: add these to Railway dashboard → gridalpha-production → Variables.
+| Variable | Purpose |
+|----------|---------|
+| `EIA_API_KEY` | Henry Hub + PJM fuel-mix (`/api/energy/*`) |
+| `TOMORROW_API_KEY` | `/api/weather/current` and `/api/weather/forecast` |
+| `PJM_SUBSCRIPTION_KEY` | PJM DataMiner API (`/api/atlas/*` except static GeoJSON) — [developer.pjm.com](https://developer.pjm.com) |
+
+Use the **same key values** as in local `.env.local` (`VITE_EIA_API_KEY`, `VITE_TOMORROW_API_KEY`); server-side names **omit** the `VITE_` prefix.
+
+### Deploy note
+
+`src/hooks/data/useAtlasData.ts` and `useEnergyPrices` / `useWeatherData` call **`https://gridalpha-production.up.railway.app`** by default. This repo’s API must be deployed to that host (or merge routers into that service), **or** point `VITE_BACKEND_URL` at the Railway URL that runs this FastAPI app—otherwise the UI will keep mock fallbacks.

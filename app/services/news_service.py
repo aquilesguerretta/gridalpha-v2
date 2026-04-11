@@ -38,6 +38,33 @@ RSS_FEEDS = [
         "color": "#F59E0B",
         "priority": "HIGH",
     },
+    {
+        "id": "eia_video",
+        "name": "EIA Video Updates",
+        "short": "EIA",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCO2GEMkCfPBEGKNBK8E7gYg",
+        "color": "#10B981",
+        "priority": "NORMAL",
+        "type": "video",
+    },
+    {
+        "id": "bloomberg_energy",
+        "name": "Bloomberg Energy",
+        "short": "BLOOMBERG",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCIALMKvObZNtJ6AmdCLP7Hg",
+        "color": "#F59E0B",
+        "priority": "NORMAL",
+        "type": "video",
+    },
+    {
+        "id": "spglobal",
+        "name": "S&P Global Commodity Insights",
+        "short": "S&P",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCzirgDcCKKfPHuWwdTbN-qw",
+        "color": "#06B6D4",
+        "priority": "NORMAL",
+        "type": "video",
+    },
 ]
 
 _FETCH_HEADERS = {
@@ -66,6 +93,17 @@ def classify(title: str, summary: str) -> str:
         if any(kw in text for kw in keywords):
             return category
     return "SYSTEM"
+
+
+def _youtube_video_id(entry: feedparser.FeedParserDict, link: str) -> Optional[str]:
+    vid = entry.get("yt_videoid")
+    if vid:
+        return str(vid).strip()
+    if "youtube.com/watch?v=" in link:
+        return link.split("v=")[-1].split("&")[0].strip()
+    if "youtube.com/shorts/" in link:
+        return link.split("shorts/")[-1].split("?")[0].strip()
+    return None
 
 
 def time_ago(dt: datetime) -> str:
@@ -110,8 +148,23 @@ async def parse_feed(feed_config: dict) -> list[dict]:
         items = []
         for entry in parsed.entries[:15]:
             title = entry.get("title", "").strip()
-            summary = entry.get("summary", entry.get("description", "")).strip()
-            link = entry.get("link", "")
+            summary = (entry.get("summary") or entry.get("description") or "").strip()
+            link = (entry.get("link") or "").strip()
+            media_desc = entry.get("media_description")
+            if not summary and media_desc:
+                summary = str(media_desc).strip()
+            if not summary and getattr(entry, "summary", None):
+                summary = str(entry.summary).strip()
+
+            video_id = _youtube_video_id(entry, link)
+            thumbnail: Optional[str] = None
+            if video_id:
+                thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+            else:
+                mt = entry.get("media_thumbnail")
+                if mt and isinstance(mt, list) and len(mt) > 0 and mt[0].get("url"):
+                    thumbnail = mt[0].get("url")
+
             pub = entry.get("published_parsed") or entry.get("updated_parsed")
             try:
                 dt = (
@@ -134,8 +187,9 @@ async def parse_feed(feed_config: dict) -> list[dict]:
                     "category": classify(title, summary),
                     "timeAgo": time_ago(dt),
                     "publishedAt": dt.isoformat() if dt else datetime.now(timezone.utc).isoformat(),
-                    "videoId": None,
-                    "thumbnail": None,
+                    "videoId": video_id,
+                    "thumbnail": thumbnail,
+                    "contentType": feed_config.get("type", "article"),
                 }
             )
         return items

@@ -1,8 +1,19 @@
 from fastapi import APIRouter, Query
 
-from app.services.news_service import fetch_news
+from app.services.news_service import RSS_FEEDS, fetch_news
 
 router = APIRouter(prefix="/api/news", tags=["news"])
+
+
+def _source_shorts_ordered() -> list[str]:
+    seen: set[str] = set()
+    order: list[str] = []
+    for f in RSS_FEEDS:
+        s = f["short"]
+        if s not in seen:
+            seen.add(s)
+            order.append(s)
+    return order
 
 
 @router.get("/feed")
@@ -19,7 +30,7 @@ async def get_news_feed(
     return {
         "items": items[:limit],
         "total": len(items),
-        "sources": ["EIA", "PJM", "FERC"],
+        "sources": _source_shorts_ordered(),
     }
 
 
@@ -30,5 +41,7 @@ async def get_sources():
             {"id": "EIA", "name": "U.S. Energy Information Administration", "color": "#10B981"},
             {"id": "PJM", "name": "PJM Interconnection", "color": "#06B6D4"},
             {"id": "FERC", "name": "Federal Energy Regulatory Commission", "color": "#F59E0B"},
+            {"id": "BLOOMBERG", "name": "Bloomberg Energy", "color": "#F59E0B"},
+            {"id": "S&P", "name": "S&P Global Commodity Insights", "color": "#06B6D4"},
         ]
     }

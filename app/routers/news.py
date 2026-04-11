@@ -41,7 +41,7 @@ async def get_sources():
             {"id": "EIA", "name": "U.S. Energy Information Administration", "color": "#10B981"},
             {"id": "PJM", "name": "PJM Interconnection", "color": "#06B6D4"},
             {"id": "FERC", "name": "Federal Energy Regulatory Commission", "color": "#F59E0B"},
-            {"id": "BLOOMBERG", "name": "Bloomberg Energy", "color": "#F59E0B"},
-            {"id": "S&P", "name": "S&P Global Commodity Insights", "color": "#06B6D4"},
+            {"id": "BLOOMBERG", "name": "Bloomberg", "color": "#F59E0B"},
+            {"id": "REUTERS", "name": "Reuters", "color": "#3B82F6"},
         ]
     }

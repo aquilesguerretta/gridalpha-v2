@@ -14,6 +14,7 @@ import Map, {
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {
   gasPipelineLayer,
+  gasPipelineGlowLayer,
   substationLayer,
   substationLabelLayer,
 } from './layers/infrastructureLayers';
@@ -98,11 +99,11 @@ const zoneFillLayer: LayerProps = {
     'fill-color': [
       'interpolate', ['linear'],
       ['coalesce', ['get', 'lmp_total'], 33],
-      28, '#00A3FF',
-      35, '#FFB800',
-      42, '#FF3B3B',
+      30, '#3B82F6',
+      33, '#F59E0B',
+      36, '#EF4444',
     ] as any,
-    'fill-opacity': 0.25,
+    'fill-opacity': 0.35,
   },
 };
 
@@ -110,7 +111,7 @@ const zoneBorderLayer: LayerProps = {
   id:   'zone-border',
   type: 'line',
   paint: {
-    'line-color':   '#00A3FF',
+    'line-color':   '#3B82F6',
     'line-width':   1.2,
     'line-opacity': 0.7,
   },
@@ -123,9 +124,9 @@ const zoneExtrusionLayer: LayerProps = {
     'fill-extrusion-color': [
       'interpolate', ['linear'],
       ['coalesce', ['get', 'lmp_total'], 33],
-      28, '#00A3FF',
-      35, '#FFB800',
-      42, '#FF3B3B',
+      30, '#3B82F6',
+      33, '#F59E0B',
+      36, '#EF4444',
     ] as any,
     'fill-extrusion-height': [
       'interpolate', ['linear'],
@@ -488,6 +489,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         {/* Gas Pipelines */}
         {styleLoaded && showGasPipelines && pipelineGeoJson && (
           <Source id="gas-pipelines" type="geojson" data={pipelineGeoJson}>
+            <Layer {...gasPipelineGlowLayer} />
             <Layer {...gasPipelineLayer} />
           </Source>
         )}
@@ -516,8 +518,9 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
               type="line"
               paint={{
                 'line-color':   ['get', 'loading_color'] as any,
-                'line-width':    4,
-                'line-opacity':  0.9,
+                'line-width':   ['get', 'width'] as any,
+                'line-opacity':  0.95,
+                'line-blur':     1,
               }}
             />
             <Layer

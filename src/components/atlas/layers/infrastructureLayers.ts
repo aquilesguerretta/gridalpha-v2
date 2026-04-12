@@ -4,6 +4,22 @@
 
 import type { LayerProps } from 'react-map-gl';
 
+export const gasPipelineGlowLayer: LayerProps = {
+  id:   'gas-pipelines-glow',
+  type: 'line',
+  paint: {
+    'line-color':   '#F97316',
+    'line-width':   [
+      'interpolate', ['linear'], ['zoom'],
+      3, 4,
+      6, 7,
+      10, 12,
+    ] as any,
+    'line-opacity': 0.15,
+    'line-blur':    4,
+  },
+};
+
 export const gasPipelineLayer: LayerProps = {
   id:   'gas-pipelines',
   type: 'line',
@@ -11,12 +27,12 @@ export const gasPipelineLayer: LayerProps = {
     'line-color':   '#F97316',
     'line-width':   [
       'interpolate', ['linear'], ['zoom'],
-      4, 0.8,
-      8, 2.0,
-      12, 3.5,
+      3,  1.5,
+      6,  2.5,
+      10, 4.0,
     ] as any,
-    'line-opacity': 0.7,
-    'line-dasharray': [3, 2],
+    'line-opacity':    0.85,
+    'line-dasharray': [4, 3],
   },
 };
 

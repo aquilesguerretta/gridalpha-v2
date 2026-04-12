@@ -4,17 +4,19 @@
 
 import type { InterfaceFlow } from '../../../hooks/data/useAtlasData';
 
-// Geographic midpoints of PJM interface crossings
-const INTERFACE_COORDS: Record<string, {
-  from: [number, number];
-  to:   [number, number];
-  label: string;
+// Real PJM border crossing coordinates
+// from = PJM side, to = neighbor side
+const INTERFACES: Record<string, {
+  from:    [number, number];
+  to:      [number, number];
+  label:   string;
+  mock_mw: number;
 }> = {
-  'PJM-MISO':    { from: [-87.5, 41.5], to: [-89.0, 41.5], label: 'PJM\u2194MISO' },
-  'PJM-NYISO':   { from: [-74.5, 41.5], to: [-73.5, 41.5], label: 'PJM\u2194NYISO' },
-  'PJM-SERC':    { from: [-79.0, 36.5], to: [-79.0, 35.5], label: 'PJM\u2194SERC' },
-  'PJM-MECS':    { from: [-82.0, 38.5], to: [-83.5, 38.0], label: 'PJM\u2194MECS' },
-  'PJM-NEPTUNE': { from: [-73.5, 40.5], to: [-72.5, 40.5], label: 'PJM\u2194Neptune' },
+  'MISO':    { from: [-87.8, 41.6], to: [-89.2, 41.6], label: 'PJM→MISO',   mock_mw:  2340 },
+  'NYISO':   { from: [-74.8, 41.2], to: [-73.6, 41.2], label: 'PJM→NYISO',  mock_mw:  1890 },
+  'SERC':    { from: [-80.0, 36.6], to: [-80.0, 35.4], label: 'PJM→SERC',   mock_mw:  -540 },
+  'NEPTUNE': { from: [-74.0, 40.6], to: [-72.8, 40.6], label: 'PJM→Neptune', mock_mw:   420 },
+  'LINDEN':  { from: [-74.2, 40.6], to: [-74.2, 40.8], label: 'PJM→Linden', mock_mw:   280 },
 };
 
 export function buildFlowArrows(
@@ -22,31 +24,35 @@ export function buildFlowArrows(
 ): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
 
-  flows.forEach(flow => {
-    const key = Object.keys(INTERFACE_COORDS).find(k =>
-      flow.name.toUpperCase().includes(k.replace('PJM-', ''))
+  Object.entries(INTERFACES).forEach(([key, cfg]) => {
+    // Try to match real flow data
+    const match = flows.find(f =>
+      f.name.toUpperCase().includes(key)
     );
-    if (!key) return;
 
-    const { from, to, label } = INTERFACE_COORDS[key];
-    const isExport = flow.actual_mw > 0;
+    const mw      = match?.actual_mw ?? cfg.mock_mw;
+    const maxMw   = match?.max_mw    ?? 4000;
+    const loading = Math.abs(mw) / maxMw;
+    const isExport = mw > 0;
+
+    const color = loading > 0.85 ? '#FF3B3B'
+                : loading > 0.65 ? '#FFB800'
+                : '#00E676';
 
     features.push({
       type: 'Feature',
       properties: {
-        name:           label,
-        actual_mw:      flow.actual_mw,
-        max_mw:         flow.max_mw,
-        pct_loading:    flow.pct_loading,
-        direction:      isExport ? 'export' : 'import',
-        flow_label:     `${Math.abs(flow.actual_mw).toFixed(0)} MW`,
-        loading_color:  flow.pct_loading > 0.9 ? '#FF3B3B'
-                      : flow.pct_loading > 0.75 ? '#FFB800'
-                      : '#00E676',
+        name:          cfg.label,
+        actual_mw:     mw,
+        flow_label:    `${cfg.label} ${Math.abs(mw).toFixed(0)}MW`,
+        loading_color: color,
+        width:         2 + loading * 4,
       },
       geometry: {
         type:        'LineString',
-        coordinates: isExport ? [from, to] : [to, from],
+        coordinates: isExport
+          ? [cfg.from, cfg.to]
+          : [cfg.to,   cfg.from],
       },
     });
   });

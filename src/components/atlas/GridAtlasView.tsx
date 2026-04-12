@@ -62,7 +62,8 @@ const MAP_STYLES = [
 ];
 type MapStyleId = typeof MAP_STYLES[number]['id'];
 
-// ── PJM hub centroids for search ──────────────────────────────────────────
+// ── PJM hub centroids for search / map nodes ───────────────────────────────
+// `lmp` is static demo $/MWh for extrusion height only — not live PJM (see V1 SSE / LMPCard).
 
 const PJM_ZONES = [
   { id: 'WEST_HUB', label: 'WEST HUB', lon: -80.52, lat: 40.46, lmp: 35.9 },
@@ -101,6 +102,20 @@ const FUEL_UI = [
   { key: 'OIL'  as keyof FuelFilter, label: 'Oil',         color: '#A0522D' },
   { key: 'OTHER'as keyof FuelFilter, label: 'Other',       color: '#BDC3C7' },
 ];
+
+/** PJM API fuel_type strings vary ("Gas", "Natural Gas", …) — match loosely for bar colors. */
+function fuelMixBarColor(type: string): string {
+  const t = type.toLowerCase();
+  if (t.includes('gas')) return '#E67E22';
+  if (t.includes('nuclear')) return '#9B59B6';
+  if (t.includes('wind')) return '#00A3FF';
+  if (t.includes('solar')) return '#F1C40F';
+  if (t.includes('coal')) return '#636E72';
+  if (t.includes('hydro') || t.includes('water')) return '#3498DB';
+  if (t.includes('storage') || t.includes('battery')) return '#00E676';
+  if (t.includes('oil') || t.includes('diesel')) return '#A0522D';
+  return '#BDC3C7';
+}
 
 // ── Helper: filter plant GeoJSON by fuel and min capacity ─────────────────
 
@@ -617,6 +632,14 @@ export default function GridAtlasView() {
               {fuelLive ? '\u25CF LIVE' : '\u25D0 SIMULATED'}
             </span>
           </div>
+          {!fuelLive && fuelMixData.fuels.length === 0 && (
+            <div style={{
+              fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted,
+              marginBottom: 6, lineHeight: 1.35,
+            }}>
+              No live generation mix yet — confirm V2 `/api/atlas/generation-fuel` and PJM credentials.
+            </div>
+          )}
           {fuelMixData.fuels.length > 0 && (
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted, letterSpacing: '0.1em' }}>
@@ -629,9 +652,7 @@ export default function GridAtlasView() {
                   .map(f => {
                     const total = fuelMixData.fuels.reduce((s, x) => s + x.mw, 0);
                     const pct   = total > 0 ? (f.mw / total) * 100 : 0;
-                    const color = f.type === 'Gas' ? '#E67E22' : f.type === 'Nuclear' ? '#9B59B6'
-                                : f.type === 'Wind' ? '#00A3FF' : f.type === 'Solar' ? '#F1C40F'
-                                : f.type === 'Coal' ? '#636E72' : '#3498DB';
+                    const color = fuelMixBarColor(f.type);
                     return (
                       <div key={f.type} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: `${pct}%`, maxWidth: '60%', height: 4, borderRadius: 2, background: color, flexShrink: 0 }} />

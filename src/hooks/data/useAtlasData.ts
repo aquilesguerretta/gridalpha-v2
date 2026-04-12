@@ -34,70 +34,45 @@ export interface PlantOutage {
   datetime:  string;
 }
 
-// ── Mock fallback data ────────────────────────────────────────────────────
+// ── Empty defaults (no fake PJM numbers when the API is down or slow) ─────
 
-const MOCK_FUEL_MIX: FuelMix = {
-  timestamp: new Date().toISOString(),
-  fuels: [
-    { type: 'Gas',     mw: 38420 },
-    { type: 'Nuclear', mw: 32100 },
-    { type: 'Coal',    mw: 12800 },
-    { type: 'Wind',    mw:  8340 },
-    { type: 'Hydro',   mw:  2100 },
-    { type: 'Solar',   mw:  1640 },
-    { type: 'Other',   mw:   890 },
-  ],
-};
+const EMPTY_FUEL_MIX: FuelMix = { timestamp: '', fuels: [] };
 
-const MOCK_CONSTRAINTS = {
-  constraints: [
-    { name: 'PENELEC-PPL INTERFACE',  shadow_price: 12.40, contingency: 'LINE-345KV' },
-    { name: 'AEP-DOM 500KV',          shadow_price:  8.75, contingency: 'N-1'        },
-    { name: 'COMED-MISO BORDER',      shadow_price:  5.20, contingency: 'LINE-230KV' },
-  ] as BindingConstraint[],
-};
+const EMPTY_CONSTRAINTS = { constraints: [] as BindingConstraint[] };
 
-const MOCK_FLOWS = {
-  flows: [
-    { name: 'PJM-MISO',    actual_mw:  2340, max_mw: 4200, pct_loading: 0.56 },
-    { name: 'PJM-NYISO',   actual_mw:  1890, max_mw: 2800, pct_loading: 0.68 },
-    { name: 'PJM-SERC',    actual_mw: -540,  max_mw: 1500, pct_loading: 0.36 },
-  ] as InterfaceFlow[],
-};
+const EMPTY_FLOWS = { flows: [] as InterfaceFlow[] };
 
-const MOCK_OUTAGES = {
-  outages: [
-    { fuel_type: 'Nuclear', mw: 1268, reason: 'PLANNED MAINTENANCE', datetime: new Date().toISOString() },
-    { fuel_type: 'Coal',    mw:  840, reason: 'FORCED OUTAGE',        datetime: new Date().toISOString() },
-    { fuel_type: 'Gas',     mw:  575, reason: 'PLANNED MAINTENANCE',  datetime: new Date().toISOString() },
-  ] as PlantOutage[],
-};
+const EMPTY_OUTAGES = { outages: [] as PlantOutage[] };
 
-// ── Generic polling hook with mock fallback ───────────────────────────────
+// ── Generic polling hook (empty until live API succeeds) ──────────────────
+
+const ATLAS_FETCH_MS = 25_000;
 
 function usePolling<T>(
   endpoint: string,
   intervalMs: number,
-  mockData: T,
+  emptyData: T,
+  fetchTimeoutMs: number = ATLAS_FETCH_MS,
 ): { data: T; loading: boolean; live: boolean } {
-  const [data,    setData]    = useState<T>(mockData);
+  const [data,    setData]    = useState<T>(emptyData);
   const [loading, setLoading] = useState(true);
   const [live,    setLive]    = useState(false);
 
   const fetch_ = useCallback(async () => {
     try {
-      const res = await fetch(`${BACKEND}${endpoint}`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${BACKEND}${endpoint}`, {
+        signal: AbortSignal.timeout(fetchTimeoutMs),
+      });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json);
       setLive(true);
     } catch {
-      // Backend not ready — keep mock data
       setLive(false);
     } finally {
       setLoading(false);
     }
-  }, [endpoint]);
+  }, [endpoint, fetchTimeoutMs]);
 
   useEffect(() => {
     void fetch_();
@@ -109,16 +84,20 @@ function usePolling<T>(
 }
 
 export const useFuelMix = () =>
-  usePolling<FuelMix>('/api/atlas/generation-fuel', 5 * 60_000, MOCK_FUEL_MIX);
+  usePolling<FuelMix>('/api/atlas/generation-fuel', 5 * 60_000, EMPTY_FUEL_MIX);
 
 export const useBindingConstraints = () =>
-  usePolling<{ constraints: BindingConstraint[] }>('/api/atlas/binding-constraints', 5 * 60_000, MOCK_CONSTRAINTS);
+  usePolling<{ constraints: BindingConstraint[] }>(
+    '/api/atlas/binding-constraints',
+    5 * 60_000,
+    EMPTY_CONSTRAINTS,
+  );
 
 export const useInterfaceFlows = () =>
-  usePolling<{ flows: InterfaceFlow[] }>('/api/atlas/interface-flows', 5 * 60_000, MOCK_FLOWS);
+  usePolling<{ flows: InterfaceFlow[] }>('/api/atlas/interface-flows', 5 * 60_000, EMPTY_FLOWS);
 
 export const useOutages = () =>
-  usePolling<{ outages: PlantOutage[] }>('/api/atlas/outages', 30 * 60_000, MOCK_OUTAGES);
+  usePolling<{ outages: PlantOutage[] }>('/api/atlas/outages', 30 * 60_000, EMPTY_OUTAGES);
 
 // ── Static GeoJSON hooks ──────────────────────────────────────────────────
 

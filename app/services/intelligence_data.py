@@ -11,6 +11,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 import httpx
+from dateutil import parser as dateparser
 
 from app.services.intelligence_cache import (
     PJMAuthenticationError,
@@ -98,29 +99,64 @@ async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
 # ── PJM atlas ────────────────────────────────────────────────────────────────
 
 
+def _parse_pjm_ts(raw: str) -> datetime | None:
+    raw = raw.strip()
+    if not raw:
+        return None
+    try:
+        dt = dateparser.parse(raw, fuzzy=True)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _latest_pjm_interval(rows: list[dict[str, Any]], ts_field: str) -> tuple[str, datetime | None]:
+    """Chronologically latest row time; return (original string for display, parsed UTC)."""
+    best_raw = ""
+    best_dt: datetime | None = None
+    for r in rows:
+        raw = str(r.get(ts_field) or "")
+        dt = _parse_pjm_ts(raw)
+        if dt is None:
+            continue
+        if best_dt is None or dt > best_dt:
+            best_dt = dt
+            best_raw = raw.strip()
+    if best_raw:
+        return best_raw, best_dt
+    fallback = max((str(r.get(ts_field) or "").strip() for r in rows), default="")
+    return fallback, _parse_pjm_ts(fallback) if fallback else None
+
+
 async def fetch_generation_fuel() -> dict[str, Any]:
     async def load() -> dict[str, Any]:
         rows = await _pjm_fetch(
             "gen_by_fuel",
             {
-                "rowCount": "100",
+                "rowCount": "500",
                 "fields": "datetime_beginning_ept,fuel_type,mw",
             },
         )
         if not rows:
             return {"timestamp": "", "fuels": []}
-        latest = max(
-            (str(r.get("datetime_beginning_ept") or "") for r in rows),
-            default="",
-        )
+        latest_str, latest_dt = _latest_pjm_interval(rows, "datetime_beginning_ept")
         by_fuel: dict[str, float] = {}
         for r in rows:
-            if str(r.get("datetime_beginning_ept") or "") != latest:
+            row_dt = _parse_pjm_ts(str(r.get("datetime_beginning_ept") or ""))
+            if latest_dt is not None and row_dt is not None:
+                if abs((row_dt - latest_dt).total_seconds()) > 120:
+                    continue
+            elif latest_str:
+                if str(r.get("datetime_beginning_ept") or "").strip() != latest_str:
+                    continue
+            else:
                 continue
             ft = str(r.get("fuel_type") or "Other").strip() or "Other"
             by_fuel[ft] = by_fuel.get(ft, 0.0) + _fnum(r.get("mw"))
         fuels = [{"type": k, "mw": round(v, 2)} for k, v in sorted(by_fuel.items())]
-        return {"timestamp": latest, "fuels": fuels}
+        return {"timestamp": latest_str, "fuels": fuels}
 
     return await get_cached("atlas:generation_fuel", 300, load)
 

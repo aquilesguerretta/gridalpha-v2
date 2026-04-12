@@ -51,6 +51,10 @@ def _tomorrow_key() -> str:
     return k
 
 
+def _v1_backend_base() -> str:
+    return (_env("V1_BACKEND_URL") or "https://gridalpha-production.up.railway.app").rstrip("/")
+
+
 def _pjm_items(data: Any) -> list[dict[str, Any]]:
     if isinstance(data, list):
         return data
@@ -96,6 +100,44 @@ async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
     raise RuntimeError("PJM fetch: auth retry exhausted unexpectedly")
 
 
+async def _fetch_generation_fuel_from_v1() -> dict[str, Any]:
+    """Fallback feed from V1 service when direct PJM auth is rejected."""
+    url = f"{_v1_backend_base()}/generation"
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        r = await client.get(
+            url,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": USER_AGENT,
+            },
+        )
+    r.raise_for_status()
+    body = r.json()
+    rows: list[dict[str, Any]] = []
+    if isinstance(body, dict) and isinstance(body.get("data"), list):
+        rows = [x for x in body["data"] if isinstance(x, dict)]
+    if not rows:
+        return {"timestamp": "", "fuels": []}
+
+    latest_str, latest_dt = _latest_pjm_interval(rows, "datetime_beginning_ept")
+    by_fuel: dict[str, float] = {}
+    for r in rows:
+        row_dt = _parse_pjm_ts(str(r.get("datetime_beginning_ept") or ""))
+        if latest_dt is not None and row_dt is not None:
+            if abs((row_dt - latest_dt).total_seconds()) > 120:
+                continue
+        elif latest_str:
+            if str(r.get("datetime_beginning_ept") or "").strip() != latest_str:
+                continue
+        else:
+            continue
+        ft = str(r.get("fuel_type") or "Other").strip() or "Other"
+        by_fuel[ft] = by_fuel.get(ft, 0.0) + _fnum(r.get("mw"))
+
+    fuels = [{"type": k, "mw": round(v, 2)} for k, v in sorted(by_fuel.items())]
+    return {"timestamp": latest_str, "fuels": fuels}
+
+
 # ── PJM atlas ────────────────────────────────────────────────────────────────
 
 
@@ -132,13 +174,20 @@ def _latest_pjm_interval(rows: list[dict[str, Any]], ts_field: str) -> tuple[str
 
 async def fetch_generation_fuel() -> dict[str, Any]:
     async def load() -> dict[str, Any]:
-        rows = await _pjm_fetch(
-            "gen_by_fuel",
-            {
-                "rowCount": "500",
-                "fields": "datetime_beginning_ept,fuel_type,mw",
-            },
-        )
+        try:
+            rows = await _pjm_fetch(
+                "gen_by_fuel",
+                {
+                    "rowCount": "500",
+                    "fields": "datetime_beginning_ept,fuel_type,mw",
+                },
+            )
+        except httpx.HTTPStatusError as e:
+            # V1 live endpoint remains a reliable source for generation mix.
+            # Use it only when PJM rejects auth in V2.
+            if e.response.status_code in (401, 403):
+                return await _fetch_generation_fuel_from_v1()
+            raise
         if not rows:
             return {"timestamp": "", "fuels": []}
         latest_str, latest_dt = _latest_pjm_interval(rows, "datetime_beginning_ept")

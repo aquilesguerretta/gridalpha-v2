@@ -30,10 +30,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(news.router)
-app.include_router(atlas.router)
-app.include_router(energy.router)
-app.include_router(weather.router)
+# Peregrine + Sprint 3B/3C intelligence (single Railway service)
+app.include_router(news.router)  # /api/news/*
+app.include_router(atlas.router)  # /api/atlas/*
+app.include_router(energy.router)  # /api/energy/*
+app.include_router(weather.router)  # /api/weather/*
 
 
 @app.get("/health")

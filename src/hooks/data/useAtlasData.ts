@@ -5,7 +5,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const BACKEND = 'https://gridalpha-production.up.railway.app';
+const BACKEND =
+  (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, '') ||
+  'https://gridalpha-v2-production.up.railway.app';
 
 export interface FuelMix {
   timestamp:  string;

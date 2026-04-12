@@ -131,4 +131,4 @@ Use the **same key values** as in local `.env.local` (`VITE_EIA_API_KEY`, `VITE_
 
 ### Deploy note
 
-`src/hooks/data/useAtlasData.ts` and `useEnergyPrices` / `useWeatherData` call **`https://gridalpha-production.up.railway.app`** by default. This repo’s API must be deployed to that host (or merge routers into that service), **or** point `VITE_BACKEND_URL` at the Railway URL that runs this FastAPI app—otherwise the UI will keep mock fallbacks.
+Production FastAPI (Peregrine + Sprint 3B/3C) lives at **`https://gridalpha-v2-production.up.railway.app`**. Set **`VITE_BACKEND_URL`** (and **`VITE_NEWS_API_URL`**) to that URL in `.env.local` / Vercel. `useAtlasData.ts` reads `VITE_BACKEND_URL` and falls back to the same v2 host if unset.

@@ -17,6 +17,7 @@ import { CardSkeleton } from "./shared/CardSkeleton";
 import GridAtlasView from "./atlas/GridAtlasView";
 import PeregrineFullPage from "./peregrine/PeregrineFullPage";
 import { useHenryHub } from '../hooks/data/useEnergyPrices';
+import { useFuelMix } from '../hooks/data/useAtlasData';
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -1819,6 +1820,19 @@ function PeregrineFeedMarketAlerts({ onZoneClick }: { onZoneClick: (zoneId: stri
   );
 }
 
+/** Map PJM `fuel_type` strings to design tokens (same idea as Grid Atlas). */
+function nestFuelColor(type: string): string {
+  const t = type.toLowerCase();
+  if (t.includes('gas')) return C.fuelGas;
+  if (t.includes('nuclear')) return C.fuelNuclear;
+  if (t.includes('wind')) return C.fuelWind;
+  if (t.includes('solar')) return C.fuelSolar;
+  if (t.includes('coal')) return C.fuelCoal;
+  if (t.includes('hydro') || t.includes('water')) return C.fuelHydro;
+  if (t.includes('storage') || t.includes('battery')) return C.fuelBattery;
+  return C.fuelOther;
+}
+
 // THE NEST View - Volumetric Bento
 function NestView({
   selectedZone,
@@ -1829,6 +1843,7 @@ function NestView({
   setSelectedZone: (z: string | null) => void;
   onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine') => void;
 }) {
+  const { data: fuelMixData, live: fuelMixLive } = useFuelMix();
   const [marketPulseExpanded, setMarketPulseExpanded] = useState(false)
   const [marketPulseClosing, setMarketPulseClosing] = useState(false)
   const [ghostTime, setGhostTime] = useState<string | null>(null)
@@ -1854,6 +1869,20 @@ function NestView({
       setMarketPulseClosing(false)
     }, 280)
   }
+
+  const genMixSegments = (() => {
+    const fuels = fuelMixData.fuels ?? [];
+    const sorted = [...fuels].sort((a, b) => b.mw - a.mw).slice(0, 8);
+    const totalMw = sorted.reduce((s, x) => s + x.mw, 0);
+    if (totalMw <= 0) return [];
+    return sorted.map((f) => ({
+      type: f.type,
+      mw: f.mw,
+      pct: (f.mw / totalMw) * 100,
+      gw: f.mw / 1000,
+      color: nestFuelColor(f.type),
+    }));
+  })();
 
   return (
     <div style={{
@@ -2132,53 +2161,54 @@ function NestView({
       </div>
 
       {/* Generation Mix — bottom strip, spans cols 1-2 */}
-      <BentoCard title="GENERATION MIX" status="live" style={{ gridArea: 'genmix' }}>
+      <BentoCard
+        title="GENERATION MIX"
+        status={fuelMixLive ? 'live' : genMixSegments.length ? 'stale' : 'fallback'}
+        style={{ gridArea: 'genmix' }}
+      >
         <ErrorBoundary label="GENERATION MIX">
         <div style={{ height: '100%', padding: '6px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
-          {/* GW labels above bar */}
-          <div style={{ display: 'flex', width: '100%' }}>
-            {[
-              { w: "32%", mw: "28.4", c: C.fuelNuclear },
-              { w: "28%", mw: "24.8", c: C.fuelGas },
-              { w: "14%", mw: "12.4", c: C.fuelWind },
-              { w: "10%", mw: "8.9", c: C.fuelSolar },
-              { w: "9%", mw: "8.0", c: C.fuelCoal },
-              { w: "7%", mw: "6.2", c: C.fuelHydro },
-            ].map((s, i) => (
-              <div key={i} style={{ width: s.w, display: 'flex', justifyContent: 'center' }}>
-                <span style={{ fontFamily: F.mono, fontSize: '8px', fontVariantNumeric: 'tabular-nums', color: s.c }}>{s.mw}</span>
+          {genMixSegments.length === 0 ? (
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: '0.06em' }}>
+              NO LIVE PJM MIX — CHECK V2 API / CREDENTIALS
+            </span>
+          ) : (
+            <>
+              <div style={{ display: 'flex', width: '100%' }}>
+                {genMixSegments.map((s, i) => (
+                  <div
+                    key={`${s.type}-${i}`}
+                    style={{ width: `${s.pct}%`, display: 'flex', justifyContent: 'center', minWidth: 0 }}
+                  >
+                    <span style={{
+                      fontFamily: F.mono, fontSize: '8px', fontVariantNumeric: 'tabular-nums', color: s.color,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%',
+                    }}>
+                      {s.gw >= 10 ? s.gw.toFixed(1) : s.gw.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          {/* Stacked bar — explicit height, inline styles only */}
-          <div style={{ height: '20px', width: '100%', display: 'flex', borderRadius: R.sm, overflow: 'hidden', flexShrink: 0 }}>
-            {[
-              { w: "32%", c: C.fuelNuclear },
-              { w: "28%", c: C.fuelGas },
-              { w: "14%", c: C.fuelWind },
-              { w: "10%", c: C.fuelSolar },
-              { w: "9%", c: C.fuelCoal },
-              { w: "7%", c: C.fuelHydro },
-            ].map((s, i) => (
-              <div key={i} style={{ width: s.w, height: '100%', backgroundColor: s.c, flexShrink: 0 }} />
-            ))}
-          </div>
-          {/* Legend */}
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            {[
-              { c: C.fuelNuclear, l: "Nuclear", v: "32%" },
-              { c: C.fuelGas, l: "Gas", v: "28%" },
-              { c: C.fuelWind, l: "Wind", v: "14%" },
-              { c: C.fuelSolar, l: "Solar", v: "10%" },
-              { c: C.fuelCoal, l: "Coal", v: "9%" },
-              { c: C.fuelHydro, l: "Hydro", v: "7%" },
-            ].map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <div style={{ width: '6px', height: '6px', borderRadius: R.sm, backgroundColor: s.c, flexShrink: 0 }} />
-                <span style={{ fontFamily: F.sans, fontSize: '8px', color: C.textSecondary }}>{s.l} {s.v}</span>
+              <div style={{ height: '20px', width: '100%', display: 'flex', borderRadius: R.sm, overflow: 'hidden', flexShrink: 0 }}>
+                {genMixSegments.map((s, i) => (
+                  <div
+                    key={`bar-${s.type}-${i}`}
+                    style={{ width: `${s.pct}%`, height: '100%', backgroundColor: s.color, flexShrink: 0 }}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {genMixSegments.map((s, i) => (
+                  <div key={`leg-${s.type}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: R.sm, backgroundColor: s.color, flexShrink: 0 }} />
+                    <span style={{ fontFamily: F.sans, fontSize: '8px', color: C.textSecondary }}>
+                      {s.type} {Math.round(s.pct)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
         </ErrorBoundary>
       </BentoCard>

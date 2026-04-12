@@ -87,6 +87,96 @@ CATEGORY_KEYWORDS = {
     "REGULATORY": ["ferc", "order", "rule", "regulation", "tariff", "filing"],
 }
 
+ENERGY_TYPE_KEYWORDS = {
+    "NATURAL_GAS": [
+        "natural gas",
+        "henry hub",
+        "gas price",
+        "gas-fired",
+        "lng",
+        "gas generation",
+        "gas plant",
+        "gas turbine",
+        "pipeline",
+        "gas supply",
+    ],
+    "COAL": [
+        "coal",
+        "coal-fired",
+        "coal plant",
+        "coal generation",
+        "coal retirement",
+        "thermal coal",
+    ],
+    "NUCLEAR": [
+        "nuclear",
+        "reactor",
+        "uranium",
+        "nuclear plant",
+        "nuclear generation",
+        "baseload",
+    ],
+    "WIND": [
+        "wind",
+        "wind farm",
+        "wind generation",
+        "wind turbine",
+        "wind power",
+        "offshore wind",
+        "onshore wind",
+        "wind curtailment",
+        "wind ramp",
+    ],
+    "SOLAR": [
+        "solar",
+        "photovoltaic",
+        "pv",
+        "solar farm",
+        "solar generation",
+        "solar power",
+        "rooftop solar",
+    ],
+    "HYDRO": [
+        "hydro",
+        "hydroelectric",
+        "hydropower",
+        "dam",
+        "water generation",
+    ],
+    "BATTERY": [
+        "battery",
+        "bess",
+        "storage",
+        "energy storage",
+        "battery arbitrage",
+        "charge",
+        "discharge",
+        "lithium",
+        "grid storage",
+    ],
+    "TRANSMISSION": [
+        "transmission",
+        "grid",
+        "interface",
+        "congestion",
+        "flowgate",
+        "constraint",
+        "import",
+        "export",
+        "interconnection",
+        "substation",
+    ],
+}
+
+
+def classify_energy_type(title: str, summary: str) -> list[str]:
+    text = (title + " " + summary).lower()
+    types: list[str] = []
+    for energy_type, keywords in ENERGY_TYPE_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            types.append(energy_type)
+    return types if types else ["GENERAL"]
+
 
 def classify(title: str, summary: str) -> str:
     text = (title + " " + summary).lower()
@@ -186,6 +276,7 @@ async def parse_feed(feed_config: dict) -> list[dict]:
                     "summary": summary[:280] if summary else "",
                     "url": link,
                     "category": classify(title, summary),
+                    "energyTypes": classify_energy_type(title, summary),
                     "timeAgo": time_ago(dt),
                     "publishedAt": dt.isoformat() if dt else datetime.now(timezone.utc).isoformat(),
                     "videoId": video_id,

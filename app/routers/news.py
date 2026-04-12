@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query
 
+from app.services.article_service import fetch_article
 from app.services.news_service import RSS_FEEDS, fetch_news
 
 router = APIRouter(prefix="/api/news", tags=["news"])
@@ -14,6 +15,11 @@ def _source_shorts_ordered() -> list[str]:
             seen.add(s)
             order.append(s)
     return order
+
+
+@router.get("/article")
+async def get_article(url: str = Query(..., min_length=12, description="Article URL (allowlisted domain)")):
+    return await fetch_article(url)
 
 
 @router.get("/feed")

@@ -640,6 +640,11 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.8; }
+}
+
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }

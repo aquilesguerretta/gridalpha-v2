@@ -13,6 +13,7 @@ export interface NewsItem {
   videoId:     string | null;
   thumbnail:   string | null;
   contentType: 'article' | 'video';
+  energyTypes: string[];
 }
 
 import { useState, useEffect, useCallback } from 'react';

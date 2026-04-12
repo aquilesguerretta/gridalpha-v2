@@ -4,6 +4,7 @@ import { useNewsData, type NewsItem } from '@/hooks/useNewsData';
 import VideoDrawer from './VideoDrawer';
 import IntelligenceBrief from './IntelligenceBrief';
 import ArticleAnalysis from './ArticleAnalysis';
+import ArticleReader from './ArticleReader';
 
 function isNewsVideo(item: NewsItem): boolean {
   return (
@@ -28,6 +29,30 @@ const CATEGORIES = [
   'DISPATCH','WEATHER','REGULATORY','SYSTEM','VIDEO',
 ];
 
+const ENERGY_TYPES = [
+  { id: 'ALL',          label: 'All Energy',   icon: '⚡' },
+  { id: 'NATURAL_GAS',  label: 'Natural Gas',  icon: '🔥' },
+  { id: 'COAL',         label: 'Coal',         icon: '⬛' },
+  { id: 'NUCLEAR',      label: 'Nuclear',      icon: '⚛️' },
+  { id: 'WIND',         label: 'Wind',         icon: '💨' },
+  { id: 'SOLAR',        label: 'Solar',        icon: '☀️' },
+  { id: 'HYDRO',        label: 'Hydro',        icon: '💧' },
+  { id: 'BATTERY',      label: 'Battery',      icon: '🔋' },
+  { id: 'TRANSMISSION', label: 'Transmission', icon: '🔌' },
+];
+
+const ENERGY_TYPE_COLORS: Record<string, string> = {
+  NATURAL_GAS:  C.fuelGas,
+  COAL:         C.fuelCoal,
+  NUCLEAR:      C.fuelNuclear,
+  WIND:         C.fuelWind,
+  SOLAR:        C.fuelSolar,
+  HYDRO:        C.fuelHydro,
+  BATTERY:      C.fuelBattery,
+  TRANSMISSION: C.electricBlue,
+  ALL:          C.electricBlue,
+};
+
 interface Props {
   selectedZone:  string | null;
   onZoneClick:   (zoneId: string) => void;
@@ -45,6 +70,8 @@ export default function PeregrineFullPage({
   const [searchQuery,    setSearchQuery]    = useState('');
   const [showBrief,      setShowBrief]      = useState(false);
   const [activeArticle,  setActiveArticle]  = useState<NewsItem | null>(null);
+  const [energyFilter,   setEnergyFilter]   = useState<string>('ALL');
+  const [readerItem,     setReaderItem]     = useState<NewsItem | null>(null);
 
   const { items: liveNews, loading, error, lastFetch, refetch } =
     useNewsData(newsSource === 'ALL' ? undefined : newsSource);
@@ -55,7 +82,9 @@ export default function PeregrineFullPage({
       || item.summary.toLowerCase().includes(searchQuery.toLowerCase());
     const matchCat = catFilter === 'ALL'
       || (catFilter === 'VIDEO' ? isNewsVideo(item) : item.category === catFilter);
-    return matchSearch && matchCat;
+    const matchEnergy = energyFilter === 'ALL'
+      || (item.energyTypes ?? []).includes(energyFilter);
+    return matchSearch && matchCat && matchEnergy;
   });
 
   return (
@@ -272,6 +301,39 @@ export default function PeregrineFullPage({
                   {cat}
                 </button>
               ))}
+
+              <div style={{ height: 1, background: C.borderDefault, margin: `${S.lg} 0` }} />
+
+              <div style={{
+                fontFamily: F.mono, fontSize: '9px', fontWeight: '600',
+                color: C.textMuted, letterSpacing: '0.18em',
+                textTransform: 'uppercase' as const,
+                padding: `${S.sm} ${S.lg}`, marginBottom: S.xs,
+                borderLeft: `2px solid ${C.borderDefault}`,
+              }}>
+                ENERGY TYPE
+              </div>
+              {ENERGY_TYPES.map(et => {
+                const active = energyFilter === et.id;
+                const clr = ENERGY_TYPE_COLORS[et.id] ?? C.electricBlue;
+                return (
+                  <button key={et.id}
+                    onClick={() => setEnergyFilter(et.id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: S.sm,
+                      width: '100%', padding: `${S.xs} ${S.lg}`,
+                      background: 'transparent', border: 'none',
+                      cursor: 'pointer', textAlign: 'left' as const,
+                      fontFamily: F.mono, fontSize: '11px',
+                      letterSpacing: '0.08em',
+                      color: active ? clr : C.textMuted,
+                      fontWeight: active ? '600' : '400',
+                    }}>
+                    <span style={{ fontSize: '10px' }}>{et.icon}</span>
+                    {et.label}
+                  </button>
+                );
+              })}
             </div>
 
             {/* News list */}
@@ -302,7 +364,7 @@ export default function PeregrineFullPage({
                 <div key={`${item.id}-${idx}`}
                   onClick={() => {
                     if (item.videoId && String(item.videoId).length > 0) setVideoItem(item);
-                    else window.open(item.url, '_blank');
+                    else setReaderItem(item);
                   }}
                   style={{
                     display: 'flex', gap: S.xl,
@@ -365,6 +427,18 @@ export default function PeregrineFullPage({
                     }}>
                       {item.category}
                     </span>
+                    {(item.energyTypes ?? []).filter(t => t !== 'GENERAL').slice(0, 2).map(type => (
+                      <span key={type} style={{
+                        padding: '1px 5px',
+                        background: `${ENERGY_TYPE_COLORS[type] ?? C.textMuted}12`,
+                        border: `1px solid ${ENERGY_TYPE_COLORS[type] ?? C.textMuted}30`,
+                        borderRadius: '3px', fontFamily: F.mono,
+                        fontSize: '8px', color: ENERGY_TYPE_COLORS[type] ?? C.textMuted,
+                        letterSpacing: '0.08em', marginLeft: S.xs, cursor: 'pointer',
+                      }}
+                      onClick={(e) => { e.stopPropagation(); setEnergyFilter(type); }}
+                      >{type.replace('_', ' ')}</span>
+                    ))}
                     {isNewsVideo(item) && (
                       <span style={{
                         padding: '2px 6px', background: 'rgba(239,68,68,0.15)',
@@ -451,6 +525,17 @@ export default function PeregrineFullPage({
           newsItems={filtered}
           selectedZone={selectedZone}
           onClose={() => setShowBrief(false)}
+        />
+      )}
+
+      {readerItem && (
+        <ArticleReader
+          item={readerItem}
+          onClose={() => setReaderItem(null)}
+          onAskAI={() => {
+            setActiveArticle(readerItem);
+            setReaderItem(null);
+          }}
         />
       )}
 

@@ -4,7 +4,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const BACKEND = import.meta.env.VITE_BACKEND_URL as string;
+import { getBackendBase } from '@/lib/backendBase';
+
+const BACKEND = getBackendBase();
 
 export interface HenryHubData {
   current_price_mmbtu: number;

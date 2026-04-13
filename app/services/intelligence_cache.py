@@ -1,11 +1,15 @@
-"""TTL cache for intelligence endpoints + PJM DataMiner session auth (ForgeRock SSO).
+"""TTL cache for intelligence endpoints + PJM DataMiner auth.
 
-PJM Tools credentials authenticate against ``sso.pjm.com`` (OpenAM-style REST).
-The returned ``tokenId`` is sent to ``api.pjm.com`` as the session cookie
-(``iPlanetDirectoryPro`` by default). Override with ``PJM_SESSION_COOKIE_NAME`` if needed.
+Preferred: ``PJM_SUBSCRIPTION_KEY`` — Azure APIM header ``Ocp-Apim-Subscription-Key``
+for ``api.pjm.com`` (matches PJM's documented programmatic access).
+
+Fallback: ForgeRock SSO — ``PJM_USERNAME`` / ``PJM_PASSWORD`` against ``sso.pjm.com``;
+``tokenId`` is sent as cookie ``iPlanetDirectoryPro`` (override via
+``PJM_SESSION_COOKIE_NAME``).
 
 Environment (Railway / server):
-  ``PJM_USERNAME``, ``PJM_PASSWORD`` — required for PJM API calls.
+  ``PJM_SUBSCRIPTION_KEY`` — optional; when set, SSO is not used.
+  ``PJM_USERNAME``, ``PJM_PASSWORD`` — required when subscription key is unset.
   ``PJM_SSO_AUTH_URL`` — optional; default ``https://sso.pjm.com/access/authenticate``.
   ``PJM_SESSION_COOKIE_NAME`` — optional; default ``iPlanetDirectoryPro``.
 """
@@ -116,6 +120,10 @@ async def _pjm_sso_login() -> str:
 
 async def pjm_auth_headers(*, force_refresh: bool = False) -> dict[str, str]:
     """Headers to authenticate DataMiner HTTP calls to ``api.pjm.com``."""
+    sub = _env("PJM_SUBSCRIPTION_KEY")
+    if sub:
+        return {"Ocp-Apim-Subscription-Key": sub}
+
     global _pjm_token_id, _pjm_token_ts
     now = time.time()
     async with _PJM_LOCK:

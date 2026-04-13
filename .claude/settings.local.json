@@ -32,7 +32,12 @@
       "Bash(netstat -ano)",
       "Bash(findstr :5180)",
       "Bash(cd /c/Users/USER/OneDrive/Área de Trabalho/gridalpha-v2)",
-      "Bash(git revert --no-edit HEAD)"
+      "Bash(git revert --no-edit HEAD)",
+      "Bash(gh auth:*)",
+      "Bash(git fetch:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(ls node_modules/.bin/tsc*)",
+      "Bash(node -e ':*)"
     ]
   }
 }

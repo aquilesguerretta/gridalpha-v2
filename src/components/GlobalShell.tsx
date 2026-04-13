@@ -8,16 +8,13 @@ import {
 import FalconLogo from "./FalconLogo";
 import { PJMNodeGraph } from "./PJMNodeGraph";
 import { LMPCard, LMPFullPage } from "./LMPCard";
-import {
-  type Regime,
-  ZONE_LMP, ZONE_RESERVE,
-} from "../lib/pjm/mock-data";
 import { ErrorBoundary } from "./shared/ErrorBoundary";
 import { CardSkeleton } from "./shared/CardSkeleton";
 import GridAtlasView from "./atlas/GridAtlasView";
 import PeregrineFullPage from "./peregrine/PeregrineFullPage";
 import { useHenryHub } from '../hooks/data/useEnergyPrices';
 import { useFuelMix } from '../hooks/data/useAtlasData';
+import { useLiveOpsData } from '../hooks/data/useLiveOpsData';
 
 // Lazy load the 3D component to avoid SSR issues
 const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
@@ -470,17 +467,44 @@ const ENERGY_NEWS: NewsItem[] = [
     source: 'S&P Global', tags: ['battery', 'BESS', 'capacity market'] },
 ];
 
-// Regime detection — derived from LMP + reserve + marginal fuel
+function avg(values: number[]): number {
+  if (!values.length) return 0;
+  return values.reduce((s, x) => s + x, 0) / values.length;
+}
 
-function detectRegime(zone: string | null): Regime {
-  const z = zone ?? 'WEST_HUB'
-  const lmp = ZONE_LMP[z]?.price ?? 33.0
-  const reserve = ZONE_RESERVE[z] ?? 18.0
+function maxWindowAverage(values: number[], width: number): { value: number; start: number } {
+  if (!values.length || width <= 0) return { value: 0, start: 0 };
+  if (values.length <= width) return { value: avg(values), start: 0 };
+  let best = -Infinity;
+  let start = 0;
+  for (let i = 0; i <= values.length - width; i += 1) {
+    const v = avg(values.slice(i, i + width));
+    if (v > best) {
+      best = v;
+      start = i;
+    }
+  }
+  return { value: best, start };
+}
 
-  if (lmp > 36 && reserve < 15) return 'SCARCITY'
-  if (lmp < 32 && reserve > 22) return 'SURPLUS'
-  if (Math.abs(lmp - 34) < 1.5 && reserve > 15 && reserve < 20) return 'TRANSITION'
-  return 'NORMAL'
+function minWindowAverage(values: number[], width: number): { value: number; start: number } {
+  if (!values.length || width <= 0) return { value: 0, start: 0 };
+  if (values.length <= width) return { value: avg(values), start: 0 };
+  let best = Infinity;
+  let start = 0;
+  for (let i = 0; i <= values.length - width; i += 1) {
+    const v = avg(values.slice(i, i + width));
+    if (v < best) {
+      best = v;
+      start = i;
+    }
+  }
+  return { value: best, start };
+}
+
+function hourWindowLabel(startHour: number, width: number): string {
+  const end = (startHour + width) % 24;
+  return `${String(startHour).padStart(2, '0')}:00-${String(end).padStart(2, '0')}:00`;
 }
 
 // ── SparkSpreadChart ─────────────────────────────────────────────
@@ -537,26 +561,37 @@ function SparkSpreadChart({ history, regime }: { history: number[]; regime: 'BUR
 // ── SparkKPIView ──────────────────────────────────────────────────
 function SparkKPIView({ selectedZone, onNavigate }: { selectedZone: string | null; onNavigate?: () => void }) {
   const { data: henryHub } = useHenryHub();
+  const liveOps = useLiveOpsData(selectedZone);
   const gasPrice = henryHub.current_price_mmbtu;
   const gasPriceLive = henryHub.live;
+  const heatRate = 7.2;
+  const fallbackHistory = [
+    -2.4, -1.8, -0.6, 2.1, 4.8, 8.2, 14.1, 18.2, 16.8, 15.2, 13.4, 12.8,
+    11.9, 10.4, 9.8, 11.2, 13.6, 14.9, 12.4, 10.8, 9.2, 7.6, 5.4, 3.8,
+  ];
+  const historyBase = liveOps.zoneHistory.length ? liveOps.zoneHistory : fallbackHistory.map((x) => x + 26.5);
+  const spreadHistory = historyBase.map((p) => p - gasPrice * heatRate);
+  const spreadValue = (liveOps.lmpPrice || historyBase[historyBase.length - 1] || 0) - gasPrice * heatRate;
+  const avg24hSpread = avg(spreadHistory);
+  const peakSpread = spreadHistory.reduce((m, v) => (v > m ? v : m), -Infinity);
+  const peakIdx = spreadHistory.findIndex((v) => v === peakSpread);
+  const hoursBurning = spreadHistory.filter((v) => v > 0).length;
+  const regime: 'BURNING' | 'SUPPRESSED' | 'NEUTRAL' =
+    spreadValue > 8 ? 'BURNING' : spreadValue < 0 ? 'SUPPRESSED' : 'NEUTRAL';
 
   const SPARK_DATA = {
-    zone: selectedZone ?? 'SYSTEM',
-    regime: 'BURNING' as 'BURNING' | 'SUPPRESSED' | 'NEUTRAL',
-    spreadValue: 12.4,
+    zone: selectedZone ?? liveOps.apiZone ?? 'SYSTEM',
+    regime,
+    spreadValue,
     gasPrice,
-    heatRate: 7.2,
-    powerPrice: 35.90,
-    gasEquivPrice: 24.62,
-    netSpread: 12.4,
-    avg24h: 10.8,
-    peak: { value: 18.2, hour: '8AM' },
-    hoursBurning: 18,
-    history: [
-      -2.4, -1.8, -0.6, 2.1, 4.8, 8.2, 14.1, 18.2,
-      16.8, 15.2, 13.4, 12.8, 11.9, 10.4, 9.8, 11.2,
-      13.6, 14.9, 12.4, 10.8, 9.2, 7.6, 5.4, 3.8,
-    ],
+    heatRate,
+    powerPrice: liveOps.lmpPrice || historyBase[historyBase.length - 1] || 0,
+    gasEquivPrice: gasPrice * heatRate,
+    netSpread: spreadValue,
+    avg24h: avg24hSpread,
+    peak: { value: peakSpread, hour: `${peakIdx >= 0 ? peakIdx : 0}:00` },
+    hoursBurning,
+    history: spreadHistory,
   };
 
   const regimeColor = SPARK_DATA.regime === 'BURNING'
@@ -797,8 +832,18 @@ function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
 
 // ── BatteryKPIView ────────────────────────────────────────────────
 function BatteryKPIView({ selectedZone, onNavigate }: { selectedZone: string | null; onNavigate?: () => void }) {
+  const liveOps = useLiveOpsData(selectedZone);
+  const history = liveOps.zoneHistory.length ? liveOps.zoneHistory : [
+    26, 24, 22, 21, 20, 21, 28, 35, 42, 44, 43, 40,
+    38, 36, 35, 34, 38, 44, 50, 52, 48, 43, 38, 32,
+  ];
+  const charge = minWindowAverage(history, 4);
+  const discharge = maxWindowAverage(history, 4);
+  const chargeLMP = charge.value;
+  const dischargeLMP = discharge.value;
+  const netSpread = dischargeLMP - chargeLMP;
+  const targetSoc = Math.max(15, Math.min(95, Math.round(((history[history.length - 1] - Math.min(...history)) / (Math.max(...history) - Math.min(...history) || 1)) * 100)));
   const [animSoc, setAnimSoc] = useState(0);
-  const targetSoc = 71;
 
   useEffect(() => {
     setAnimSoc(0);
@@ -815,7 +860,7 @@ function BatteryKPIView({ selectedZone, onNavigate }: { selectedZone: string | n
     return () => cancelAnimationFrame(raf);
   }, [selectedZone]);
 
-  const isCharging = true;
+  const isCharging = history[history.length - 1] <= chargeLMP + 0.5;
   const stateBadgeColor = isCharging ? C.alertNormal : C.falconGold;
 
   const StateBadge = () => (
@@ -842,24 +887,24 @@ function BatteryKPIView({ selectedZone, onNavigate }: { selectedZone: string | n
         <div style={{ display: 'flex', gap: S.sm, flexShrink: 0 }}>
           <div style={{ flex: 1, padding: '6px 8px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}`, display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>CHARGE</span>
-            <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.alertNormal, fontWeight: T.dataSmWeight }}>$21.40</span>
-            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>06:00–10:00</span>
+            <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.alertNormal, fontWeight: T.dataSmWeight }}>${chargeLMP.toFixed(2)}</span>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>{hourWindowLabel(charge.start, 4)}</span>
           </div>
           <div style={{ flex: 1, padding: '6px 8px', borderRadius: R.sm, backgroundColor: `${C.falconGold}0A`, border: `1px solid ${C.falconGold}30`, display: 'flex', flexDirection: 'column', gap: '3px', alignItems: 'center' }}>
             <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>CYCLE SPREAD</span>
-            <span style={{ fontFamily: F.mono, fontSize: '18px', color: C.falconGold, fontWeight: 600 }}>+21.80</span>
+            <span style={{ fontFamily: F.mono, fontSize: '18px', color: C.falconGold, fontWeight: 600 }}>{netSpread >= 0 ? '+' : ''}{netSpread.toFixed(2)}</span>
             <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>$/MWh</span>
           </div>
           <div style={{ flex: 1, padding: '6px 8px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}`, display: 'flex', flexDirection: 'column', gap: '3px' }}>
             <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>DISCHARGE</span>
-            <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.falconGold, fontWeight: T.dataSmWeight }}>$43.20</span>
-            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>16:00–20:00</span>
+            <span style={{ fontFamily: F.mono, fontSize: T.dataSmSize, color: C.falconGold, fontWeight: T.dataSmWeight }}>${dischargeLMP.toFixed(2)}</span>
+            <span style={{ fontFamily: F.mono, fontSize: '8px', color: C.textMuted }}>{hourWindowLabel(discharge.start, 4)}</span>
           </div>
         </div>
         {/* Revenue */}
         <div style={{ flexShrink: 0, padding: '8px 12px', borderRadius: R.sm, backgroundColor: C.bgOverlay, border: `1px solid ${C.borderDefault}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontFamily: F.mono, fontSize: T.labelSize, color: C.textMuted, letterSpacing: T.labelSpacing, textTransform: 'uppercase' as const }}>EST. DAILY REVENUE</span>
-          <span style={{ fontFamily: F.mono, fontSize: T.dataMdSize, color: C.falconGold, fontWeight: 600 }}>$4,240</span>
+          <span style={{ fontFamily: F.mono, fontSize: T.dataMdSize, color: C.falconGold, fontWeight: 600 }}>${Math.round(Math.max(0, netSpread) * 400).toLocaleString()}</span>
         </div>
         {/* Navigate hint */}
         {onNavigate && (
@@ -916,8 +961,15 @@ function ResourceGapChart({ capacity, load, regime }: { capacity: number[]; load
 
 // ── GapKPIView ────────────────────────────────────────────────────
 function GapKPIView({ selectedZone, onNavigate }: { selectedZone: string | null; onNavigate?: () => void }) {
-
-  const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4;
+  const liveOps = useLiveOpsData(selectedZone);
+  const { data: fuelMixData } = useFuelMix();
+  const generationMw = (fuelMixData.fuels ?? []).reduce((s, x) => s + x.mw, 0);
+  const loadForecastMw = liveOps.loadForecastMw || generationMw * 0.9;
+  const capacityMw = generationMw > 0 ? generationMw : loadForecastMw * 1.15;
+  const reserveMargin = loadForecastMw > 0 ? ((capacityMw - loadForecastMw) / loadForecastMw) * 100 : 0;
+  const systemLoadGw = loadForecastMw / 1000;
+  const capacityGw = capacityMw / 1000;
+  const peakForecastGw = Math.max(systemLoadGw, (liveOps.actualLoadMw || loadForecastMw) / 1000);
   const gapColor   = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue;
   const badgeLabel = reserveMargin < 15 ? 'EMERGENCY'   : reserveMargin < 18 ? 'TIGHT'      : 'ADEQUATE';
   const badgeBg    = reserveMargin < 15 ? `${C.alertCritical}18` : reserveMargin < 18 ? `${C.falconGold}18` : `${C.electricBlue}18`;
@@ -930,9 +982,9 @@ function GapKPIView({ selectedZone, onNavigate }: { selectedZone: string | null;
   );
 
   const metrics = [
-    { label: 'SYSTEM LOAD', value: '65.2 GW', color: C.textSecondary },
-    { label: 'CAPACITY',    value: '78.4 GW', color: C.electricBlue },
-    { label: 'PEAK FCST',   value: '67.8 GW', color: C.falconGold },
+    { label: 'SYSTEM LOAD', value: `${systemLoadGw.toFixed(1)} GW`, color: C.textSecondary },
+    { label: 'CAPACITY',    value: `${capacityGw.toFixed(1)} GW`, color: C.electricBlue },
+    { label: 'PEAK FCST',   value: `${peakForecastGw.toFixed(1)} GW`, color: C.falconGold },
   ];
 
   return (
@@ -981,16 +1033,35 @@ function GapKPIView({ selectedZone, onNavigate }: { selectedZone: string | null;
 
 function SpreadFullPage({ selectedZone }: { selectedZone: string | null }) {
   const { data: henryHub } = useHenryHub();
+  const liveOps = useLiveOpsData(selectedZone);
   const gasPrice = henryHub.current_price_mmbtu;
   const gasPriceLive = henryHub.live;
-
+  const heatRate = 7.2;
+  const historyBase = liveOps.zoneHistory.length ? liveOps.zoneHistory : [
+    26, 24, 22, 21, 20, 21, 28, 35, 42, 44, 43, 40,
+    38, 36, 35, 34, 38, 44, 50, 52, 48, 43, 38, 32,
+  ];
+  const spreadHistory = historyBase.map((p) => p - gasPrice * heatRate);
+  const spreadValue = (liveOps.lmpPrice || historyBase[historyBase.length - 1] || 0) - gasPrice * heatRate;
+  const avg24hSpread = avg(spreadHistory);
+  const peakSpread = spreadHistory.reduce((m, v) => (v > m ? v : m), -Infinity);
+  const peakIdx = spreadHistory.findIndex((v) => v === peakSpread);
+  const hoursBurning = spreadHistory.filter((v) => v > 0).length;
+  const regime: 'BURNING' | 'SUPPRESSED' | 'NEUTRAL' =
+    spreadValue > 8 ? 'BURNING' : spreadValue < 0 ? 'SUPPRESSED' : 'NEUTRAL';
   const SPARK_DATA = {
-    zone: selectedZone ?? 'SYSTEM',
-    regime: 'BURNING' as 'BURNING' | 'SUPPRESSED' | 'NEUTRAL',
-    spreadValue: 12.4, gasPrice, heatRate: 7.2,
-    powerPrice: 35.90, gasEquivPrice: 24.62, netSpread: 12.4,
-    avg24h: 10.8, peak: { value: 18.2, hour: '8AM' }, hoursBurning: 18,
-    history: [-2.4,-1.8,-0.6,2.1,4.8,8.2,14.1,18.2,16.8,15.2,13.4,12.8,11.9,10.4,9.8,11.2,13.6,14.9,12.4,10.8,9.2,7.6,5.4,3.8],
+    zone: selectedZone ?? liveOps.apiZone ?? 'SYSTEM',
+    regime,
+    spreadValue,
+    gasPrice,
+    heatRate,
+    powerPrice: liveOps.lmpPrice || historyBase[historyBase.length - 1] || 0,
+    gasEquivPrice: gasPrice * heatRate,
+    netSpread: spreadValue,
+    avg24h: avg24hSpread,
+    peak: { value: peakSpread, hour: `${peakIdx >= 0 ? peakIdx : 0}:00` },
+    hoursBurning,
+    history: spreadHistory,
   };
   const regimeColor = SPARK_DATA.regime === 'BURNING' ? C.falconGold : SPARK_DATA.regime === 'SUPPRESSED' ? C.alertCritical : C.textSecondary;
   const regimeBg = SPARK_DATA.regime === 'BURNING' ? C.falconGoldWash : SPARK_DATA.regime === 'SUPPRESSED' ? 'rgba(239,68,68,0.10)' : 'rgba(255,255,255,0.06)';
@@ -1014,13 +1085,13 @@ function SpreadFullPage({ selectedZone }: { selectedZone: string | null }) {
         <div style={{ display: 'flex', gap: '48px', flexShrink: 0, alignItems: 'flex-end' }}>
           <div>
             <div style={{ fontFamily: F.mono, fontSize: '64px', fontWeight: '700', color: regimeColor, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
-              +{SPARK_DATA.spreadValue.toFixed(1)}
+              {SPARK_DATA.spreadValue >= 0 ? '+' : ''}{SPARK_DATA.spreadValue.toFixed(1)}
             </div>
             <div style={{ fontFamily: F.mono, fontSize: '13px', color: C.textMuted, marginTop: '8px' }}>$/MWh NET SPREAD · {SPARK_DATA.zone}</div>
           </div>
           <div style={{ display: 'flex', gap: '1px', flex: 1 }}>
             {[
-              { label: 'CURRENT SPREAD', value: `+${SPARK_DATA.spreadValue.toFixed(1)}`, color: regimeColor },
+              { label: 'CURRENT SPREAD', value: `${SPARK_DATA.spreadValue >= 0 ? '+' : ''}${SPARK_DATA.spreadValue.toFixed(1)}`, color: regimeColor },
               { label: '24H AVG',         value: `+${SPARK_DATA.avg24h.toFixed(1)}`,      color: C.textPrimary },
               { label: 'GAS PRICE',       value: `$${SPARK_DATA.gasPrice}`,               color: C.textPrimary, isGas: true },
               { label: 'HEAT RATE',       value: `${SPARK_DATA.heatRate}×`,               color: C.textPrimary },
@@ -1120,6 +1191,7 @@ function ChargeScheduleChart({ chargeLMP, dischargeLMP }: { chargeLMP: number; d
 }
 
 function BatteryFullPage({ selectedZone }: { selectedZone: string | null }) {
+  const liveOps = useLiveOpsData(selectedZone);
   // User-controlled parameters
   const [batteryMW,   setBatteryMW]   = useState(100);
   const [durationH,   setDurationH]   = useState(4);
@@ -1128,8 +1200,14 @@ function BatteryFullPage({ selectedZone }: { selectedZone: string | null }) {
 
   // Derived calculations
   const energyMWh        = batteryMW * durationH;
-  const chargeLMP        = 21.40;
-  const dischargeLMP     = 43.20;
+  const history = liveOps.zoneHistory.length ? liveOps.zoneHistory : [
+    26, 24, 22, 21, 20, 21, 28, 35, 42, 44, 43, 40,
+    38, 36, 35, 34, 38, 44, 50, 52, 48, 43, 38, 32,
+  ];
+  const chargeWindow = minWindowAverage(history, durationH);
+  const dischargeWindow = maxWindowAverage(history, durationH);
+  const chargeLMP        = chargeWindow.value;
+  const dischargeLMP     = dischargeWindow.value;
   const grossSpread      = dischargeLMP - chargeLMP;
   const efficiencyFactor = efficiency / 100;
   const netSpread        = (grossSpread * efficiencyFactor) - cyclingCost;
@@ -1140,8 +1218,8 @@ function BatteryFullPage({ selectedZone }: { selectedZone: string | null }) {
   const signal: 'HIGH' | 'MODERATE' | 'LOW' = netSpread > 25 ? 'HIGH' : netSpread > 12 ? 'MODERATE' : 'LOW';
   const signalColor = signal === 'HIGH' ? C.falconGold : signal === 'MODERATE' ? C.electricBlue : C.textSecondary;
 
-  const targetSoc = 71;
-  const isCharging = true;
+  const targetSoc = Math.max(15, Math.min(95, Math.round(((history[history.length - 1] - Math.min(...history)) / (Math.max(...history) - Math.min(...history) || 1)) * 100)));
+  const isCharging = history[history.length - 1] <= chargeLMP + 0.5;
   const stateBadgeColor = isCharging ? C.alertNormal : C.falconGold;
 
   const inputStyle: React.CSSProperties = {
@@ -1271,8 +1349,8 @@ function BatteryFullPage({ selectedZone }: { selectedZone: string | null }) {
       {/* ROW 5 — Bottom panels */}
       <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '110px', borderTop: `0.5px solid ${C.borderDefault}` }}>
         {[
-          { label: 'CHARGE WINDOW', color: C.alertNormal, rows: [{ k: 'Window', v: '02:00–06:00' }, { k: 'Avg price', v: `$${chargeLMP.toFixed(2)}/MWh` }, { k: 'Duration', v: `${durationH}h` }] },
-          { label: 'DISCHARGE WINDOW', color: C.falconGold, rows: [{ k: 'Window', v: '16:00–20:00' }, { k: 'Avg price', v: `$${dischargeLMP.toFixed(2)}/MWh` }, { k: 'Duration', v: `${durationH}h` }] },
+          { label: 'CHARGE WINDOW', color: C.alertNormal, rows: [{ k: 'Window', v: hourWindowLabel(chargeWindow.start, durationH) }, { k: 'Avg price', v: `$${chargeLMP.toFixed(2)}/MWh` }, { k: 'Duration', v: `${durationH}h` }] },
+          { label: 'DISCHARGE WINDOW', color: C.falconGold, rows: [{ k: 'Window', v: hourWindowLabel(dischargeWindow.start, durationH) }, { k: 'Avg price', v: `$${dischargeLMP.toFixed(2)}/MWh` }, { k: 'Duration', v: `${durationH}h` }] },
           { label: 'ARBITRAGE ECONOMICS', color: C.electricBlue, rows: [{ k: 'Gross spread', v: `+$${grossSpread.toFixed(2)}/MWh` }, { k: 'After eff+cost', v: `+$${netSpread.toFixed(2)}/MWh` }, { k: 'Net revenue', v: `$${grossRevenue.toLocaleString()} gross − $${(grossRevenue - dailyRevenue).toLocaleString()} costs = $${dailyRevenue.toLocaleString()}/day` }] },
         ].map(panel => (
           <div key={panel.label} style={{ flex: 1, background: C.bgOverlay, borderLeft: `2px solid ${panel.color}`, padding: '12px 16px' }}>
@@ -1366,11 +1444,20 @@ function SupplyGapWaterfall({ data, loadForecast }: { data: { name: string; valu
 }
 
 function GapFullPage({ selectedZone }: { selectedZone: string | null }) {
+  const liveOps = useLiveOpsData(selectedZone);
+  const { data: fuelMixData } = useFuelMix();
   const [activeView, setActiveView] = useState<'realtime' | 'structural'>('realtime');
 
   const capacityData = [68,69,70,71,72,72,73,74,74,73,72,71,70,70,71,72,73,74,73,72,71,70,69,68];
   const loadData     = [52,50,49,48,50,54,60,65,66,67,68,67,66,65,64,65,67,70,71,70,66,62,58,55];
-  const reserveMargin = ZONE_RESERVE[selectedZone ?? 'WEST_HUB'] ?? 18.4;
+  const generationMw = (fuelMixData.fuels ?? []).reduce((s, x) => s + x.mw, 0);
+  const loadForecastMw = liveOps.loadForecastMw || generationMw * 0.9;
+  const actualLoadMw = liveOps.actualLoadMw || loadForecastMw;
+  const capacityMw = generationMw > 0 ? generationMw : loadForecastMw * 1.15;
+  const reserveMargin = loadForecastMw > 0 ? ((capacityMw - loadForecastMw) / loadForecastMw) * 100 : 0;
+  const systemLoadGw = loadForecastMw / 1000;
+  const capacityGw = capacityMw / 1000;
+  const peakForecastGw = Math.max(systemLoadGw, actualLoadMw / 1000);
   const gapColor   = reserveMargin < 15 ? C.alertCritical : reserveMargin < 18 ? C.falconGold : C.electricBlue;
   const badgeLabel = reserveMargin < 15 ? 'EMERGENCY' : reserveMargin < 18 ? 'TIGHT' : 'ADEQUATE';
   const badgeBg    = reserveMargin < 15 ? `${C.alertCritical}18` : reserveMargin < 18 ? `${C.falconGold}18` : `${C.electricBlue}18`;
@@ -1412,9 +1499,9 @@ function GapFullPage({ selectedZone }: { selectedZone: string | null }) {
       <div style={{ display: 'flex', gap: '1px', flexShrink: 0 }}>
         {[
           { label: 'RESERVE MARGIN', value: `${reserveMargin.toFixed(1)}%`, color: gapColor },
-          { label: 'SYSTEM LOAD',    value: '65.2 GW',                       color: C.textPrimary },
-          { label: 'INSTALLED CAP',  value: '78.4 GW',                       color: C.electricBlue },
-          { label: 'PEAK FORECAST',  value: '67.8 GW',                       color: C.falconGold },
+          { label: 'SYSTEM LOAD',    value: `${systemLoadGw.toFixed(1)} GW`, color: C.textPrimary },
+          { label: 'INSTALLED CAP',  value: `${capacityGw.toFixed(1)} GW`,   color: C.electricBlue },
+          { label: 'PEAK FORECAST',  value: `${peakForecastGw.toFixed(1)} GW`, color: C.falconGold },
         ].map(tile => (
           <div key={tile.label} style={{ flex: 1, background: C.bgOverlay, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <span style={{ fontFamily: F.mono, fontSize: '10px', color: C.textMuted, letterSpacing: '0.10em', textTransform: 'uppercase' as const }}>{tile.label}</span>
@@ -1525,8 +1612,8 @@ function GapFullPage({ selectedZone }: { selectedZone: string | null }) {
       {/* Bottom panels */}
       <div style={{ display: 'flex', gap: '1px', flexShrink: 0, height: '110px', borderTop: `0.5px solid ${C.borderDefault}` }}>
         {[
-          { label: 'CAPACITY POSITION', color: C.electricBlue, rows: [{ k: 'Installed', v: '78.4 GW' }, { k: 'Committed', v: '74.2 GW' }, { k: 'Available', v: '4.2 GW' }] },
-          { label: 'LOAD ANALYSIS', color: C.textSecondary, rows: [{ k: 'Current load', v: '65.2 GW' }, { k: 'Peak forecast', v: '67.8 GW' }, { k: 'Avg 24H', v: '63.1 GW' }] },
+          { label: 'CAPACITY POSITION', color: C.electricBlue, rows: [{ k: 'Installed', v: `${capacityGw.toFixed(1)} GW` }, { k: 'Committed', v: `${(capacityGw * 0.95).toFixed(1)} GW` }, { k: 'Available', v: `${(capacityGw * 0.05).toFixed(1)} GW` }] },
+          { label: 'LOAD ANALYSIS', color: C.textSecondary, rows: [{ k: 'Current load', v: `${(actualLoadMw / 1000).toFixed(1)} GW` }, { k: 'Peak forecast', v: `${peakForecastGw.toFixed(1)} GW` }, { k: 'Avg 24H', v: `${(avg(loadData)).toFixed(1)} GW` }] },
           { label: 'SYSTEM STATUS', color: gapColor, rows: [{ k: 'Reserve margin', v: `${reserveMargin.toFixed(1)}%` }, { k: 'Status', v: badgeLabel }, { k: 'Required min', v: '15.0%' }] },
         ].map(panel => (
           <div key={panel.label} style={{ flex: 1, background: C.bgOverlay, borderLeft: `2px solid ${panel.color}`, padding: '12px 16px' }}>
@@ -1844,6 +1931,7 @@ function NestView({
   onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine') => void;
 }) {
   const { data: fuelMixData, live: fuelMixLive } = useFuelMix();
+  const liveOps = useLiveOpsData(selectedZone);
   const [marketPulseExpanded, setMarketPulseExpanded] = useState(false)
   const [marketPulseClosing, setMarketPulseClosing] = useState(false)
   const [ghostTime, setGhostTime] = useState<string | null>(null)
@@ -1981,7 +2069,7 @@ function NestView({
                     color: C.electricBlueLight,
                     letterSpacing: '0.1em',
                   }}>
-                    {selectedZone} · ${ZONE_LMP[selectedZone]?.price.toFixed(2)} /MWh
+                    {selectedZone} · ${liveOps.lmpPrice.toFixed(2)} /MWh
                   </span>
                 )}
                 <button
@@ -2390,8 +2478,9 @@ function VaultView() {
 }
 
 function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (id: string) => void }) {
-  const [lmpValue] = useState(31.85);
-  const [isLive] = useState(true);
+  const liveOps = useLiveOpsData(null);
+  const lmpValue = liveOps.rtoPrice || 31.85;
+  const isLive = liveOps.live;
   const kpiPages = ['lmp', 'spread', 'battery', 'gap', 'peregrine'];
   const isKPI = kpiPages.includes(activeNav);
 

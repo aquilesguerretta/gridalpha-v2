@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import type { NewsItem } from '@/hooks/useNewsData';
+import { getNewsApiBase } from '@/lib/backendBase';
 
 const SOURCE_COLORS: Record<string, string> = {
   EIA: '#10B981', PJM: '#06B6D4', FERC: '#F59E0B',
@@ -35,8 +36,7 @@ interface ArticleContent {
   error:      string | null;
 }
 
-const NEWS_API = import.meta.env.VITE_NEWS_API_URL
-  ?? 'https://gridalpha-v2-production.up.railway.app';
+const NEWS_API = getNewsApiBase();
 
 const ALLOWED_DOMAINS = [
   'eia.gov', 'pjm.com', 'insidelines.pjm.com',

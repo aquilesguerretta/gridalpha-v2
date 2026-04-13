@@ -10,6 +10,7 @@ import {
   ZONE_CONSTRAINTS, ZONE_GEN_MIX, ZONE_FORECAST,
   PRICE_MIN, PRICE_MAX,
 } from '../lib/pjm/mock-data'
+import { useLiveOpsData } from '../hooks/data/useLiveOpsData';
 
 /* ─── HELPERS ─────────────────────────────────────────────────── */
 
@@ -22,8 +23,12 @@ function sparklinePoints(values: number[]): string {
 /* ─── SUB-COMPONENTS ──────────────────────────────────────────── */
 
 function LMPExpandedSystem() {
+  const liveOps = useLiveOpsData(null);
   const hubData = ZONE_LMP_DETAIL['WEST_HUB']
   const hubPrices = ZONE_24H_PRICES['WEST_HUB']
+  const loadForecastGw = liveOps.loadForecastMw / 1000;
+  const actualLoadGw = liveOps.actualLoadMw / 1000;
+  const loadDeltaGw = actualLoadGw - loadForecastGw;
 
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', overflow: 'auto' }}>
@@ -73,19 +78,33 @@ function LMPExpandedSystem() {
         {/* Weather */}
         <div style={{ flex: 1, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>WEATHER</div>
-          <div style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>41°F</div>
-          <div style={{ fontFamily: F.sans, fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>Cloudy · Normal demand</div>
+          <div style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>
+            {(liveOps.temperatureF || 41).toFixed(0)}F
+          </div>
+          <div style={{ fontFamily: F.sans, fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>
+            {liveOps.weatherAlert || 'Normal'} · Live station
+          </div>
         </div>
         {/* Load vs Forecast */}
         <div style={{ flex: 1, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>LOAD VS FORECAST</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>128.4</span>
+            <span style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>
+              {loadForecastGw > 0 ? loadForecastGw.toFixed(1) : '128.4'}
+            </span>
             <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>GW</span>
-            <span style={{ fontFamily: F.sans, fontSize: '10px', color: '#FF4444' }}>▼ 2.1 GW vs forecast</span>
+            <span style={{ fontFamily: F.sans, fontSize: '10px', color: loadDeltaGw > 0 ? '#FFB800' : C.electricBlue }}>
+              {loadDeltaGw >= 0 ? '▲' : '▼'} {Math.abs(loadDeltaGw || 2.1).toFixed(1)} GW vs forecast
+            </span>
           </div>
           <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', marginTop: '8px' }}>
-            <div style={{ height: '100%', width: '92%', background: C.electricBlue }} />
+            <div
+              style={{
+                height: '100%',
+                width: `${Math.max(0, Math.min(100, loadForecastGw > 0 ? (actualLoadGw / loadForecastGw) * 100 : 92))}%`,
+                background: C.electricBlue,
+              }}
+            />
           </div>
         </div>
         {/* Zone extremes */}
@@ -493,8 +512,17 @@ function LMPExpandedZone({ zone }: { zone: string }) {
 /* ─── MAIN COMPONENT ──────────────────────────────────────────── */
 
 export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | null; onExpand?: () => void }) {
+  const liveOps = useLiveOpsData(selectedZone);
   const zoneKey = selectedZone ?? 'WEST_HUB'
-  const lmpData = ZONE_LMP_DETAIL[zoneKey] ?? ZONE_LMP_DETAIL['DEFAULT']
+  const baseData = ZONE_LMP_DETAIL[zoneKey] ?? ZONE_LMP_DETAIL['DEFAULT']
+  const lmpData = {
+    ...baseData,
+    price: liveOps.live ? liveOps.lmpPrice : baseData.price,
+    delta: liveOps.live ? liveOps.lmpDelta : baseData.delta,
+    energy: liveOps.live ? liveOps.lmpEnergy : baseData.energy,
+    congestion: liveOps.live ? liveOps.lmpCongestion : baseData.congestion,
+    loss: liveOps.live ? liveOps.lmpLoss : baseData.loss,
+  }
   const sparkData = ZONE_SPARKLINE[zoneKey] ?? ZONE_SPARKLINE['DEFAULT']
 
   return (

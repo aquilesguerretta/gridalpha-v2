@@ -18,10 +18,9 @@ export interface NewsItem {
 
 import { useState, useEffect, useCallback } from 'react';
 
-const API_BASE =
-  import.meta.env.VITE_NEWS_API_URL
-  ?? import.meta.env.VITE_API_URL
-  ?? 'https://gridalpha-v2-production.up.railway.app';
+import { getNewsApiBase } from '@/lib/backendBase';
+
+const API_BASE = getNewsApiBase();
 
 export function useNewsData(source?: string, category?: string) {
   const [items,     setItems]     = useState<NewsItem[]>([]);

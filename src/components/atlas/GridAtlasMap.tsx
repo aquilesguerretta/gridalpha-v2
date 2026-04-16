@@ -190,41 +190,6 @@ const plantClusterCountLayer: LayerProps = {
   paint: { 'text-color': '#ffffff' },
 };
 
-const plantSymbolLayer: LayerProps = {
-  id:     'plant-symbols',
-  type:   'symbol',
-  filter: ['!', ['has', 'point_count']],
-  layout: {
-    'icon-image':              ['get', 'fuel_icon'] as any,
-    'icon-size':               [
-      'interpolate', ['linear'],
-      ['coalesce', ['get', 'INSTALL_MW'], ['get', 'capacity_mw'], 100],
-      50,   0.4,
-      500,  0.7,
-      2000, 1.0,
-      5000, 1.4,
-    ] as any,
-    'icon-allow-overlap':      true,
-    'icon-ignore-placement':   false,
-    'text-field':              [
-      'step', ['zoom'],
-      '', 9,
-      ['coalesce', ['get', 'NAME'], ['get', 'name'], ''],
-    ] as any,
-    'text-font':               ['Open Sans Bold', 'Arial Unicode MS Bold'],
-    'text-size':               10,
-    'text-offset':             [0, 1.5],
-    'text-anchor':             'top',
-    'text-optional':           true,
-  },
-  paint: {
-    'text-color':      '#ffffff',
-    'text-halo-color': 'rgba(0,0,0,0.8)',
-    'text-halo-width': 1,
-    'icon-opacity':    0.92,
-  },
-};
-
 // ── Hub node layers ───────────────────────────────────────────────────────
 
 const hubDotLayer: LayerProps = {
@@ -285,13 +250,6 @@ const plantCircleFallback: LayerProps = {
 };
 
 // SVG circle icon generator
-function circleIcon(color: string, symbol: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-    <circle cx="16" cy="16" r="13" fill="${color}" fill-opacity="0.85" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
-    <text x="16" y="21" text-anchor="middle" font-size="12" fill="white" font-family="Arial">${symbol}</text>
-  </svg>`;
-}
-
 // ── FlyTo helper exposed to parent ────────────────────────────────────────
 
 export interface GridAtlasMapHandle {

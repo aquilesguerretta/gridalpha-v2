@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { C, F, R, S, T } from '@/design/tokens';
 import {
   AreaChart, Area, ComposedChart, Line, Bar, BarChart, Cell,
-  XAxis, YAxis, Tooltip, ReferenceLine, ReferenceArea,
+  XAxis, YAxis, Tooltip, ReferenceLine,
   ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import FalconLogo from "./FalconLogo";
@@ -376,17 +376,6 @@ function LMPScorecard() {
 }
 
 // Mini Sparkline
-function MiniSparkline() {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { const i = setInterval(() => setOffset(p => (p + 1) % 100), 80); return () => clearInterval(i); }, []);
-  const points = Array.from({ length: 30 }, (_, i) => `${i * 5},${25 + Math.sin((i + offset) * 0.4) * 15}`).join(" ");
-  return (
-    <svg width="100%" height="60" className="mt-2">
-      <polyline points={points} fill="none" stroke={C.electricBlue} strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 // ── Peregrine Feed data model ────────────────────────────────────
 type AlertCategory = 'CONGESTION' | 'PRICE' | 'DISPATCH' | 'WEATHER' | 'SYSTEM' | 'GENERATION';
 type AlertPriority = 'CRITICAL' | 'HIGH' | 'NORMAL' | 'INFO';
@@ -789,44 +778,6 @@ function SOCGauge({ soc, size = 140 }: { soc: number; size?: number }) {
         STATE OF CHARGE
       </text>
     </svg>
-  );
-}
-
-// ── SOCProfileChart ───────────────────────────────────────────────
-function SOCProfileChart({ socHistory }: { socHistory: number[] }) {
-  const data = socHistory.map((soc, i) => ({
-    i, soc,
-    label: i === 0 ? '12A' : i === 6 ? '6A' : i === 12 ? '12P' : i === 18 ? '6P' : i === 23 ? '11P' : String(i),
-  }));
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload?.length) return null;
-    return (
-      <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderStrong}`, borderRadius: R.md, padding: '8px 12px' }}>
-        <div style={{ fontFamily: F.sans, fontSize: 11, color: C.textMuted, marginBottom: 4 }}>{payload[0]?.payload?.label}</div>
-        <div style={{ fontFamily: F.mono, fontSize: 15, fontWeight: 600, color: C.electricBlue, fontVariantNumeric: 'tabular-nums' }}>{payload[0]?.value}% SOC</div>
-      </div>
-    );
-  };
-  return (
-    <div style={{ width: '100%', height: '100%', background: '#111318', borderRadius: R.md, padding: 4, boxSizing: 'border-box' }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 16, bottom: 0, left: 8 }}>
-          <defs>
-            <linearGradient id="socGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={C.electricBlue} stopOpacity={0.40} />
-              <stop offset="95%" stopColor={C.electricBlue} stopOpacity={0.06} />
-            </linearGradient>
-          </defs>
-          <ReferenceArea x1={2} x2={6} fill={C.electricBlue} fillOpacity={0.08} label={{ value: 'CHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 9, fill: C.electricBlue } }} />
-          <ReferenceArea x1={16} x2={20} fill={C.falconGold} fillOpacity={0.10} label={{ value: 'DISCHARGE', position: 'insideTop', style: { fontFamily: F.mono, fontSize: 9, fill: C.falconGold } }} />
-          <CartesianGrid strokeDasharray="2 4" stroke="rgba(255,255,255,0.10)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={{ stroke: 'rgba(229,231,235,0.12)' }} tickLine={false} interval={5} />
-          <YAxis domain={[0, 100]} tick={{ fontFamily: F.mono, fontSize: 11, fill: 'rgba(229,231,235,0.55)' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={40} />
-          <Tooltip content={<CustomTooltip />} cursor={{ stroke: C.electricBlue, strokeWidth: 1, strokeDasharray: '3 3' }} />
-          <Area type="monotone" dataKey="soc" stroke={C.electricBlue} strokeWidth={2.5} fill="url(#socGrad)" dot={false} activeDot={{ r: 5, fill: C.electricBlue, stroke: C.bgElevated, strokeWidth: 2 }} isAnimationActive={false} />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
   );
 }
 

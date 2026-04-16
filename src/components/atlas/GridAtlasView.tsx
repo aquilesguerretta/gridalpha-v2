@@ -267,9 +267,9 @@ export default function GridAtlasView() {
 
   // Live data hooks (gracefully return empty when backend not ready)
   const { data: fuelMixData,    live: fuelLive   } = useFuelMix();
-  const { data: constraintData, live: constLive  } = useBindingConstraints();
-  const { data: flowData,       live: flowLive   } = useInterfaceFlows();
-  const { data: outageData,     live: outageLive } = useOutages();
+  const { data: constraintData } = useBindingConstraints();
+  const { data: flowData       } = useInterfaceFlows();
+  const { data: outageData     } = useOutages();
   const { data: substationGeoJsonBackend } = useSubstations();
   const { data: pipelineGeoJsonBackend }   = useGasPipelines();
   const substationGeoJson = substationGeoJsonBackend ?? MOCK_SUBSTATIONS;

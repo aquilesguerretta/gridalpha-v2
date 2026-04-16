@@ -56,11 +56,19 @@ RSS_FEEDS = [
         "type": "video",
     },
     {
-        "id": "reuters_energy",
-        "name": "Reuters",
-        "short": "REUTERS",
-        # Official @reuters channel (previous ID UCRvhOd9vNQhpPtgoCgJsGpA returns 404 on YouTube RSS).
-        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UChqUTb7kYRX8-EiaN3XFrSQ",
+        "id": "eia_video2",
+        "name": "EIA Today in Energy",
+        "short": "EIA",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC7VrRTLQhc79Zie7Oehl0Vg",
+        "color": "#10B981",
+        "priority": "NORMAL",
+        "type": "video",
+    },
+    {
+        "id": "doe_video",
+        "name": "Dept of Energy",
+        "short": "DOE",
+        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCDzBMxmsFRMTCPiEJBIYGyw",
         "color": "#3B82F6",
         "priority": "NORMAL",
         "type": "video",
@@ -168,6 +176,75 @@ ENERGY_TYPE_KEYWORDS = {
     ],
 }
 
+ENERGY_RELEVANCE_KEYWORDS = [
+    # Power markets
+    "energy",
+    "electricity",
+    "power",
+    "grid",
+    "utility",
+    "megawatt",
+    "gigawatt",
+    "mwh",
+    "kwh",
+    "lmp",
+    "pjm",
+    "eia",
+    "ferc",
+    "iso",
+    "rto",
+    "nerc",
+    # Fuels
+    "natural gas",
+    "coal",
+    "nuclear",
+    "solar",
+    "wind",
+    "renewable",
+    "fossil fuel",
+    "petroleum",
+    "oil",
+    "lng",
+    "hydrogen",
+    "battery storage",
+    "bess",
+    # Market concepts
+    "capacity",
+    "transmission",
+    "congestion",
+    "dispatch",
+    "generation",
+    "load",
+    "demand",
+    "supply",
+    "tariff",
+    "carbon",
+    "emissions",
+    "climate",
+    "clean energy",
+    "pipeline",
+    "refinery",
+    "power plant",
+    "substation",
+    # Economic/policy
+    "energy price",
+    "fuel cost",
+    "electric",
+    "volt",
+    "kilowatt",
+    "watt",
+    "ampere",
+    "transformer",
+    "interconnection",
+    "curtailment",
+    "reserve margin",
+]
+
+
+def is_energy_relevant(title: str, summary: str) -> bool:
+    text = (title + " " + summary).lower()
+    return any(kw in text for kw in ENERGY_RELEVANCE_KEYWORDS)
+
 
 def classify_energy_type(title: str, summary: str) -> list[str]:
     text = (title + " " + summary).lower()
@@ -265,25 +342,27 @@ async def parse_feed(feed_config: dict) -> list[dict]:
                 )
             except Exception:
                 dt = datetime.now(timezone.utc)
-            items.append(
-                {
-                    "id": f"{feed_config['id']}_{abs(hash(title)) % 100000}",
-                    "source": feed_config["short"],
-                    "sourceFull": feed_config["name"],
-                    "sourceColor": feed_config["color"],
-                    "priority": feed_config["priority"],
-                    "title": title,
-                    "summary": summary[:280] if summary else "",
-                    "url": link,
-                    "category": classify(title, summary),
-                    "energyTypes": classify_energy_type(title, summary),
-                    "timeAgo": time_ago(dt),
-                    "publishedAt": dt.isoformat() if dt else datetime.now(timezone.utc).isoformat(),
-                    "videoId": video_id,
-                    "thumbnail": thumbnail,
-                    "contentType": feed_config.get("type", "article"),
-                }
-            )
+            item = {
+                "id": f"{feed_config['id']}_{abs(hash(title)) % 100000}",
+                "source": feed_config["short"],
+                "sourceFull": feed_config["name"],
+                "sourceColor": feed_config["color"],
+                "priority": feed_config["priority"],
+                "title": title,
+                "summary": summary[:280] if summary else "",
+                "url": link,
+                "category": classify(title, summary),
+                "energyTypes": classify_energy_type(title, summary),
+                "timeAgo": time_ago(dt),
+                "publishedAt": dt.isoformat() if dt else datetime.now(timezone.utc).isoformat(),
+                "videoId": video_id,
+                "thumbnail": thumbnail,
+                "contentType": feed_config.get("type", "article"),
+            }
+            # Only include energy-relevant content
+            if not is_energy_relevant(title, summary):
+                continue
+            items.append(item)
         return items
     except Exception as e:
         print(f"[NewsService] Failed to parse {feed_config['id']}: {e}")

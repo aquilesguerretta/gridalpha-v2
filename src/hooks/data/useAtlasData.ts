@@ -20,13 +20,6 @@ export interface BindingConstraint {
   contingency:  string;
 }
 
-export interface InterfaceFlow {
-  name:       string;
-  actual_mw:  number;
-  max_mw:     number;
-  pct_loading: number;
-}
-
 export interface PlantOutage {
   fuel_type: string;
   mw:        number;
@@ -39,8 +32,6 @@ export interface PlantOutage {
 const EMPTY_FUEL_MIX: FuelMix = { timestamp: '', fuels: [] };
 
 const EMPTY_CONSTRAINTS = { constraints: [] as BindingConstraint[] };
-
-const EMPTY_FLOWS = { flows: [] as InterfaceFlow[] };
 
 const EMPTY_OUTAGES = { outages: [] as PlantOutage[] };
 
@@ -92,9 +83,6 @@ export const useBindingConstraints = () =>
     5 * 60_000,
     EMPTY_CONSTRAINTS,
   );
-
-export const useInterfaceFlows = () =>
-  usePolling<{ flows: InterfaceFlow[] }>('/api/atlas/interface-flows', 5 * 60_000, EMPTY_FLOWS);
 
 export const useOutages = () =>
   usePolling<{ outages: PlantOutage[] }>('/api/atlas/outages', 30 * 60_000, EMPTY_OUTAGES);

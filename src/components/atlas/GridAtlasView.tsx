@@ -18,13 +18,11 @@ import {
 import {
   useFuelMix,
   useBindingConstraints,
-  useInterfaceFlows,
   useOutages,
   useSubstations,
   useGasPipelines,
   useEarthquakes,
 } from '../../hooks/data/useAtlasData';
-import { buildFlowArrows } from './utils/buildFlowArrows';
 import { useWeatherData } from '../../hooks/data/useWeatherData';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
@@ -233,11 +231,9 @@ export default function GridAtlasView() {
   const [showTx,        setShowTx]        = useState(true);
   const [showPlants,    setShowPlants]    = useState(true);
   const [showNodes,     setShowNodes]     = useState(true);
-  const [showExtrusion,     setShowExtrusion]     = useState(false);
   const [showSubstations,    setShowSubstations]    = useState(false);
   const [showGasPipelines,   setShowGasPipelines]   = useState(false);
   const [showEarthquakes,    setShowEarthquakes]    = useState(true);
-  const [showInterfaceFlows, setShowInterfaceFlows] = useState(true);
   const [showWeather,        setShowWeather]        = useState(true);
 
   // Map style
@@ -268,7 +264,6 @@ export default function GridAtlasView() {
   // Live data hooks (gracefully return empty when backend not ready)
   const { data: fuelMixData,    live: fuelLive   } = useFuelMix();
   const { data: constraintData } = useBindingConstraints();
-  const { data: flowData       } = useInterfaceFlows();
   const { data: outageData     } = useOutages();
   const { data: substationGeoJsonBackend } = useSubstations();
   const { data: pipelineGeoJsonBackend }   = useGasPipelines();
@@ -277,10 +272,6 @@ export default function GridAtlasView() {
   const earthquakeGeoJson            = useEarthquakes();
   const { data: weatherData, live: weatherLive } = useWeatherData();
 
-  const flowArrowsGeoJson = useMemo(
-    () => buildFlowArrows(flowData?.flows ?? []),
-    [flowData],
-  );
   const totalOutageMW = useMemo(
     () => outageData?.outages.reduce((sum, o) => sum + o.mw, 0) ?? 0,
     [outageData],
@@ -453,16 +444,13 @@ export default function GridAtlasView() {
             substationGeoJson={substationGeoJson}
             pipelineGeoJson={pipelineGeoJson}
             earthquakeGeoJson={earthquakeGeoJson}
-            flowArrowsGeoJson={flowArrowsGeoJson}
             showZones={showZones}
             showTx={showTx}
             showPlants={showPlants}
             showNodes={showNodes}
-            showExtrusion={showExtrusion}
             showSubstations={showSubstations}
             showGasPipelines={showGasPipelines}
             showEarthquakes={showEarthquakes}
-            showInterfaceFlows={showInterfaceFlows}
             weatherGeoJson={showWeather ? weatherGeoJson : null}
             onZoneClick={setSelectedZone}
             onPlantHover={handlePlantHover}
@@ -565,14 +553,12 @@ export default function GridAtlasView() {
         {/* Layers */}
         <Panel label="LAYERS">
           <Toggle label="TRANSMISSION"    active={showTx}             color="#00FFF0"        onToggle={() => setShowTx(p => !p)} />
-          <Toggle label="ZONE FILLS"      active={showZones}          color={C.electricBlue} onToggle={() => setShowZones(p => !p)} />
-          <Toggle label="3D EXTRUSION"    active={showExtrusion}      color={C.falconGold}        onToggle={() => setShowExtrusion(p => !p)} />
+          <Toggle label="ZONES"           active={showZones}          color={C.electricBlue} onToggle={() => setShowZones(p => !p)} />
           <Toggle label="POWER PLANTS"    active={showPlants}         color={C.electricBlueLight}         onToggle={() => setShowPlants(p => !p)} />
           <Toggle label="HUB NODES"       active={showNodes}          color="#FFB800"        onToggle={() => setShowNodes(p => !p)} />
           <Toggle label="GAS PIPELINES"   active={showGasPipelines}   color="#F97316"        onToggle={() => setShowGasPipelines(p => !p)} />
           <Toggle label="SUBSTATIONS"     active={showSubstations}    color="#FFFFFF"        onToggle={() => setShowSubstations(p => !p)} />
           <Toggle label="SEISMIC ALERTS"  active={showEarthquakes}    color="#FF3B3B"        onToggle={() => setShowEarthquakes(p => !p)} />
-          <Toggle label="INTERFACE FLOWS" active={showInterfaceFlows} color="#00E676"        onToggle={() => setShowInterfaceFlows(p => !p)} />
           <Toggle label="WEATHER"         active={showWeather}        color="#00FFF0"        onToggle={() => setShowWeather(p => !p)} />
         </Panel>
 

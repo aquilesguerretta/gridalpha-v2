@@ -92,18 +92,13 @@ const fuelColor: any = [
 
 // ── Layer style definitions ───────────────────────────────────────────────
 
-const zoneFillLayer: LayerProps = {
+// Invisible hit-test fill — keeps zones clickable/hoverable without tinting the basemap.
+const zoneHitLayer: LayerProps = {
   id:   'zone-fill',
   type: 'fill',
   paint: {
-    'fill-color': [
-      'interpolate', ['linear'],
-      ['coalesce', ['get', 'lmp_total'], 33],
-      30, '#3B82F6',
-      33, '#F59E0B',
-      36, '#EF4444',
-    ] as any,
-    'fill-opacity': 0.35,
+    'fill-color':   '#000000',
+    'fill-opacity': 0,
   },
 };
 
@@ -111,31 +106,9 @@ const zoneBorderLayer: LayerProps = {
   id:   'zone-border',
   type: 'line',
   paint: {
-    'line-color':   '#3B82F6',
+    'line-color':   '#00A3FF',
     'line-width':   1.2,
-    'line-opacity': 0.7,
-  },
-};
-
-const zoneExtrusionLayer: LayerProps = {
-  id:   'zone-extrusion',
-  type: 'fill-extrusion',
-  paint: {
-    'fill-extrusion-color': [
-      'interpolate', ['linear'],
-      ['coalesce', ['get', 'lmp_total'], 33],
-      30, '#3B82F6',
-      33, '#F59E0B',
-      36, '#EF4444',
-    ] as any,
-    'fill-extrusion-height': [
-      'interpolate', ['linear'],
-      ['coalesce', ['get', 'lmp_total'], 33],
-      28, 0,
-      42, 60000,
-    ] as any,
-    'fill-extrusion-base':    0,
-    'fill-extrusion-opacity': 0.5,
+    'line-opacity': 0.55,
   },
 };
 
@@ -267,17 +240,14 @@ export interface GridAtlasMapProps {
   substationGeoJson:  GeoJSON.FeatureCollection | null;
   pipelineGeoJson:    GeoJSON.FeatureCollection | null;
   earthquakeGeoJson:  GeoJSON.FeatureCollection | null;
-  flowArrowsGeoJson:  GeoJSON.FeatureCollection | null;
   weatherGeoJson:     GeoJSON.FeatureCollection | null;
   showZones:          boolean;
   showTx:             boolean;
   showPlants:         boolean;
   showNodes:          boolean;
-  showExtrusion:      boolean;
   showSubstations:    boolean;
   showGasPipelines:   boolean;
   showEarthquakes:    boolean;
-  showInterfaceFlows: boolean;
   onZoneClick:        (zoneId: string | null) => void;
   onPlantHover:       (props: Record<string, unknown> | null, x: number, y: number) => void;
   onZoneHover:        (name: string | null) => void;
@@ -289,10 +259,10 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
   function GridAtlasMap(
     {
       mapStyle, zoneGeoJson, txGeoJson, plantGeoJson, hubGeoJson,
-      substationGeoJson, pipelineGeoJson, earthquakeGeoJson, flowArrowsGeoJson,
+      substationGeoJson, pipelineGeoJson, earthquakeGeoJson,
       weatherGeoJson,
-      showZones, showTx, showPlants, showNodes, showExtrusion,
-      showSubstations, showGasPipelines, showEarthquakes, showInterfaceFlows,
+      showZones, showTx, showPlants, showNodes,
+      showSubstations, showGasPipelines, showEarthquakes,
       onZoneClick, onPlantHover, onZoneHover,
     },
     ref,
@@ -333,7 +303,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       if (f.layer?.id === 'plant-circles' || f.layer?.id === 'plant-clusters') {
         onPlantHover(f.properties as Record<string, unknown>, e.point.x, e.point.y);
         onZoneHover(null);
-      } else if (f.layer?.id === 'zone-fill' || f.layer?.id === 'zone-extrusion') {
+      } else if (f.layer?.id === 'zone-fill') {
         onPlantHover(null, 0, 0);
         onZoneHover(
           f.properties?.zone_id ?? f.properties?.ZONE ?? f.properties?.name ?? null,
@@ -385,7 +355,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
     }, []);
 
     const interactiveLayerIds = [
-      ...(showZones  ? ['zone-fill', 'zone-extrusion'] : []),
+      ...(showZones  ? ['zone-fill'] : []),
       ...(showPlants ? ['plant-circles', 'plant-clusters'] : []),
       ...(showNodes  ? ['hub-dots'] : []),
     ];
@@ -408,10 +378,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         {/* PJM Zone Boundaries */}
         {styleLoaded && showZones && zoneGeoJson && (
           <Source id="pjm-zones" type="geojson" data={zoneGeoJson} generateId={true}>
-            {showExtrusion
-              ? <Layer {...zoneExtrusionLayer} />
-              : <Layer {...zoneFillLayer} />
-            }
+            <Layer {...zoneHitLayer} />
             <Layer {...zoneBorderLayer} />
           </Source>
         )}
@@ -465,37 +432,6 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           <Source id="earthquakes" type="geojson" data={earthquakeGeoJson}>
             <Layer {...earthquakeLayer} />
             <Layer {...earthquakeLabelLayer} />
-          </Source>
-        )}
-
-        {/* Interface Flow Arrows */}
-        {styleLoaded && showInterfaceFlows && flowArrowsGeoJson && flowArrowsGeoJson.features.length > 0 && (
-          <Source id="interface-flows" type="geojson" data={flowArrowsGeoJson}>
-            <Layer
-              id="flow-lines"
-              type="line"
-              paint={{
-                'line-color':   ['get', 'loading_color'] as any,
-                'line-width':   ['get', 'width'] as any,
-                'line-opacity':  0.95,
-                'line-blur':     1,
-              }}
-            />
-            <Layer
-              id="flow-labels"
-              type="symbol"
-              layout={{
-                'text-field':       ['get', 'flow_label'] as any,
-                'text-size':         11,
-                'text-font':        ['Open Sans Bold', 'Arial Unicode MS Bold'],
-                'symbol-placement': 'line-center',
-              }}
-              paint={{
-                'text-color':       '#FFFFFF',
-                'text-halo-color':  'rgba(0,0,0,0.9)',
-                'text-halo-width':   2,
-              }}
-            />
           </Source>
         )}
 

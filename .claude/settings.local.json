@@ -38,7 +38,8 @@
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(ls node_modules/.bin/tsc*)",
       "Bash(node -e ':*)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node -e ' *)"
     ]
   }
 }

@@ -11,16 +11,18 @@ Import: `import { C, F, R, S, T } from '@/design/tokens'`
 NEVER hardcode hex values, px values, or font stacks outside tokens.ts.
 
 ## TYPOGRAPHY — NON-NEGOTIABLE
-- Font: Geist Mono for ALL data values and labels. F.mono.
-- Font: Geist Sans only for prose descriptions (rare). F.sans.
+- Primary font: Inter (F.sans) for body text and headlines.
+- Data font: Geist Mono (F.mono) reserved for data values, prices,
+  timestamps, badges, labels, and numeric readouts only.
 - 4 sizes maximum per view: 10px labels, 13px secondary, 18-28px primary, 48px display.
-- NEVER use Inter, Roboto, Arial, system-ui as primary fonts.
-- NEVER mix font families within a single card.
+- NEVER use Roboto, Arial, system-ui as standalone primary fonts — Inter only.
+- NEVER mix font families arbitrarily: Inter for prose, Geist Mono for data.
 
 ## COLOR — NON-NEGOTIABLE
-- Background system: C.bgBase → C.bgElevated → C.bgSurface → C.bgOverlay
+- Background system: C.bgBase (#111117) → C.bgElevated (#18181f)
+  → C.bgSurface (#1f1f28) → C.bgOverlay.
 - NEVER use pure black (#000) or pure neutral gray.
-- Primary accent: C.electricBlue (#06B6D4). NOT the old #00D4FF.
+- Primary accent: C.electricBlue (#3B82F6) — calm blue-500, NOT neon cyan.
 - Secondary accent: C.falconGold (#F59E0B). The profitability color.
 - Status colors: C.alertCritical / alertHigh / alertWarning / alertNormal ONLY.
 - NEVER invent a color. If the data needs a color not in tokens.ts, ask first.
@@ -63,3 +65,12 @@ only on decorative or content elements that do not participate in grid/flex sizi
 - Not a landing page (no scroll animations, no "coming soon" cards)
 - Not a mobile app (no bottom sheets, no FABs, no swipe gestures)
 - Not a consumer app (no bouncing, no haptic metaphors, no friendly illustrations)
+
+## CURRENT DESIGN TOKENS (source of truth: src/design/tokens.ts)
+- Primary font: Inter for all body text and headlines
+- Data font: Geist Mono for prices, timestamps, badges, numbers
+- Primary accent: #3B82F6 (blue-500) — NOT neon cyan
+- Secondary accent: #F59E0B (Falcon Gold)
+- Background base: #111117
+- No Tailwind on layout-critical elements
+- No hand-rolled SVG charts — Recharts only

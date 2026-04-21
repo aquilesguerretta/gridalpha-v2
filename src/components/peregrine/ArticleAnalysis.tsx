@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import type { NewsItem } from '@/hooks/useNewsData';
+import { getBackendBase } from '@/lib/backendBase';
 
 interface ArticleAnalysisProps {
   item:    NewsItem;
@@ -17,6 +18,8 @@ const SUGGESTED_QUESTIONS = [
   'Which PJM zones are most affected?',
   'What should a power trader do with this?',
 ];
+
+const AI_API = getBackendBase();
 
 export default function ArticleAnalysis({ item, onClose }: ArticleAnalysisProps) {
   const [messages, setMessages]         = useState<Message[]>([]);
@@ -56,13 +59,10 @@ PUBLISHED: ${item.timeAgo}`;
     const conversationHistory = [...messages, newUserMessage].map(m => ({ role: m.role, content: m.content }));
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(`${AI_API}/api/ai/complete`, {
         method: 'POST',
         headers: {
-          'Content-Type':                              'application/json',
-          'x-api-key':                                 import.meta.env.VITE_ANTHROPIC_API_KEY as string,
-          'anthropic-version':                         '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',

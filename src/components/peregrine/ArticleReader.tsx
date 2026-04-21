@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import type { NewsItem } from '@/hooks/useNewsData';
-import { getNewsApiBase } from '@/lib/backendBase';
+import { getBackendBase, getNewsApiBase } from '@/lib/backendBase';
 
 const SOURCE_COLORS: Record<string, string> = {
   EIA: '#10B981', PJM: '#06B6D4', FERC: '#F59E0B',
@@ -37,6 +37,7 @@ interface ArticleContent {
 }
 
 const NEWS_API = getNewsApiBase();
+const AI_API = getBackendBase();
 
 const ALLOWED_DOMAINS = [
   'eia.gov', 'pjm.com', 'insidelines.pjm.com',
@@ -53,13 +54,10 @@ function AIArticleExpansion({ item }: { item: NewsItem }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('https://api.anthropic.com/v1/messages', {
+    fetch(`${AI_API}/api/ai/complete`, {
       method: 'POST',
       headers: {
-        'Content-Type':                              'application/json',
-        'x-api-key':                                 import.meta.env.VITE_ANTHROPIC_API_KEY as string,
-        'anthropic-version':                         '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model:      'claude-sonnet-4-20250514',

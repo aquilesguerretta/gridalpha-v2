@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import type { NewsItem } from '@/hooks/useNewsData';
+import { getBackendBase } from '@/lib/backendBase';
 
 type BriefState = 'config' | 'loading' | 'report';
 
@@ -13,6 +14,7 @@ interface IntelligenceBriefProps {
 const SOURCE_OPTIONS = ['ALL', 'EIA', 'PJM', 'FERC', 'BLOOMBERG', 'S&P'];
 const FOCUS_OPTIONS  = ['ALL', 'PRICE & LMP', 'CONGESTION', 'GENERATION', 'CAPACITY', 'REGULATORY'];
 const ROLE_OPTIONS   = ['POWER TRADER', 'ASSET MANAGER', 'ANALYST', 'STUDENT'] as const;
+const AI_API = getBackendBase();
 
 export default function IntelligenceBrief({ newsItems, selectedZone, onClose }: IntelligenceBriefProps) {
   const [briefState, setBriefState]       = useState<BriefState>('config');
@@ -85,13 +87,10 @@ List 2-4 PJM zones most affected by today's news. One sentence each.
 2-3 factors to monitor in the next 6-24 hours.`;
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch(`${AI_API}/api/ai/complete`, {
         method: 'POST',
         headers: {
-          'Content-Type':                              'application/json',
-          'x-api-key':                                 import.meta.env.VITE_ANTHROPIC_API_KEY as string,
-          'anthropic-version':                         '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',

@@ -1,4 +1,6 @@
 import asyncio
+import json
+import re
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -45,6 +47,26 @@ RSS_FEEDS = [
         "color": "#10B981",
         "priority": "NORMAL",
         "type": "video",
+    },
+    {
+        "id": "bloomberg_energy",
+        "name": "Bloomberg Television",
+        "short": "BLOOMBERG",
+        "url": "https://www.youtube.com/@markets/videos",
+        "color": "#F59E0B",
+        "priority": "NORMAL",
+        "type": "video",
+        "parser": "youtube_handle",
+    },
+    {
+        "id": "reuters_energy",
+        "name": "Reuters",
+        "short": "REUTERS",
+        "url": "https://www.youtube.com/@Reuters/videos",
+        "color": "#3B82F6",
+        "priority": "NORMAL",
+        "type": "video",
+        "parser": "youtube_handle",
     },
 ]
 
@@ -213,10 +235,71 @@ ENERGY_RELEVANCE_KEYWORDS = [
     "reserve margin",
 ]
 
+VIDEO_TITLE_KEYWORDS = [
+    "energy",
+    "electricity",
+    "grid",
+    "utility",
+    "megawatt",
+    "gigawatt",
+    "mwh",
+    "kwh",
+    "lmp",
+    "pjm",
+    "eia",
+    "ferc",
+    "iso",
+    "rto",
+    "nerc",
+    "natural gas",
+    "coal",
+    "nuclear",
+    "solar",
+    "wind",
+    "renewable",
+    "fossil fuel",
+    "petroleum",
+    "oil",
+    "lng",
+    "hydrogen",
+    "battery",
+    "bess",
+    "capacity",
+    "transmission",
+    "congestion",
+    "dispatch",
+    "generation",
+    "load",
+    "demand",
+    "supply",
+    "tariff",
+    "carbon",
+    "emissions",
+    "climate",
+    "clean energy",
+    "pipeline",
+    "refinery",
+    "power plant",
+    "substation",
+]
+
 
 def is_energy_relevant(title: str, summary: str) -> bool:
     text = (title + " " + summary).lower()
-    return any(kw in text for kw in ENERGY_RELEVANCE_KEYWORDS)
+    for kw in ENERGY_RELEVANCE_KEYWORDS:
+        pattern = r"\b" + re.escape(kw).replace(r"\ ", r"\s+") + r"\b"
+        if re.search(pattern, text):
+            return True
+    return False
+
+
+def is_energy_video_title(title: str) -> bool:
+    text = title.lower()
+    for kw in VIDEO_TITLE_KEYWORDS:
+        pattern = r"\b" + re.escape(kw).replace(r"\ ", r"\s+") + r"\b"
+        if re.search(pattern, text):
+            return True
+    return False
 
 
 def classify_energy_type(title: str, summary: str) -> list[str]:
@@ -260,7 +343,107 @@ def time_ago(dt: datetime) -> str:
     return f"{seconds // 86400} d ago"
 
 
+def _text_from_yt_field(field: Optional[dict]) -> str:
+    if not field or not isinstance(field, dict):
+        return ""
+    simple = field.get("simpleText")
+    if simple:
+        return str(simple)
+    runs = field.get("runs")
+    if isinstance(runs, list):
+        return "".join(str(run.get("text", "")) for run in runs if isinstance(run, dict))
+    return ""
+
+
+def _iter_video_renderers(node):
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, dict):
+            video_renderer = current.get("videoRenderer")
+            if isinstance(video_renderer, dict):
+                yield video_renderer
+            for value in current.values():
+                stack.append(value)
+        elif isinstance(current, list):
+            stack.extend(current)
+
+
+async def _parse_youtube_handle_feed(feed_config: dict) -> list[dict]:
+    try:
+        async with httpx.AsyncClient(timeout=12.0, follow_redirects=True) as client:
+            resp = await client.get(feed_config["url"], headers=_FETCH_HEADERS)
+            resp.raise_for_status()
+    except Exception as e:
+        print(f"[NewsService] Failed to fetch {feed_config['id']} handle page: {e}")
+        return []
+
+    match = re.search(r"var ytInitialData = (\{.*?\});</script>", resp.text, re.S)
+    if not match:
+        print(f"[NewsService] Failed to parse {feed_config['id']}: ytInitialData missing")
+        return []
+
+    try:
+        initial_data = json.loads(match.group(1))
+    except Exception as e:
+        print(f"[NewsService] Failed to parse {feed_config['id']}: invalid ytInitialData ({e})")
+        return []
+
+    now = datetime.now(timezone.utc)
+    items: list[dict] = []
+    seen_video_ids: set[str] = set()
+    for vr in _iter_video_renderers(initial_data):
+        video_id = str(vr.get("videoId") or "").strip()
+        if not video_id or video_id in seen_video_ids:
+            continue
+        seen_video_ids.add(video_id)
+
+        title = _text_from_yt_field(vr.get("title")).strip()
+        if not title:
+            continue
+        summary = _text_from_yt_field(vr.get("descriptionSnippet")).strip()
+
+        # For mixed-topic channels, use strict title gating to avoid off-topic clips.
+        if not is_energy_video_title(title):
+            continue
+
+        thumbs = ((vr.get("thumbnail") or {}).get("thumbnails") or [])
+        thumbnail: Optional[str] = None
+        if thumbs and isinstance(thumbs, list):
+            thumbnail = thumbs[-1].get("url")
+        if not thumbnail:
+            thumbnail = f"https://img.youtube.com/vi/{video_id}/mqdefault.jpg"
+
+        published_label = _text_from_yt_field(vr.get("publishedTimeText")).strip()
+        items.append(
+            {
+                "id": f"{feed_config['id']}_{video_id}",
+                "source": feed_config["short"],
+                "sourceFull": feed_config["name"],
+                "sourceColor": feed_config["color"],
+                "priority": feed_config["priority"],
+                "title": title,
+                "summary": summary[:280] if summary else "",
+                "url": f"https://www.youtube.com/watch?v={video_id}",
+                "category": classify(title, summary),
+                "energyTypes": classify_energy_type(title, summary),
+                "timeAgo": published_label or "recent",
+                "publishedAt": now.isoformat(),
+                "videoId": video_id,
+                "thumbnail": thumbnail,
+                "contentType": "video",
+            }
+        )
+        if len(items) >= 15:
+            break
+
+    return items
+
+
 async def parse_feed(feed_config: dict) -> list[dict]:
+    if feed_config.get("parser") == "youtube_handle":
+        return await _parse_youtube_handle_feed(feed_config)
+
     urls = [feed_config["url"]] + list(feed_config.get("fallback_urls") or [])
     body: Optional[str] = None
     last_error: Optional[str] = None

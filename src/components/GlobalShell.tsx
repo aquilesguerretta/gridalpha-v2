@@ -6,12 +6,12 @@ import {
   ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import FalconLogo from "./FalconLogo";
-import { PJMNodeGraph } from "./PJMNodeGraph";
 import { LMPCard, LMPFullPage } from "./LMPCard";
 import { ErrorBoundary } from "./shared/ErrorBoundary";
 import { CardSkeleton } from "./shared/CardSkeleton";
 import GridAtlasView from "./atlas/GridAtlasView";
-import PeregrineFullPage from "./peregrine/PeregrineFullPage";
+import AnalyticsPage from "./AnalyticsPage";
+import GenerationMixFullPage from "./GenerationMixFullPage";
 import { useHenryHub } from '../hooks/data/useEnergyPrices';
 import { useFuelMix } from '../hooks/data/useAtlasData';
 import { useLiveOpsData } from '../hooks/data/useLiveOpsData';
@@ -1583,7 +1583,9 @@ function GapFullPage({ selectedZone }: { selectedZone: string | null }) {
 }
 
 // ── PeregrineFeed ────────────────────────────────────────────────
-function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: string) => void; onOpenFull?: () => void }) {
+// No longer rendered in The Nest (moved to Analytics). Kept + exported
+// so the code path remains available if we reinstate an inline feed.
+export function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: string) => void; onOpenFull?: () => void }) {
   const [feedMode, setFeedMode]         = useState<'market' | 'news'>('market');
   const [activeFilter, setActiveFilter] = useState<AlertCategory | 'ALL'>('ALL');
   const [expandedId, setExpandedId]     = useState<string | null>(null);
@@ -1779,7 +1781,7 @@ function PeregrineFeed({ onZoneClick, onOpenFull }: { onZoneClick: (zoneId: stri
 }
 
 // ── PeregrineFeedMarketAlerts (standalone alert stream for full page) ──
-function PeregrineFeedMarketAlerts({ onZoneClick }: { onZoneClick: (zoneId: string) => void }) {
+export function PeregrineFeedMarketAlerts({ onZoneClick }: { onZoneClick: (zoneId: string) => void }) {
   const [activeFilter, setActiveFilter] = useState<AlertCategory | 'ALL'>('ALL');
   const [expandedId, setExpandedId]     = useState<string | null>(null);
   const filteredAlerts = activeFilter === 'ALL' ? FEED_ALERTS : FEED_ALERTS.filter(a => a.category === activeFilter);
@@ -1871,6 +1873,30 @@ function nestFuelColor(type: string): string {
   return C.fuelOther;
 }
 
+// PJM zone dropdown options — id drives selectedZone, name is the display label.
+const PJM_ZONES: Array<{ id: string; name: string }> = [
+  { id: 'WESTERN_HUB', name: 'WEST HUB' },
+  { id: 'PSEG',        name: 'PSEG'     },
+  { id: 'RECO',        name: 'RECO'     },
+  { id: 'COMED',       name: 'COMED'    },
+  { id: 'AEP',         name: 'AEP'      },
+  { id: 'DOM',         name: 'DOM'      },
+  { id: 'DUQ',         name: 'DUQ'      },
+  { id: 'JCPL',        name: 'JCPL'     },
+  { id: 'PPL',         name: 'PPL'      },
+  { id: 'PECO',        name: 'PECO'     },
+  { id: 'BGE',         name: 'BGE'      },
+  { id: 'PENELEC',     name: 'PENELEC'  },
+  { id: 'MET_ED',      name: 'MET-ED'   },
+  { id: 'ATSI',        name: 'ATSI'     },
+  { id: 'DEOK',        name: 'DEOK'     },
+  { id: 'DAY',         name: 'DAY'      },
+  { id: 'CE',          name: 'CE'       },
+  { id: 'EKPC',        name: 'EKPC'     },
+  { id: 'APS',         name: 'APS'      },
+  { id: 'AECO',        name: 'AECO'     },
+];
+
 // THE NEST View - Volumetric Bento
 function NestView({
   selectedZone,
@@ -1879,35 +1905,10 @@ function NestView({
 }: {
   selectedZone: string | null;
   setSelectedZone: (z: string | null) => void;
-  onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine') => void;
+  onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine' | 'genmix') => void;
 }) {
   const { data: fuelMixData, live: fuelMixLive } = useFuelMix();
-  const liveOps = useLiveOpsData(selectedZone);
-  const [marketPulseExpanded, setMarketPulseExpanded] = useState(false)
-  const [marketPulseClosing, setMarketPulseClosing] = useState(false)
-  const [ghostTime, setGhostTime] = useState<string | null>(null)
-  const [activeKPI, setActiveKPI] = useState<'lmp' | 'spark' | 'battery' | 'gap'>('lmp')
-
-  // Ghost mode toggle — press G
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'g' || e.key === 'G') {
-        setGhostTime(prev =>
-          prev ? null : new Date(Date.now() - 3600000).toISOString()
-        )
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
-
-  const closeModal = () => {
-    setMarketPulseClosing(true)
-    setTimeout(() => {
-      setMarketPulseExpanded(false)
-      setMarketPulseClosing(false)
-    }, 280)
-  }
+  void useLiveOpsData(selectedZone);
 
   const genMixSegments = (() => {
     const fuels = fuelMixData.fuels ?? [];
@@ -1923,287 +1924,166 @@ function NestView({
     }));
   })();
 
+  const zoneValue = selectedZone ?? 'WESTERN_HUB';
+  const kpiCells: Array<{ key: string; label: string; view: React.ReactNode }> = [
+    { key: 'lmp',     label: 'LMP HUB',      view: <LMPCard       selectedZone={selectedZone} onExpand={()  => onNavigateKPI('lmp')}     /> },
+    { key: 'spark',   label: 'SPARK SPREAD', view: <SparkKPIView  selectedZone={selectedZone} onNavigate={() => onNavigateKPI('spread')}  /> },
+    { key: 'battery', label: 'BATTERY ARB',  view: <BatteryKPIView selectedZone={selectedZone} onNavigate={() => onNavigateKPI('battery')} /> },
+    { key: 'gap',     label: 'RESOURCE GAP', view: <GapKPIView    selectedZone={selectedZone} onNavigate={() => onNavigateKPI('gap')}     /> },
+  ];
+
   return (
     <div style={{
-      display: 'grid',
-      gridTemplateColumns: '52fr 24fr 24fr',
-      gridTemplateRows: '1fr 96px',
-      gridTemplateAreas: '"pulse feed kpi" "genmix genmix kpi"',
-      gap: '8px',
-      padding: '8px',
-      height: '100%',
-      width: '100%',
+      display:         'flex',
+      flexDirection:   'column',
+      height:          '100%',
+      width:           '100%',
       backgroundColor: C.bgBase,
-      boxSizing: 'border-box' as const,
-      overflow: 'hidden',
+      boxSizing:       'border-box' as const,
+      overflow:        'hidden',
     }}>
-      {/* Market Pulse — left column, row 1 */}
-      <BentoCard title="MARKET PULSE" status="live" style={{ gridArea: 'pulse', cursor: 'pointer' }} onTitleClick={() => setMarketPulseExpanded(true)}>
-        <ErrorBoundary label="MARKET PULSE">
-          <div style={{ position: 'absolute', inset: 0 }}>
-            <PJMNodeGraph onZoneSelect={(id) => { setSelectedZone(id || null); if (id) setActiveKPI('lmp'); }} expanded={false} ghostTime={ghostTime} />
-          </div>
-        </ErrorBoundary>
-      </BentoCard>
-
-      {/* Modal overlay */}
-      {marketPulseExpanded && (
-        <>
-          {/* Backdrop */}
-          <div
-            onClick={closeModal}
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 49,
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              backdropFilter: 'blur(4px)',
-            }}
-          />
-          {/* Modal */}
-          <div style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 50,
-            width: '78vw',
-            height: '78vh',
-            backgroundColor: '#0A0A0B',
-            border: '0.5px solid rgba(6,182,212,0.3)',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 0 60px rgba(6,182,212,0.15), 0 0 120px rgba(6,182,212,0.05)',
-            animation: marketPulseClosing
-              ? 'modal-collapse 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards'
-              : 'modal-expand 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards',
-          }}>
-            {/* Header */}
-            <div style={{
-              height: '44px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '0 20px',
-              borderBottom: '0.5px solid rgba(255,255,255,0.08)',
-              flexShrink: 0,
-            }}>
-              <span style={{
-                fontFamily: F.mono,
-                fontSize: '10px',
-                color: 'rgba(255,255,255,0.5)',
-                letterSpacing: '0.15em',
-              }}>
-                MARKET PULSE — PJM ZONE EXPLORER
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                {ghostTime && (
-                  <span style={{
-                    fontFamily: F.mono,
-                    fontSize: '9px',
-                    color: '#FFB800',
-                    background: 'rgba(255,183,0,0.08)',
-                    border: '0.5px solid rgba(255,183,0,0.25)',
-                    borderRadius: '3px',
-                    padding: '2px 10px',
-                    letterSpacing: '0.12em',
-                  }}>
-                    ◎ GHOST MODE · T−1H
-                  </span>
-                )}
-                {selectedZone && (
-                  <span style={{
-                    fontFamily: F.mono,
-                    fontSize: '11px',
-                    color: C.electricBlueLight,
-                    letterSpacing: '0.1em',
-                  }}>
-                    {selectedZone} · ${liveOps.lmpPrice.toFixed(2)} /MWh
-                  </span>
-                )}
-                <button
-                  onClick={closeModal}
-                  style={{
-                    fontFamily: F.sans,
-                    fontSize: '9px',
-                    color: 'rgba(255,255,255,0.4)',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '0.5px solid rgba(255,255,255,0.1)',
-                    borderRadius: '4px',
-                    padding: '4px 12px',
-                    cursor: 'pointer',
-                    letterSpacing: '0.1em',
-                  }}
-                >
-                  ✕ CLOSE
-                </button>
-              </div>
-            </div>
-            {/* 3D canvas */}
-            <div style={{ flex: 1, position: 'relative' }}>
-              <PJMNodeGraph
-                onZoneSelect={(id) => { setSelectedZone(id || null); if (id) setActiveKPI('lmp'); }}
-                expanded={true}
-                ghostTime={ghostTime}
-              />
-              {/* Mini-legend overlay — bottom-left of expanded view */}
-              <div style={{
-                position: 'absolute',
-                bottom: '16px',
-                left: '16px',
-                background: 'rgba(10,10,11,0.85)',
-                border: '0.5px solid rgba(255,255,255,0.08)',
-                borderRadius: '6px',
-                padding: '10px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-                pointerEvents: 'none',
-              }}>
-                <span style={{
-                  fontFamily: F.mono,
-                  fontSize: '7px',
-                  color: 'rgba(255,255,255,0.35)',
-                  letterSpacing: '0.15em',
-                  marginBottom: '2px',
-                }}>
-                  VISUAL ENCODING
-                </span>
-                {/* Color legend */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: C.electricBlue }} />
-                  <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
-                    CHEAP (ZONE 24H LOW)
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FFB800' }} />
-                  <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
-                    MID-RANGE
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#FF4444' }} />
-                  <span style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.45)' }}>
-                    EXPENSIVE (ZONE 24H HIGH)
-                  </span>
-                </div>
-                {/* Size + depth legend */}
-                <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.06)', paddingTop: '5px', marginTop: '2px' }}>
-                  <span style={{ fontFamily: F.mono, fontSize: '7.5px', color: 'rgba(255,255,255,0.3)' }}>
-                    ● SIZE = PEAK LOAD MW &nbsp; ● DEPTH = LMP $/MWh
-                  </span>
-                </div>
-              </div>
-            </div>
-            {/* Footer hint */}
-            <div style={{
-              height: '28px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderTop: '0.5px solid rgba(255,255,255,0.05)',
-              flexShrink: 0,
-            }}>
-              <span style={{
-                fontFamily: F.mono,
-                fontSize: '8px',
-                color: 'rgba(255,255,255,0.2)',
-                letterSpacing: '0.15em',
-              }}>
-                DRAG · SCROLL TO ZOOM · CLICK ZONE TO SELECT · CLICK AGAIN TO DESELECT
-              </span>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Peregrine Feed */}
-      <div style={{ gridArea: 'feed', background: C.bgElevated, border: `1px solid ${C.borderDefault}`, borderTop: `1px solid ${C.borderAccent}`, borderRadius: R.lg, overflow: 'hidden' }}>
-        <ErrorBoundary label="PEREGRINE FEED">
-          <PeregrineFeed onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveKPI('lmp'); }} onOpenFull={() => onNavigateKPI('peregrine')} />
-        </ErrorBoundary>
-      </div>
-
-      {/* KPI Panel — right column, spans both rows */}
+      {/* ── Zone selector bar — 48px ───────────────────── */}
       <div style={{
-        gridArea: 'kpi',
-        display: 'flex',
-        flexDirection: 'column',
-        background: C.bgElevated,
-        border: `1px solid ${C.borderDefault}`,
-        borderTop: `1px solid ${C.borderAccent}`,
-        borderRadius: R.lg,
-        overflow: 'hidden',
+        height:       48,
+        flexShrink:   0,
+        display:      'flex',
+        alignItems:   'center',
+        gap:          S.xl,
+        padding:      `0 ${S.xl}`,
+        background:   C.bgElevated,
+        borderBottom: `1px solid ${C.borderDefault}`,
       }}>
-        {/* Tab strip — 36px */}
-        <div style={{
-          display: 'flex',
-          height: '36px',
-          flexShrink: 0,
-          borderBottom: `1px solid ${C.borderDefault}`,
-          background: C.bgBase,
-        }}>
-          {(['lmp', 'spark', 'battery', 'gap'] as const).map((tab) => {
-            const labels = { lmp: 'LMP', spark: 'SPREAD', battery: 'BATTERY', gap: 'RES GAP' };
-            const isActive = activeKPI === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveKPI(tab)}
-                style={{
-                  flex: 1,
-                  height: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: isActive ? `2px solid ${C.electricBlue}` : '2px solid transparent',
-                  color: isActive ? C.electricBlue : C.textMuted,
-                  fontFamily: F.mono,
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  letterSpacing: '0.10em',
-                  textTransform: 'uppercase' as const,
-                  cursor: 'pointer',
-                  transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-                }}
-              >
-                {labels[tab]}
-              </button>
-            );
-          })}
+        <div style={{ display: 'flex', alignItems: 'center', gap: S.md }}>
+          <span style={{
+            fontFamily:    F.mono,
+            fontSize:      '9px',
+            color:         C.textMuted,
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase' as const,
+          }}>
+            SELECTED ZONE
+          </span>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <select
+              value={zoneValue}
+              onChange={e => setSelectedZone(e.target.value)}
+              style={{
+                background:       C.bgSurface,
+                border:           `1px solid ${C.borderDefault}`,
+                borderRadius:     R.md,
+                color:            C.textPrimary,
+                fontFamily:       F.mono,
+                fontSize:         '12px',
+                fontWeight:       '600',
+                padding:          '6px 32px 6px 12px',
+                cursor:           'pointer',
+                outline:          'none',
+                letterSpacing:    '0.06em',
+                appearance:       'none',
+                WebkitAppearance: 'none',
+                minWidth:         '180px',
+              }}
+            >
+              {PJM_ZONES.map(z => (
+                <option key={z.id} value={z.id}>{z.name}</option>
+              ))}
+            </select>
+            <div style={{
+              position:      'absolute',
+              right:         10,
+              top:           '50%',
+              transform:     'translateY(-50%)',
+              pointerEvents: 'none',
+              color:         C.textMuted,
+              fontSize:      '10px',
+            }}>▾</div>
+          </div>
         </div>
-        {/* Active KPI content */}
-        <div style={{ flex: 1, overflow: 'hidden', minHeight: 0, position: 'relative' }}>
-          {activeKPI === 'lmp' && (
-            <ErrorBoundary label="LMP HUB">
-              <LMPCard selectedZone={selectedZone} onExpand={() => onNavigateKPI('lmp')} />
-            </ErrorBoundary>
-          )}
-          {activeKPI === 'spark' && (
-            <ErrorBoundary label="SPARK SPREAD">
-              <SparkKPIView selectedZone={selectedZone} onNavigate={() => onNavigateKPI('spread')} />
-            </ErrorBoundary>
-          )}
-          {activeKPI === 'battery' && (
-            <ErrorBoundary label="BATTERY ARB">
-              <BatteryKPIView selectedZone={selectedZone} onNavigate={() => onNavigateKPI('battery')} />
-            </ErrorBoundary>
-          )}
-          {activeKPI === 'gap' && (
-            <ErrorBoundary label="RESOURCE GAP">
-              <GapKPIView selectedZone={selectedZone} onNavigate={() => onNavigateKPI('gap')} />
-            </ErrorBoundary>
-          )}
+
+        <div style={{
+          flex:           1,
+          display:        'flex',
+          alignItems:     'center',
+          justifyContent: 'flex-end',
+          gap:            S.lg,
+          minWidth:       0,
+        }}>
+          <span style={{
+            fontFamily:    F.mono,
+            fontSize:      '10px',
+            color:         C.textMuted,
+            letterSpacing: '0.10em',
+            whiteSpace:    'nowrap' as const,
+          }}>
+            PJM · REAL-TIME · 5-MIN DISPATCH
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: S.xs }}>
+            <span
+              aria-hidden
+              style={{
+                width:        6,
+                height:       6,
+                borderRadius: '50%',
+                background:   C.alertNormal,
+                boxShadow:    `0 0 6px ${C.alertNormal}`,
+              }}
+            />
+            <span style={{
+              fontFamily:    F.mono,
+              fontSize:      '10px',
+              fontWeight:    '600',
+              color:         C.alertNormal,
+              letterSpacing: '0.10em',
+            }}>
+              LIVE
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Generation Mix — bottom strip, spans cols 1-2 */}
+      {/* ── 2×2 KPI grid — explicit height so it exactly fits between
+          zone-selector (48) and genmix strip (96) below the 64px top nav. */}
+      <div style={{
+        height:              'calc(100vh - 64px - 48px - 96px)',
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows:    '1fr 1fr',
+        gap:                 '6px',
+        padding:             '6px',
+        overflow:            'hidden',
+        minWidth:            0,
+        minHeight:           0,
+      }}>
+        {kpiCells.map(cell => (
+          <div key={cell.key} style={{
+            position:     'relative',
+            background:   C.bgElevated,
+            border:       `1px solid ${C.borderDefault}`,
+            borderTop:    `1px solid ${C.borderAccent}`,
+            borderRadius: R.lg,
+            overflow:     'hidden',
+            minWidth:     0,
+            minHeight:    0,
+          }}>
+            <ErrorBoundary label={cell.label}>
+              <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                {cell.view}
+              </div>
+            </ErrorBoundary>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Generation Mix strip — bottom, full width ── */}
+      <div style={{
+        height:     96,
+        flexShrink: 0,
+        padding:    `0 ${S.sm} ${S.sm} ${S.sm}`,
+      }}>
       <BentoCard
         title="GENERATION MIX"
         status={fuelMixLive ? 'live' : genMixSegments.length ? 'stale' : 'fallback'}
-        style={{ gridArea: 'genmix' }}
+        onTitleClick={() => onNavigateKPI('genmix')}
       >
         <ErrorBoundary label="GENERATION MIX">
         <div style={{ height: '100%', padding: '6px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
@@ -2251,6 +2131,7 @@ function NestView({
         </div>
         </ErrorBoundary>
       </BentoCard>
+      </div>
     </div>
   );
 }
@@ -2306,8 +2187,9 @@ function AnimatedStackedBar() {
   );
 }
 
-// Enhanced Suite Card with hover, sub-modules, and animated thumbnails
-function SuiteCard({ title, subModules, showFormula, cardType }: { title: string; subModules: string[]; showFormula?: boolean; cardType?: "intelligence" | "resource" | "optimizer" }) {
+// Enhanced Suite Card with hover, sub-modules, and animated thumbnails.
+// Previously the Analytics landing page; kept + exported for reuse.
+export function SuiteCard({ title, subModules, showFormula, cardType }: { title: string; subModules: string[]; showFormula?: boolean; cardType?: "intelligence" | "resource" | "optimizer" }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -2376,17 +2258,9 @@ function SuiteCard({ title, subModules, showFormula, cardType }: { title: string
 }
 
 // ANALYTICS View
-function AnalyticsView() {
-  return (
-    <div className="flex-1 flex items-center justify-center p-8" style={{ backgroundColor: C.bgBase }}>
-      <div className="flex gap-6 w-full max-w-5xl h-[500px]">
-        <SuiteCard title="INTELLIGENCE SUITE" subModules={["Price Intelligence", "Convergence Monitor", "Marginal Fuel Tracker", "DA/RT Spread Analysis"]} cardType="intelligence" />
-        <SuiteCard title="RESOURCE SUITE" subModules={["Generation Mix", "Resource Gap", "Load Forecast", "Capacity Analysis"]} cardType="resource" />
-        <SuiteCard title="OPTIMIZER SUITE" subModules={["Spark Spread Calculator", "Battery Arbitrage", "Heat Rate Optimizer", "Dispatch Signals"]} showFormula cardType="optimizer" />
-      </div>
-    </div>
-  );
-}
+// AnalyticsView removed — Analytics is now the standalone AnalyticsPage
+// component (src/components/AnalyticsPage.tsx). The old SuiteCard grid is gone;
+// Peregrine Intelligence is the default Analytics tab.
 
 // VAULT View
 function VaultView() {
@@ -2435,24 +2309,56 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
   const kpiPages = ['lmp', 'spread', 'battery', 'gap', 'peregrine'];
   const isKPI = kpiPages.includes(activeNav);
 
+  // Map-first views (Grid Atlas) drop the solid header bar entirely
+  // and render only the nav icons as a floating translucent pill in
+  // the top-left corner. No wordmark, no LMP badge, no background bar.
+  const isMapFirst = activeNav === 'atlas';
+  // `collapsed` is kept as a marker for legacy nodes below — on atlas
+  // most of them hide entirely, so this just disables their label text.
+  const collapsed = isMapFirst;
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: 64,
-      zIndex: 100,
-      display: 'flex',
-      alignItems: 'center',
-      backgroundColor: 'rgba(12,13,16,0.88)',
-      backdropFilter: 'blur(12px)',
-      borderBottom: `1px solid ${C.borderDefault}`,
-      padding: '0 20px',
-      gap: '24px',
+    <div
+      data-atlas-collapsed={isMapFirst ? '1' : '0'}
+      style={isMapFirst ? {
+        // Floating icon-only pill — matches the timeline scrubber pill style.
+        position:       'fixed',
+        top:            12,
+        left:           12,
+        height:         'auto',
+        zIndex:         100,
+        display:        'flex',
+        alignItems:     'center',
+        gap:            4,
+        padding:        '4px 6px',
+        background:     'rgba(10,10,11,0.55)',
+        border:         `1px solid ${C.borderDefault}`,
+        borderRadius:   22,
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        boxShadow:      '0 8px 22px rgba(0,0,0,0.35)',
+        pointerEvents:  'auto',
+      } : {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 64,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        backgroundColor: 'rgba(12,13,16,0.88)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${C.borderDefault}`,
+        padding: '0 20px',
+        gap: 24,
+        overflow: 'hidden',
     }}>
-      {/* Falcon icon + Wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: S.md }}>
+      {/* Falcon icon + Wordmark — fully removed on map-first views */}
+      {!isMapFirst && (
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: S.md,
+      }}>
         <div style={{ width: '42px', height: '42px', flexShrink: 0, overflow: 'hidden', borderRadius: '6px' }}>
           <FalconLogo collapsed={false} />
         </div>
@@ -2482,6 +2388,7 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
           }}>{viewLabels[activeNav]}</span>
         )}
       </div>
+      )}
       {isKPI ? (
         /* Breadcrumb: back to THE NEST */
         <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2512,12 +2419,13 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                padding: '6px 12px',
+                gap: collapsed ? 0 : 8,
+                padding: collapsed ? '3px 6px' : '6px 12px',
                 backgroundColor: activeNav === item.id ? C.electricBlueWash : 'transparent',
                 border: `1px solid ${activeNav === item.id ? C.borderActive : 'transparent'}`,
                 borderRadius: R.md,
                 cursor: 'pointer',
+                transition: 'padding 220ms cubic-bezier(0.4,0,0.2,1), gap 220ms cubic-bezier(0.4,0,0.2,1)',
               }}
             >
               <span style={{ color: activeNav === item.id ? C.electricBlue : C.textSecondary }}>
@@ -2529,6 +2437,11 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
                 color: activeNav === item.id ? C.electricBlue : C.textSecondary,
                 letterSpacing: '0.02em',
                 fontWeight: '500',
+                maxWidth: collapsed ? 0 : 120,
+                opacity: collapsed ? 0 : 1,
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
+                transition: 'max-width 220ms cubic-bezier(0.4,0,0.2,1), opacity 180ms ease-out',
               }}>
                 {item.label}
               </span>
@@ -2536,18 +2449,25 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
           ))}
         </nav>
       )}
-      <div style={{ flex: 1 }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontFamily: F.mono, fontSize: '11px' }}>
-        <span style={{ color: C.textSecondary }}>LMP</span>
-        <span style={{ fontSize: '15px', fontWeight: '700', color: C.falconGold }}>${lmpValue.toFixed(2)}</span>
-        <StatusDot status={isLive ? 'live' : 'stale'} />
-        <span style={{ color: isLive ? C.alertNormal : C.alertWarning }}>{isLive ? 'LIVE' : 'STALE'}</span>
-      </div>
+      {!isMapFirst && (
+        <>
+          <div style={{ flex: 1 }} />
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            fontFamily: F.mono, fontSize: '11px',
+          }}>
+            <span style={{ color: C.textSecondary }}>LMP</span>
+            <span style={{ fontSize: '15px', fontWeight: '700', color: C.falconGold }}>${lmpValue.toFixed(2)}</span>
+            <StatusDot status={isLive ? 'live' : 'stale'} />
+            <span style={{ color: isLive ? C.alertNormal : C.alertWarning }}>{isLive ? 'LIVE' : 'STALE'}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-type NavState = 'nest' | 'atlas' | 'analytics' | 'vault' | 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine';
+type NavState = 'nest' | 'atlas' | 'analytics' | 'vault' | 'lmp' | 'spread' | 'battery' | 'gap' | 'genmix' | 'peregrine';
 
 const viewLabels: Record<string, string> = {
   nest: 'THE NEST',
@@ -2564,9 +2484,11 @@ const viewLabels: Record<string, string> = {
 export default function GlobalShell() {
   const [activeNav, setActiveNav] = useState<NavState>('nest');
   const [entryDismissed, setEntryDismissed] = useState(false);
-  const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [selectedZone, setSelectedZone] = useState<string | null>('WESTERN_HUB');
 
-  const kpiPages: NavState[] = ['lmp', 'spread', 'battery', 'gap', 'peregrine'];
+  const kpiPages: NavState[] = ['lmp', 'spread', 'battery', 'gap', 'peregrine', 'genmix'];
+  const fullScreenPages: NavState[] = ['lmp', 'spread', 'battery', 'gap', 'genmix'];
+  const isFullScreenPage = (fullScreenPages as string[]).includes(activeNav);
 
   // ESC returns from KPI full page to Nest
   useEffect(() => {
@@ -2583,21 +2505,18 @@ export default function GlobalShell() {
     switch (activeNav) {
       case "nest": return <NestView selectedZone={selectedZone} setSelectedZone={setSelectedZone} onNavigateKPI={(tab) => setActiveNav(tab)} />;
       case "atlas": return <GridAtlasView />;
-      case "analytics": return <AnalyticsView />;
+      case "analytics": return (
+        <AnalyticsPage
+          selectedZone={selectedZone}
+          onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveNav('nest'); }}
+        />
+      );
       case "vault": return <VaultView />;
       case "lmp": return <LMPFullPage selectedZone={selectedZone} />;
       case "spread": return <SpreadFullPage selectedZone={selectedZone} />;
       case "battery": return <BatteryFullPage selectedZone={selectedZone} />;
       case "gap": return <GapFullPage selectedZone={selectedZone} />;
-      case "peregrine": return (
-        <PeregrineFullPage
-          selectedZone={selectedZone}
-          onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveNav('nest'); }}
-          marketAlerts={
-            <PeregrineFeedMarketAlerts onZoneClick={(zoneId) => { setSelectedZone(zoneId); setActiveNav('nest'); }} />
-          }
-        />
-      );
+      case "genmix": return <GenerationMixFullPage onBack={() => setActiveNav('nest')} />;
       default: return <NestView selectedZone={selectedZone} setSelectedZone={setSelectedZone} onNavigateKPI={(tab) => setActiveNav(tab)} />;
     }
   };
@@ -2605,10 +2524,46 @@ export default function GlobalShell() {
   return (
     <>
       {!entryDismissed && <EntryOverlay onDismiss={() => setEntryDismissed(true)} />}
-      <TopBar activeNav={activeNav} onNavChange={(id) => setActiveNav(id as NavState)} />
+      {!isFullScreenPage && (
+        <TopBar activeNav={activeNav} onNavChange={(id) => setActiveNav(id as NavState)} />
+      )}
+      {/* Floating back button for KPI full pages that lack their own header.
+          GenerationMixFullPage provides its own back button. */}
+      {isFullScreenPage && activeNav !== 'genmix' && (
+        <button
+          onClick={() => setActiveNav('nest')}
+          style={{
+            position:       'fixed',
+            top:            12,
+            left:           12,
+            zIndex:         100,
+            padding:        '6px 12px',
+            background:     C.bgElevated,
+            border:         `1px solid ${C.borderDefault}`,
+            borderRadius:   R.sm,
+            color:          C.textSecondary,
+            fontFamily:     F.mono,
+            fontSize:       '10px',
+            fontWeight:     '600',
+            letterSpacing:  '0.10em',
+            cursor:         'pointer',
+            transition:     'border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = C.electricBlue;
+            (e.currentTarget as HTMLButtonElement).style.color = C.electricBlue;
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = C.borderDefault;
+            (e.currentTarget as HTMLButtonElement).style.color = C.textSecondary;
+          }}
+        >
+          ← THE NEST
+        </button>
+      )}
       <div style={{
         position: 'fixed',
-        top: 64,
+        top: isFullScreenPage ? 0 : (activeNav === 'atlas' ? 0 : 64),
         left: 0,
         right: 0,
         bottom: 0,
@@ -2616,6 +2571,7 @@ export default function GlobalShell() {
         flexDirection: 'column',
         overflow: 'hidden',
         backgroundColor: C.bgBase,
+        transition: 'top 220ms cubic-bezier(0.4,0,0.2,1)',
       }}>
         {renderContent()}
       </div>

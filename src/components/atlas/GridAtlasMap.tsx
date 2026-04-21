@@ -4,7 +4,7 @@
 // CARTO Dark Matter basemap for perfect dark aesthetic.
 
 import {
-  useState, useRef, useCallback, forwardRef, useImperativeHandle,
+  useState, useRef, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle,
 } from 'react';
 import Map, {
   Source, Layer,
@@ -15,6 +15,9 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import {
   gasPipelineLayer,
   gasPipelineGlowLayer,
+  pipelineTerminusHaloLayer,
+  pipelineTerminusDotLayer,
+  pipelineTerminusLabelLayer,
   substationLayer,
   substationLabelLayer,
 } from './layers/infrastructureLayers';
@@ -22,6 +25,7 @@ import {
   earthquakeLayer,
   earthquakeLabelLayer,
 } from './layers/intelligenceLayers';
+import { buildPipelineTermini } from './utils/buildPipelineTermini';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -37,13 +41,55 @@ export const MAPBOX_TERRAIN =
 export const MAPBOX_MINIMAL =
   'mapbox://styles/mapbox/light-v11';
 
-const INITIAL_VIEW = {
-  longitude:  -74.006,
-  latitude:    40.712,
-  zoom:        13,
-  pitch:       60,
-  bearing:    -20,
-};
+// PJM footprint overview — all 20 zones visible, labels readable.
+const PJM_OVERVIEW = {
+  longitude: -79.5,
+  latitude:   39.8,
+  zoom:       5.5,
+  pitch:      0,
+  bearing:    0,
+} as const;
+
+// Globe entry — camera zoomed out; intro animation flies into PJM_OVERVIEW.
+const GLOBE_START = {
+  longitude: -60,
+  latitude:   25,
+  zoom:       1.6,
+  pitch:      0,
+  bearing:    0,
+} as const;
+
+// Session-scoped camera persistence so Atlas remembers position
+// when user navigates away and back.
+const SS_CAMERA_KEY   = 'gridalpha:atlas-camera';
+const SS_INTRO_PLAYED = 'gridalpha:atlas-intro-played';
+
+interface CameraState {
+  longitude: number; latitude: number;
+  zoom:      number; pitch:    number; bearing: number;
+}
+
+function readSavedCamera(): CameraState | null {
+  try {
+    const raw = sessionStorage.getItem(SS_CAMERA_KEY);
+    return raw ? JSON.parse(raw) as CameraState : null;
+  } catch { return null; }
+}
+
+function saveCamera(c: CameraState): void {
+  try { sessionStorage.setItem(SS_CAMERA_KEY, JSON.stringify(c)); } catch { /* ignore */ }
+}
+
+function pickInitialView(): CameraState {
+  // If we already played intro this session, restore last position.
+  const saved = readSavedCamera();
+  if (saved) return saved;
+  // First visit in this session — start at globe; intro will fly to PJM.
+  const introPlayed = (() => {
+    try { return sessionStorage.getItem(SS_INTRO_PLAYED) === '1'; } catch { return false; }
+  })();
+  return introPlayed ? PJM_OVERVIEW : GLOBE_START;
+}
 
 // ── Voltage colour mapping ────────────────────────────────────────────────
 
@@ -92,25 +138,9 @@ const fuelColor: any = [
 
 // ── Layer style definitions ───────────────────────────────────────────────
 
-// Invisible hit-test fill — keeps zones clickable/hoverable without tinting the basemap.
-const zoneHitLayer: LayerProps = {
-  id:   'zone-fill',
-  type: 'fill',
-  paint: {
-    'fill-color':   '#000000',
-    'fill-opacity': 0,
-  },
-};
-
-const zoneBorderLayer: LayerProps = {
-  id:   'zone-border',
-  type: 'line',
-  paint: {
-    'line-color':   '#00A3FF',
-    'line-width':   1.2,
-    'line-opacity': 0.55,
-  },
-};
+// All overlay layers use `slot: 'top'` so Mapbox Standard (Terminal) style
+// renders them ABOVE its basemap composite — without this, fuel/hub colors
+// get crushed to near-black by the Monochrome Night dark theme.
 
 const txGlowLayer: LayerProps = {
   id:   'tx-glow',
@@ -140,14 +170,14 @@ const plantClusterLayer: LayerProps = {
   paint:  {
     'circle-color': [
       'step', ['get', 'point_count'],
-      'rgba(0,163,255,0.7)', 10,
-      'rgba(255,183,0,0.7)', 30,
-      'rgba(255,59,59,0.7)',
+      '#00A3FF', 10,
+      '#FFB800', 30,
+      '#FF3B3B',
     ] as any,
     'circle-radius':  ['step', ['get', 'point_count'], 14, 10, 20, 30, 26] as any,
-    'circle-opacity': 0.85,
+    'circle-opacity': 0.95,
     'circle-stroke-width': 1.5,
-    'circle-stroke-color': 'rgba(255,255,255,0.4)',
+    'circle-stroke-color': 'rgba(255,255,255,0.55)',
   },
 };
 
@@ -160,7 +190,11 @@ const plantClusterCountLayer: LayerProps = {
     'text-size':   11,
     'text-font':   ['Open Sans Bold', 'Arial Unicode MS Bold'],
   },
-  paint: { 'text-color': '#ffffff' },
+  paint: {
+    'text-color':      '#ffffff',
+    'text-halo-color': 'rgba(0,0,0,0.8)',
+    'text-halo-width': 1,
+  },
 };
 
 // ── Hub node layers ───────────────────────────────────────────────────────
@@ -179,9 +213,9 @@ const hubDotLayer: LayerProps = {
       34, '#FFB800',
       37, '#FF3B3B',
     ] as any,
-    'circle-opacity':      0.9,
+    'circle-opacity':      1.0,
     'circle-stroke-width': 2,
-    'circle-stroke-color': 'rgba(255,255,255,0.6)',
+    'circle-stroke-color': 'rgba(255,255,255,0.75)',
   },
 };
 
@@ -216,9 +250,9 @@ const plantCircleFallback: LayerProps = {
       50, 4, 500, 7, 2000, 12, 5000, 18,
     ] as any,
     'circle-color':        fuelColor,
-    'circle-opacity':      0.85,
+    'circle-opacity':      1.0,
     'circle-stroke-width': 1,
-    'circle-stroke-color': 'rgba(255,255,255,0.35)',
+    'circle-stroke-color': 'rgba(255,255,255,0.55)',
   },
 };
 
@@ -233,7 +267,6 @@ export interface GridAtlasMapHandle {
 
 export interface GridAtlasMapProps {
   mapStyle:           string;
-  zoneGeoJson:        GeoJSON.FeatureCollection | null;
   txGeoJson:          GeoJSON.FeatureCollection | null;
   plantGeoJson:       GeoJSON.FeatureCollection | null;
   hubGeoJson:         GeoJSON.FeatureCollection | null;
@@ -241,7 +274,6 @@ export interface GridAtlasMapProps {
   pipelineGeoJson:    GeoJSON.FeatureCollection | null;
   earthquakeGeoJson:  GeoJSON.FeatureCollection | null;
   weatherGeoJson:     GeoJSON.FeatureCollection | null;
-  showZones:          boolean;
   showTx:             boolean;
   showPlants:         boolean;
   showNodes:          boolean;
@@ -258,10 +290,10 @@ export interface GridAtlasMapProps {
 const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
   function GridAtlasMap(
     {
-      mapStyle, zoneGeoJson, txGeoJson, plantGeoJson, hubGeoJson,
+      mapStyle, txGeoJson, plantGeoJson, hubGeoJson,
       substationGeoJson, pipelineGeoJson, earthquakeGeoJson,
       weatherGeoJson,
-      showZones, showTx, showPlants, showNodes,
+      showTx, showPlants, showNodes,
       showSubstations, showGasPipelines, showEarthquakes,
       onZoneClick, onPlantHover, onZoneHover,
     },
@@ -269,6 +301,12 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
   ) {
     const mapRef = useRef<MapRef>(null);
     const [styleLoaded, setStyleLoaded] = useState(false);
+
+    // Derived terminus points for gas pipelines (first + last coord of each line)
+    const pipelineTerminiGeoJson = useMemo(
+      () => buildPipelineTermini(pipelineGeoJson),
+      [pipelineGeoJson],
+    );
 
     useImperativeHandle(ref, () => ({
       flyTo: (lon, lat, zoom) => {
@@ -303,11 +341,6 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       if (f.layer?.id === 'plant-circles' || f.layer?.id === 'plant-clusters') {
         onPlantHover(f.properties as Record<string, unknown>, e.point.x, e.point.y);
         onZoneHover(null);
-      } else if (f.layer?.id === 'zone-fill') {
-        onPlantHover(null, 0, 0);
-        onZoneHover(
-          f.properties?.zone_id ?? f.properties?.ZONE ?? f.properties?.name ?? null,
-        );
       }
     }, [onPlantHover, onZoneHover]);
 
@@ -316,11 +349,12 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       onZoneHover(null);
     }, [onPlantHover, onZoneHover]);
 
-    const onMapLoad = useCallback(() => {
+    // Re-applies terrain + Standard style config + fog. Safe to call
+    // on every `styledata` event so the look survives style swaps.
+    const applyStyleSetup = useCallback(() => {
       const map = mapRef.current?.getMap();
       if (!map) return;
 
-      // 3D terrain
       try {
         if (!map.getSource('mapbox-dem')) {
           map.addSource('mapbox-dem', {
@@ -333,14 +367,15 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         map.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
       } catch { /* ignore */ }
 
-      // Force Standard style config for 3D buildings
+      // Force Standard style config — `dusk` keeps the dark aesthetic
+      // without the aggressive color darkening that `night` applies
+      // to slot:'top' overlay layers (which crushes fuel/hub colors).
       try {
-        map.setConfigProperty('basemap', 'lightPreset', 'night');
+        map.setConfigProperty('basemap', 'lightPreset', 'dusk');
         map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
         map.setConfigProperty('basemap', 'showTransitLabels', false);
       } catch { /* style may not support config */ }
 
-      // Fog/atmosphere
       try {
         map.setFog({
           color:            '#0A0A0B',
@@ -350,12 +385,62 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           'star-intensity':  0.7,
         } as any);
       } catch { /* ignore */ }
+    }, []);
 
+    const onMapLoad = useCallback(() => {
+      const map = mapRef.current?.getMap();
+      if (!map) return;
+
+      applyStyleSetup();
       setStyleLoaded(true);
+
+      // Cinematic intro — only once per session.
+      let introPlayed = false;
+      try { introPlayed = sessionStorage.getItem(SS_INTRO_PLAYED) === '1'; } catch { /* ignore */ }
+      const hasSavedCamera = !!readSavedCamera();
+
+      if (!introPlayed && !hasSavedCamera) {
+        // Small delay so the globe renders a frame before the fly-in.
+        setTimeout(() => {
+          map.flyTo({
+            ...PJM_OVERVIEW,
+            duration:  3500,
+            essential: true,
+            curve:     1.6,
+            speed:     0.9,
+          });
+          try { sessionStorage.setItem(SS_INTRO_PLAYED, '1'); } catch { /* ignore */ }
+        }, 350);
+      }
+    }, [applyStyleSetup]);
+
+    // Re-apply terrain/config whenever a new style loads (style swap).
+    useEffect(() => {
+      const map = mapRef.current?.getMap();
+      if (!map) return;
+      const handler = () => {
+        if (!map.isStyleLoaded()) return;
+        applyStyleSetup();
+      };
+      map.on('styledata', handler);
+      return () => { try { map.off('styledata', handler); } catch { /* ignore */ } };
+    }, [applyStyleSetup]);
+
+    // Persist camera to sessionStorage so nav-away / nav-back restores position.
+    const onMoveEnd = useCallback(() => {
+      const map = mapRef.current?.getMap();
+      if (!map) return;
+      const c = map.getCenter();
+      saveCamera({
+        longitude: c.lng,
+        latitude:  c.lat,
+        zoom:      map.getZoom(),
+        pitch:     map.getPitch(),
+        bearing:   map.getBearing(),
+      });
     }, []);
 
     const interactiveLayerIds = [
-      ...(showZones  ? ['zone-fill'] : []),
       ...(showPlants ? ['plant-circles', 'plant-clusters'] : []),
       ...(showNodes  ? ['hub-dots'] : []),
     ];
@@ -363,7 +448,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
     return (
       <Map
         ref={mapRef}
-        initialViewState={INITIAL_VIEW}
+        initialViewState={pickInitialView()}
         mapStyle={mapStyle}
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN as string}
         style={{ position: 'absolute', inset: 0 }}
@@ -373,16 +458,9 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         onMouseMove={onMouseMove}
         onMouseLeave={onMouseLeave}
         onLoad={onMapLoad}
+        onMoveEnd={onMoveEnd}
         cursor="crosshair"
       >
-        {/* PJM Zone Boundaries */}
-        {styleLoaded && showZones && zoneGeoJson && (
-          <Source id="pjm-zones" type="geojson" data={zoneGeoJson} generateId={true}>
-            <Layer {...zoneHitLayer} />
-            <Layer {...zoneBorderLayer} />
-          </Source>
-        )}
-
         {/* Transmission Lines */}
         {styleLoaded && showTx && txGeoJson && (
           <Source id="transmission" type="geojson" data={txGeoJson}>
@@ -416,6 +494,15 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           <Source id="gas-pipelines" type="geojson" data={pipelineGeoJson}>
             <Layer {...gasPipelineGlowLayer} />
             <Layer {...gasPipelineLayer} />
+          </Source>
+        )}
+
+        {/* Pipeline terminus markers — anchor every line end with a dot + label */}
+        {styleLoaded && showGasPipelines && pipelineTerminiGeoJson.features.length > 0 && (
+          <Source id="gas-pipeline-termini" type="geojson" data={pipelineTerminiGeoJson}>
+            <Layer {...pipelineTerminusHaloLayer} />
+            <Layer {...pipelineTerminusDotLayer} />
+            <Layer {...pipelineTerminusLabelLayer} />
           </Source>
         )}
 

@@ -223,11 +223,67 @@ const MOCK_SUBSTATIONS: GeoJSON.FeatureCollection = {
   ],
 };
 
+// ── Mock 48-hour historical LMP frames ────────────────────────────────────
+// Pre-generates 49 frames (index 0 = -48h, index 48 = NOW).
+// Diurnal pattern: higher at 6-9a and 5-8p (peak), lower overnight.
+// Per-zone offset from each zone's static lmp value + deterministic noise.
+// When the backend historical endpoint ships, swap this generator — the
+// scrubber architecture stays the same.
+
+interface FrameZone { id: string; lmp_total: number }
+interface Frame { ts: number; zones: FrameZone[]; avg: number; volatility: number }
+
+function buildLMPFrames(
+  zones: Array<{ id: string; lmp: number }>,
+  now: number,
+): Frame[] {
+  const FRAMES = 49; // 48 historical + 1 "now"
+  const out: Frame[] = [];
+  for (let i = 0; i < FRAMES; i++) {
+    const hoursAgo = FRAMES - 1 - i;
+    const ts = now - hoursAgo * 3600_000;
+    const hourOfDay = new Date(ts).getHours();
+
+    // Diurnal multiplier: peaks at 7a (hour=7) and 6p (hour=18).
+    const morningPeak = Math.exp(-Math.pow((hourOfDay - 7) / 2.2, 2));
+    const eveningPeak = Math.exp(-Math.pow((hourOfDay - 18) / 2.6, 2));
+    const baseLow     = 0.82;
+    const diurnal     = baseLow + 0.55 * morningPeak + 0.65 * eveningPeak;
+
+    // Occasional gas-price shock (deterministic by frame index).
+    const shock = (i % 11 === 0) ? 1.18 : (i % 13 === 0) ? 1.12 : 1.0;
+
+    const frameZones: FrameZone[] = zones.map((z, zIdx) => {
+      const noise = 0.92 + 0.16 * (Math.sin(i * 0.37 + zIdx * 1.31) * 0.5 + 0.5);
+      return { id: z.id, lmp_total: +(z.lmp * diurnal * shock * noise).toFixed(2) };
+    });
+
+    const avg = frameZones.reduce((s, z) => s + z.lmp_total, 0) / frameZones.length;
+    const volatility = Math.sqrt(
+      frameZones.reduce((s, z) => s + Math.pow(z.lmp_total - avg, 2), 0) / frameZones.length,
+    );
+
+    out.push({ ts, zones: frameZones, avg, volatility });
+  }
+  return out;
+}
+
+// ── Left panel icon definitions ───────────────────────────────────────────
+
+type PanelId = 'search' | 'layers' | 'fuel' | 'intel' | 'style';
+
+const PANEL_ICONS: Array<{ id: PanelId; icon: string; label: string }> = [
+  { id: 'search', icon: '\u2315', label: 'Search' },
+  { id: 'layers', icon: '\u25A3', label: 'Layers' },
+  { id: 'fuel',   icon: '\u26A1', label: 'Fuel type' },
+  { id: 'intel',  icon: '\u25CE', label: 'Intelligence' },
+  { id: 'style',  icon: '\u25D4', label: 'Map style' },
+];
+
 // ── Main component ────────────────────────────────────────────────────────
 
 export default function GridAtlasView() {
   // Layer visibility
-  const [showZones,     setShowZones]     = useState(true);
   const [showTx,        setShowTx]        = useState(true);
   const [showPlants,    setShowPlants]    = useState(true);
   const [showNodes,     setShowNodes]     = useState(true);
@@ -249,7 +305,6 @@ export default function GridAtlasView() {
   const [minCapacity, setMinCapacity] = useState(0);
 
   // GeoJSON data
-  const [zoneGeoJson,  setZoneGeoJson]  = useState<GeoJSON.FeatureCollection | null>(null);
   const [txGeoJson,    setTxGeoJson]    = useState<GeoJSON.FeatureCollection | null>(null);
   const [rawPlants,    setRawPlants]    = useState<GeoJSON.FeatureCollection | null>(null);
 
@@ -258,8 +313,23 @@ export default function GridAtlasView() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showResults,   setShowResults]   = useState(false);
 
-  // Timeline
+  // Timeline — index 0 = 48h ago, index 48 = NOW.
   const [timeOffset, setTimeOffset] = useState(48);
+
+  // Which left-panel icon is expanded (null = all collapsed to icon rail).
+  const [expandedPanel, setExpandedPanel] = useState<PanelId | null>(null);
+
+  // 48-hour mock LMP frame stack. Rebuilt when zones change (static in practice).
+  const frames = useMemo(
+    () => buildLMPFrames(
+      PJM_ZONES.map(z => ({ id: z.id, lmp: z.lmp })),
+      Date.now(),
+    ),
+    [],
+  );
+  const frameIdx    = Math.max(0, Math.min(frames.length - 1, timeOffset));
+  const currentFrame = frames[frameIdx];
+  const isLiveFrame  = frameIdx === frames.length - 1;
 
   // Live data hooks (gracefully return empty when backend not ready)
   const { data: fuelMixData,    live: fuelLive   } = useFuelMix();
@@ -307,11 +377,6 @@ export default function GridAtlasView() {
 
   // Load all GeoJSON on mount
   useEffect(() => {
-    fetch('/data/pjm-zones.geojson')
-      .then(r => r.json())
-      .then((d: GeoJSON.FeatureCollection) => setZoneGeoJson(d))
-      .catch(err => captureError(err, { context: 'zones-fetch' }));
-
     fetch('/data/transmission-lines.geojson')
       .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
       .then((d: GeoJSON.FeatureCollection) => setTxGeoJson(d))
@@ -326,39 +391,24 @@ export default function GridAtlasView() {
   // Filtered plant GeoJSON
   const plantGeoJson = filterPlants(rawPlants, fuelFilter, minCapacity);
 
-  // Build hub node GeoJSON from PJM_ZONES centroids
-  const hubGeoJson: GeoJSON.FeatureCollection = {
-    type: 'FeatureCollection',
-    features: PJM_ZONES.map(z => ({
-      type: 'Feature' as const,
-      properties: { id: z.id, label: z.label, lmp: z.lmp ?? 33 },
-      geometry: { type: 'Point' as const, coordinates: [z.lon, z.lat] },
-    })),
-  };
-
-  // Manage terrain when style changes (CARTO doesn't support Mapbox DEM)
-  useEffect(() => {
-    const handle = mapRef.current;
-    if (!handle) return;
-    const timer = setTimeout(() => {
-      try {
-        const nativeMap = (handle as any).getMap?.() ?? (handle as any);
-        if (!nativeMap?.getSource) return;
-        if (activeStyle === 'terminal') {
-          if (nativeMap.getTerrain?.()) nativeMap.setTerrain(null);
-        } else {
-          if (!nativeMap.getSource('mapbox-dem')) {
-            nativeMap.addSource('mapbox-dem', {
-              type: 'raster-dem', url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-              tileSize: 512, maxzoom: 14,
-            });
-          }
-          nativeMap.setTerrain({ source: 'mapbox-dem', exaggeration: 1.5 });
-        }
-      } catch { /* style not ready — ignore */ }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [activeStyle]);
+  // Build hub node GeoJSON from PJM_ZONES centroids. LMP is driven by the
+  // current timeline frame — hub dot colors animate with the scrubber.
+  const hubGeoJson: GeoJSON.FeatureCollection = useMemo(() => {
+    const frameLmp: Record<string, number> = {};
+    for (const z of currentFrame.zones) frameLmp[z.id] = z.lmp_total;
+    return {
+      type: 'FeatureCollection',
+      features: PJM_ZONES.map(z => ({
+        type: 'Feature' as const,
+        properties: {
+          id:    z.id,
+          label: z.label,
+          lmp:   frameLmp[z.id] ?? z.lmp ?? 33,
+        },
+        geometry: { type: 'Point' as const, coordinates: [z.lon, z.lat] },
+      })),
+    };
+  }, [currentFrame]);
 
   // Search
   const handleSearch = useCallback((q: string) => {
@@ -434,17 +484,14 @@ export default function GridAtlasView() {
       <ErrorBoundary label="GRID ATLAS">
         <Suspense fallback={<CardSkeleton rows={4} />}>
           <GridAtlasMap
-            key={currentStyle}
             ref={mapRef}
             mapStyle={currentStyle}
-            zoneGeoJson={zoneGeoJson}
             txGeoJson={txGeoJson}
             plantGeoJson={plantGeoJson}
             hubGeoJson={hubGeoJson}
             substationGeoJson={substationGeoJson}
             pipelineGeoJson={pipelineGeoJson}
             earthquakeGeoJson={earthquakeGeoJson}
-            showZones={showZones}
             showTx={showTx}
             showPlants={showPlants}
             showNodes={showNodes}
@@ -468,13 +515,37 @@ export default function GridAtlasView() {
       }}>
         <div style={{
           background: 'rgba(10,10,11,0.88)',
-          border: `1px solid ${C.borderDefault}`,
+          border: `1px solid ${isLiveFrame ? C.borderDefault : 'rgba(245,158,11,0.4)'}`,
           borderRadius: 20, padding: '6px 18px',
           backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: C.electricBlue, letterSpacing: '0.15em' }}>
-            PJM · REAL-TIME · 5-MIN DISPATCH
-          </span>
+          {isLiveFrame ? (
+            <>
+              <span style={{
+                display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                background: '#10B981',
+                boxShadow: '0 0 6px rgba(16,185,129,0.8)',
+              }} />
+              <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: C.electricBlue, letterSpacing: '0.15em' }}>
+                PJM · REAL-TIME · 5-MIN DISPATCH
+              </span>
+              <span style={{ fontFamily: F.mono, fontSize: '0.6rem', color: '#10B981', letterSpacing: '0.15em' }}>
+                · LIVE
+              </span>
+            </>
+          ) : (
+            <>
+              <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: '#FBBF24', letterSpacing: '0.15em' }}>
+                PJM · HISTORICAL · {new Date(currentFrame.ts).toLocaleString('en-US', {
+                  month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York',
+                })} EPT
+              </span>
+              <span style={{ fontFamily: F.mono, fontSize: '0.58rem', color: C.textMuted, letterSpacing: '0.1em' }}>
+                · T−{String(frames.length - 1 - frameIdx).padStart(2, '0')}H
+              </span>
+            </>
+          )}
         </div>
         <div style={{
           background: 'rgba(10,10,11,0.88)',
@@ -497,16 +568,49 @@ export default function GridAtlasView() {
         </div>
       </div>
 
-      {/* ── Left panel ───────────────────────────────── */}
+      {/* ── Left icon rail (always visible, minimal) ─── */}
       <div style={{
-        position: 'absolute', top: 12, left: 12,
-        width: 200, zIndex: 20,
-        display: 'flex', flexDirection: 'column', gap: 8,
+        position: 'absolute', top: 12, left: 12, zIndex: 25,
+        display: 'flex', flexDirection: 'column', gap: 4,
         pointerEvents: 'auto',
-        maxHeight: 'calc(100% - 100px)', overflowY: 'auto',
+      }}>
+        {PANEL_ICONS.map(p => {
+          const active = expandedPanel === p.id;
+          return (
+            <button
+              key={p.id}
+              onClick={() => setExpandedPanel(prev => prev === p.id ? null : p.id)}
+              aria-label={p.label}
+              title={p.label}
+              style={{
+                width: 32, height: 32, flexShrink: 0,
+                background: active ? 'rgba(59,130,246,0.18)' : 'rgba(10,10,11,0.82)',
+                border: `1px solid ${active ? 'rgba(59,130,246,0.55)' : C.borderDefault}`,
+                borderRadius: 6, cursor: 'pointer',
+                color: active ? C.electricBlue : C.textSecondary,
+                fontFamily: F.mono, fontSize: 14,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backdropFilter: 'blur(10px)',
+                transition: 'background 150ms cubic-bezier(0.4,0,0.2,1), border-color 150ms cubic-bezier(0.4,0,0.2,1), color 150ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
+              {p.icon}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Floating expanded panel (on-demand, overlays the map) ─ */}
+      <div style={{
+        position: 'absolute', top: 12, left: 52,
+        width: 224, zIndex: 24,
+        display: (expandedPanel || selectedZone) ? 'flex' : 'none',
+        flexDirection: 'column', gap: 8,
+        pointerEvents: 'auto',
+        maxHeight: 'calc(100% - 120px)', overflowY: 'auto',
       }}>
 
-        {/* Search */}
+        {expandedPanel === 'search' && (
         <Panel label="">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontFamily: F.mono, fontSize: '0.75rem', color: C.textMuted }}>⌕</span>
@@ -549,11 +653,12 @@ export default function GridAtlasView() {
             </div>
           )}
         </Panel>
+        )}
 
         {/* Layers */}
+        {expandedPanel === 'layers' && (
         <Panel label="LAYERS">
           <Toggle label="TRANSMISSION"    active={showTx}             color="#00FFF0"        onToggle={() => setShowTx(p => !p)} />
-          <Toggle label="ZONES"           active={showZones}          color={C.electricBlue} onToggle={() => setShowZones(p => !p)} />
           <Toggle label="POWER PLANTS"    active={showPlants}         color={C.electricBlueLight}         onToggle={() => setShowPlants(p => !p)} />
           <Toggle label="HUB NODES"       active={showNodes}          color="#FFB800"        onToggle={() => setShowNodes(p => !p)} />
           <Toggle label="GAS PIPELINES"   active={showGasPipelines}   color="#F97316"        onToggle={() => setShowGasPipelines(p => !p)} />
@@ -561,9 +666,10 @@ export default function GridAtlasView() {
           <Toggle label="SEISMIC ALERTS"  active={showEarthquakes}    color="#FF3B3B"        onToggle={() => setShowEarthquakes(p => !p)} />
           <Toggle label="WEATHER"         active={showWeather}        color="#00FFF0"        onToggle={() => setShowWeather(p => !p)} />
         </Panel>
+        )}
 
         {/* Fuel type filter */}
-        {showPlants && (
+        {expandedPanel === 'fuel' && showPlants && (
           <Panel label="FUEL TYPE">
             <button onClick={toggleAll} style={{
               background: 'transparent',
@@ -605,8 +711,8 @@ export default function GridAtlasView() {
           </Panel>
         )}
 
-        {/* Map style */}
         {/* Live Intelligence Panel */}
+        {expandedPanel === 'intel' && (
         <Panel label="GRID INTELLIGENCE">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.textMuted }}>DATA SOURCE</span>
@@ -711,7 +817,9 @@ export default function GridAtlasView() {
             </div>
           )}
         </Panel>
+        )}
 
+        {expandedPanel === 'style' && (
         <Panel label="MAP STYLE">
           {MAP_STYLES.map(s => (
             <button key={s.id} onClick={() => setActiveStyle(s.id)} style={{
@@ -727,8 +835,9 @@ export default function GridAtlasView() {
             </button>
           ))}
         </Panel>
+        )}
 
-        {/* Selected zone */}
+        {/* Selected zone — always visible while a zone is selected */}
         {selectedZone && (
           <Panel label="SELECTED ZONE">
             <span style={{ fontFamily: F.mono, fontSize: '0.75rem', color: C.electricBlue }}>
@@ -786,31 +895,36 @@ export default function GridAtlasView() {
         </div>
       )}
 
-      {/* ── Timeline scrubber ─────────────────────────── */}
+      {/* ── Floating timeline pill ─────────────────────── */}
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        zIndex: 10, background: 'rgba(10,10,11,0.92)',
-        borderTop: `1px solid ${C.borderDefault}`,
-        backdropFilter: 'blur(12px)', padding: '10px 32px 14px',
+        position: 'absolute',
+        bottom: 18, left: '50%', transform: 'translateX(-50%)',
+        width: 'min(620px, calc(100% - 72px))',
+        zIndex: 10,
+        background: 'rgba(10,10,11,0.55)',
+        border: `1px solid ${C.borderDefault}`,
+        borderRadius: 22,
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        padding: '10px 20px 12px',
         pointerEvents: 'auto',
+        boxShadow: '0 8px 22px rgba(0,0,0,0.35)',
       }}>
-        <div style={{
-          height: 6, borderRadius: 3, marginBottom: 8, overflow: 'hidden',
-          background: 'linear-gradient(to right,#22C55E 0%,#22C55E 33%,#DC2626 35%,#DC2626 40%,#22C55E 40%,#22C55E 66%,#DC2626 68%,#DC2626 73%,#22C55E 73%,#22C55E 90%,#DC2626 92%,#DC2626 96%,#22C55E 96%)',
-        }} />
-        <input type="range" min={0} max={48} value={timeOffset}
+        <input type="range" min={0} max={frames.length - 1} value={timeOffset}
           onChange={e => setTimeOffset(Number(e.target.value))}
           style={{
             width: '100%', appearance: 'none', height: 4, borderRadius: 2,
             outline: 'none', cursor: 'pointer',
-            background: `linear-gradient(to right,${C.electricBlue} ${(timeOffset/48)*100}%,rgba(255,255,255,0.1) ${(timeOffset/48)*100}%)`,
+            background: `linear-gradient(to right,${C.electricBlue} ${(frameIdx/(frames.length-1))*100}%,rgba(255,255,255,0.12) ${(frameIdx/(frames.length-1))*100}%)`,
           }}
         />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
           {['-48H', '-36H', '-24H', '-12H', 'NOW'].map(label => (
             <span key={label} style={{
               fontFamily: F.mono, fontSize: '0.55rem',
-              color: label === 'NOW' ? C.electricBlue : C.textMuted,
+              color: label === 'NOW'
+                ? (isLiveFrame ? '#10B981' : C.electricBlue)
+                : C.textMuted,
               letterSpacing: '0.1em',
             }}>{label}</span>
           ))}

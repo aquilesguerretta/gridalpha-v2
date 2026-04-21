@@ -569,8 +569,9 @@ export default function GridAtlasView() {
       </div>
 
       {/* ── Left icon rail (always visible, minimal) ─── */}
+      {/* Offset below the floating nav pill so the two don't stack. */}
       <div style={{
-        position: 'absolute', top: 12, left: 12, zIndex: 25,
+        position: 'absolute', top: 64, left: 12, zIndex: 25,
         display: 'flex', flexDirection: 'column', gap: 4,
         pointerEvents: 'auto',
       }}>
@@ -601,13 +602,20 @@ export default function GridAtlasView() {
       </div>
 
       {/* ── Floating expanded panel (on-demand, overlays the map) ─ */}
+      {/* Anchors at the same vertical position as its trigger button
+          and extends to the right of the toolbar. 280px wide, scrolls
+          internally if content exceeds the viewport budget. */}
       <div style={{
-        position: 'absolute', top: 12, left: 52,
-        width: 224, zIndex: 24,
+        position: 'absolute',
+        top: expandedPanel
+          ? 64 + (PANEL_ICONS.findIndex(p => p.id === expandedPanel) * 36)
+          : 64 + (PANEL_ICONS.length * 36) + 8,
+        left: 52,
+        width: 280, zIndex: 24,
         display: (expandedPanel || selectedZone) ? 'flex' : 'none',
         flexDirection: 'column', gap: 8,
         pointerEvents: 'auto',
-        maxHeight: 'calc(100% - 120px)', overflowY: 'auto',
+        maxHeight: 'calc(100vh - 160px)', overflowY: 'auto',
       }}>
 
         {expandedPanel === 'search' && (

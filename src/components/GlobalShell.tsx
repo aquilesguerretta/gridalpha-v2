@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { C, F, R, S, T } from '@/design/tokens';
 import {
   AreaChart, Area, ComposedChart, Line, Bar, BarChart, Cell,
@@ -2473,9 +2474,17 @@ const viewLabels: Record<string, string> = {
   peregrine: 'PEREGRINE INTELLIGENCE',
 };
 
-export default function GlobalShell() {
-  const [activeNav, setActiveNav] = useState<NavState>('nest');
-  const [entryDismissed, setEntryDismissed] = useState(false);
+type GlobalShellProps = {
+  initialView?: 'nest' | 'atlas' | 'analytics' | 'vault';
+};
+
+export default function GlobalShell({ initialView = 'nest' }: GlobalShellProps = {}) {
+  const location = useLocation();
+  // Suppress EntryOverlay splash when arriving from the auth flow.
+  // Direct-URL / first-load visits still play the splash.
+  const fromAuth = (location.state as { fromAuth?: boolean } | null)?.fromAuth === true;
+  const [activeNav, setActiveNav] = useState<NavState>(initialView);
+  const [entryDismissed, setEntryDismissed] = useState(fromAuth);
   const [selectedZone, setSelectedZone] = useState<string | null>('WESTERN_HUB');
 
   const kpiPages: NavState[] = ['lmp', 'spread', 'battery', 'gap', 'peregrine', 'genmix'];

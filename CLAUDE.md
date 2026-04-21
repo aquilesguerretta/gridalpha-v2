@@ -18,6 +18,41 @@ NEVER hardcode hex values, px values, or font stacks outside tokens.ts.
 - NEVER use Roboto, Arial, system-ui as standalone primary fonts — Inter only.
 - NEVER mix font families arbitrarily: Inter for prose, Geist Mono for data.
 
+## EDITORIAL DESIGN SYSTEM — SCOPED
+
+GridAlpha has TWO visual layers. They do not mix.
+
+**Terminal layer** — Nest, Atlas, Analytics, Vault.
+Governed by all the rules above. Inter + Geist Mono only. Tokens from
+`src/design/tokens.ts` only. No F.display. No editorial colors.
+
+**Editorial layer** — the landing page (`/`) and the auth flow
+(`/login`, `/signup`, `/signup/profile`, `/signup/details`).
+Allowed to use `F.display` (Instrument Serif) for headlines, and the
+constants in `src/design/editorial.ts` for backgrounds, mock-surface
+shades, and the single developer-profile accent. `F.display` is italic
+by convention in this layer.
+
+Hard rules:
+- Terminal files must NEVER import from `src/design/editorial.ts`.
+- Terminal files must NEVER use `F.display`.
+- Editorial primitives (`src/components/editorial/*`) are the only
+  components allowed to combine F.display with oversized type.
+- Editorial colors (`EDITORIAL_BG`, `EDITORIAL_SURFACE_*`,
+  `EDITORIAL_DEVELOPER_ACCENT`) must never appear inside a terminal
+  view. If a terminal view needs a darker background, use
+  `C.bgBase`/`C.bgElevated`/`C.bgSurface`/`C.bgOverlay` instead.
+- Auth pages and landing pages must still pull every color that exists
+  in `tokens.ts` (text, accent, status, border, fuel) from `C.*`.
+  `src/design/editorial.ts` only covers the narrow set of values that
+  do not exist in the terminal token system.
+- Instrument Serif is loaded via a Google Fonts `<link>` tag in
+  `index.html`. Do not add `@fontsource` packages for it.
+
+If you find yourself reaching for `F.display` or an `EDITORIAL_*`
+constant inside a file under `src/components/` that is NOT `landing/`
+or `editorial/`, stop. That is a terminal file. Use a token instead.
+
 ## COLOR — NON-NEGOTIABLE
 - Background system: C.bgBase (#111117) → C.bgElevated (#18181f)
   → C.bgSurface (#1f1f28) → C.bgOverlay.

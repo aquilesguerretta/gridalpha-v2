@@ -55,6 +55,9 @@ export const C = {
 export const F = {
   mono: "'Geist Mono', 'Fira Code', monospace",
   sans: "'Inter', system-ui, -apple-system, sans-serif",
+  // Editorial display face — used only by the landing page and the auth flow.
+  // Terminal surfaces (Nest/Atlas/Analytics/Vault) should not use F.display.
+  display: "'Instrument Serif', serif",
 } as const;
 
 export const R = {

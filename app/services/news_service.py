@@ -64,15 +64,6 @@ RSS_FEEDS = [
         "priority": "NORMAL",
         "type": "video",
     },
-    {
-        "id": "doe_video",
-        "name": "Dept of Energy",
-        "short": "DOE",
-        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCDzBMxmsFRMTCPiEJBIYGyw",
-        "color": "#3B82F6",
-        "priority": "NORMAL",
-        "type": "video",
-    },
 ]
 
 _FETCH_HEADERS = {

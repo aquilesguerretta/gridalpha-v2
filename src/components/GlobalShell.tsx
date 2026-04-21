@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { C, F, R, S, T } from '@/design/tokens';
 import {
   AreaChart, Area, ComposedChart, Line, Bar, BarChart, Cell,
@@ -8,7 +8,6 @@ import {
 import FalconLogo from "./FalconLogo";
 import { LMPCard, LMPFullPage } from "./LMPCard";
 import { ErrorBoundary } from "./shared/ErrorBoundary";
-import { CardSkeleton } from "./shared/CardSkeleton";
 import GridAtlasView from "./atlas/GridAtlasView";
 import AnalyticsPage from "./AnalyticsPage";
 import GenerationMixFullPage from "./GenerationMixFullPage";
@@ -16,8 +15,6 @@ import { useHenryHub } from '../hooks/data/useEnergyPrices';
 import { useFuelMix } from '../hooks/data/useAtlasData';
 import { useLiveOpsData } from '../hooks/data/useLiveOpsData';
 
-// Lazy load the 3D component to avoid SSR issues
-const SparkSpreadSurface3D = lazy(() => import("./SparkSpreadSurface"));
 
 type NavItem = {
   id: string;
@@ -2229,13 +2226,8 @@ export function SuiteCard({ title, subModules, showFormula, cardType }: { title:
         {/* Animated Thumbnails */}
         {cardType === "intelligence" && <GhostlyLineChart />}
         {cardType === "resource" && <AnimatedStackedBar />}
-        {cardType === "optimizer" && (
-          <div className="h-[180px] -mx-2 -mt-1 mb-2">
-            <Suspense fallback={<CardSkeleton />}>
-              <SparkSpreadSurface3D />
-            </Suspense>
-          </div>
-        )}
+        {/* SparkSpreadSurface3D thumbnail removed along with the orphan
+            3D surface component — SuiteCard itself is no longer rendered. */}
         
         {/* Sub-modules list */}
         <div className="space-y-2 mb-4">

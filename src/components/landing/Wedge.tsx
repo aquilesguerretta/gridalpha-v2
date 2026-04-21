@@ -40,7 +40,11 @@ export function Wedge() {
       if (!el) return;
       const r = el.getBoundingClientRect();
       const vh = window.innerHeight;
-      const p = Math.max(0, Math.min(1, (vh - r.bottom + vh * 0.3) / vh));
+      // 0 when the section is entering, 1 when it has passed through;
+      // this gives a stable bidirectional "scatter <-> resolve" response.
+      const traveled = vh - r.top;
+      const span = vh + r.height;
+      const p = Math.max(0, Math.min(1, traveled / span));
       setResolve(p);
     };
     onScroll();

@@ -73,7 +73,15 @@ function TerminalWidget() {
               <stop offset="1" stopColor={C.electricBlue} stopOpacity="1" />
             </linearGradient>
           </defs>
-          <path d={pathD} fill="none" stroke="url(#spark-fade)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          <path
+            d={pathD}
+            fill="none"
+            stroke="url(#spark-fade)"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            style={{ transition: 'd 1800ms ease-out' }}
+          />
           <circle cx={lastX} cy={lastY} r="3" fill={C.electricBlue}>
             <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite" />
           </circle>

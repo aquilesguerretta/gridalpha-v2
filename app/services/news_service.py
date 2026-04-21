@@ -38,28 +38,10 @@ RSS_FEEDS = [
         "priority": "HIGH",
     },
     {
-        "id": "eia_video",
-        "name": "EIA Video Updates",
+        "id": "eia_presentations_video",
+        "name": "EIA Presentations",
         "short": "EIA",
-        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC7VrRTLQhc79Zie7Oehl0Vg",
-        "color": "#10B981",
-        "priority": "NORMAL",
-        "type": "video",
-    },
-    {
-        "id": "bloomberg_energy",
-        "name": "Bloomberg",
-        "short": "BLOOMBERG",
-        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCUMZ7gohGI9HcU9VNsr2FJQ",
-        "color": "#F59E0B",
-        "priority": "NORMAL",
-        "type": "video",
-    },
-    {
-        "id": "eia_video2",
-        "name": "EIA Today in Energy",
-        "short": "EIA",
-        "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC7VrRTLQhc79Zie7Oehl0Vg",
+        "url": "https://www.eia.gov/rss/presentations.xml",
         "color": "#10B981",
         "priority": "NORMAL",
         "type": "video",
@@ -262,6 +244,8 @@ def _youtube_video_id(entry: feedparser.FeedParserDict, link: str) -> Optional[s
         return link.split("v=")[-1].split("&")[0].strip()
     if "youtube.com/shorts/" in link:
         return link.split("shorts/")[-1].split("?")[0].strip()
+    if "youtu.be/" in link:
+        return link.split("youtu.be/")[-1].split("?")[0].strip()
     return None
 
 

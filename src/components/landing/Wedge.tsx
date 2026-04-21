@@ -14,8 +14,6 @@ type Frag = {
   x: number; y: number;
   w: number; h: number;
   dx: number; dy: number;
-  period: number;
-  phase: number;
 };
 
 function hash(n: number) {
@@ -57,16 +55,16 @@ export function Wedge() {
       const r3 = hash(i + 200);
       const r4 = hash(i + 300);
       const r5 = hash(i + 400);
+      const xMag = 20 + hash(i + 600) * 20;
+      const yMag = 20 + hash(i + 700) * 20;
       return {
         label,
         x: 6 + r1 * 80,
         y: 6 + r2 * 82,
         w: 90 + r3 * 50,
         h: 24 + r4 * 8,
-        dx: (r5 - 0.5) * 40,
-        dy: (hash(i + 500) - 0.5) * 40,
-        period: 8 + r1 * 6,
-        phase: r2 * 10,
+        dx: (r5 > 0.5 ? 1 : -1) * xMag,
+        dy: (hash(i + 500) > 0.5 ? 1 : -1) * yMag,
       };
     });
   }, []);
@@ -91,9 +89,11 @@ export function Wedge() {
         }}
       />
       <div className="grid h-full w-full grid-cols-1 md:grid-cols-2">
-        <div className="relative overflow-hidden" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="relative h-full w-full overflow-visible" style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
           {frags.map((f, i) => {
             const stagger = i * 20;
+            const staggerDelay = Math.round((i / (frags.length - 1)) * 1400);
+            const duration = (8 + (i * (6 / (frags.length - 1)))).toFixed(2);
             const progress = Math.max(0, Math.min(1, resolve));
             const targetX = 50;
             const targetY = 92;
@@ -137,7 +137,7 @@ export function Wedge() {
                     willChange: 'transform',
                     animation: reducedMotion
                       ? 'none'
-                      : `ga-drift-${i} ${f.period}s ease-in-out ${-f.phase}s infinite`,
+                      : `drift-${i + 1} ${duration}s ease-in-out ${staggerDelay}ms infinite ${i % 2 === 0 ? 'alternate' : 'alternate-reverse'}`,
                   }}
                 >
                   <span style={{ opacity: labelOpacity, transition: 'opacity 300ms' }}>{f.label}</span>
@@ -161,7 +161,7 @@ export function Wedge() {
           />
 
           <style>{frags.map((f, i) => `
-            @keyframes ga-drift-${i} {
+            @keyframes drift-${i + 1} {
               0%, 100% { transform: translate(0px, 0px); }
               50% { transform: translate(${f.dx}px, ${f.dy}px); }
             }

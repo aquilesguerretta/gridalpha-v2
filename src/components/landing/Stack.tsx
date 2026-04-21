@@ -40,7 +40,8 @@ function TerminalWidget() {
   const min = Math.min(...points), max = Math.max(...points);
   const norm = (v: number) => H - ((v - min) / (max - min || 1)) * H;
   const step = W / (points.length - 1);
-  const pathD = points.map((v, i) => `${i === 0 ? 'M' : 'L'} ${i * step} ${norm(v)}`).join(' ');
+  const pathPoints = points.map((v, i) => ({ x: i * step, y: norm(v) }));
+  const pathD = toSmoothPath(pathPoints);
   const lastX = (points.length - 1) * step;
   const lastY = norm(points[points.length - 1]);
 
@@ -86,6 +87,28 @@ function TerminalWidget() {
       </div>
     </div>
   );
+}
+
+function toSmoothPath(points: Array<{ x: number; y: number }>) {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const p0 = points[i - 1];
+    const p1 = points[i];
+    const prev = points[i - 2] ?? p0;
+    const next = points[i + 1] ?? p1;
+
+    // Catmull-Rom to Bezier conversion gives a smooth, chart-like curve.
+    const cp1x = p0.x + (p1.x - prev.x) / 6;
+    const cp1y = p0.y + (p1.y - prev.y) / 6;
+    const cp2x = p1.x - (next.x - p0.x) / 6;
+    const cp2y = p1.y - (next.y - p0.y) / 6;
+
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
+  }
+  return d;
 }
 
 /* ───────────────────── Widget: SOC Gauge ───────────────────── */

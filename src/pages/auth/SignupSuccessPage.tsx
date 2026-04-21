@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { C, F, R } from '@/design/tokens';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, type ProfileType } from '@/stores/authStore';
 
-const PROFILE_LABEL: Record<string, string> = {
+const AUTO_REDIRECT_MS = 5000;
+
+const PROFILE_LABELS: Record<ProfileType, string> = {
   everyone: 'EVERYONE',
   trader: 'TRADER',
   analyst: 'ANALYST',
@@ -13,31 +15,32 @@ const PROFILE_LABEL: Record<string, string> = {
   developer: 'DEVELOPER / IPP',
 };
 
-const AUTO_REDIRECT_MS = 5000;
-
 export function SignupSuccessPage() {
   const navigate = useNavigate();
   const email = useAuthStore((s) => s.email);
   const selectedProfile = useAuthStore((s) => s.selectedProfile);
-
   const [cancelled, setCancelled] = useState(false);
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (cancelled) return;
-    const t = window.setTimeout(() => {
+    timerRef.current = window.setTimeout(() => {
       navigate('/nest', { state: { fromAuth: true } });
     }, AUTO_REDIRECT_MS);
-    return () => window.clearTimeout(t);
+    return () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    };
   }, [cancelled, navigate]);
 
   if (email === '') return <Navigate to="/signup" replace />;
 
-  const enterTerminal = () => {
+  const profileText = selectedProfile ? PROFILE_LABELS[selectedProfile] : 'EVERYONE';
+
+  const openTerminal = () => {
+    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
     setCancelled(true);
     navigate('/nest', { state: { fromAuth: true } });
   };
-
-  const profileLabel = selectedProfile ? PROFILE_LABEL[selectedProfile] : 'EVERYONE';
 
   return (
     <div
@@ -50,16 +53,15 @@ export function SignupSuccessPage() {
         textAlign: 'center',
       }}
     >
-      <Checkmark />
+      <SuccessCheckmark />
 
       <h1
         style={{
-          marginTop: 32,
+          margin: '32px 0 0 0',
           fontFamily: F.display,
           fontWeight: 400,
           fontSize: 48,
-          lineHeight: 1.05,
-          letterSpacing: '-0.02em',
+          lineHeight: 1.1,
           color: C.textPrimary,
         }}
       >
@@ -68,7 +70,7 @@ export function SignupSuccessPage() {
 
       <p
         style={{
-          marginTop: 16,
+          margin: '16px 0 0 0',
           maxWidth: 400,
           fontFamily: F.sans,
           fontSize: 16,
@@ -88,22 +90,21 @@ export function SignupSuccessPage() {
           color: 'rgba(255,255,255,0.45)',
         }}
       >
-        CONFIGURED AS {profileLabel}
+        CONFIGURED AS {profileText}
       </div>
 
       <button
         type="button"
-        onClick={enterTerminal}
+        onClick={openTerminal}
         className="group"
         style={{
           marginTop: 48,
           width: '100%',
           height: 48,
-          padding: '0 20px',
-          background: C.electricBlue,
           border: 'none',
           borderRadius: R.lg,
-          color: '#ffffff',
+          background: C.electricBlue,
+          color: C.textPrimary,
           fontFamily: F.sans,
           fontSize: 15,
           fontWeight: 500,
@@ -112,15 +113,10 @@ export function SignupSuccessPage() {
           alignItems: 'center',
           justifyContent: 'center',
           gap: 8,
-          boxShadow: '0 0 0 1px rgba(59,130,246,0.4), 0 14px 36px -12px rgba(59,130,246,0.6)',
-          transition: 'filter 150ms ease-out',
         }}
       >
         <span>Open the Terminal</span>
-        <span
-          aria-hidden
-          className="transition-transform duration-150 group-hover:translate-x-1"
-        >
+        <span aria-hidden className="transition-transform duration-150 group-hover:translate-x-1">
           →
         </span>
       </button>
@@ -133,17 +129,16 @@ export function SignupSuccessPage() {
             width: '100%',
             height: 2,
             background: 'rgba(255,255,255,0.06)',
-            borderRadius: 1,
             overflow: 'hidden',
           }}
         >
           <div
+            data-success-countdown
             style={{
-              height: '100%',
               width: '100%',
+              height: '100%',
               background: C.electricBlue,
               opacity: 0.3,
-              transformOrigin: 'left center',
               animation: `ga-success-countdown ${AUTO_REDIRECT_MS}ms linear forwards`,
             }}
           />
@@ -152,19 +147,22 @@ export function SignupSuccessPage() {
 
       <style>{`
         @keyframes ga-success-countdown {
-          from { transform: scaleX(1); }
-          to   { transform: scaleX(0); }
+          from { width: 100%; }
+          to { width: 0%; }
         }
-        @keyframes ga-success-ring {
+        @keyframes ga-success-circle-draw {
+          from { stroke-dashoffset: 226.2; }
           to { stroke-dashoffset: 0; }
         }
-        @keyframes ga-success-tick {
+        @keyframes ga-success-check-draw {
+          from { stroke-dashoffset: 48; }
           to { stroke-dashoffset: 0; }
         }
         @media (prefers-reduced-motion: reduce) {
-          [data-ga-success-ring], [data-ga-success-tick] {
+          [data-success-circle], [data-success-check], [data-success-countdown] {
             animation: none !important;
             stroke-dashoffset: 0 !important;
+            width: 0 !important;
           }
         }
       `}</style>
@@ -172,22 +170,11 @@ export function SignupSuccessPage() {
   );
 }
 
-/**
- * 80×80 SVG checkmark that draws itself — the circle strokes in over 600ms
- * ease-out, then the check path strokes in over 300ms ease-out. Color is
- * C.alertNormal (the "normal / green" status token, #10B981).
- */
-function Checkmark() {
-  const size = 80;
-  // Circle: r=36 → circumference ≈ 226.19
-  const CIRCLE_LEN = 2 * Math.PI * 36;
-  // Check path length (approx) — hand-tuned to the path drawn below.
-  const CHECK_LEN = 48;
-
+function SuccessCheckmark() {
   return (
-    <svg width={size} height={size} viewBox="0 0 80 80" aria-hidden>
+    <svg width="80" height="80" viewBox="0 0 80 80" aria-hidden>
       <circle
-        data-ga-success-ring
+        data-success-circle
         cx="40"
         cy="40"
         r="36"
@@ -196,15 +183,13 @@ function Checkmark() {
         strokeWidth="3"
         strokeLinecap="round"
         style={{
-          strokeDasharray: CIRCLE_LEN,
-          strokeDashoffset: CIRCLE_LEN,
-          transform: 'rotate(-90deg)',
-          transformOrigin: '40px 40px',
-          animation: 'ga-success-ring 600ms ease-out forwards',
+          strokeDasharray: 226.2,
+          strokeDashoffset: 226.2,
+          animation: 'ga-success-circle-draw 600ms ease-out forwards',
         }}
       />
       <path
-        data-ga-success-tick
+        data-success-check
         d="M26 41 L36 51 L55 32"
         fill="none"
         stroke={C.alertNormal}
@@ -212,9 +197,9 @@ function Checkmark() {
         strokeLinecap="round"
         strokeLinejoin="round"
         style={{
-          strokeDasharray: CHECK_LEN,
-          strokeDashoffset: CHECK_LEN,
-          animation: 'ga-success-tick 300ms ease-out 500ms forwards',
+          strokeDasharray: 48,
+          strokeDashoffset: 48,
+          animation: 'ga-success-check-draw 300ms ease-out 400ms forwards',
         }}
       />
     </svg>

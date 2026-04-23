@@ -8,6 +8,8 @@ import {
 } from 'recharts';
 import FalconLogo from "./FalconLogo";
 import { LMPCard, LMPFullPage } from "./LMPCard";
+import { useAuthStore } from '@/stores/authStore';
+import { TraderNest } from './nest/trader/TraderNest';
 import { ErrorBoundary } from "./shared/ErrorBoundary";
 import GridAtlasView from "./atlas/GridAtlasView";
 import AnalyticsPage from "./AnalyticsPage";
@@ -1905,6 +1907,9 @@ function NestView({
   setSelectedZone: (z: string | null) => void;
   onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine' | 'genmix') => void;
 }) {
+  const selectedProfile = useAuthStore((s) => s.selectedProfile);
+  if (selectedProfile === 'trader') return <TraderNest />;
+
   const { data: fuelMixData, live: fuelMixLive } = useFuelMix();
   void useLiveOpsData(selectedZone);
 

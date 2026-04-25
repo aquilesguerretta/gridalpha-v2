@@ -2,9 +2,11 @@ import { C, S } from '@/design/tokens';
 import { HeroLMPBlock } from './HeroLMPBlock';
 import { AnomalyFeed } from './AnomalyFeed';
 import { PeregrinePreview } from './PeregrinePreview';
-import { ChartPlaceholder } from './placeholders/ChartPlaceholder';
-import { TilePlaceholder } from './placeholders/TilePlaceholder';
-import { ListPlaceholder } from './placeholders/ListPlaceholder';
+import { LMP24HChart } from './LMP24HChart';
+import { SparkSpreadTile } from './tiles/SparkSpreadTile';
+import { BessTile } from './tiles/BessTile';
+import { FuelMixTile } from './tiles/FuelMixTile';
+import { ZoneWatchlist } from './ZoneWatchlist';
 
 export function TraderNest() {
   return (
@@ -26,7 +28,7 @@ export function TraderNest() {
         {/* LEFT COLUMN */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: S.xl }}>
           <HeroLMPBlock />
-          <ChartPlaceholder />
+          <LMP24HChart />
           <div
             style={{
               display: 'grid',
@@ -34,9 +36,9 @@ export function TraderNest() {
               gap: S.sm,
             }}
           >
-            <TilePlaceholder label="SPARK SPREAD · Phase 2" />
-            <TilePlaceholder label="BESS · Phase 2" />
-            <TilePlaceholder label="FUEL MIX · Phase 2" />
+            <SparkSpreadTile />
+            <BessTile />
+            <FuelMixTile />
           </div>
         </div>
 
@@ -44,7 +46,7 @@ export function TraderNest() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: S.xl }}>
           <AnomalyFeed />
           <PeregrinePreview />
-          <ListPlaceholder />
+          <ZoneWatchlist />
         </div>
       </div>
     </div>

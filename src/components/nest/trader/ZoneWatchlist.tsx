@@ -150,6 +150,23 @@ export function ZoneWatchlist() {
         )}
       </div>
 
+      {/* Editorial identity line */}
+      <div
+        style={{
+          fontFamily: F.display,
+          fontSize: 18,
+          fontStyle: 'italic',
+          color: 'rgba(255,255,255,0.45)',
+          fontWeight: 400,
+          letterSpacing: '-0.01em',
+          lineHeight: 1.3,
+          marginTop: S.xs,
+          marginBottom: S.md,
+        }}
+      >
+        Your watch.
+      </div>
+
       {/* Column header */}
       <div
         style={{

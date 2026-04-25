@@ -9,6 +9,7 @@ import {
   ReferenceDot,
 } from 'recharts';
 import { C, F, S } from '@/design/tokens';
+import type { CSSProperties } from 'react';
 import { ZONE_LMP_DETAIL, ZONE_24H_PRICES } from '../../../lib/pjm/mock-data';
 import { HeroNumber } from '../../terminal/HeroNumber';
 
@@ -26,6 +27,19 @@ function regimeFor(price: number): { label: string; color: string } {
   if (price >= 40) return { label: 'TRANSITION', color: C.alertWarning };
   return { label: 'NORMAL', color: C.alertNormal };
 }
+
+// Editorial identity line — GridAlpha voice on the hero block.
+const IDENTITY_LINE_HERO: CSSProperties = {
+  fontFamily: F.display,
+  fontSize: 26,
+  fontStyle: 'italic',
+  color: 'rgba(255,255,255,0.45)',
+  fontWeight: 400,
+  letterSpacing: '-0.01em',
+  lineHeight: 1.2,
+  marginTop: S.md,
+  marginBottom: S.lg,
+};
 
 function stdDev(values: number[]): number {
   const n = values.length;
@@ -178,7 +192,10 @@ export function HeroLMPBlock() {
       </div>
 
       {/* Section B — Hero number (unit superscript falls back to Falcon Gold @ 0.65) */}
-      <HeroNumber value={data.price.toFixed(2)} unit="$/MWh" size={120} />
+      <HeroNumber value={data.price.toFixed(2)} unit="$/MWh" size={160} />
+
+      {/* Section B′ — editorial identity line (GridAlpha voice) */}
+      <div style={IDENTITY_LINE_HERO}>The settle.</div>
 
       {/* Section C — Context strip */}
       <div

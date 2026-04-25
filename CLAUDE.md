@@ -58,6 +58,25 @@ spacing.
 Instrument Serif is loaded via a Google Fonts `<link>` tag in
 `index.html`. Do not add `@fontsource` packages for it.
 
+### Editorial voice in the terminal
+
+The terminal is permitted (and encouraged) to use Instrument Serif
+italic gray for short identity lines that give each section its voice.
+Pattern:
+
+- HeroLMPBlock identity line: ~26px serif italic
+  rgba(255,255,255,0.45)
+- Section identity lines (FLOW compositions): ~18px serif italic
+  rgba(255,255,255,0.45)
+- Each line is short — single word or short declarative phrase, period
+  included
+- Each line tells the user what the region IS, in the GridAlpha voice
+
+This is not the same as a description or instruction. It is brand
+voice — the same voice the landing page speaks ("Energy intelligence
+for everyone.", "Three products. One grid.", "Live market
+intelligence.").
+
 ## COLOR — NON-NEGOTIABLE
 - Background system: C.bgBase (#111117) → C.bgElevated (#18181f)
   → C.bgSurface (#1f1f28) → C.bgOverlay.

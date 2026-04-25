@@ -18,6 +18,9 @@ NEVER hardcode hex values, px values, or font stacks outside tokens.ts.
 - NEVER use Roboto, Arial, system-ui as standalone primary fonts — Inter only.
 - NEVER mix font families arbitrarily: Inter for prose, Geist Mono for data.
 
+## EXCEPTION: HeroNumber primitive
+src/components/terminal/HeroNumber.tsx is the ONLY terminal component permitted to use F.display (Instrument Serif). Scoped strictly to numeric display (LMP values, spread values, hero metrics). Never for headlines, body text, or labels.
+
 ## EDITORIAL DESIGN SYSTEM — SCOPED
 
 GridAlpha has TWO visual layers. They do not mix.

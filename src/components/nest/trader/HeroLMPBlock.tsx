@@ -1,3 +1,13 @@
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceDot,
+} from 'recharts';
 import { C, F, S } from '@/design/tokens';
 import { ZONE_LMP_DETAIL, ZONE_24H_PRICES } from '../../../lib/pjm/mock-data';
 import { HeroNumber } from '../../terminal/HeroNumber';
@@ -17,24 +27,6 @@ function regimeFor(price: number): { label: string; color: string } {
   return { label: 'NORMAL', color: C.alertNormal };
 }
 
-// Catmull-Rom → cubic Bézier path for visual smoothing.
-function smoothPath(points: { x: number; y: number }[]): string {
-  if (points.length < 2) return '';
-  let d = `M ${points[0].x.toFixed(2)},${points[0].y.toFixed(2)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] ?? p2;
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
-  }
-  return d;
-}
-
 function stdDev(values: number[]): number {
   const n = values.length;
   const mean = values.reduce((a, b) => a + b, 0) / n;
@@ -42,8 +34,87 @@ function stdDev(values: number[]): number {
   return Math.sqrt(variance);
 }
 
-function formatHour(idx: number): string {
+function formatHourLabel(idx: number): string {
   return `${String(idx).padStart(2, '0')}:00`;
+}
+
+function formatTickHour(idx: number): string {
+  if (idx === 23) return 'NOW';
+  return `-${24 - idx}`;
+}
+
+const TICK_INDICES = [0, 6, 12, 18, 23];
+
+type TooltipContentProps = {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: number | string;
+  avg24h: number;
+};
+
+function HeroTooltip({
+  active,
+  payload,
+  label,
+  avg24h,
+}: TooltipContentProps) {
+  if (!active || !payload || payload.length === 0 || label === undefined) {
+    return null;
+  }
+  const price = payload[0].value;
+  const diff = price - avg24h;
+  const diffColor = diff >= 0 ? C.falconGold : C.electricBlue;
+  const hourIdx = typeof label === 'number' ? label : Number(label);
+  const hourText = Number.isFinite(hourIdx) ? formatTickHour(hourIdx) : String(label);
+
+  return (
+    <div
+      style={{
+        background: C.bgElevated,
+        border: `1px solid ${C.borderDefault}`,
+        borderRadius: '6px',
+        padding: S.md,
+        minWidth: 130,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: F.mono,
+          fontSize: '9px',
+          letterSpacing: '0.18em',
+          color: C.textMuted,
+          textTransform: 'uppercase',
+          marginBottom: 4,
+          fontWeight: 600,
+        }}
+      >
+        HOUR {hourText}
+      </div>
+      <div
+        style={{
+          fontFamily: F.mono,
+          fontSize: '14px',
+          fontWeight: 600,
+          color: C.textPrimary,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        ${price.toFixed(2)}/MWh
+      </div>
+      <div
+        style={{
+          fontFamily: F.mono,
+          fontSize: '10px',
+          color: diffColor,
+          marginTop: 2,
+          fontVariantNumeric: 'tabular-nums',
+          fontWeight: 600,
+        }}
+      >
+        vs 24H AVG {diff >= 0 ? '+' : ''}{diff.toFixed(2)}
+      </div>
+    </div>
+  );
 }
 
 export function HeroLMPBlock() {
@@ -57,13 +128,14 @@ export function HeroLMPBlock() {
   const daRtSpread = data.price - daPrice;
   const regime = regimeFor(data.price);
 
-  // Day stats from the real series
   const maxIdx = series.indexOf(Math.max(...series));
   const minIdx = series.indexOf(Math.min(...series));
   const dayHigh = series[maxIdx];
   const dayLow = series[minIdx];
   const meanPrice = series.reduce((a, b) => a + b, 0) / series.length;
   const volatilityPct = (stdDev(series) / meanPrice) * 100;
+
+  const chartData = series.map((price, hour) => ({ hour, price }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: S.lg }}>
@@ -75,14 +147,15 @@ export function HeroLMPBlock() {
           gap: S.md,
           fontFamily: F.mono,
           fontSize: '11px',
-          letterSpacing: '0.14em',
+          letterSpacing: '0.18em',
           textTransform: 'uppercase',
+          fontWeight: 600,
         }}
       >
         <span style={{ color: C.electricBlue }}>{zoneLabel}</span>
-        <span style={{ color: C.textMuted }}>·</span>
-        <span style={{ color: C.textMuted }}>14:22 ET</span>
-        <span style={{ color: C.textMuted }}>·</span>
+        <span style={{ color: C.textMuted, fontWeight: 400 }}>·</span>
+        <span style={{ color: C.textMuted, fontWeight: 400 }}>14:22 ET</span>
+        <span style={{ color: C.textMuted, fontWeight: 400 }}>·</span>
         <span
           style={{
             display: 'inline-flex',
@@ -104,7 +177,7 @@ export function HeroLMPBlock() {
         </span>
       </div>
 
-      {/* Section B — Hero number */}
+      {/* Section B — Hero number (unit superscript falls back to Falcon Gold @ 0.65) */}
       <HeroNumber value={data.price.toFixed(2)} unit="$/MWh" size={120} />
 
       {/* Section C — Context strip */}
@@ -137,6 +210,7 @@ export function HeroLMPBlock() {
               letterSpacing: '0.12em',
               color: C.textMuted,
               textTransform: 'uppercase',
+              fontWeight: 400,
             }}
           >
             REGIME
@@ -145,7 +219,7 @@ export function HeroLMPBlock() {
             style={{
               fontSize: '10px',
               fontWeight: 600,
-              letterSpacing: '0.14em',
+              letterSpacing: '0.18em',
               color: regime.color,
               padding: '2px 8px',
               borderRadius: '4px',
@@ -159,21 +233,89 @@ export function HeroLMPBlock() {
       </div>
 
       {/* Section D — divider */}
-      <div
-        style={{
-          borderTop: `1px solid ${C.borderDefault}`,
-          marginTop: 0,
-        }}
-      />
+      <div style={{ borderTop: `1px solid ${C.borderDefault}` }} />
 
-      {/* Section E — inline 24H sparkline */}
-      <HeroSparkline
-        series={series}
-        maxIdx={maxIdx}
-        minIdx={minIdx}
-        dayHigh={dayHigh}
-        dayLow={dayLow}
-      />
+      {/* Section E — Recharts sparkline */}
+      <div style={{ width: '100%', height: 140 }}>
+        <ResponsiveContainer width="100%" height={140}>
+          <LineChart
+            data={chartData}
+            margin={{ top: 16, right: 16, bottom: 24, left: 16 }}
+          >
+            <CartesianGrid
+              horizontal
+              vertical={false}
+              strokeDasharray="2 4"
+              stroke={C.borderDefault}
+              opacity={0.2}
+            />
+            <XAxis
+              dataKey="hour"
+              type="number"
+              domain={[0, 23]}
+              ticks={TICK_INDICES}
+              tickFormatter={(v) => formatTickHour(v as number)}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: C.textMuted, fontFamily: F.mono, fontSize: 9 }}
+            />
+            <YAxis hide domain={['auto', 'auto']} />
+            <Tooltip
+              cursor={{ stroke: C.borderDefault, strokeDasharray: '2 4' }}
+              content={<HeroTooltip avg24h={data.avg24h} />}
+            />
+            <Line
+              type="monotone"
+              dataKey="price"
+              stroke={C.electricBlue}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{
+                r: 5,
+                fill: C.falconGold,
+                stroke: C.bgBase,
+                strokeWidth: 2,
+              }}
+              isAnimationActive
+              animationDuration={600}
+            />
+            <ReferenceDot
+              x={maxIdx}
+              y={dayHigh}
+              r={4}
+              fill={C.falconGold}
+              stroke={C.bgBase}
+              strokeWidth={1}
+              ifOverflow="visible"
+              label={{
+                value: `H ${dayHigh.toFixed(2)} ${formatHourLabel(maxIdx)}`,
+                position: 'top',
+                fill: C.textMuted,
+                fontFamily: F.mono,
+                fontSize: 9,
+                offset: 6,
+              }}
+            />
+            <ReferenceDot
+              x={minIdx}
+              y={dayLow}
+              r={4}
+              fill={C.electricBlue}
+              stroke={C.bgBase}
+              strokeWidth={1}
+              ifOverflow="visible"
+              label={{
+                value: `L ${dayLow.toFixed(2)} ${formatHourLabel(minIdx)}`,
+                position: 'bottom',
+                fill: C.textMuted,
+                fontFamily: F.mono,
+                fontSize: 9,
+                offset: 6,
+              }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
       {/* Section F — day stats row */}
       <div
@@ -183,17 +325,14 @@ export function HeroLMPBlock() {
           gap: S.lg,
         }}
       >
-        <DayStat label="DAY HIGH" value={dayHigh.toFixed(2)} sub={formatHour(maxIdx)} />
-        <DayStat label="DAY LOW" value={dayLow.toFixed(2)} sub={formatHour(minIdx)} />
+        <DayStat label="DAY HIGH" value={dayHigh.toFixed(2)} sub={formatHourLabel(maxIdx)} />
+        <DayStat label="DAY LOW" value={dayLow.toFixed(2)} sub={formatHourLabel(minIdx)} />
         <DayStat label="VOLATILITY" value={`${volatilityPct.toFixed(1)}%`} sub="24H σ" />
       </div>
 
-      {/* Section G — inline zone selector (Bloomberg style) */}
+      {/* Section G — inline zone selector */}
       <div>
-        <ZoneSelectorInline
-          value={zoneKey}
-          options={ZONE_OPTIONS}
-        />
+        <ZoneSelectorInline value={zoneKey} options={ZONE_OPTIONS} />
       </div>
     </div>
   );
@@ -216,6 +355,7 @@ function ContextPair({
           letterSpacing: '0.12em',
           color: C.textMuted,
           textTransform: 'uppercase',
+          fontWeight: 400,
         }}
       >
         {label}
@@ -244,6 +384,7 @@ function DayStat({ label, value, sub }: { label: string; value: string; sub: str
           letterSpacing: '0.12em',
           color: C.textMuted,
           textTransform: 'uppercase',
+          fontWeight: 400,
         }}
       >
         {label}
@@ -254,6 +395,7 @@ function DayStat({ label, value, sub }: { label: string; value: string; sub: str
           fontSize: '14px',
           color: C.textPrimary,
           fontVariantNumeric: 'tabular-nums',
+          fontWeight: 600,
         }}
       >
         {value}
@@ -263,127 +405,12 @@ function DayStat({ label, value, sub }: { label: string; value: string; sub: str
           fontFamily: F.mono,
           fontSize: '10px',
           color: C.textMuted,
+          fontWeight: 400,
         }}
       >
         {sub}
       </span>
     </div>
-  );
-}
-
-function HeroSparkline({
-  series,
-  maxIdx,
-  minIdx,
-  dayHigh,
-  dayLow,
-}: {
-  series: number[];
-  maxIdx: number;
-  minIdx: number;
-  dayHigh: number;
-  dayLow: number;
-}) {
-  const W = 1000; // viewBox width — scaled by preserveAspectRatio
-  const H = 140;
-  const padX = 8;
-  const padTop = 16;
-  const padBottom = 22;
-  const innerW = W - padX * 2;
-  const innerH = H - padTop - padBottom;
-
-  const min = Math.min(...series);
-  const max = Math.max(...series);
-  const range = max - min || 1;
-  const stepX = innerW / (series.length - 1);
-
-  const points = series.map((v, i) => ({
-    x: padX + i * stepX,
-    y: padTop + innerH - ((v - min) / range) * innerH,
-  }));
-
-  const d = smoothPath(points);
-
-  const gridYs = [padTop, padTop + innerH / 2, padTop + innerH];
-
-  // X-axis labels: -24H, -18, -12, -6, NOW (5 markers across 24 hours of data)
-  const xLabels: { x: number; label: string }[] = [
-    { x: padX, label: '-24H' },
-    { x: padX + innerW * 0.25, label: '-18' },
-    { x: padX + innerW * 0.5, label: '-12' },
-    { x: padX + innerW * 0.75, label: '-6' },
-    { x: padX + innerW, label: 'NOW' },
-  ];
-
-  const maxPoint = points[maxIdx];
-  const minPoint = points[minIdx];
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      style={{ width: '100%', height: '140px', display: 'block' }}
-    >
-      {/* Grid */}
-      {gridYs.map((y, i) => (
-        <line
-          key={i}
-          x1={padX}
-          x2={W - padX}
-          y1={y}
-          y2={y}
-          stroke="rgba(255,255,255,0.04)"
-          strokeWidth={1}
-          strokeDasharray="2 4"
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-
-      {/* Path */}
-      <path
-        d={d}
-        fill="none"
-        stroke={C.electricBlue}
-        strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
-      />
-
-      {/* Min/max dots */}
-      <circle cx={maxPoint.x} cy={maxPoint.y} r={4} fill={C.electricBlue} stroke={C.bgBase} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-      <circle cx={minPoint.x} cy={minPoint.y} r={4} fill={C.electricBlue} stroke={C.bgBase} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-
-      {/* Inline extrema labels — placed inside the SVG so they scale with viewBox */}
-      <text
-        x={maxPoint.x + 8}
-        y={maxPoint.y - 6}
-        fill={C.textMuted}
-        style={{ fontFamily: F.mono, fontSize: '10px' }}
-      >
-        H {dayHigh.toFixed(2)} {formatHour(maxIdx)}
-      </text>
-      <text
-        x={minPoint.x + 8}
-        y={minPoint.y + 14}
-        fill={C.textMuted}
-        style={{ fontFamily: F.mono, fontSize: '10px' }}
-      >
-        L {dayLow.toFixed(2)} {formatHour(minIdx)}
-      </text>
-
-      {/* X-axis labels */}
-      {xLabels.map((m, i) => (
-        <text
-          key={i}
-          x={m.x}
-          y={H - 4}
-          fill={C.textMuted}
-          textAnchor={i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}
-          style={{ fontFamily: F.mono, fontSize: '10px' }}
-        >
-          {m.label}
-        </text>
-      ))}
-    </svg>
   );
 }
 
@@ -412,9 +439,11 @@ function ZoneSelectorInline({
         fontSize: '11px',
         letterSpacing: '0.08em',
         color: C.textMuted,
+        fontWeight: 500,
+        transition: 'color 150ms cubic-bezier(0.4,0,0.2,1)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.color = C.textPrimary;
+        e.currentTarget.style.color = C.falconGold;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.color = C.textMuted;

@@ -1,81 +1,118 @@
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import { C, F, R, S } from '@/design/tokens';
-import { ZONE_24H_PRICES } from '../../../lib/pjm/mock-data';
+import { ZONE_24H_PRICES, ZONE_LMP_DETAIL } from '../../../lib/pjm/mock-data';
+import { useHoverState } from '../../terminal/useHoverState';
 
-function smoothPath(points: { x: number; y: number }[]): string {
-  if (points.length < 2) return '';
-  let d = `M ${points[0].x.toFixed(2)},${points[0].y.toFixed(2)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] ?? p2;
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
-  }
-  return d;
+// Hour labels: -24H, -23H, ..., -1H, NOW (24-point series)
+function formatHour(idx: number): string {
+  if (idx === 23) return 'NOW';
+  return `-${24 - idx}`;
 }
 
-export function LMP24HChart() {
-  const series = ZONE_24H_PRICES['WEST_HUB'] ?? ZONE_24H_PRICES['DEFAULT'];
+const TICK_INDICES = [0, 6, 12, 18, 23];
 
-  // Pad min/max for visual breathing room then snap to 5 grid steps
-  const rawMin = Math.min(...series);
-  const rawMax = Math.max(...series);
-  const pad = (rawMax - rawMin) * 0.1;
-  const yMin = Math.floor((rawMin - pad) / 5) * 5;
-  const yMax = Math.ceil((rawMax + pad) / 5) * 5;
-  const yRange = yMax - yMin || 1;
+type TooltipContentProps = {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: number | string;
+  avg24h: number;
+};
 
-  // SVG layout
-  const W = 1000;
-  const H = 280;
-  const padLeft = 44;
-  const padRight = 12;
-  const padTop = 12;
-  const padBottom = 24;
-  const innerW = W - padLeft - padRight;
-  const innerH = H - padTop - padBottom;
-
-  const stepX = innerW / (series.length - 1);
-  const points = series.map((v, i) => ({
-    x: padLeft + i * stepX,
-    y: padTop + innerH - ((v - yMin) / yRange) * innerH,
-  }));
-  const d = smoothPath(points);
-
-  // 5 horizontal grid lines (and matching y-tick labels)
-  const gridCount = 5;
-  const gridYs = Array.from({ length: gridCount }, (_, i) => {
-    const t = i / (gridCount - 1);
-    return {
-      y: padTop + innerH * t,
-      value: yMax - (yMax - yMin) * t,
-    };
-  });
-
-  const xLabels: { x: number; label: string }[] = [
-    { x: padLeft, label: '-24H' },
-    { x: padLeft + innerW * 0.25, label: '-18' },
-    { x: padLeft + innerW * 0.5, label: '-12' },
-    { x: padLeft + innerW * 0.75, label: '-6' },
-    { x: padLeft + innerW, label: 'NOW' },
-  ];
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  avg24h,
+}: TooltipContentProps) {
+  if (!active || !payload || payload.length === 0 || label === undefined) {
+    return null;
+  }
+  const price = payload[0].value;
+  const diff = price - avg24h;
+  const diffColor = diff >= 0 ? C.falconGold : C.electricBlue;
+  const hourIdx = typeof label === 'number' ? label : Number(label);
+  const hourText = Number.isFinite(hourIdx) ? formatHour(hourIdx) : String(label);
 
   return (
     <div
       style={{
         background: C.bgElevated,
         border: `1px solid ${C.borderDefault}`,
-        borderRadius: R.lg,
-        padding: S.lg,
-        minHeight: '360px',
-        display: 'flex',
-        flexDirection: 'column',
+        borderRadius: R.md,
+        padding: S.md,
+        minWidth: 130,
       }}
     >
+      <div
+        style={{
+          fontFamily: F.mono,
+          fontSize: '9px',
+          letterSpacing: '0.18em',
+          color: C.textMuted,
+          textTransform: 'uppercase',
+          marginBottom: 4,
+          fontWeight: 600,
+        }}
+      >
+        HOUR {hourText}
+      </div>
+      <div
+        style={{
+          fontFamily: F.mono,
+          fontSize: '14px',
+          fontWeight: 600,
+          color: C.textPrimary,
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        ${price.toFixed(2)}/MWh
+      </div>
+      <div
+        style={{
+          fontFamily: F.mono,
+          fontSize: '10px',
+          color: diffColor,
+          marginTop: 2,
+          fontVariantNumeric: 'tabular-nums',
+          fontWeight: 600,
+        }}
+      >
+        vs 24H AVG {diff >= 0 ? '+' : ''}{diff.toFixed(2)}
+      </div>
+    </div>
+  );
+}
+
+export function LMP24HChart() {
+  const series = ZONE_24H_PRICES['WEST_HUB'] ?? ZONE_24H_PRICES['DEFAULT'];
+  const detail = ZONE_LMP_DETAIL['WEST_HUB'] ?? ZONE_LMP_DETAIL['DEFAULT'];
+  const data = series.map((price, hour) => ({ hour, price }));
+
+  const hover = useHoverState();
+  const cardStyle: React.CSSProperties = {
+    background: C.bgElevated,
+    border: `1px solid ${C.borderDefault}`,
+    borderTop: `1px solid ${
+      hover.hovered ? 'rgba(59,130,246,0.40)' : 'rgba(59,130,246,0.20)'
+    }`,
+    borderRadius: R.lg,
+    padding: S.lg,
+    minHeight: '360px',
+    display: 'flex',
+    flexDirection: 'column',
+    transition: 'border-top-color 200ms cubic-bezier(0.4,0,0.2,1)',
+  };
+
+  return (
+    <div style={cardStyle} {...hover.bind}>
       {/* Header */}
       <div
         style={{
@@ -89,9 +126,10 @@ export function LMP24HChart() {
           style={{
             fontFamily: F.mono,
             fontSize: '11px',
-            letterSpacing: '0.14em',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            color: C.textMuted,
+            color: C.electricBlue,
           }}
         >
           PJM WEST · LMP · 24H
@@ -100,8 +138,9 @@ export function LMP24HChart() {
           style={{
             fontFamily: F.mono,
             fontSize: '11px',
-            color: C.textMuted,
+            color: 'rgba(245,158,11,0.65)',
             letterSpacing: '0.08em',
+            fontWeight: 500,
           }}
         >
           $/MWh
@@ -109,63 +148,58 @@ export function LMP24HChart() {
       </div>
 
       {/* Chart */}
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        preserveAspectRatio="none"
-        style={{ width: '100%', height: '280px', display: 'block' }}
-      >
-        {/* Grid lines */}
-        {gridYs.map((g, i) => (
-          <line
-            key={i}
-            x1={padLeft}
-            x2={W - padRight}
-            y1={g.y}
-            y2={g.y}
-            stroke="rgba(255,255,255,0.04)"
-            strokeWidth={1}
-            strokeDasharray="2 4"
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-
-        {/* Y-tick labels (left edge of chart) */}
-        {gridYs.map((g, i) => (
-          <text
-            key={i}
-            x={padLeft - 6}
-            y={g.y + 3}
-            fill={C.textMuted}
-            textAnchor="end"
-            style={{ fontFamily: F.mono, fontSize: '10px' }}
+      <div style={{ flex: 1, minHeight: 280 }}>
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart
+            data={data}
+            margin={{ top: 8, right: 16, bottom: 24, left: 32 }}
           >
-            {g.value.toFixed(0)}
-          </text>
-        ))}
-
-        {/* Series */}
-        <path
-          d={d}
-          fill="none"
-          stroke={C.electricBlue}
-          strokeWidth={2}
-          vectorEffect="non-scaling-stroke"
-        />
-
-        {/* X-axis labels */}
-        {xLabels.map((m, i) => (
-          <text
-            key={i}
-            x={m.x}
-            y={H - 6}
-            fill={C.textMuted}
-            textAnchor={i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}
-            style={{ fontFamily: F.mono, fontSize: '10px' }}
-          >
-            {m.label}
-          </text>
-        ))}
-      </svg>
+            <CartesianGrid
+              horizontal
+              vertical={false}
+              strokeDasharray="2 4"
+              stroke={C.borderDefault}
+              opacity={0.4}
+            />
+            <XAxis
+              dataKey="hour"
+              type="number"
+              domain={[0, 23]}
+              ticks={TICK_INDICES}
+              tickFormatter={(v) => formatHour(v as number)}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: C.textMuted, fontFamily: F.mono, fontSize: 10 }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              width={32}
+              tick={{ fill: C.textMuted, fontFamily: F.mono, fontSize: 10 }}
+              tickFormatter={(v) => (v as number).toFixed(0)}
+            />
+            <Tooltip
+              cursor={{ stroke: C.borderDefault, strokeDasharray: '2 4' }}
+              content={<ChartTooltip avg24h={detail.avg24h} />}
+            />
+            <Line
+              type="monotone"
+              dataKey="price"
+              stroke={C.electricBlue}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{
+                r: 4,
+                fill: C.electricBlue,
+                stroke: C.bgBase,
+                strokeWidth: 2,
+              }}
+              isAnimationActive
+              animationDuration={600}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { C, F, S } from '@/design/tokens';
 
 type Regime = 'normal' | 'burning';
@@ -10,7 +11,6 @@ type WatchRow = {
   sparkData: number[];
 };
 
-// 24-point hardcoded series per zone — shape mirrors regime/delta direction.
 const MOCK_WATCHLIST: WatchRow[] = [
   {
     zone: 'WEST HUB',
@@ -69,53 +69,30 @@ const MOCK_WATCHLIST: WatchRow[] = [
   },
 ];
 
-function smoothPath(points: { x: number; y: number }[]): string {
-  if (points.length < 2) return '';
-  let d = `M ${points[0].x.toFixed(2)},${points[0].y.toFixed(2)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] ?? points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] ?? p2;
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)}`;
-  }
-  return d;
-}
-
 function deltaColor(delta: number): string {
   return delta >= 0 ? C.falconGold : C.electricBlue;
 }
 
 function RowSpark({ data, color }: { data: number[]; color: string }) {
-  const W = 60;
-  const H = 20;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const stepX = W / (data.length - 1);
-  const points = data.map((v, i) => ({
-    x: i * stepX,
-    y: H - ((v - min) / range) * H,
-  }));
-  const d = smoothPath(points);
+  const points = data.map((value, i) => ({ i, value }));
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      style={{ width: '60px', height: '20px', display: 'block' }}
-    >
-      <path
-        d={d}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.5}
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
+    <div style={{ width: 60, height: 20 }}>
+      <ResponsiveContainer width={60} height={20}>
+        <LineChart
+          data={points}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+        >
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke={color}
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -137,9 +114,10 @@ export function ZoneWatchlist() {
           style={{
             fontFamily: F.mono,
             fontSize: '11px',
-            letterSpacing: '0.14em',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            color: C.textMuted,
+            color: C.electricBlue,
           }}
         >
           WATCHLIST · {MOCK_WATCHLIST.length} ZONES
@@ -153,8 +131,9 @@ export function ZoneWatchlist() {
               fontFamily: F.mono,
               fontSize: '10px',
               color: C.falconGold,
-              letterSpacing: '0.14em',
+              letterSpacing: '0.18em',
               textTransform: 'uppercase',
+              fontWeight: 600,
             }}
           >
             <span
@@ -184,6 +163,7 @@ export function ZoneWatchlist() {
           color: C.textMuted,
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
+          fontWeight: 400,
         }}
       >
         <span>ZONE</span>
@@ -214,6 +194,7 @@ export function ZoneWatchlist() {
                   fontFamily: F.mono,
                   fontSize: '12px',
                   color: C.textPrimary,
+                  fontWeight: 500,
                 }}
               >
                 {row.zone}
@@ -225,6 +206,7 @@ export function ZoneWatchlist() {
                   color: C.textPrimary,
                   textAlign: 'right',
                   fontVariantNumeric: 'tabular-nums',
+                  fontWeight: 600,
                 }}
               >
                 {row.lmp.toFixed(2)}
@@ -236,6 +218,7 @@ export function ZoneWatchlist() {
                   color: dColor,
                   textAlign: 'right',
                   fontVariantNumeric: 'tabular-nums',
+                  fontWeight: 600,
                 }}
               >
                 {row.delta >= 0 ? '+' : ''}

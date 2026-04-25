@@ -94,6 +94,7 @@ function HeroStory({ story }: { story: Story }) {
             color: C.textMuted,
             marginLeft: 'auto',
             letterSpacing: '0.08em',
+            fontWeight: 400,
           }}
         >
           {story.timeAgo}
@@ -189,6 +190,7 @@ function CompactStory({
           color: C.textMuted,
           letterSpacing: '0.08em',
           flexShrink: 0,
+          fontWeight: 400,
         }}
       >
         {story.timeAgo}
@@ -230,7 +232,8 @@ export function PeregrinePreview() {
           style={{
             fontFamily: F.mono,
             fontSize: '11px',
-            letterSpacing: '0.14em',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
             textTransform: 'uppercase',
             color: C.falconGold,
           }}
@@ -244,6 +247,7 @@ export function PeregrinePreview() {
             letterSpacing: '0.08em',
             color: C.electricBlue,
             cursor: 'default',
+            fontWeight: 500,
           }}
         >
           Open Peregrine →

@@ -1,4 +1,5 @@
 import { C, F, R, S } from '@/design/tokens';
+import { useHoverState } from '../../../terminal/useHoverState';
 
 const FUEL_MIX: { label: string; pct: number; color: string }[] = [
   { label: 'GAS',   pct: 38, color: C.fuelGas },
@@ -10,19 +11,24 @@ const FUEL_MIX: { label: string; pct: number; color: string }[] = [
 ];
 
 export function FuelMixTile() {
+  const hover = useHoverState();
+  const cardStyle: React.CSSProperties = {
+    background: C.bgElevated,
+    border: `1px solid ${C.borderDefault}`,
+    borderTop: `1px solid ${
+      hover.hovered ? 'rgba(59,130,246,0.40)' : 'rgba(59,130,246,0.20)'
+    }`,
+    borderRadius: R.lg,
+    padding: S.lg,
+    minHeight: '200px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    transition: 'border-top-color 200ms cubic-bezier(0.4,0,0.2,1)',
+  };
+
   return (
-    <div
-      style={{
-        background: C.bgElevated,
-        border: `1px solid ${C.borderDefault}`,
-        borderRadius: R.lg,
-        padding: S.lg,
-        minHeight: '200px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}
-    >
+    <div style={cardStyle} {...hover.bind}>
       {/* Header */}
       <div
         style={{
@@ -35,9 +41,10 @@ export function FuelMixTile() {
           style={{
             fontFamily: F.mono,
             fontSize: '11px',
-            letterSpacing: '0.14em',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            color: C.textMuted,
+            color: C.electricBlue,
           }}
         >
           PJM · FUEL MIX · NOW
@@ -46,8 +53,9 @@ export function FuelMixTile() {
           style={{
             fontFamily: F.mono,
             fontSize: '11px',
-            color: C.textPrimary,
+            color: 'rgba(245,158,11,0.65)',
             fontVariantNumeric: 'tabular-nums',
+            fontWeight: 600,
           }}
         >
           38.2 GW
@@ -104,6 +112,7 @@ export function FuelMixTile() {
                 fontSize: '10px',
                 color: C.textMuted,
                 letterSpacing: '0.08em',
+                fontWeight: 400,
               }}
             >
               {f.label}
@@ -115,6 +124,7 @@ export function FuelMixTile() {
                 color: C.textPrimary,
                 marginLeft: 'auto',
                 fontVariantNumeric: 'tabular-nums',
+                fontWeight: 600,
               }}
             >
               {f.pct}%
@@ -132,6 +142,7 @@ export function FuelMixTile() {
           fontSize: '11px',
           color: C.textMuted,
           letterSpacing: '0.06em',
+          fontWeight: 400,
         }}
       >
         CARBON INTENSITY 412 kg/MWh

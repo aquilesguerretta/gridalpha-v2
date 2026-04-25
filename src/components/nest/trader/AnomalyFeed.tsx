@@ -60,7 +60,8 @@ export function AnomalyFeed() {
         style={{
           fontFamily: F.mono,
           fontSize: '11px',
-          letterSpacing: '0.14em',
+          fontWeight: 600,
+          letterSpacing: '0.18em',
           textTransform: 'uppercase',
           color: C.electricBlue,
           marginBottom: S.sm,
@@ -111,6 +112,7 @@ export function AnomalyFeed() {
                     style={{
                       fontFamily: F.mono,
                       fontSize: '11px',
+                      fontWeight: 500,
                       letterSpacing: '0.12em',
                       color: C.textPrimary,
                       textTransform: 'uppercase',
@@ -137,6 +139,7 @@ export function AnomalyFeed() {
                       fontSize: '12px',
                       color: C.textSecondary,
                       marginTop: '2px',
+                      fontWeight: 400,
                     }}
                   >
                     {a.detail}
@@ -152,6 +155,7 @@ export function AnomalyFeed() {
                   textAlign: 'right',
                   letterSpacing: '0.08em',
                   whiteSpace: 'nowrap',
+                  fontWeight: 400,
                 }}
               >
                 <div>{a.zone ?? a.market}</div>

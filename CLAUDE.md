@@ -21,40 +21,42 @@ NEVER hardcode hex values, px values, or font stacks outside tokens.ts.
 ## EXCEPTION: HeroNumber primitive
 src/components/terminal/HeroNumber.tsx is the ONLY terminal component permitted to use F.display (Instrument Serif). Scoped strictly to numeric display (LMP values, spread values, hero metrics). Never for headlines, body text, or labels.
 
-## EDITORIAL DESIGN SYSTEM — SCOPED
+## ONE PRODUCT, TWO SURFACES
 
-GridAlpha has TWO visual layers. They do not mix.
+GridAlpha has two functional surfaces — landing/auth (editorial) and
+terminal (Nest, Atlas, Analytics, Vault). They are the same product
+visually. Same color tokens, same fonts, same atmospheric layers, same
+chrome philosophy, same motion vocabulary.
 
-**Terminal layer** — Nest, Atlas, Analytics, Vault.
-Governed by all the rules above. Inter + Geist Mono only. Tokens from
-`src/design/tokens.ts` only. No F.display. No editorial colors.
+The differences between them are functional:
+- Terminal is denser (more info per pixel)
+- Terminal is interactive (hover, click, brush)
+- Terminal updates live
 
-**Editorial layer** — the landing page (`/`) and the auth flow
-(`/login`, `/signup`, `/signup/profile`, `/signup/details`).
-Allowed to use `F.display` (Instrument Serif) for headlines, and the
-constants in `src/design/editorial.ts` for backgrounds, mock-surface
-shades, and the single developer-profile accent. `F.display` is italic
-by convention in this layer.
+Both surfaces import from `src/design/tokens.ts` AND
+`src/design/editorial.ts`. The previous prohibition on editorial
+tokens in terminal files is rescinded. Specifically:
 
-Hard rules:
-- Terminal files must NEVER import from `src/design/editorial.ts`.
-- Terminal files must NEVER use `F.display`.
-- Editorial primitives (`src/components/editorial/*`) are the only
-  components allowed to combine F.display with oversized type.
-- Editorial colors (`EDITORIAL_BG`, `EDITORIAL_SURFACE_*`,
-  `EDITORIAL_DEVELOPER_ACCENT`) must never appear inside a terminal
-  view. If a terminal view needs a darker background, use
-  `C.bgBase`/`C.bgElevated`/`C.bgSurface`/`C.bgOverlay` instead.
-- Auth pages and landing pages must still pull every color that exists
-  in `tokens.ts` (text, accent, status, border, fuel) from `C.*`.
-  `src/design/editorial.ts` only covers the narrow set of values that
-  do not exist in the terminal token system.
-- Instrument Serif is loaded via a Google Fonts `<link>` tag in
-  `index.html`. Do not add `@fontsource` packages for it.
+- `F.display` (Instrument Serif) is permitted in the terminal layer
+  for hero numbers and breaking story headlines. The `HeroNumber`
+  primitive remains the canonical use, but `PeregrinePreview` hero
+  stories may also use it.
+- Atmospheric background layers (radial gradients, dotted grid
+  textures) are required in terminal page surfaces, calibrated to
+  ~50% of landing page visibility.
+- Falcon Gold (#F59E0B) marks LIVE indicators, live data unit
+  suffixes ($/MWh), active selections, and positive moments. Not
+  just warning regimes.
+- Card chrome uses a top-edge active border treatment (1px top
+  accent in `C.electricBlue` at 0.20 opacity, brightening on hover)
+  instead of generic 1px borders.
 
-If you find yourself reaching for `F.display` or an `EDITORIAL_*`
-constant inside a file under `src/components/` that is NOT `landing/`
-or `editorial/`, stop. That is a terminal file. Use a token instead.
+Density rules from the original CLAUDE.md still apply — terminal is
+denser than landing, and that constraint shapes typography sizes and
+spacing.
+
+Instrument Serif is loaded via a Google Fonts `<link>` tag in
+`index.html`. Do not add `@fontsource` packages for it.
 
 ## COLOR — NON-NEGOTIABLE
 - Background system: C.bgBase (#111117) → C.bgElevated (#18181f)

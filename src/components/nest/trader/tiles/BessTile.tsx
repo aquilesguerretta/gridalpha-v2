@@ -1,4 +1,5 @@
 import { C, F, R, S } from '@/design/tokens';
+import { useHoverState } from '../../../terminal/useHoverState';
 
 const SOC_PCT = 74;
 
@@ -12,28 +13,34 @@ export function BessTile() {
   const filled = (SOC_PCT / 100) * circumference;
   const dashArray = `${filled} ${circumference - filled}`;
 
+  const hover = useHoverState();
+  const cardStyle: React.CSSProperties = {
+    background: C.bgElevated,
+    border: `1px solid ${C.borderDefault}`,
+    borderTop: `1px solid ${
+      hover.hovered ? 'rgba(59,130,246,0.40)' : 'rgba(59,130,246,0.20)'
+    }`,
+    borderRadius: R.lg,
+    padding: S.lg,
+    minHeight: '200px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    transition: 'border-top-color 200ms cubic-bezier(0.4,0,0.2,1)',
+  };
+
   return (
-    <div
-      style={{
-        background: C.bgElevated,
-        border: `1px solid ${C.borderDefault}`,
-        borderRadius: R.lg,
-        padding: S.lg,
-        minHeight: '200px',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}
-    >
+    <div style={cardStyle} {...hover.bind}>
       {/* Header */}
       <div>
         <span
           style={{
             fontFamily: F.mono,
             fontSize: '11px',
-            letterSpacing: '0.14em',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
             textTransform: 'uppercase',
-            color: C.textMuted,
+            color: C.electricBlue,
           }}
         >
           BESS · ARBITRAGE
@@ -52,7 +59,6 @@ export function BessTile() {
       >
         <div style={{ position: 'relative', width: size, height: size }}>
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-            {/* Track */}
             <circle
               cx={cx}
               cy={cy}
@@ -61,7 +67,6 @@ export function BessTile() {
               stroke="rgba(255,255,255,0.08)"
               strokeWidth={stroke}
             />
-            {/* Filled arc — start at -90° (top) */}
             <circle
               cx={cx}
               cy={cy}
@@ -74,7 +79,6 @@ export function BessTile() {
               transform={`rotate(-90 ${cx} ${cy})`}
             />
           </svg>
-          {/* Center text overlay */}
           <div
             style={{
               position: 'absolute',
@@ -94,6 +98,7 @@ export function BessTile() {
                   color: C.textPrimary,
                   lineHeight: 1,
                   fontVariantNumeric: 'tabular-nums',
+                  fontWeight: 600,
                 }}
               >
                 {SOC_PCT}
@@ -104,6 +109,7 @@ export function BessTile() {
                   fontSize: '14px',
                   color: C.textMuted,
                   lineHeight: 1,
+                  fontWeight: 500,
                 }}
               >
                 %
@@ -116,6 +122,7 @@ export function BessTile() {
                 letterSpacing: '0.18em',
                 color: C.textMuted,
                 textTransform: 'uppercase',
+                fontWeight: 400,
               }}
             >
               SOC
@@ -134,6 +141,7 @@ export function BessTile() {
             fontFamily: F.mono,
             fontSize: '10px',
             letterSpacing: '0.06em',
+            fontWeight: 500,
           }}
         >
           <span style={{ color: C.electricBlue }}>CHARGE 02:00–06:00</span>
@@ -152,6 +160,7 @@ export function BessTile() {
           fontSize: '11px',
           color: C.falconGold,
           fontVariantNumeric: 'tabular-nums',
+          fontWeight: 600,
         }}
       >
         EST. DAILY $2,840

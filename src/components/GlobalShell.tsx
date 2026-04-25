@@ -10,6 +10,7 @@ import FalconLogo from "./FalconLogo";
 import { LMPCard, LMPFullPage } from "./LMPCard";
 import { useAuthStore } from '@/stores/authStore';
 import { TraderNest } from './nest/trader/TraderNest';
+import { ProfileSwitcher } from './dev/ProfileSwitcher';
 import { ErrorBoundary } from "./shared/ErrorBoundary";
 import GridAtlasView from "./atlas/GridAtlasView";
 import AnalyticsPage from "./AnalyticsPage";
@@ -1907,9 +1908,6 @@ function NestView({
   setSelectedZone: (z: string | null) => void;
   onNavigateKPI: (tab: 'lmp' | 'spread' | 'battery' | 'gap' | 'peregrine' | 'genmix') => void;
 }) {
-  const selectedProfile = useAuthStore((s) => s.selectedProfile);
-  if (selectedProfile === 'trader') return <TraderNest />;
-
   const { data: fuelMixData, live: fuelMixLive } = useFuelMix();
   void useLiveOpsData(selectedZone);
 
@@ -2491,6 +2489,7 @@ export default function GlobalShell({ initialView = 'nest' }: GlobalShellProps =
   const [activeNav, setActiveNav] = useState<NavState>(initialView);
   const [entryDismissed, setEntryDismissed] = useState(fromAuth);
   const [selectedZone, setSelectedZone] = useState<string | null>('WESTERN_HUB');
+  const selectedProfile = useAuthStore((s) => s.selectedProfile);
 
   const kpiPages: NavState[] = ['lmp', 'spread', 'battery', 'gap', 'peregrine', 'genmix'];
   const fullScreenPages: NavState[] = ['lmp', 'spread', 'battery', 'gap', 'genmix'];
@@ -2509,7 +2508,10 @@ export default function GlobalShell({ initialView = 'nest' }: GlobalShellProps =
 
   const renderContent = () => {
     switch (activeNav) {
-      case "nest": return <NestView selectedZone={selectedZone} setSelectedZone={setSelectedZone} onNavigateKPI={(tab) => setActiveNav(tab)} />;
+      case "nest":
+        return selectedProfile === 'trader'
+          ? <TraderNest />
+          : <NestView selectedZone={selectedZone} setSelectedZone={setSelectedZone} onNavigateKPI={(tab) => setActiveNav(tab)} />;
       case "atlas": return <GridAtlasView />;
       case "analytics": return (
         <AnalyticsPage
@@ -2523,7 +2525,10 @@ export default function GlobalShell({ initialView = 'nest' }: GlobalShellProps =
       case "battery": return <BatteryFullPage selectedZone={selectedZone} />;
       case "gap": return <GapFullPage selectedZone={selectedZone} />;
       case "genmix": return <GenerationMixFullPage onBack={() => setActiveNav('nest')} />;
-      default: return <NestView selectedZone={selectedZone} setSelectedZone={setSelectedZone} onNavigateKPI={(tab) => setActiveNav(tab)} />;
+      default:
+        return selectedProfile === 'trader'
+          ? <TraderNest />
+          : <NestView selectedZone={selectedZone} setSelectedZone={setSelectedZone} onNavigateKPI={(tab) => setActiveNav(tab)} />;
     }
   };
 
@@ -2581,6 +2586,7 @@ export default function GlobalShell({ initialView = 'nest' }: GlobalShellProps =
       }}>
         {renderContent()}
       </div>
+      {import.meta.env.DEV && <ProfileSwitcher />}
     </>
   );
 }

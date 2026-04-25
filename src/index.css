@@ -689,3 +689,8 @@ input[type='range']::-moz-range-thumb {
   cursor:        pointer;
   box-shadow:    0 0 6px rgba(59,130,246,0.5);
 }
+
+@keyframes gridDrift {
+  from { background-position: 0 0; }
+  to   { background-position: 24px 24px; }
+}

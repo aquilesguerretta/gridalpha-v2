@@ -526,7 +526,7 @@ export function AnalystNest() {
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: S.sm,
+              gap: S.md,
             }}
           >
             <CorrelationMatrixCard />

@@ -41,7 +41,7 @@ function PortfolioStrip() {
       style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: S.sm,
+        gap: S.md,
       }}
     >
       {BATTERY_ASSETS.map((a) => (

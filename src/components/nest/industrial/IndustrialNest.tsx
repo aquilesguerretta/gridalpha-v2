@@ -323,7 +323,7 @@ function TariffColumn({ label, name, rate, accent = C.textPrimary }: { label: st
 // ─── CARBON + BILL PROJECTOR ──────────────────────────────────────
 function CarbonAndBillRow() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.sm }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: S.md }}>
       <CarbonGaugeCard />
       <MonthlyBillCard />
     </div>

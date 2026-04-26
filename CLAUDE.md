@@ -624,3 +624,109 @@ in future sprints.
 
 `ALEXANDRIA_NODES` in `src/lib/mock/vault-mock.ts` is FOUNDRY's
 contract. SCRIBE reads it but does not modify it.
+
+## VISUAL COHESION — APPLIED PATTERNS
+
+CHROMA's pass propagated the visual language already proven on
+TraderNest and the editorial layer to every other terminal surface.
+The patterns below describe what is in place and how to extend it.
+
+### PageAtmosphere primitive
+
+`src/components/terminal/PageAtmosphere.tsx` is the canonical
+atmospheric vignette wrapper. Every full-page terminal surface mounts
+this at z-index 0; content rides above at z-index 1.
+
+```tsx
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+
+export function MyNest() {
+  return (
+    <PageAtmosphere>
+      <div style={{ padding: S.xl }}>
+        {/* content */}
+      </div>
+    </PageAtmosphere>
+  );
+}
+```
+
+Three variants:
+
+| Variant | Use |
+| --- | --- |
+| `standard` (default) | Every Nest, VaultIndex, Alexandria, every Analytics tab |
+| `hero` | Surfaces with a dominant Instrument Serif title (CaseStudyView) |
+| `subtle` | Reserved for surfaces with their own dominant chart (Atlas, deep tabs) |
+
+TraderNest does not use the primitive — it has its own inline
+atmospheric layer that pre-dates PageAtmosphere and is locked. New
+surfaces should use the primitive; do not copy the inline pattern.
+
+When you build a new full-page surface, wrap with `PageAtmosphere`
+rather than re-deriving a custom gradient. Prior versions of the
+analytics tabs and vault surfaces shipped with bespoke
+`pageVignette()` helpers (blue+gold radials, repeating-radial grain
+textures); those have all been removed in favor of the primitive.
+
+### Hierarchy convention — one dominant focal per screen
+
+Every Nest must have one element that the eye lands on first. The
+visual reference is TraderNest's `HeroLMPBlock`, which dominates
+through Instrument Serif at 96–160px and pushes every other element
+into a supporting role.
+
+Per-Nest focal elements:
+
+| Nest | Dominant focal |
+| --- | --- |
+| TraderNest | HeroLMPBlock (HeroNumber 96–160px) |
+| AnalystNest | Dual HeroNumbers comparison (size 80) |
+| StorageNest | PortfolioStrip — discharging asset elevated with falcon-gold borderTop 0.40 + inset gold inner glow |
+| IndustrialNest | StrategySimulatorCard (minHeight 420) |
+| StudentNest | ConceptMap card (SVG height 460 in a 520px card) |
+| DeveloperNest | ProjectPipeline strip (4 cards, minHeight 220 each) |
+
+If you add a new section to a Nest, make sure it does not visually
+out-weigh the focal element. Lever options: lower minHeight, drop
+the eyebrow color saturation, reduce HeroNumber size if it appears.
+
+### Active-edge card chrome system
+
+The 1px top accent on every data card — `rgba(59,130,246,0.20)` at
+rest, brightening to `rgba(59,130,246,0.40)` on hover — is delivered
+by two channels:
+
+- `.ga-card` class in `src/index.css` for surfaces that use plain divs
+- `ContainedCard` primitive in `src/components/terminal/` for React
+  composition
+
+Both produce the same visual outcome. Prefer `ContainedCard` for new
+work because it also wires up `useHoverState` for hover transitions
+and accepts a `style` prop for elevation overrides (see StorageNest's
+discharging asset for the pattern).
+
+### Visual changes propagate via primitives
+
+If a future change wants to adjust the atmospheric vignette, the
+active-edge accent color, the hero number scale, or any other
+foundation, change it in the primitive — not in every consumer. The
+five new Nests, the five Analytics tabs, and three Vault surfaces all
+read from `PageAtmosphere`; one edit there ripples to every screen.
+
+This is also why bespoke `pageVignette()` helpers and inline
+gradient layers are deprecated in this codebase: they break that
+single-edit guarantee.
+
+### Top nav refinement notes
+
+The TopBar in `GlobalShell.tsx` uses Tailwind for layout and is
+ARCHITECT-owned. CHROMA may adjust visual treatment within the bar
+(blur, weight, color, background opacity) but cannot change layout,
+NavState, or routing. Structural questions about the wordmark or
+the navItem layout should be raised via `// CHROMA-PROPOSAL:`
+comments inline.
+
+The bar currently uses `backdropFilter: blur(20px)` which matches
+the editorial AuthLayout's translucent header. Active nav items
+read at fontWeight 600; inactive at 500.

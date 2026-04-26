@@ -9,8 +9,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
-  Cell,
 } from 'recharts';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
@@ -252,7 +250,7 @@ function RevenueAttributionCard() {
                 color: C.textPrimary,
               }}
               labelStyle={{ color: C.textMuted }}
-              formatter={(v: number, n: string) => [`$${v.toLocaleString()}`, n]}
+              formatter={(v, n) => v != null ? [`$${Number(v).toLocaleString()}`, String(n)] : ['—', '—']}
             />
             <Area type="monotone" dataKey="arbitrage" stackId="1" stroke={C.electricBlue} fill={C.electricBlue} fillOpacity={0.5} name="Arbitrage" />
             <Area type="monotone" dataKey="capacity"  stackId="1" stroke={C.falconGold}   fill={C.falconGold}   fillOpacity={0.5} name="Capacity" />
@@ -353,7 +351,7 @@ function DABidOptimizerCard() {
                 color: C.textPrimary,
               }}
               labelStyle={{ color: C.textMuted }}
-              formatter={(v: number, n: string) => [`${Math.abs(v)} MW`, n === 'charge' ? 'Charge' : 'Discharge']}
+              formatter={(v, n) => v != null ? [`${Math.abs(Number(v))} MW`, n === 'charge' ? 'Charge' : 'Discharge'] : ['—', '—']}
             />
             <Bar dataKey="charge" stackId="bid" fill={C.electricBlue} name="charge" />
             <Bar dataKey="discharge" stackId="bid" fill={C.falconGold} name="discharge" />

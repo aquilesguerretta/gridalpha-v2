@@ -450,7 +450,7 @@ function MonthlyBillCard() {
                 color: C.textPrimary,
               }}
               labelStyle={{ color: C.textMuted }}
-              formatter={(v: number) => [`$${v.toLocaleString()}`, 'Cost']}
+              formatter={(v) => v != null ? [`$${Number(v).toLocaleString()}`, 'Cost'] : ['—', '—']}
             />
             <Bar dataKey="cost" radius={[2, 2, 0, 0]}>
               {data.map((_, i) => (

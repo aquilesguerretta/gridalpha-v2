@@ -9,7 +9,6 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Legend,
   Cell,
 } from 'recharts';
 import { C, F, R, S } from '@/design/tokens';
@@ -188,7 +187,7 @@ function ComparisonChartCard() {
                 color: C.textPrimary,
               }}
               labelStyle={{ color: C.textMuted }}
-              formatter={(v: number, name: string) => [`$${v.toFixed(2)}/MWh`, name === 'pseg' ? 'PSEG' : 'WEST HUB']}
+              formatter={(v, name) => v != null ? [`$${Number(v).toFixed(2)}/MWh`, name === 'pseg' ? 'PSEG' : 'WEST HUB'] : ['—', '—']}
             />
             <Line type="monotone" dataKey="pseg" stroke={C.electricBlue} strokeWidth={1.5} dot={false} name="pseg" />
             <Line type="monotone" dataKey="westHub" stroke={C.falconGold} strokeWidth={1.5} dot={false} name="westHub" />

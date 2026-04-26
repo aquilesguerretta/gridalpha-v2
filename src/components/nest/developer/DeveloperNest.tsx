@@ -201,7 +201,7 @@ function ZoneRevenueCard() {
                   color: C.textPrimary,
                 }}
                 labelStyle={{ color: C.textMuted }}
-                formatter={(v: number) => [`$${v.toFixed(2)}M`, 'Cumulative']}
+                formatter={(v) => v != null ? [`$${Number(v).toFixed(2)}M`, 'Cumulative'] : ['—', '—']}
               />
               <Line type="monotone" dataKey="cumulative" stroke={C.electricBlue} strokeWidth={1.75} dot={false} />
             </LineChart>
@@ -410,9 +410,10 @@ function CongestionPatternCard() {
                 color: C.textPrimary,
               }}
               labelStyle={{ color: C.textMuted }}
-              formatter={(v: number, name: string, props: any) => {
-                if (name === 'frequency') return [`${v.toFixed(1)}% binding`, 'Frequency'];
-                return [v, name];
+              formatter={(v, name) => {
+                if (v == null) return ['—', '—'];
+                if (name === 'frequency') return [`${Number(v).toFixed(1)}% binding`, 'Frequency'];
+                return [String(v), String(name)];
               }}
             />
             <Bar dataKey="frequency" fill={C.electricBlue} radius={[0, 2, 2, 0]} barSize={14} />

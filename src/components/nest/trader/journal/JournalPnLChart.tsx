@@ -208,10 +208,17 @@ export function JournalPnLChart() {
                   color: C.textPrimary,
                 }}
                 labelStyle={{ color: C.textMuted }}
-                formatter={(value: number, name: string) => [
-                  `${value >= 0 ? '+' : '−'}$${Math.abs(value).toLocaleString()}`,
-                  name === 'cumulative' ? 'Cumulative' : 'Daily',
-                ]}
+                formatter={(value, name) => {
+                  const v = typeof value === 'number' ? value : Number(value);
+                  const label =
+                    typeof name === 'string' && name === 'cumulative'
+                      ? 'Cumulative'
+                      : 'Daily';
+                  return [
+                    `${v >= 0 ? '+' : '−'}$${Math.abs(v).toLocaleString()}`,
+                    label,
+                  ];
+                }}
               />
               <Line
                 type="monotone"

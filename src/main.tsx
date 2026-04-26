@@ -35,6 +35,7 @@ createRoot(document.getElementById('root')!).render(
             useParams() to switch between VaultIndex / Alexandria /
             CaseStudyView. ATLAS owns that internal routing. */}
         <Route path="/vault/alexandria" element={<GlobalShell initialView="vault" />} />
+        <Route path="/vault/alexandria/lesson/:lessonId" element={<GlobalShell initialView="vault" />} />
         <Route path="/vault/:id" element={<GlobalShell initialView="vault" />} />
 
         <Route path="*" element={<LandingPage />} />

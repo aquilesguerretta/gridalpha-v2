@@ -499,3 +499,128 @@ attach via the `AnnotatableChart` wrapper, never by editing chart JSX.
 Likewise, CONDUIT does not touch any per-profile Nest, the Atlas, the
 Vault, or routing in `main.tsx`.
 
+## ALEXANDRIA CURRICULUM — SCRIBE INFRASTRUCTURE
+
+Owned by SCRIBE. The lesson engine that runs Aquiles' curriculum
+content inside Vault → Alexandria. Content authoring is iterative;
+the engine itself should be stable.
+
+### Lesson type — `src/lib/types/curriculum.ts`
+
+```ts
+interface Lesson {
+  id: string;                  // matches ConceptNode.id in ALEXANDRIA_NODES
+  title: string;
+  difficulty: 'foundation' | 'mechanics' | 'advanced';
+  readingMinutes: number;
+  eyebrow: string;             // e.g. "01 · FOUNDATION"
+  identity: string;            // italic-gray-serif identity line
+  sections: LessonSection[];   // each is { heading, content }
+  diagram: LessonDiagram;      // inline SVG (or placeholder)
+  quiz: QuizQuestion[];        // five 4-option questions
+  relatedConcepts: string[];   // ConceptNode ids
+  nextLessonId: string | null;
+}
+```
+
+`LessonSection.content` is plain text with `\n\n` paragraph breaks.
+`LessonDiagram.type` is `'svg'` (with `svg` markup) or `'placeholder'`.
+`QuizOption` has `{ id, text, correct, explanation? }`.
+
+### Curriculum tree — `src/lib/curriculum/`
+
+```
+src/lib/curriculum/
+  index.ts                              # LESSONS registry + lookup helpers
+  lessons/
+    what-is-electricity.ts              # id: a-electricity
+    the-grid.ts                         # id: a-grid
+    supply-and-demand.ts                # id: a-supply-demand
+    isos-and-rtos.ts                    # id: a-isos
+```
+
+### Adding a new lesson
+
+1. Create `src/lib/curriculum/lessons/<slug>.ts` exporting a `Lesson`.
+   The `id` must match a `ConceptNode.id` in `ALEXANDRIA_NODES`.
+2. Register the export in `src/lib/curriculum/index.ts`:
+   ```ts
+   import { newLesson } from './lessons/<slug>';
+   export const LESSONS = { ..., [newLesson.id]: newLesson };
+   ```
+3. Alexandria automatically lights the matching node up as clickable
+   and the lesson route `/vault/alexandria/lesson/<id>` starts working.
+
+### Lookup helpers — `src/lib/curriculum/index.ts`
+
+| Helper | Returns |
+| --- | --- |
+| `getLesson(id)` | `Lesson \| null` — exact-match lookup |
+| `listLessons()` | `Lesson[]` |
+| `hasLesson(id)` | `boolean` — used by Alexandria to gate clicks |
+| `getNextLesson(id)` | `Lesson \| null` — follows `lesson.nextLessonId` |
+
+### Progress store — `src/stores/progressStore.ts`
+
+```ts
+useProgressStore: {
+  visited: Set<string>;
+  completed: Set<string>;       // 3+ correct on the 5-question quiz
+  quizAttempts: Record<string, { correct, total, at }[]>;
+  markVisited(id), markCompleted(id), recordQuizAttempt(id, c, t);
+  reset(), isVisited(id), isCompleted(id), getQuizHistory(id);
+}
+```
+
+Persisted to `localStorage` under key `gridalpha-progress`. Sets are
+flattened to arrays for serialization and rehydrated to `Set` on load
+via `partialize` and `onRehydrateStorage`.
+
+### Components — `src/components/vault/`
+
+| Component | Purpose |
+| --- | --- |
+| `Lesson` | `{ lessonId }` — looks the lesson up, renders header + sections + diagram + quiz + footer; calls `markVisited` on mount; 404 view for unauthored ids. |
+| `LessonQuiz` | `{ lessonId, quiz }` — five-question form, submit reveals correct/incorrect with explanations, records the attempt and flips lesson to completed at 3+/5. Retry resets state. |
+| `LessonProgress` | none — strip rendered below the concept map; one cell per `ALEXANDRIA_NODES` entry, empty/visited/completed coloring, hover tooltip. |
+
+`Alexandria.tsx` reads `useProgressStore` directly to overlay the
+visited (blue ring) and completed (green checkmark) markers on each
+SVG node, and routes via `useNavigate` when a node with an authored
+lesson is clicked.
+
+### Routing — `src/main.tsx` + `src/components/vault/Vault.tsx`
+
+`/vault/alexandria/lesson/:lessonId` is registered between the
+existing `/vault/alexandria` and `/vault/:id` routes. `Vault.tsx`
+detects the `LESSON_PREFIX = '/alexandria/lesson/'` substring before
+the `/alexandria` branch so the more specific route wins.
+
+### Foundation lessons (current authored set)
+
+| id | title | next |
+| --- | --- | --- |
+| `a-electricity` | What is electricity? | `a-grid` |
+| `a-grid` | The grid | `a-supply-demand` |
+| `a-supply-demand` | Supply and demand | `a-isos` |
+| `a-isos` | ISOs and RTOs | `null` |
+
+Mechanics (8) and advanced (6) lesson nodes are visible in the
+Alexandria graph but route to a "Coming soon" view until authored
+in future sprints.
+
+### What SCRIBE owns
+
+- `src/lib/types/curriculum.ts`
+- `src/lib/curriculum/` (index + every lesson file)
+- `src/stores/progressStore.ts`
+- `src/components/vault/Lesson.tsx`
+- `src/components/vault/LessonQuiz.tsx`
+- `src/components/vault/LessonProgress.tsx`
+- `src/components/vault/Alexandria.tsx` (interactivity + progress overlay only)
+- `src/components/vault/Vault.tsx` (lesson route detection only)
+- `src/main.tsx` (the lesson route line only)
+- This section of CLAUDE.md
+
+`ALEXANDRIA_NODES` in `src/lib/mock/vault-mock.ts` is FOUNDRY's
+contract. SCRIBE reads it but does not modify it.

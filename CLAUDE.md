@@ -213,3 +213,82 @@ Mount once at the app shell root.
 | `Cmd/Ctrl+P` | contextual news drawer (placeholder — currently `console.log`) |
 | `Cmd/Ctrl+/` | toggle AI Assistant |
 | `Escape` | `closeAll()` |
+
+## ROUTING ARCHITECTURE — REFERENCE
+
+Owned by ARCHITECT. Do not modify outside this section without
+re-coordinating with the agent that owns the spine.
+
+### Route map (`src/main.tsx`)
+
+| Path | Element | Notes |
+| --- | --- | --- |
+| `/` | `<LandingPage />` | Landing surface — locked. |
+| `/login` | `<LoginPage />` | Inside `<AuthLayout />`. |
+| `/signup` | `<SignupCredentialsPage />` | Step 1. |
+| `/signup/profile` | `<SignupProfilePage />` | Step 2 — writes `selectedProfile`. |
+| `/signup/details` | `<SignupDetailsPage />` | Step 3 — profile-specific form. |
+| `/signup/success` | `<SignupSuccessPage />` | Hands off to `/nest` with `state.fromAuth`. |
+| `/nest` | `<GlobalShell initialView="nest" />` | Profile-routed (see below). |
+| `/atlas` | `<GlobalShell initialView="atlas" />` | Mapbox Grid Atlas. |
+| `/peregrine` | `<GlobalShell initialView="peregrine" />` | Renders `PeregrineFullPage`. |
+| `/analytics` | `<GlobalShell initialView="analytics" />` | Renders `AnalyticsPage`. |
+| `/vault` | `<GlobalShell initialView="vault" />` | Renders the `Vault` parent. |
+| `/vault/alexandria` | `<GlobalShell initialView="vault" />` | Same shell — `Vault` reads `useParams`. |
+| `/vault/:id` | `<GlobalShell initialView="vault" />` | Case-study route — `Vault` reads `useParams`. |
+| `*` | `<LandingPage />` | Catch-all fallback. |
+
+### Profile routing (`renderContent` in `GlobalShell`)
+
+`/nest` switches on `useAuthStore().selectedProfile`:
+
+| `selectedProfile` | Component | Source |
+| --- | --- | --- |
+| `'trader'` | `<TraderNest />` | `src/components/nest/trader/TraderNest.tsx` (locked) |
+| `'analyst'` | `<AnalystNest />` | `src/components/nest/analyst/AnalystNest.tsx` (TERMINAL — placeholder for now) |
+| `'storage'` | `<StorageNest />` | `src/components/nest/storage/StorageNest.tsx` (TERMINAL — placeholder) |
+| `'industrial'` | `<IndustrialNest />` | `src/components/nest/industrial/IndustrialNest.tsx` (TERMINAL — placeholder) |
+| `'student'` | `<StudentNest />` | `src/components/nest/student/StudentNest.tsx` (TERMINAL — placeholder) |
+| `'developer'` | `<DeveloperNest />` | `src/components/nest/developer/DeveloperNest.tsx` (TERMINAL — placeholder) |
+| `'everyone'` / `null` / anything else | `<EveryoneNest />` | `src/components/nest/everyone/EveryoneNest.tsx` (the legacy bento layout — fallback) |
+
+`EveryoneNest` is the extracted former inline `NestView` — preserved
+verbatim. It also re-exports the chart primitives (`SparkSpreadChart`,
+`SOCGauge`), the window-average helpers (`avg`, `maxWindowAverage`,
+`minWindowAverage`, `hourWindowLabel`) and `StatusDot`. GlobalShell's
+KPI deep-dive pages (`SpreadFullPage`, `BatteryFullPage`,
+`GapFullPage`) re-import them.
+
+### Top nav (`TopBar` in `GlobalShell`, driven by `navItems`)
+
+Five destinations, in order:
+
+| Code | id | Label | Icon |
+| --- | --- | --- | --- |
+| 01 | `nest` | THE NEST | `<HexagonIcon />` |
+| 02 | `atlas` | GRID ATLAS | `<DiamondIcon />` |
+| 03 | `peregrine` | PEREGRINE | `<FalconNavIcon />` |
+| 04 | `analytics` | ANALYTICS | `<TargetIcon />` |
+| 05 | `vault` | VAULT | `<VaultIcon />` |
+
+The bar is hidden on `atlas` (map-first) and on KPI full-pages
+(`lmp`, `spread`, `battery`, `gap`, `genmix`). KPI full-pages are
+not registered as routes — they are reached by clicking a KPI cell
+inside `EveryoneNest`. Pressing `Escape` returns to `nest`.
+
+### Dev switcher (`src/components/dev/ProfileSwitcher.tsx`)
+
+Mounted only when `import.meta.env.DEV === true`. Floating bottom-right
+button opens a dropdown with two sections:
+
+- **PROFILE** — clicking writes `selectedProfile` via `useAuthStore.setProfile`. The current `/nest` route re-renders into the matching per-profile Nest.
+- **VIEW** — clicking calls `useNavigate()` and routes to `/nest`, `/atlas`, `/peregrine`, `/analytics`, or `/vault`. The active row is derived from `useLocation().pathname`.
+
+### What ARCHITECT owns
+
+- `src/main.tsx` (route registration)
+- `src/components/GlobalShell.tsx` (`NavState`, `viewLabels`, `GlobalShellProps`, `navItems`, `FalconNavIcon`, `TopBar`, `renderContent`, profile-routing logic, KPI full-page rendering, ProfileSwitcher mount)
+- `src/components/dev/ProfileSwitcher.tsx`
+- `src/components/nest/everyone/EveryoneNest.tsx` (the fallback Nest + shared chart primitives + window helpers + StatusDot)
+- This section of CLAUDE.md
+

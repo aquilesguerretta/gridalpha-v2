@@ -28,8 +28,14 @@ createRoot(document.getElementById('root')!).render(
 
         <Route path="/nest" element={<GlobalShell initialView="nest" />} />
         <Route path="/atlas" element={<GlobalShell initialView="atlas" />} />
+        <Route path="/peregrine" element={<GlobalShell initialView="peregrine" />} />
         <Route path="/analytics" element={<GlobalShell initialView="analytics" />} />
         <Route path="/vault" element={<GlobalShell initialView="vault" />} />
+        {/* Vault sub-routes — same shell; the Vault component reads
+            useParams() to switch between VaultIndex / Alexandria /
+            CaseStudyView. ATLAS owns that internal routing. */}
+        <Route path="/vault/alexandria" element={<GlobalShell initialView="vault" />} />
+        <Route path="/vault/:id" element={<GlobalShell initialView="vault" />} />
 
         <Route path="*" element={<LandingPage />} />
       </Routes>

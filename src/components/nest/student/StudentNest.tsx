@@ -119,7 +119,7 @@ function ConceptMapCard() {
         <svg
           viewBox={`0 0 ${width} ${height}`}
           width="100%"
-          height={400}
+          height={460}
           style={{ display: 'block' }}
           aria-label="Concept map"
         >

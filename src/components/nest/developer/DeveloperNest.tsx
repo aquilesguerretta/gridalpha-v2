@@ -64,7 +64,7 @@ function DeveloperHeroBlock() {
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: S.sm,
-          marginTop: S.sm,
+          marginTop: S.md,
         }}
       >
         {PROJECT_PIPELINE.map((p) => (
@@ -77,7 +77,7 @@ function DeveloperHeroBlock() {
 
 function ProjectCard({ project }: { project: DeveloperProject }) {
   return (
-    <ContainedCard minHeight={200}>
+    <ContainedCard minHeight={220}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm, height: '100%' }}>
         {/* Name */}
         <div style={{ fontFamily: F.sans, fontSize: 14, fontWeight: 600, color: C.textPrimary, lineHeight: 1.3 }}>

@@ -730,3 +730,110 @@ comments inline.
 The bar currently uses `backdropFilter: blur(20px)` which matches
 the editorial AuthLayout's translucent header. Active nav items
 read at fontWeight 600; inactive at 500.
+
+## TRADE JOURNAL — FORGE INFRASTRUCTURE
+
+The Trade Journal is the Trader Nest's first signature depth feature.
+Owned by FORGE; lives entirely inside the Trader Nest as a tab beside
+the existing live-data view. No backend yet — all state and
+attachments persist to localStorage and survive reloads.
+
+### File tree
+
+```
+src/
+  lib/
+    types/journal.ts                  — JournalEntry, JournalAttachment,
+                                        ReviewPrompt, EntryStance
+    journal/reviewPromptGenerator.ts  — pure heuristic prompt generator
+  stores/journalStore.ts              — Zustand store + persistence
+  components/nest/trader/
+    TraderNest.tsx                    — adds NEST | JOURNAL tab strip
+                                        (only surgical change here)
+    JournalTab.tsx                    — wrapper for tab orchestration
+    journal/
+      JournalView.tsx                 — main 2-column page
+      JournalEntry.tsx                — single-entry card + lightbox
+      JournalEntryEditor.tsx          — create/edit form
+      JournalPnLChart.tsx             — Recharts P&L over time
+      JournalReviewPanel.tsx          — weekly review prompts panel
+      JournalFilters.tsx              — zone / tag / date / stance bar
+```
+
+### Persistence — `useJournalStore`
+
+Persisted to `localStorage` under key `gridalpha-journal` via Zustand's
+`persist` middleware. Shape:
+
+```ts
+{ entries: JournalEntry[] }
+```
+
+Public API:
+
+| Method | Purpose |
+| --- | --- |
+| `addEntry(input)` | Append a new entry, returns the created `JournalEntry` |
+| `updateEntry(id, patch)` | Patch any subset of fields, bumps `updatedAt` |
+| `deleteEntry(id)` | Remove by id |
+| `attachToEntry(id, file)` | Read a `File` to base64, push onto `attachments` |
+| `removeAttachment(eId, aId)` | Remove an attachment |
+| `markReviewed(id)` | Set `reviewed=true` and stamp `reviewedAt` |
+| `clearAll()` | Reset to empty (escape hatch / dev) |
+| `getEntry(id)` / `listEntries()` / `filterEntries(f)` | selectors |
+
+### Attachment limits
+
+Each attachment is hard-capped at **5 MB**. The store throws on
+oversized files with a user-readable message; the editor surfaces it
+inline. Files are stored as base64 data URLs inside `localStorage`,
+so the practical aggregate ceiling is the browser's quota (~5 MB per
+origin on most browsers — entries should typically attach 1–2
+screenshots, not dozens). On quota exhaustion, the browser will throw
+during `setItem`; the editor surfaces a generic upload error.
+
+### Review prompt generator
+
+`generateReviewPrompts(entries, options?)` is a pure function: no
+store reads, no side effects, deterministic for a fixed `asOf`
+timestamp. Default window is **30 days**. It surfaces four prompt
+types:
+
+| Type | Trigger | Question template |
+| --- | --- | --- |
+| `consistency` | 3+ entries on the same zone with mixed W/L | "You traded {zone} N times in the past {windowDays} days with mixed results (NW / NL). What did the winners share that the losers didn't?" |
+| `opportunity` | 5+ entries sharing a tag | "You've logged N entries tagged '{tag}' in the past {windowDays} days. Are you systematically looking for these, or is the market pushing them at you?" |
+| `reflection` | An entry unreviewed for 7+ days | "You haven't reviewed your entry from {date}: '{title}'. What did you learn?" |
+| `pattern` | 4+ scored entries on a weekday with negative net P&L and more losses than wins | "Your {weekday} trades have been less profitable on average (NL vs NW in the past {windowDays} days). What's the common factor?" |
+
+The thresholds are intentionally conservative — better to surface
+fewer high-signal prompts than flood the panel.
+
+### TraderNest tab strip
+
+`TraderNest.tsx` is the only existing file FORGE modified. Added a
+two-tab strip (`NEST` | `JOURNAL`) above the existing two-column
+content grid. The grid renders only when `tab === 'nest'`; the
+`JournalTab` renders only when `tab === 'journal'`. No sub-component
+of the locked Trader Nest layout was touched. Tab state is local
+React state (intentionally not persisted — every session opens to the
+live grid).
+
+### Future signature features
+
+Trade Journal is the first of three planned signature depth features.
+The same pattern — persistent, profile-specific tools shipped as new
+tabs in their respective Nests — applies to:
+
+- **Industrial Strategy Simulator** — Industrial Nest tab. Take a
+  facility profile and simulate procurement / DR / efficiency
+  strategies side-by-side.
+- **Storage DA Bid Optimizer** — Storage Nest tab. Persistent
+  bid-schedule playground with revenue attribution and cycling
+  tracker.
+
+Each one will live entirely inside its owning Nest, follow the same
+file-tree convention (`/<feature>/<Component>.tsx`, plus a top-level
+`<Feature>Tab.tsx` orchestrator), and use the same surgical
+TraderNest tab-strip pattern to add itself without reshaping the
+locked layouts.

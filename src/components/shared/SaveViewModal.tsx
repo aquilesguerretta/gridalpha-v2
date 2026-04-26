@@ -96,7 +96,7 @@ export function SaveViewModal({ open, onClose, onSave, preview }: Props) {
             fontWeight: 500,
             color: C.textPrimary,
             lineHeight: 1.3,
-            marginTop: -S.sm,
+            marginTop: -8,
           }}
         >
           Name your view.

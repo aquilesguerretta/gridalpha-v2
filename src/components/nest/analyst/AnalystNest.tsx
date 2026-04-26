@@ -54,7 +54,7 @@ function AnalystHeroBlock() {
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: S.xl, marginTop: S.sm }}>
         {/* Zone A */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
-          <HeroNumber value="33.80" unit="$/MWh" size={64} />
+          <HeroNumber value="33.80" unit="$/MWh" size={80} />
           <div style={{
             fontFamily: F.mono,
             fontSize: 11,
@@ -68,7 +68,7 @@ function AnalystHeroBlock() {
 
         {/* Zone B */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
-          <HeroNumber value="31.22" unit="$/MWh" size={64} />
+          <HeroNumber value="31.22" unit="$/MWh" size={80} />
           <div style={{
             fontFamily: F.mono,
             fontSize: 11,

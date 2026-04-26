@@ -14,6 +14,7 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { FlowSection } from '@/components/terminal/FlowSection';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import {
   FACILITY_PROFILE,
   STRATEGIES,
@@ -627,30 +628,9 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
 // ─── MAIN ─────────────────────────────────────────────────────────
 export function IndustrialNest() {
   return (
-    <div
-      style={{
-        height: '100%',
-        background: C.bgBase,
-        overflow: 'auto',
-        position: 'relative',
-      }}
-    >
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          background:
-            'radial-gradient(ellipse 80% 60% at center 30%, rgba(255,255,255,0.025) 0%, transparent 70%)',
-        }}
-      />
-
+    <PageAtmosphere>
       <div
         style={{
-          position: 'relative',
-          zIndex: 1,
           display: 'grid',
           gridTemplateColumns: '2fr 1fr',
           gap: S.sm,
@@ -672,6 +652,6 @@ export function IndustrialNest() {
           <FacilityProfileCard />
         </div>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }

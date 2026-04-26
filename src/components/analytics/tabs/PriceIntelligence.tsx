@@ -17,6 +17,7 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { MetricTile } from '@/components/terminal/MetricTile';
 import { DataTable, type ColumnDef } from '@/components/terminal/DataTable';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import {
   PRICE_COMPONENTS_BREAKDOWN,
   PRICE_INTELLIGENCE_KPIS,
@@ -28,17 +29,6 @@ const TICK_INDICES = [0, 6, 12, 18, 23];
 function formatHour(idx: number): string {
   if (idx === 23) return 'NOW';
   return `-${24 - idx}`;
-}
-
-function pageVignette() {
-  return {
-    position: 'absolute' as const,
-    inset: 0,
-    background:
-      'radial-gradient(ellipse at top, rgba(59,130,246,0.05) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(245,158,11,0.03) 0%, transparent 60%)',
-    pointerEvents: 'none' as const,
-    zIndex: 0,
-  };
 }
 
 interface OverlayTooltipPayload {
@@ -267,17 +257,8 @@ export default function PriceIntelligence() {
   const zoneRows = buildZoneRows();
 
   return (
-    <div
-      style={{
-        height:     '100%',
-        background: C.bgBase,
-        overflow:   'auto',
-        position:   'relative',
-      }}
-    >
-      <div style={pageVignette()} />
-
-      <div style={{ position: 'relative', zIndex: 1, padding: S.xl }}>
+    <PageAtmosphere>
+      <div style={{ padding: S.xl }}>
         {/* Page identity */}
         <div style={{ marginBottom: S.xl }}>
           <div
@@ -524,7 +505,7 @@ export default function PriceIntelligence() {
           <DataTable columns={ZONE_COLUMNS} rows={zoneRows} />
         </ContainedCard>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }
 

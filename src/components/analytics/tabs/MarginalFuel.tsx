@@ -5,18 +5,8 @@ import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import { MARGINAL_FUEL_GANTT_24H } from '@/lib/mock/analytics-mock';
-
-function pageVignette() {
-  return {
-    position: 'absolute' as const,
-    inset: 0,
-    background:
-      'radial-gradient(ellipse at top, rgba(249,115,22,0.04) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(56,189,248,0.04) 0%, transparent 60%)',
-    pointerEvents: 'none' as const,
-    zIndex: 0,
-  };
-}
 
 const FUEL_DISPLAY: Record<string, { color: string; full: string }> = {
   NG:    { color: C.fuelGas,     full: 'Natural Gas' },
@@ -298,17 +288,8 @@ function PriceSetterCard() {
 
 export default function MarginalFuel() {
   return (
-    <div
-      style={{
-        height:     '100%',
-        background: C.bgBase,
-        overflow:   'auto',
-        position:   'relative',
-      }}
-    >
-      <div style={pageVignette()} />
-
-      <div style={{ position: 'relative', zIndex: 1, padding: S.xl }}>
+    <PageAtmosphere>
+      <div style={{ padding: S.xl }}>
         {/* Page identity */}
         <div style={{ marginBottom: S.xl }}>
           <div
@@ -399,6 +380,6 @@ export default function MarginalFuel() {
           <PriceSetterCard />
         </ContainedCard>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }

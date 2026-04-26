@@ -18,6 +18,7 @@ import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import {
   CONVERGENCE_24H,
   CONVERGENCE_OPPORTUNITIES,
@@ -28,17 +29,6 @@ const TICK_INDICES = [0, 6, 12, 18, 23];
 function formatHour(idx: number): string {
   if (idx === 23) return 'NOW';
   return `-${24 - idx}`;
-}
-
-function pageVignette() {
-  return {
-    position: 'absolute' as const,
-    inset: 0,
-    background:
-      'radial-gradient(ellipse at top, rgba(59,130,246,0.05) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(139,92,246,0.04) 0%, transparent 60%)',
-    pointerEvents: 'none' as const,
-    zIndex: 0,
-  };
 }
 
 interface OverlayPayload {
@@ -254,17 +244,8 @@ export default function Convergence() {
   }));
 
   return (
-    <div
-      style={{
-        height:     '100%',
-        background: C.bgBase,
-        overflow:   'auto',
-        position:   'relative',
-      }}
-    >
-      <div style={pageVignette()} />
-
-      <div style={{ position: 'relative', zIndex: 1, padding: S.xl }}>
+    <PageAtmosphere>
+      <div style={{ padding: S.xl }}>
         {/* Page identity */}
         <div style={{ marginBottom: S.xl }}>
           <div
@@ -477,7 +458,7 @@ export default function Convergence() {
           </div>
         </ContainedCard>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }
 

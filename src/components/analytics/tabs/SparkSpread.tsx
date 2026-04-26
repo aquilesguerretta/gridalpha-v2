@@ -6,21 +6,11 @@ import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { DataTable, type ColumnDef } from '@/components/terminal/DataTable';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import {
   DISPATCH_FRONTIER_MARKER,
   SPARK_SPREAD_PLANTS,
 } from '@/lib/mock/analytics-mock';
-
-function pageVignette() {
-  return {
-    position: 'absolute' as const,
-    inset: 0,
-    background:
-      'radial-gradient(ellipse at top, rgba(245,158,11,0.05) 0%, transparent 55%), radial-gradient(ellipse at bottom left, rgba(59,130,246,0.04) 0%, transparent 60%)',
-    pointerEvents: 'none' as const,
-    zIndex: 0,
-  };
-}
 
 // ── Dispatch Frontier — static 3D-perspective SVG ─────────────────────────
 //
@@ -421,17 +411,8 @@ function HeatRateMatrix() {
 
 export default function SparkSpread() {
   return (
-    <div
-      style={{
-        height:     '100%',
-        background: C.bgBase,
-        overflow:   'auto',
-        position:   'relative',
-      }}
-    >
-      <div style={pageVignette()} />
-
-      <div style={{ position: 'relative', zIndex: 1, padding: S.xl }}>
+    <PageAtmosphere>
+      <div style={{ padding: S.xl }}>
         {/* Page identity */}
         <div style={{ marginBottom: S.xl }}>
           <div
@@ -524,6 +505,6 @@ export default function SparkSpread() {
           <HeatRateMatrix />
         </ContainedCard>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }

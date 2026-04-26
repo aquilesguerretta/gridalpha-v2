@@ -292,3 +292,68 @@ button opens a dropdown with two sections:
 - `src/components/nest/everyone/EveryoneNest.tsx` (the fallback Nest + shared chart primitives + window helpers + StatusDot)
 - This section of CLAUDE.md
 
+## AI ASSISTANT — ORACLE INFRASTRUCTURE
+
+Owned by ORACLE. The floating AI Assistant panel — visual shell built
+by FOUNDRY in `components/shared/AIAssistant.tsx` — is now wired to
+the Anthropic API for real streaming chat with PJM market context.
+
+### Files
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/prompts/systemPrompt.ts` | The PJM-tuned system prompt. Sets tone, scope, profile-aware depth, and explicit guardrails (no fabricated prices, no trading advice). |
+| `src/services/anthropic.ts` | SDK wrapper. Exposes `streamChat(messages, contextBlock)` — an async generator yielding `{ type: 'text' \| 'done' \| 'error' }` chunks — and `isApiKeyConfigured()`. Uses `dangerouslyAllowBrowser: true` for dev only; flagged to move server-side via the FastAPI backend before production. |
+| `src/services/aiContext.ts` | `buildContextBlock({ profile, view, zone })` returns the context block prepended to the system prompt. `viewFromPathname()` derives the current view from the router pathname. Defines a local `ViewKey` until ARCHITECT ships `viewStore`. |
+| `src/stores/conversationStore.ts` | Zustand store for chat history + streaming state. Persists only `messages` to `sessionStorage` (key: `gridalpha-conversation`) — streaming state is intentionally not persisted. |
+| `src/hooks/useAIChat.ts` | High-level hook the component uses. Returns `{ messages, isStreaming, streamingText, error, send, clear }`. Reads profile from `authStore`, derives view from `useLocation().pathname`, accepts an optional `zone` arg. |
+| `src/components/shared/AIAssistant.tsx` | Wired component. Streams text into the panel with a blinking electric-blue cursor, shows a red banner on error, disables input + textarea when no API key is configured, exposes a Clear control once a thread exists. |
+
+### Conversation persistence
+
+`conversationStore` uses Zustand `persist` middleware against
+`sessionStorage`. Tab refresh keeps the thread alive; a new tab gets a
+fresh conversation. Only `messages` is partialized — `isStreaming`,
+`streamingText`, and `error` reset on reload.
+
+### useAIChat signature
+
+```ts
+useAIChat(zone?: string | null): {
+  messages: ChatMessage[];
+  isStreaming: boolean;
+  streamingText: string;
+  error: string | null;
+  send(text: string): Promise<void>;
+  clear(): void;
+}
+```
+
+`zone` is optional and defaults to `null` until ARCHITECT ships
+`src/stores/viewStore.ts`. Once that lands, the hook can read
+`useViewStore.selectedZone` directly without changing its public surface.
+
+### Required environment variable
+
+```
+VITE_ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Lives in `.env.local` (gitignored). `.env.local.example` documents the
+variable. Without it, `isApiKeyConfigured()` returns `false`, the
+header shows "Offline", the input disables, and any send attempt yields
+an error banner explaining how to fix it.
+
+### Production deployment
+
+The dev wiring uses `dangerouslyAllowBrowser: true` so calls go directly
+from the browser to the Anthropic API. **Before production**, route
+calls through the FastAPI backend on Railway
+(`gridalpha-v2-production.up.railway.app`) so the API key stays
+server-side. The TODO is marked at the top of `services/anthropic.ts`.
+
+### Model
+
+Sprint default: `claude-sonnet-4-5`. Do not switch models without
+re-coordinating with ORACLE.
+

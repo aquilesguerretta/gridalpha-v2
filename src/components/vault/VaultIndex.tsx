@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { FlowSection } from '@/components/terminal/FlowSection';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import { CASE_STUDIES } from '@/lib/mock/vault-mock';
 import type { CaseStudy, CaseCategory, CaseSeverity } from '@/lib/types/vault';
 
@@ -54,17 +55,6 @@ const SEVERITY_COLOR: Record<CaseSeverity, string> = {
   critical: C.alertCritical,
 };
 
-function pageVignette() {
-  return {
-    position: 'absolute' as const,
-    inset: 0,
-    background:
-      'radial-gradient(ellipse at top, rgba(59,130,246,0.05) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(245,158,11,0.04) 0%, transparent 60%), repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 4px)',
-    pointerEvents: 'none' as const,
-    zIndex: 0,
-  };
-}
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -107,17 +97,8 @@ export function VaultIndex() {
   };
 
   return (
-    <div
-      style={{
-        height:     '100%',
-        background: C.bgBase,
-        overflow:   'auto',
-        position:   'relative',
-      }}
-    >
-      <div style={pageVignette()} />
-
-      <div style={{ position: 'relative', zIndex: 1, padding: S.xl }}>
+    <PageAtmosphere>
+      <div style={{ padding: S.xl }}>
         {/* Page header */}
         <div
           style={{
@@ -194,7 +175,7 @@ export function VaultIndex() {
           style={{
             display:             'grid',
             gridTemplateColumns: '320px 1fr',
-            gap:                 S.lg,
+            gap:                 S.xl,
             alignItems:          'start',
           }}
         >
@@ -277,7 +258,7 @@ export function VaultIndex() {
             style={{
               display:             'grid',
               gridTemplateColumns: 'repeat(2, 1fr)',
-              gap:                 S.md,
+              gap:                 S.lg,
             }}
           >
             {visible.map((study) => (
@@ -302,7 +283,7 @@ export function VaultIndex() {
           </div>
         </div>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }
 

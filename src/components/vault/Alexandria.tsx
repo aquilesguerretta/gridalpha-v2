@@ -1,28 +1,26 @@
 // ATLAS — Vault Alexandria curriculum.
 // Concept map (SVG node graph, 18 nodes, 3 tiers) + 3 feature cards.
+// SCRIBE: nodes with an authored lesson are clickable and route to the
+// lesson viewer; nodes without a lesson dim and show "coming soon" on
+// hover. Visited / completed state is read from useProgressStore and
+// reflected on each node, plus a LessonProgress strip below the map.
 
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import { ALEXANDRIA_NODES } from '@/lib/mock/vault-mock';
 import type { ConceptNode } from '@/lib/types/vault';
+import { hasLesson } from '@/lib/curriculum';
+import { useProgressStore } from '@/stores/progressStore';
+import { LessonProgress } from './LessonProgress';
 
 const NODE_W = 140;
 const NODE_H = 60;
 const SVG_W  = 1080;
 const SVG_H  = 480;
-
-function pageVignette() {
-  return {
-    position: 'absolute' as const,
-    inset: 0,
-    background:
-      'radial-gradient(ellipse at top, rgba(59,130,246,0.05) 0%, transparent 55%), radial-gradient(ellipse at bottom right, rgba(245,158,11,0.04) 0%, transparent 60%), repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 4px)',
-    pointerEvents: 'none' as const,
-    zIndex: 0,
-  };
-}
 
 function buildEdges(): Array<{
   from: ConceptNode;
@@ -57,6 +55,15 @@ function curvedPath(
 
 function ConceptMap() {
   const edges = buildEdges();
+  const navigate = useNavigate();
+  const visited = useProgressStore((s) => s.visited);
+  const completed = useProgressStore((s) => s.completed);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+
+  const handleNodeActivate = (n: ConceptNode) => {
+    if (!hasLesson(n.id)) return;
+    navigate(`/vault/alexandria/lesson/${n.id}`);
+  };
 
   return (
     <svg
@@ -105,12 +112,43 @@ function ConceptMap() {
       {ALEXANDRIA_NODES.map((n) => {
         const x = n.x - NODE_W / 2;
         const y = n.y - NODE_H / 2;
-        const stroke = n.unlocked ? C.electricBlue : 'rgba(255,255,255,0.20)';
-        const fill   = n.unlocked ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.03)';
-        const labelColor = n.unlocked ? C.textPrimary : C.textMuted;
+        const available = hasLesson(n.id);
+        const isVisited = visited.has(n.id);
+        const isCompleted = completed.has(n.id);
+        const isHovered = hoverId === n.id;
+
+        const stroke = available
+          ? (isHovered ? C.electricBlueLight : C.electricBlue)
+          : (n.unlocked ? 'rgba(59,130,246,0.30)' : 'rgba(255,255,255,0.20)');
+        const fill = available
+          ? (isHovered ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.10)')
+          : (n.unlocked ? 'rgba(59,130,246,0.05)' : 'rgba(255,255,255,0.03)');
+        const labelColor = available || n.unlocked ? C.textPrimary : C.textMuted;
+        const groupOpacity = available ? 1 : 0.5;
+        const cursor = available ? 'pointer' : 'not-allowed';
+        const tooltip = available ? `Open lesson — ${n.label}` : `${n.label} — Coming soon`;
+
         return (
-          <g key={n.id} opacity={n.unlocked ? 1 : 0.5}>
-            {n.unlocked && (
+          <g
+            key={n.id}
+            opacity={groupOpacity}
+            style={{ cursor, pointerEvents: 'auto' }}
+            onClick={() => handleNodeActivate(n)}
+            onMouseEnter={() => setHoverId(n.id)}
+            onMouseLeave={() => setHoverId((curr) => (curr === n.id ? null : curr))}
+            tabIndex={available ? 0 : -1}
+            role={available ? 'link' : undefined}
+            aria-label={tooltip}
+            onKeyDown={(e) => {
+              if (!available) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleNodeActivate(n);
+              }
+            }}
+          >
+            <title>{tooltip}</title>
+            {(available || n.unlocked) && (
               <rect
                 x={x - 2}
                 y={y - 2}
@@ -119,7 +157,7 @@ function ConceptMap() {
                 rx={10}
                 ry={10}
                 fill="none"
-                stroke="rgba(59,130,246,0.20)"
+                stroke={available && isHovered ? 'rgba(59,130,246,0.55)' : 'rgba(59,130,246,0.20)'}
                 strokeWidth={2}
               />
             )}
@@ -132,7 +170,7 @@ function ConceptMap() {
               ry={8}
               fill={fill}
               stroke={stroke}
-              strokeWidth={1}
+              strokeWidth={isHovered && available ? 1.5 : 1}
             />
             <text
               x={n.x}
@@ -143,10 +181,35 @@ function ConceptMap() {
               fontSize={11}
               fontWeight={600}
               letterSpacing="0.10em"
-              style={{ textTransform: 'uppercase' }}
+              style={{ textTransform: 'uppercase', pointerEvents: 'none' }}
             >
               {n.label.toUpperCase()}
             </text>
+
+            {/* Visited / completed indicator — top-right corner of the node. */}
+            {isCompleted ? (
+              <g pointerEvents="none">
+                <circle cx={x + NODE_W - 8} cy={y + 8} r={5} fill={C.alertNormal} />
+                <path
+                  d={`M ${x + NODE_W - 10.5} ${y + 8} l 1.8 1.8 l 3.4 -3.4`}
+                  stroke={C.bgBase}
+                  strokeWidth={1.4}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
+            ) : isVisited ? (
+              <circle
+                cx={x + NODE_W - 8}
+                cy={y + 8}
+                r={4}
+                fill="none"
+                stroke={C.electricBlue}
+                strokeWidth={1.5}
+                pointerEvents="none"
+              />
+            ) : null}
           </g>
         );
       })}
@@ -159,17 +222,8 @@ export function Alexandria() {
   const totalCount = ALEXANDRIA_NODES.length;
 
   return (
-    <div
-      style={{
-        height:     '100%',
-        background: C.bgBase,
-        overflow:   'auto',
-        position:   'relative',
-      }}
-    >
-      <div style={pageVignette()} />
-
-      <div style={{ position: 'relative', zIndex: 1, padding: S.xl }}>
+    <PageAtmosphere>
+      <div style={{ padding: S.xl }}>
         {/* Page header */}
         <div
           style={{
@@ -296,6 +350,9 @@ export function Alexandria() {
           </div>
         </ContainedCard>
 
+        {/* Reading progress strip — visited / completed cells */}
+        <LessonProgress />
+
         {/* Feature cards row */}
         <div
           style={{
@@ -309,7 +366,7 @@ export function Alexandria() {
           <CohortsCard />
         </div>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }
 

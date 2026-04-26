@@ -28,7 +28,7 @@ export function LessonProgress() {
   return (
     <div
       style={{
-        marginTop:    S.lg,
+        marginBottom: S.xl,
         padding:      `${S.md} ${S.lg}`,
         background:   C.bgElevated,
         border:       `1px solid ${C.borderDefault}`,

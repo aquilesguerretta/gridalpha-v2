@@ -1547,7 +1547,8 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
         display: 'flex',
         alignItems: 'center',
         backgroundColor: 'rgba(12,13,16,0.88)',
-        backdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         borderBottom: `1px solid ${C.borderDefault}`,
         padding: '0 20px',
         gap: 24,
@@ -1562,6 +1563,13 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
           <FalconLogo collapsed={false} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          {/* CHROMA-PROPOSAL: consider F.display at fontSize 18px,
+              letterSpacing -0.01em, fontWeight 400 (not 700), with no
+              uppercase transform — this would mirror the masthead
+              treatment used by the editorial AuthLayout and give the
+              wordmark stronger brand authority. Current F.mono caps
+              treatment reads as a system label rather than a name.
+              ARCHITECT to decide. */}
           <span style={{
             fontFamily: F.mono,
             fontSize: '15px',
@@ -1635,7 +1643,7 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
                 fontSize: '12px',
                 color: activeNav === item.id ? C.electricBlue : C.textSecondary,
                 letterSpacing: '0.02em',
-                fontWeight: '500',
+                fontWeight: activeNav === item.id ? '600' : '500',
                 maxWidth: collapsed ? 0 : 120,
                 opacity: collapsed ? 0 : 1,
                 overflow: 'hidden',

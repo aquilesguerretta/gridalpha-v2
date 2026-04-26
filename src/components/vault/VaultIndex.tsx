@@ -5,7 +5,6 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
-import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { FlowSection } from '@/components/terminal/FlowSection';
 import { CASE_STUDIES } from '@/lib/mock/vault-mock';
 import type { CaseStudy, CaseCategory, CaseSeverity } from '@/lib/types/vault';

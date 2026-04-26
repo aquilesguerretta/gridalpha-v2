@@ -133,3 +133,83 @@ only on decorative or content elements that do not participate in grid/flex sizi
 - Background base: #111117
 - No Tailwind on layout-critical elements
 - No hand-rolled SVG charts — Recharts only
+
+## FOUNDRY CONTRACTS — REFERENCE
+
+Quick-scan reference for the contracts FOUNDRY ships in
+`feature/full-shell-buildout`. All paths relative to `src/`.
+
+### Type contracts — `lib/types/`
+
+| File | Exports |
+| --- | --- |
+| `profiles.ts` | `ProfileType` (re-export from `stores/authStore`) |
+| `market.ts` | `Regime` (8 states), `PricePoint`, `ZoneSnapshot` |
+| `feed.ts` | `AnomalySeverity`, `AnomalyItem` |
+| `analytics.ts` | `AnalyticsTab` (6 tabs), `PlantProfitabilityRow`, `BidScheduleHour`, `FuelGanttSegment`, `ReserveMarginPoint`, `ConvergencePoint` |
+| `vault.ts` | `CaseCategory`, `CaseSeverity`, `CaseStudyMetric`, `CaseStudyEvent`, `CaseStudy`, `ConceptTier`, `ConceptNode` |
+
+`Regime` values: `normal` `burning` `suppressed` `scarcity` `transition` `discharging` `charging` `idle`.
+`AnalyticsTab` values: `intelligence` `price` `spread` `battery` `marginal` `convergence` (`intelligence` consumes live RSS via `hooks/useNewsData`; the others use `analytics-mock`).
+
+### Mock data — `lib/mock/`
+
+| File | Headline exports |
+| --- | --- |
+| `analyst-mock.ts` | `COMPARISON_SERIES`, `SAVED_QUERIES`, `ANNOTATIONS`, `CORRELATION_MATRIX` (+ `CORRELATION_ZONES`), `SEASONAL_PATTERN`, `ANOMALY_DETECTIONS` |
+| `storage-mock.ts` | `BATTERY_ASSETS` (4), `REVENUE_ATTRIBUTION_30D`, `DA_BID_RECOMMENDATIONS`, `CYCLING_TRACKER`, `ANCILLARY_SIGNALS`, `ASSET_HEALTH` |
+| `industrial-mock.ts` | `FACILITY_PROFILE`, `STRATEGIES` (5), `TARIFF_COMPARISON`, `DEMAND_RESPONSE_OPPS`, `CARBON_INTENSITY`, `MONTHLY_BILL_PROJECTION` |
+| `student-mock.ts` | `TODAY_EXPLAINER`, `STUDENT_CONCEPT_NODES` (11), `INTERVIEW_QUESTIONS`, `JOB_POSTINGS`, `COHORT_MEMBERS`, `SANDBOX_PNL` |
+| `developer-mock.ts` | `PROJECT_PIPELINE` (4), `ZONE_REVENUE_HISTORY_24M`, `INTERCONNECTION_QUEUE`, `BINDING_CONSTRAINTS_12M`, `PPA_BENCHMARKS`, `POLICY_TRACKER` |
+| `analytics-mock.ts` | `PRICE_INTELLIGENCE_KPIS`, `PRICE_INTELLIGENCE_OVERLAY`, `PRICE_COMPONENTS_BREAKDOWN`, `SPARK_SPREAD_PLANTS` (10), `DISPATCH_FRONTIER_MARKER`, `BATTERY_OPTIMAL_SCHEDULE`, `BATTERY_SENSITIVITY_MATRIX` (+ `BATTERY_SENSITIVITY_ROWS/COLS`), `MARGINAL_FUEL_GANTT_24H`, `RESERVE_MARGIN_24H`, `ZONE_RELIABILITY_SCORES` (8), `CONVERGENCE_24H`, `CONVERGENCE_OPPORTUNITIES` |
+| `vault-mock.ts` | `CASE_STUDIES` (8), `ALEXANDRIA_NODES` (18 — foundation 4 / mechanics 8 / advanced 6) |
+
+### Design primitives — `components/terminal/`
+
+`HeroNumber` and `useHoverState` were pre-existing. Below are the 7 FOUNDRY adds.
+
+| Component | Props |
+| --- | --- |
+| `EditorialIdentity` | `{ children: string; size?: 'hero' \| 'section'; marginTop?; marginBottom? }` — italic gray serif (F.display permitted) |
+| `ContainedCard` | `{ children; padding?; minHeight?; style? }` — active-edge card chrome, hover via `useHoverState` |
+| `FlowSection` | `{ eyebrow: string; eyebrowColor?: 'blue' \| 'gold'; identity: string; children }` — eyebrow + EditorialIdentity + content, no card chrome |
+| `MetricTile` | `{ label: string; value: string \| number; unit?; sub?; regime?: Regime }` — wraps `ContainedCard` + `HeroNumber` (size=56) |
+| `DataTable` | `{ columns: ColumnDef[]; rows: any[]; compact? }` — `ColumnDef = { key; label; align?; width?; render? }` |
+| `RegimeBadge` | `{ regime: Regime }` — 6×6 dot + 11px caps label, color per `Regime` |
+| `StatusDot` | `{ status: 'live' \| 'stale' \| 'offline' \| 'simulated' }` — 6×6 dot, `live` pulses |
+
+### Shared components — `components/shared/`
+
+`ErrorBoundary` and `CardSkeleton` were pre-existing. Below are the 4 FOUNDRY adds.
+
+| Component | Props | Notes |
+| --- | --- | --- |
+| `AIAssistant` | none | Floating panel 360×480 at right:24/bottom:84, zIndex 9000. Reads `useUIStore.aiAssistantOpen`. Visual only — 3 mock exchanges. |
+| `AIAssistantTrigger` | none | 48×48 electric-blue circle at right:24/bottom:84, zIndex 8500. Toggles `useUIStore.toggleAIAssistant`. |
+| `CommandPalette` | none | Modal at zIndex 9500, 600×480. Reads `useUIStore.commandPaletteOpen`. Backdrop click and ESC close. |
+| `SavedViewsMenu` | `{ onSelect?: (id: string) => void }` | 280px-wide stateless dropdown. 5 mock saved views. Caller positions and shows/hides. |
+
+### UI store — `stores/uiStore.ts`
+
+```ts
+useUIStore: {
+  aiAssistantOpen: boolean;
+  commandPaletteOpen: boolean;
+  toggleAIAssistant(): void;
+  toggleCommandPalette(): void;
+  closeAll(): void;
+}
+```
+
+Persisted to `sessionStorage` under key `gridalpha-ui`.
+
+### Keyboard shortcuts hook — `hooks/useKeyboardShortcuts.ts`
+
+Mount once at the app shell root.
+
+| Combo | Action |
+| --- | --- |
+| `Cmd/Ctrl+K` | toggle command palette |
+| `Cmd/Ctrl+P` | contextual news drawer (placeholder — currently `console.log`) |
+| `Cmd/Ctrl+/` | toggle AI Assistant |
+| `Escape` | `closeAll()` |

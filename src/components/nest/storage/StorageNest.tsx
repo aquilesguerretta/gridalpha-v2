@@ -52,8 +52,19 @@ function PortfolioStrip() {
 }
 
 function BatteryAssetCard({ asset }: { asset: BatteryAsset }) {
+  const elevated = asset.regime === 'discharging';
   return (
-    <ContainedCard minHeight={200}>
+    <ContainedCard
+      minHeight={200}
+      style={
+        elevated
+          ? {
+              borderTop: '1px solid rgba(245,158,11,0.40)',
+              boxShadow: 'inset 0 0 0 1px rgba(245,158,11,0.10)',
+            }
+          : undefined
+      }
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm, height: '100%' }}>
         {/* Header */}
         <div>

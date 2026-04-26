@@ -20,6 +20,8 @@ import PeregrineFullPage from "./peregrine/PeregrineFullPage";
 import { AIAssistant } from './shared/AIAssistant';
 import { AIAssistantTrigger } from './shared/AIAssistantTrigger';
 import { CommandPalette } from './shared/CommandPalette';
+// CONDUIT — saved views trigger lives in the top nav next to the LMP readout.
+import { SavedViewsTrigger } from './shared/SavedViewsTrigger';
 // FOUNDRY Phase E — global keyboard shortcuts. Mounted once at the
 // shell root so Cmd+K / Cmd+P / Cmd+/ / ESC work everywhere inside.
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -1647,6 +1649,8 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
       {!isMapFirst && (
         <>
           <div style={{ flex: 1 }} />
+          {/* CONDUIT — saved views trigger sits between the nav and the LMP readout. */}
+          <SavedViewsTrigger />
           <div style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             fontFamily: F.mono, fontSize: '11px',

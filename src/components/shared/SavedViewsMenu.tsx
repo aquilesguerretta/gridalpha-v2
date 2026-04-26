@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { C, F, R, S } from '@/design/tokens';
 import { useSavedViews } from '@/hooks/useSavedViews';
 import type { SavedView } from '@/stores/savedViewsStore';
@@ -8,6 +9,10 @@ import type { SavedView } from '@/stores/savedViewsStore';
 // Replaces the FOUNDRY mock list with real saved views from
 // `useSavedViewsStore`. Stateless on its own — caller (SavedViewsTrigger)
 // owns positioning, opening, and closing.
+//
+// Rendered through a portal to `document.body` so the menu escapes the
+// TopBar stacking context (TopBar has its own z-index, which would
+// otherwise cap every descendant's z-index regardless of value).
 
 interface Props {
   open: boolean;
@@ -108,7 +113,7 @@ export function SavedViewsMenu({
     }
   };
 
-  return (
+  return createPortal(
     <>
       <div
         id="conduit-saved-views-menu"
@@ -127,7 +132,7 @@ export function SavedViewsMenu({
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          zIndex: 9400,
+          zIndex: 9500,
           boxShadow: '0 12px 32px rgba(0,0,0,0.40)',
         }}
       >
@@ -224,14 +229,15 @@ export function SavedViewsMenu({
             letterSpacing: '0.10em',
             textTransform: 'uppercase',
             color: C.electricBlue,
-            zIndex: 9450,
+            zIndex: 9501,
             boxShadow: '0 8px 18px rgba(0,0,0,0.35)',
           }}
         >
           {toast}
         </div>
       )}
-    </>
+    </>,
+    document.body,
   );
 }
 

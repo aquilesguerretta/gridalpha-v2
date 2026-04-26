@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { C, F, R, S } from '@/design/tokens';
 
 // CONDUIT shared — modal dialog asking the user to name a saved view.
 // Visual treatment matches the FOUNDRY CommandPalette modal: full-viewport
 // backdrop with blur, centered elevated panel, electric-blue active edge.
+//
+// Rendered through a portal to `document.body` so the modal escapes the
+// TopBar stacking context (the trigger that mounts this modal lives
+// inside TopBar; without a portal the modal would render below the AI
+// Assistant trigger and other root-level overlays).
 
 interface Props {
   open: boolean;
@@ -41,7 +47,7 @@ export function SaveViewModal({ open, onClose, onSave, preview }: Props) {
     onSave(trimmed);
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-label="Save current view"
@@ -57,13 +63,15 @@ export function SaveViewModal({ open, onClose, onSave, preview }: Props) {
         alignItems: 'flex-start',
         justifyContent: 'center',
         paddingTop: 140,
-        zIndex: 9600,
+        zIndex: 10000,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           width: 480,
+          position: 'relative',
+          zIndex: 10001,
           background: C.bgElevated,
           border: `1px solid ${C.borderDefault}`,
           borderTop: `1px solid ${C.borderActive}`,
@@ -198,6 +206,7 @@ export function SaveViewModal({ open, onClose, onSave, preview }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

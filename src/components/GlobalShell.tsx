@@ -25,6 +25,8 @@ import { SavedViewsTrigger } from './shared/SavedViewsTrigger';
 // FOUNDRY Phase E — global keyboard shortcuts. Mounted once at the
 // shell root so Cmd+K / Cmd+P / Cmd+/ / ESC work everywhere inside.
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+// CONDUIT — restore an encoded `?v=...` view from the URL if present.
+import { useShareableUrl } from '@/hooks/useShareableUrl';
 import { useHenryHub } from '../hooks/data/useEnergyPrices';
 import { useFuelMix } from '../hooks/data/useAtlasData';
 import { useLiveOpsData } from '../hooks/data/useLiveOpsData';
@@ -1688,6 +1690,8 @@ type GlobalShellProps = {
 export default function GlobalShell({ initialView = 'nest' }: GlobalShellProps = {}) {
   // FOUNDRY Phase E — wires Cmd+K / Cmd+P / Cmd+/ / ESC globally.
   useKeyboardShortcuts();
+  // CONDUIT — restore an encoded view from the URL if present (`?v=...`).
+  useShareableUrl();
 
   const location = useLocation();
   // Suppress EntryOverlay splash when arriving from the auth flow.

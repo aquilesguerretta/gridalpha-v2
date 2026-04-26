@@ -104,7 +104,7 @@ function StrategySimulatorCard() {
   const [memoHovered, setMemoHovered] = useState(false);
 
   return (
-    <ContainedCard minHeight={360}>
+    <ContainedCard minHeight={420}>
       <SectionHeader eyebrow="STRATEGY SIMULATOR · 10-YEAR NPV" identity="What to do about it." />
 
       <div style={{ marginTop: S.md, display: 'flex', flexDirection: 'column' }}>

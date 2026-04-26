@@ -3,6 +3,7 @@ import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { FlowSection } from '@/components/terminal/FlowSection';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import {
   TODAY_EXPLAINER,
   STUDENT_CONCEPT_NODES,
@@ -517,30 +518,9 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
 // ─── MAIN ─────────────────────────────────────────────────────────
 export function StudentNest() {
   return (
-    <div
-      style={{
-        height: '100%',
-        background: C.bgBase,
-        overflow: 'auto',
-        position: 'relative',
-      }}
-    >
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          background:
-            'radial-gradient(ellipse 80% 60% at center 30%, rgba(255,255,255,0.025) 0%, transparent 70%)',
-        }}
-      />
-
+    <PageAtmosphere>
       <div
         style={{
-          position: 'relative',
-          zIndex: 1,
           display: 'grid',
           gridTemplateColumns: '2fr 1fr',
           gap: S.sm,
@@ -562,6 +542,6 @@ export function StudentNest() {
           <CohortSection />
         </div>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }

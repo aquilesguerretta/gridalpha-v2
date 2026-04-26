@@ -187,7 +187,7 @@ Quick-scan reference for the contracts FOUNDRY ships in
 | `AIAssistant` | none | Floating panel 360×480 at right:24/bottom:84, zIndex 9000. Reads `useUIStore.aiAssistantOpen`. Visual only — 3 mock exchanges. |
 | `AIAssistantTrigger` | none | 48×48 electric-blue circle at right:24/bottom:84, zIndex 8500. Toggles `useUIStore.toggleAIAssistant`. |
 | `CommandPalette` | none | Modal at zIndex 9500, 600×480. Reads `useUIStore.commandPaletteOpen`. Backdrop click and ESC close. |
-| `SavedViewsMenu` | `{ onSelect?: (id: string) => void }` | 280px-wide stateless dropdown. 5 mock saved views. Caller positions and shows/hides. |
+| `SavedViewsMenu` | `{ open; onClose; anchorRef; onSaveCurrentClick }` | CONDUIT replaced the FOUNDRY mock with a real implementation. 320px-wide dropdown reading from `useSavedViewsStore`. See **CONDUIT INFRASTRUCTURE** at the bottom of this file. |
 
 ### UI store — `stores/uiStore.ts`
 
@@ -356,4 +356,146 @@ server-side. The TODO is marked at the top of `services/anthropic.ts`.
 
 Sprint default: `claude-sonnet-4-5`. Do not switch models without
 re-coordinating with ORACLE.
+
+## CONDUIT INFRASTRUCTURE — SAVED VIEWS & ANNOTATIONS
+
+CONDUIT owns two cross-cutting infrastructure features that touch every
+screen but don't belong to any one profile or destination. Both persist
+to **localStorage** under namespaced keys so they survive a tab close;
+when the FastAPI wiring sprint lands, they should move server-side.
+
+### Saved Views
+
+Lets a user capture the current view (route + profile) under a name,
+restore it later, pin favourites, and share via URL.
+
+**Files (CONDUIT-owned):**
+
+| Path | Purpose |
+| --- | --- |
+| `src/services/viewSerialization.ts` | `ViewKey` type, `ViewSnapshot` shape, base64url encode/decode, `buildShareableUrl`, `readSnapshotFromUrl`, `viewKeyFromPathname`. |
+| `src/stores/savedViewsStore.ts` | Zustand store of `SavedView[]`, persisted to `localStorage` under key `gridalpha-saved-views`. CRUD + pin + reorder. |
+| `src/hooks/useSavedViews.ts` | `captureCurrentView`, `saveCurrentAs`, `restoreView`, `buildShareLink`, `copyShareLink`, plus per-view share-link helpers. |
+| `src/hooks/useShareableUrl.ts` | Mounts once at the shell root. On load, reads `?v=...`, navigates to the encoded pathname, then strips the param. |
+| `src/components/shared/SaveViewModal.tsx` | 480px modal asking the user to name the view. ESC closes, Enter submits. |
+| `src/components/shared/SavedViewsMenu.tsx` | 320px dropdown listing pinned + all views. "+ Save current view" header, per-row pin / share / delete actions, empty state. |
+| `src/components/shared/SavedViewsTrigger.tsx` | Top-nav bookmark icon button that owns the open/close state of the menu and the save modal. |
+
+**Top-nav integration:** `SavedViewsTrigger` is mounted inside `TopBar`
+in `GlobalShell.tsx`, between the `flex: 1` spacer and the LMP readout.
+The trigger is hidden along with the rest of the right-side cluster on
+map-first views (Atlas), matching the existing `!isMapFirst` guard.
+
+**Shareable URL format:** `<origin><pathname>?v=<base64url(JSON)>`. The
+JSON is a `ViewSnapshot { version, view, profile, zone, pathname,
+payload, savedAt }`. `payload` is currently always `{}` and reserved
+for per-view extra state once feature owners want to capture e.g. the
+active analytics tab or scroll position.
+
+**Capture API:**
+
+```ts
+import { useSavedViews } from '@/hooks/useSavedViews';
+
+const { saveCurrentAs, restoreView, buildShareLink, copyShareLink } = useSavedViews();
+saveCurrentAs('Morning routine');     // -> SavedView
+restoreView(viewId);                  // navigates to its pathname
+const url = buildShareLink();         // current view as URL string
+await copyShareLink();                // writes URL to clipboard
+```
+
+**Limitation — zone capture:** `selectedZone` currently lives as React
+state inside `GlobalShell` (no global store yet). CONDUIT writes
+`zone: null` into every snapshot and zone restoration is a no-op.
+When ARCHITECT introduces `src/stores/viewStore.ts` with a
+`selectedZone` field, wire it into both `useSavedViews.captureCurrentView`
+and `useShareableUrl` — the `ViewSnapshot.zone` slot is already there.
+
+### Annotations
+
+Lets a user drop a numbered note anywhere on a chart and have it persist
+across sessions. Generic across chart libraries — coordinates are stored
+as 0..1 fractions of the parent container, so Recharts, Mapbox, custom
+SVG, or DOM-based timelines all work.
+
+**Files (CONDUIT-owned):**
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/types/annotation.ts` | `Annotation`, `AnnotationDraft`. |
+| `src/stores/annotationStore.ts` | Single flat list keyed by `chartId`, persisted to `localStorage` under key `gridalpha-annotations`. |
+| `src/hooks/useAnnotations.ts` | Per-chart hook returning the sorted slice plus `add`, `update`, `remove`, `clearAll`. |
+| `src/components/shared/AnnotationDot.tsx` | 20×20 numbered marker, absolutely positioned at normalized coordinates. |
+| `src/components/shared/AnnotationLayer.tsx` | Pointer-pass-through overlay (`position: absolute; inset: 0`). When `enabled`, click drops a new-annotation draft input. |
+| `src/components/shared/AnnotationDrawer.tsx` | Right-edge sliding panel listing every annotation for a chart. Inline edit on double-click, per-row delete, footer "+ Add" + "Clear all". |
+| `src/components/shared/AnnotatableChart.tsx` | Opt-in wrapper component. Wrap any chart in this and you get the layer + drawer + a floating toolbar for free. |
+
+**chartId convention:** `<screen>:<chart-id>` so cross-chart features
+(search, recent, jump-to) can route correctly later.
+
+| Example chartId | Means |
+| --- | --- |
+| `trader-nest:lmp-24h` | Trader Nest's 24h LMP chart. |
+| `analyst-nest:correlation-matrix` | Analyst Nest's correlation heatmap. |
+| `vault:storm-elliott-chart` | The Storm Elliott case study chart in Vault. |
+| `analytics:price-overlay` | Price Intelligence tab in Analytics. |
+
+**Opt-in usage** (for chart owners — TERMINAL, ATLAS, the Trader Nest
+team, etc.):
+
+```tsx
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
+
+<AnnotatableChart chartId="trader-nest:lmp-24h">
+  <LMP24HChart {...props} />
+</AnnotatableChart>
+```
+
+That's it — the wrapper handles the layer, drawer, and toolbar. The
+chart component itself is **never modified**. CONDUIT does not
+retrofit any existing chart in this sprint; chart owners opt in when
+they're ready.
+
+**Direct (low-level) usage** for callers who want their own toolbar:
+
+```tsx
+import { AnnotationLayer } from '@/components/shared/AnnotationLayer';
+import { AnnotationDrawer } from '@/components/shared/AnnotationDrawer';
+import { useAnnotations } from '@/hooks/useAnnotations';
+
+const chartId = 'analytics:price-overlay';
+const { annotations } = useAnnotations(chartId);
+
+<div style={{ position: 'relative' }}>
+  <YourChart />
+  <AnnotationLayer chartId={chartId} enabled={addMode} />
+</div>
+<AnnotationDrawer chartId={chartId} open={drawerOpen} onClose={...} />
+```
+
+### Persistence model
+
+| Feature | localStorage key | Schema versioning |
+| --- | --- | --- |
+| Saved views | `gridalpha-saved-views` | Each `ViewSnapshot` carries a `version: 1` field. Future migrations live in `viewSerialization.decodeSnapshot`. |
+| Annotations | `gridalpha-annotations` | None yet — add a top-level version field at the store level when the schema first changes. |
+
+Both stores use Zustand's `persist` middleware. There is no migration
+path implemented today because v1 is the only schema. When the FastAPI
+backend lands (`gridalpha-v2-production.up.railway.app`), a sync layer
+should mirror writes to the server and replace the local stores as the
+source of truth — the public hook surface (`useSavedViews`,
+`useAnnotations`) will not need to change.
+
+### What CONDUIT owns vs. does not own
+
+CONDUIT **may** create or modify any file listed in the two tables
+above, plus a marked integration point in `src/components/GlobalShell.tsx`
+(the `SavedViewsTrigger` mount and the `useShareableUrl()` call — both
+flagged with `// CONDUIT —` comments).
+
+CONDUIT **must not** modify any chart component itself. Annotations
+attach via the `AnnotatableChart` wrapper, never by editing chart JSX.
+Likewise, CONDUIT does not touch any per-profile Nest, the Atlas, the
+Vault, or routing in `main.tsx`.
 

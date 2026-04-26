@@ -44,36 +44,13 @@ import {
   hourWindowLabel,
 } from './nest/everyone/EveryoneNest';
 
-// ── Per-profile Nest placeholders ────────────────────────────────
-// TERMINAL agent owns these directories. Until each profile-specific
-// Nest is committed under src/components/nest/<profile>/<Profile>Nest.tsx,
-// we render a local placeholder. Swap the placeholder for the real
-// import as TERMINAL ships each one.
-//
-// Expected real imports (uncomment and remove the matching placeholder):
-// import { AnalystNest }    from './nest/analyst/AnalystNest';
-// import { StorageNest }    from './nest/storage/StorageNest';
-// import { IndustrialNest } from './nest/industrial/IndustrialNest';
-// import { StudentNest }    from './nest/student/StudentNest';
-// import { DeveloperNest }  from './nest/developer/DeveloperNest';
-
-const NestPlaceholder = ({ profile }: { profile: string }) => (
-  <div style={{
-    padding:       48,
-    color:         'rgba(255,255,255,0.6)',
-    fontFamily:    F.mono,
-    letterSpacing: '0.16em',
-    fontSize:      '12px',
-    textTransform: 'uppercase' as const,
-  }}>
-    {profile} NEST · awaiting TERMINAL agent
-  </div>
-);
-const AnalystNest    = () => <NestPlaceholder profile="ANALYST" />;
-const StorageNest    = () => <NestPlaceholder profile="STORAGE" />;
-const IndustrialNest = () => <NestPlaceholder profile="INDUSTRIAL" />;
-const StudentNest    = () => <NestPlaceholder profile="STUDENT" />;
-const DeveloperNest  = () => <NestPlaceholder profile="DEVELOPER" />;
+// ── Per-profile Nests (TERMINAL) ─────────────────────────────────
+// All five non-Trader Nests have shipped — placeholders removed.
+import { AnalystNest }    from './nest/analyst/AnalystNest';
+import { StorageNest }    from './nest/storage/StorageNest';
+import { IndustrialNest } from './nest/industrial/IndustrialNest';
+import { StudentNest }    from './nest/student/StudentNest';
+import { DeveloperNest }  from './nest/developer/DeveloperNest';
 
 // ── Vault destination ────────────────────────────────────────────
 // ATLAS shipped src/components/vault/Vault.tsx — the shell now renders it

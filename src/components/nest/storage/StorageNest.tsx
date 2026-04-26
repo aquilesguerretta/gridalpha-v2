@@ -17,6 +17,7 @@ import { FlowSection } from '@/components/terminal/FlowSection';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { RegimeBadge } from '@/components/terminal/RegimeBadge';
 import { StatusDot } from '@/components/terminal/StatusDot';
+import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import {
   BATTERY_ASSETS,
   REVENUE_ATTRIBUTION_30D,
@@ -504,30 +505,9 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
 // ─── MAIN ─────────────────────────────────────────────────────────
 export function StorageNest() {
   return (
-    <div
-      style={{
-        height: '100%',
-        background: C.bgBase,
-        overflow: 'auto',
-        position: 'relative',
-      }}
-    >
-      <div
-        aria-hidden
-        style={{
-          position: 'absolute',
-          inset: 0,
-          pointerEvents: 'none',
-          zIndex: 0,
-          background:
-            'radial-gradient(ellipse 80% 60% at center 30%, rgba(255,255,255,0.025) 0%, transparent 70%)',
-        }}
-      />
-
+    <PageAtmosphere>
       <div
         style={{
-          position: 'relative',
-          zIndex: 1,
           display: 'flex',
           flexDirection: 'column',
           gap: S.xl,
@@ -560,6 +540,6 @@ export function StorageNest() {
           </div>
         </div>
       </div>
-    </div>
+    </PageAtmosphere>
   );
 }

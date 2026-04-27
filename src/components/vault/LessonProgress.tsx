@@ -1,29 +1,74 @@
 // SCRIBE — Alexandria progress strip.
-// Renders below the concept map. Reads useProgressStore for visited /
-// completed counts and shows one cell per ALEXANDRIA_NODE.
+// Renders below the concept map. Counts BOTH:
+//   (a) Lesson-format nodes (the original 18 ConceptNodes), and
+//   (b) CurriculumEntry-format nodes (the 6 Sub-Tier 1A entries).
+// Total is unified to 24. Cells for new entries get a falcon-gold border
+// accent so the new tier is visually distinguishable in the strip.
 
 import { useMemo } from 'react';
 import { C, F, S } from '@/design/tokens';
-import { ALEXANDRIA_NODES } from '@/lib/mock/vault-mock';
+import {
+  ALEXANDRIA_NODES,
+  FOUNDATIONS_OF_ENERGY_NODES,
+} from '@/lib/mock/vault-mock';
 import { hasLesson } from '@/lib/curriculum';
+import { hasEntry } from '@/lib/curriculum/entriesIndex';
 import { useProgressStore } from '@/stores/progressStore';
 
 const CELL_SIZE = 14;
 const CELL_GAP = 6;
 
+interface UnifiedCell {
+  id: string;
+  label: string;
+  available: boolean;
+  visited: boolean;
+  completed: boolean;
+  /** true → new Sub-Tier 1A entry (gold accent); false → original Lesson. */
+  isEntry: boolean;
+}
+
 export function LessonProgress() {
   const visited = useProgressStore((s) => s.visited);
   const completed = useProgressStore((s) => s.completed);
+  const visitedLayers = useProgressStore((s) => s.visitedLayers);
+  const ackd = useProgressStore((s) => s.retrievalAcknowledged);
+
+  const cells = useMemo<UnifiedCell[]>(() => {
+    const entryCells: UnifiedCell[] = FOUNDATIONS_OF_ENERGY_NODES.map((n) => {
+      const layers = visitedLayers[n.id] ?? [];
+      const isVisited = layers.includes('L1');
+      const isCompleted =
+        ackd[`${n.id}:L2`] === true || layers.length === 3;
+      return {
+        id:        n.id,
+        label:     n.label,
+        available: hasEntry(n.id),
+        visited:   isVisited,
+        completed: isCompleted,
+        isEntry:   true,
+      };
+    });
+    const lessonCells: UnifiedCell[] = ALEXANDRIA_NODES.map((n) => ({
+      id:        n.id,
+      label:     n.label,
+      available: hasLesson(n.id),
+      visited:   visited.has(n.id),
+      completed: completed.has(n.id),
+      isEntry:   false,
+    }));
+    return [...entryCells, ...lessonCells];
+  }, [visited, completed, visitedLayers, ackd]);
 
   const counts = useMemo(() => {
-    let visitedCount = 0;
-    let completedCount = 0;
-    for (const node of ALEXANDRIA_NODES) {
-      if (visited.has(node.id)) visitedCount += 1;
-      if (completed.has(node.id)) completedCount += 1;
+    let v = 0;
+    let c = 0;
+    for (const cell of cells) {
+      if (cell.visited) v += 1;
+      if (cell.completed) c += 1;
     }
-    return { visited: visitedCount, completed: completedCount, total: ALEXANDRIA_NODES.length };
-  }, [visited, completed]);
+    return { visited: v, completed: c, total: cells.length };
+  }, [cells]);
 
   return (
     <div
@@ -69,32 +114,29 @@ export function LessonProgress() {
             fontVariantNumeric: 'tabular-nums',
           }}
         >
-          {counts.visited} of {counts.total} visited · {counts.completed} of {counts.total} completed
+          {counts.visited} of {counts.total} visited · {counts.completed} of{' '}
+          {counts.total} completed
         </span>
       </div>
 
       <div
         style={{
           display:             'grid',
-          gridTemplateColumns: `repeat(${ALEXANDRIA_NODES.length}, ${CELL_SIZE}px)`,
+          gridTemplateColumns: `repeat(${cells.length}, ${CELL_SIZE}px)`,
           gap:                 CELL_GAP,
           alignItems:          'center',
         }}
       >
-        {ALEXANDRIA_NODES.map((node) => {
-          const isVisited = visited.has(node.id);
-          const isCompleted = completed.has(node.id);
-          const lessonExists = hasLesson(node.id);
-          return (
-            <ProgressCell
-              key={node.id}
-              title={`${node.label}${lessonExists ? '' : ' — coming soon'}`}
-              visited={isVisited}
-              completed={isCompleted}
-              lessonExists={lessonExists}
-            />
-          );
-        })}
+        {cells.map((cell) => (
+          <ProgressCell
+            key={cell.id}
+            title={`${cell.label}${cell.available ? '' : ' — coming soon'}`}
+            visited={cell.visited}
+            completed={cell.completed}
+            available={cell.available}
+            isEntry={cell.isEntry}
+          />
+        ))}
       </div>
     </div>
   );
@@ -104,22 +146,26 @@ function ProgressCell({
   title,
   visited,
   completed,
-  lessonExists,
+  available,
+  isEntry,
 }: {
   title: string;
   visited: boolean;
   completed: boolean;
-  lessonExists: boolean;
+  available: boolean;
+  isEntry: boolean;
 }) {
+  const accent = isEntry ? C.falconGold : C.electricBlue;
+  const wash = isEntry ? 'rgba(245,158,11,0.10)' : 'rgba(59,130,246,0.10)';
+
   const background = (() => {
-    if (completed) return C.electricBlue;
-    if (visited) return 'rgba(59,130,246,0.10)';
+    if (completed) return accent;
+    if (visited) return wash;
     return 'transparent';
   })();
   const borderColor = (() => {
-    if (completed) return C.electricBlue;
-    if (visited) return C.electricBlue;
-    if (lessonExists) return C.borderStrong;
+    if (completed || visited) return accent;
+    if (available) return isEntry ? 'rgba(245,158,11,0.30)' : C.borderStrong;
     return C.borderDefault;
   })();
   return (
@@ -132,7 +178,7 @@ function ProgressCell({
         borderRadius: 3,
         background,
         border:       `1px solid ${borderColor}`,
-        opacity:      lessonExists ? 1 : 0.5,
+        opacity:      available ? 1 : 0.5,
         display:      'inline-block',
       }}
     />

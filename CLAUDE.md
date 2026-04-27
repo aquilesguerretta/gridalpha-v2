@@ -837,3 +837,202 @@ file-tree convention (`/<feature>/<Component>.tsx`, plus a top-level
 `<Feature>Tab.tsx` orchestrator), and use the same surgical
 TraderNest tab-strip pattern to add itself without reshaping the
 locked layouts.
+
+## ALEXANDRIA SUB-TIER 1A — RENDERER INFRASTRUCTURE
+
+Owned by SCRIBE. The "Foundations of Energy" tier is the new top band
+of the Alexandria concept map (above the existing Foundation /
+Mechanics / Advanced tiers). Six entries, each rendered at three
+reading depths (L1 / L2 / L3). Sprint α — V1 of Sub-Tier 1A.
+
+### The renderer-only contract
+
+SCRIBE is a renderer, not an author. The L1 / L2 / L3 prose of every
+entry comes from the curriculum author's handoff document and is
+rendered verbatim. SCRIBE does not paraphrase, summarise, omit, or
+"improve" any sentence. The handoff is the deliverable; the entry
+data files are the rendered output.
+
+The Sub-Tier 1A handoff lives at `Alexandria_SubTier_1A_Handoff_FULL.md`
+at the repo root (placeholder pointer; the full prose is delivered to
+SCRIBE in chat and rendered into the entry files).
+
+The same renderer-only contract applies to all future Alexandria
+sub-tier handoffs (1B, 1B.5, 1C, 1D, then Tier 2+).
+
+### Two coexisting curriculum schemas
+
+| Schema | Owns | Files |
+| --- | --- | --- |
+| `Lesson` | The original 4 foundation lessons (`a-electricity`, `a-grid`, `a-supply-demand`, `a-isos`). Locked. | `src/lib/curriculum/lessons/`, `src/lib/curriculum/index.ts`, `src/components/vault/Lesson.tsx`, `src/components/vault/LessonQuiz.tsx` |
+| `CurriculumEntry` | The new 6 Sub-Tier 1A entries (`what-is-energy`, `power-vs-energy`, `forms-of-energy`, `units-and-orders-of-magnitude`, `entropy-and-second-law`, `efficiency`). | `src/lib/curriculum/entries/`, `src/lib/curriculum/entriesIndex.ts`, `src/components/vault/Entry.tsx` and supporting components |
+
+Both schemas live side-by-side in `src/lib/types/curriculum.ts`. The
+`Lesson` types remain untouched.
+
+### The three-layer architecture
+
+Every entry has three layer reading-depths:
+
+- **L1 — Intuition** — smart 14-year-old, zero prerequisites. 3+
+  audience-tagged examples in cards, optional Smil-style closing
+  anchor, optional light-touch retrieval prompt.
+- **L2 — Mechanism** — working professional adjacent to topic. One
+  worked example with widget placeholder. Mandatory retrieval prompt
+  that gates the L3 toggle and the Next-entry CTA.
+- **L3 — Practitioner** — engineer, trader, regulator. Full prose
+  with primary-source citations.
+
+The L3 layer is the source of truth; L1 and L2 are progressive
+distillations. Layer is selected via `?layer=L1|L2|L3`.
+
+### Retrieval prompts (Production Rules 4.2 / 4.2b)
+
+- L1 light-touch: a "Mark complete" button on a closing-reflection
+  card. Persists to `progressStore.retrievalAcknowledged` but does
+  not gate anything.
+- L2 mandatory gate: an optional textarea (the response is for the
+  reader and is not stored on the server) plus an "I've engaged with
+  this" button. Until acknowledged, the LayerToggle's L3 button and
+  the Footer's Next-entry CTA are disabled with a tooltip
+  ("Engage with the L2 retrieval prompt to continue.").
+
+### Audience archetype tags
+
+Examples in L1 are tagged with one or more `AudienceArchetype` values
+(`Newcomer`, `Trader`, `Engineer`, `Industrial`, `Policy`). For V1 all
+readers see all examples; the tags are visual only. V2 personalisation
+will surface examples matching the reader's archetype.
+
+The `AudienceTag` component renders each tag as a small coloured pill;
+colour mapping by archetype lives in
+`src/components/vault/AudienceTag.tsx`.
+
+### Cross-link map
+
+`src/lib/curriculum/crossLinkMap.ts` maps canonical concept terms to
+their authoritative entry slug:
+
+```ts
+'first law'    → 'what-is-energy'
+'carnot'       → 'entropy-and-second-law'
+'heat rate'    → 'efficiency'
+'capacity factor' → 'power-vs-energy'
+'kwh' / 'btu' / 'mmbtu' → 'units-and-orders-of-magnitude'
+… etc.
+```
+
+`CrossLinkResolver` wraps prose paragraphs and converts matches to
+react-router `<Link>` elements. Matching is case-insensitive but the
+original casing is preserved in output. Self-links (term resolves to
+the current entry) are skipped. To add a new canonical term: append
+to the map. Order does not matter — the resolver sorts by length
+descending so "second law of thermodynamics" wins over "second law".
+
+### Diagrams (Production Rule 4.9)
+
+Every entry has one canonical diagram that persists across all three
+layers, getting progressively annotated. Diagram components live in
+`src/lib/curriculum/diagrams/` and accept a `layer: LayerKey` prop.
+Each entry's `diagramSpec.componentName` references one of these
+components by name; the registry in `Entry.tsx` resolves the lookup.
+
+| Component | Entry |
+| --- | --- |
+| `EnergyTransformationChain` | what-is-energy |
+| `SpeedometerOdometer` | power-vs-energy |
+| `FormsOfEnergyNetwork` | forms-of-energy |
+| `UnitConversionLadder` | units-and-orders-of-magnitude |
+| `HotCoffeeCooling` | entropy-and-second-law |
+| `EfficiencyBoundary` | efficiency |
+
+### Widget placeholders
+
+V1 ships static placeholders showing the widget's spec (type,
+description, inputs, outputs). The actual interactive React widgets
+ship in a later sprint. The `EntryWidgetSpec` data model carries the
+full schema so the placeholder card can render it without further
+authoring.
+
+### Progress store extension
+
+`useProgressStore` carries five state fields:
+
+- `visited: Set<string>` — Lesson IDs opened (original 4 lessons)
+- `completed: Set<string>` — Lessons where quiz passed (3+/5)
+- `quizAttempts: Record<string, QuizAttempt[]>`
+- **NEW** `visitedLayers: Record<entryId, LayerKey[]>` — per-layer
+  visit tracking for the new entries
+- **NEW** `retrievalAcknowledged: Record<{entryId}:{layer}, boolean>`
+
+Existing users get safe defaults (`{}`) for the new fields via
+`onRehydrateStorage`. Methods: `markLayerVisited(entryId, layer)`,
+`acknowledgeRetrieval(entryId, layer)`, `isLayerVisited(...)`,
+`isRetrievalAcknowledged(...)`. The L1 / L2 / L3 progress contributes
+to the unified 24-cell `LessonProgress` strip.
+
+### Routing
+
+| Path | Renders |
+| --- | --- |
+| `/vault/alexandria` | Alexandria concept map (4 tiers visible) |
+| `/vault/alexandria/lesson/:lessonId` | original Lesson viewer |
+| `/vault/alexandria/entry/:entrySlug?layer=L1\|L2\|L3` | new Entry viewer |
+
+`Vault.tsx` checks the entry prefix before the lesson prefix and the
+plain `/alexandria` route so the more specific path always wins.
+`main.tsx` registers the entry route between the existing
+`/lesson/:lessonId` and `/:id` routes.
+
+### Concept map: 4 tiers
+
+`src/lib/mock/vault-mock.ts` adds a sibling export
+`FOUNDATIONS_OF_ENERGY_NODES` containing the 6 Sub-Tier 1A
+ConceptNodes. The original `ALEXANDRIA_NODES` (18 nodes) is unchanged.
+
+`Alexandria.tsx` mounts a separate `FoundationsOfEnergyMap` SVG
+ContainedCard above the existing concept map. The new tier uses
+falcon-gold accents to visually distinguish itself from the
+electric-blue original 3 tiers. Click navigates to the Entry viewer
+(separate from the Lesson route used by ALEXANDRIA_NODES).
+
+### LessonProgress: unified 24-of-24
+
+The progress strip below the concept map counts both Lesson nodes
+(18) and Entry nodes (6) — total 24. New-entry cells get a
+falcon-gold border accent. Visited / completed semantics:
+
+- Original Lesson: visited if user opened the lesson; completed if
+  they passed the quiz.
+- New Entry: visited if L1 has been opened; completed if the L2
+  retrieval prompt has been acknowledged OR all three layers have
+  been visited.
+
+### What SCRIBE owns (Sub-Tier 1A scope)
+
+- `src/lib/types/audience.ts` (NEW)
+- `src/lib/types/curriculum.ts` — extended (Lesson types preserved)
+- `src/lib/curriculum/entries/*.ts` — the 6 entry data files
+- `src/lib/curriculum/entriesIndex.ts`
+- `src/lib/curriculum/crossLinkMap.ts`
+- `src/lib/curriculum/diagrams/*.tsx` — the 6 diagram components
+- `src/stores/progressStore.ts` — extended (Lesson tracking unchanged)
+- `src/components/vault/Entry.tsx`
+- `src/components/vault/LayerToggle.tsx`
+- `src/components/vault/PrerequisiteChain.tsx`
+- `src/components/vault/EntryBreadcrumb.tsx`
+- `src/components/vault/AudienceTag.tsx`
+- `src/components/vault/RetrievalPrompt.tsx`
+- `src/components/vault/WidgetPlaceholder.tsx`
+- `src/components/vault/WorkedExample.tsx`
+- `src/components/vault/PrimarySourceList.tsx`
+- `src/components/vault/ClosingAnchor.tsx`
+- `src/components/vault/CrossLinkResolver.tsx`
+- `src/components/vault/Alexandria.tsx` — Foundations tier mount only
+- `src/components/vault/Vault.tsx` — entry route detection only
+- `src/components/vault/LessonProgress.tsx` — 24-cell unification
+- `src/main.tsx` — the entry route line only
+- `src/lib/mock/vault-mock.ts` — `FOUNDATIONS_OF_ENERGY_NODES` sibling export only
+- This section of CLAUDE.md
+
+`ALEXANDRIA_NODES` and the existing 4 Lesson files remain locked.

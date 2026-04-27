@@ -268,3 +268,74 @@ export const ALEXANDRIA_NODES: ConceptNode[] = [
   { id: 'a-bcap',          label: 'BCAP',                 tier: 'advanced',   parents: ['a-capacity'],                  description: 'Battery Capacity Accreditation Procedure — battery-specific derate rules.', unlocked: false, x: 810, y: 400 },
   { id: 'a-ra-contracts',  label: 'RA contracts',         tier: 'advanced',   parents: ['a-capacity'],                  description: 'Bilateral resource-adequacy deals outside the centralized auction.',     unlocked: false, x: 990, y: 400 },
 ];
+
+// ── SCRIBE Sub-Tier 1A "Foundations of Energy" tier ───────────────────────
+// Added by SCRIBE alongside ALEXANDRIA_NODES — does NOT modify the existing
+// 18 nodes. Rendered as a separate band ABOVE the Alexandria concept map.
+// Each node id matches a CurriculumEntry.id under src/lib/curriculum/entries/.
+// `tier: 'foundation'` is a placeholder for ConceptNode type compliance —
+// the visual distinction comes from rendering this set in its own labelled
+// band in Alexandria.tsx.
+
+export const FOUNDATIONS_OF_ENERGY_NODES: ConceptNode[] = [
+  {
+    id:          'what-is-energy',
+    label:       'What Is Energy?',
+    tier:        'foundation',
+    parents:     [],
+    description: 'Energy is conserved. It transforms but is never destroyed.',
+    unlocked:    true,
+    x:            90,
+    y:            80,
+  },
+  {
+    id:          'power-vs-energy',
+    label:       'Power vs Energy',
+    tier:        'foundation',
+    parents:     ['what-is-energy'],
+    description: 'Power is the rate; energy is the quantity.',
+    unlocked:    true,
+    x:            270,
+    y:            80,
+  },
+  {
+    id:          'forms-of-energy',
+    label:       'Forms of Energy',
+    tier:        'foundation',
+    parents:     ['what-is-energy', 'power-vs-energy'],
+    description: 'Different storage modes of one conserved quantity.',
+    unlocked:    true,
+    x:            450,
+    y:            80,
+  },
+  {
+    id:          'units-and-orders-of-magnitude',
+    label:       'Units & Orders of Magnitude',
+    tier:        'foundation',
+    parents:     ['what-is-energy', 'power-vs-energy', 'forms-of-energy'],
+    description: 'Every energy quantity reduces to joules.',
+    unlocked:    true,
+    x:            630,
+    y:            80,
+  },
+  {
+    id:          'entropy-and-second-law',
+    label:       'Entropy & Second Law',
+    tier:        'foundation',
+    parents:     ['what-is-energy', 'power-vs-energy', 'forms-of-energy', 'units-and-orders-of-magnitude'],
+    description: 'Energy has direction; it always tends to disperse.',
+    unlocked:    true,
+    x:            810,
+    y:            80,
+  },
+  {
+    id:          'efficiency',
+    label:       'Efficiency',
+    tier:        'foundation',
+    parents:     ['what-is-energy', 'power-vs-energy', 'forms-of-energy', 'units-and-orders-of-magnitude', 'entropy-and-second-law'],
+    description: 'A ratio defined by a chosen system boundary.',
+    unlocked:    true,
+    x:            990,
+    y:            80,
+  },
+];

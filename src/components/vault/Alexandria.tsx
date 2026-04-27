@@ -11,9 +11,10 @@ import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
-import { ALEXANDRIA_NODES } from '@/lib/mock/vault-mock';
+import { ALEXANDRIA_NODES, FOUNDATIONS_OF_ENERGY_NODES } from '@/lib/mock/vault-mock';
 import type { ConceptNode } from '@/lib/types/vault';
 import { hasLesson } from '@/lib/curriculum';
+import { hasEntry } from '@/lib/curriculum/entriesIndex';
 import { useProgressStore } from '@/stores/progressStore';
 import { LessonProgress } from './LessonProgress';
 
@@ -51,6 +52,188 @@ function curvedPath(
   const midY = (from.cy + to.cy) / 2;
   return `M ${from.cx} ${from.cy + NODE_H / 2}
           C ${from.cx} ${midY}, ${to.cx} ${midY}, ${to.cx} ${to.cy - NODE_H / 2}`;
+}
+
+// SCRIBE Sub-Tier 1A — "Foundations of Energy" tier rendered as its own
+// horizontal band above the existing concept map. Click navigates to the
+// CurriculumEntry viewer (separate from Lesson route used by ALEXANDRIA_NODES).
+function FoundationsOfEnergyMap() {
+  const navigate = useNavigate();
+  const visitedLayers = useProgressStore((s) => s.visitedLayers);
+  const ackd = useProgressStore((s) => s.retrievalAcknowledged);
+  const [hoverId, setHoverId] = useState<string | null>(null);
+
+  const handleNodeActivate = (n: ConceptNode) => {
+    if (!hasEntry(n.id)) return;
+    navigate(`/vault/alexandria/entry/${n.id}?layer=L1`);
+  };
+
+  // Edges between siblings: each entry beyond #1 has a direct prereq chain
+  // that's visualised as a thin horizontal connector.
+  const edges = (() => {
+    const byId = new Map(FOUNDATIONS_OF_ENERGY_NODES.map((n) => [n.id, n]));
+    const out: Array<{ from: ConceptNode; to: ConceptNode }> = [];
+    for (const n of FOUNDATIONS_OF_ENERGY_NODES) {
+      // Only the most recent prerequisite gets a visible edge — the chain
+      // would be visually noisy otherwise.
+      const lastPid = n.parents[n.parents.length - 1];
+      if (!lastPid) continue;
+      const p = byId.get(lastPid);
+      if (p) out.push({ from: p, to: n });
+    }
+    return out;
+  })();
+
+  const W = 1080;
+  const H = 160;
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%"
+      height="100%"
+      preserveAspectRatio="xMidYMid meet"
+      style={{ display: 'block' }}
+    >
+      <text
+        x={16}
+        y={84}
+        fill={C.falconGold}
+        fontFamily="'Geist Mono', 'Fira Code', monospace"
+        fontSize={9}
+        letterSpacing="0.18em"
+        opacity={0.7}
+      >
+        FOUNDATIONS
+      </text>
+
+      {/* Sibling connectors (thin horizontal lines between adjacent nodes) */}
+      {edges.map((e, i) => (
+        <line
+          key={`fe-edge-${i}`}
+          x1={e.from.x + NODE_W / 2}
+          y1={e.from.y}
+          x2={e.to.x - NODE_W / 2}
+          y2={e.to.y}
+          stroke="rgba(245,158,11,0.35)"
+          strokeWidth={1}
+        />
+      ))}
+
+      {/* Nodes */}
+      {FOUNDATIONS_OF_ENERGY_NODES.map((n) => {
+        const x = n.x - NODE_W / 2;
+        const y = n.y - NODE_H / 2;
+        const available = hasEntry(n.id);
+        const layersForEntry = visitedLayers[n.id] ?? [];
+        const visited = layersForEntry.length > 0;
+        const completed =
+          ackd[`${n.id}:L2`] === true || layersForEntry.length === 3;
+        const isHovered = hoverId === n.id;
+
+        const stroke = available
+          ? (isHovered ? '#FCD34D' : C.falconGold)
+          : 'rgba(245,158,11,0.30)';
+        const fill = available
+          ? (isHovered ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.10)')
+          : 'rgba(245,158,11,0.05)';
+        const cursor = available ? 'pointer' : 'not-allowed';
+        const tooltip = available
+          ? `Open entry — ${n.label}`
+          : `${n.label} — Coming soon`;
+
+        return (
+          <g
+            key={n.id}
+            opacity={available ? 1 : 0.5}
+            style={{ cursor, pointerEvents: 'auto' }}
+            onClick={() => handleNodeActivate(n)}
+            onMouseEnter={() => setHoverId(n.id)}
+            onMouseLeave={() =>
+              setHoverId((curr) => (curr === n.id ? null : curr))
+            }
+            tabIndex={available ? 0 : -1}
+            role={available ? 'link' : undefined}
+            aria-label={tooltip}
+            onKeyDown={(e) => {
+              if (!available) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleNodeActivate(n);
+              }
+            }}
+          >
+            <title>{tooltip}</title>
+            {available && (
+              <rect
+                x={x - 2}
+                y={y - 2}
+                width={NODE_W + 4}
+                height={NODE_H + 4}
+                rx={10}
+                ry={10}
+                fill="none"
+                stroke={
+                  isHovered
+                    ? 'rgba(245,158,11,0.55)'
+                    : 'rgba(245,158,11,0.25)'
+                }
+                strokeWidth={2}
+              />
+            )}
+            <rect
+              x={x}
+              y={y}
+              width={NODE_W}
+              height={NODE_H}
+              rx={8}
+              ry={8}
+              fill={fill}
+              stroke={stroke}
+              strokeWidth={isHovered && available ? 1.5 : 1}
+            />
+            <text
+              x={n.x}
+              y={n.y + 4}
+              textAnchor="middle"
+              fill={available ? C.textPrimary : C.textMuted}
+              fontFamily="'Geist Mono', 'Fira Code', monospace"
+              fontSize={10}
+              fontWeight={600}
+              letterSpacing="0.08em"
+              style={{ textTransform: 'uppercase', pointerEvents: 'none' }}
+            >
+              {n.label.toUpperCase()}
+            </text>
+
+            {completed ? (
+              <g pointerEvents="none">
+                <circle cx={x + NODE_W - 8} cy={y + 8} r={5} fill={C.alertNormal} />
+                <path
+                  d={`M ${x + NODE_W - 10.5} ${y + 8} l 1.8 1.8 l 3.4 -3.4`}
+                  stroke={C.bgBase}
+                  strokeWidth={1.4}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
+            ) : visited ? (
+              <circle
+                cx={x + NODE_W - 8}
+                cy={y + 8}
+                r={4}
+                fill="none"
+                stroke={C.falconGold}
+                strokeWidth={1.5}
+                pointerEvents="none"
+              />
+            ) : null}
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
 
 function ConceptMap() {
@@ -311,6 +494,46 @@ export function Alexandria() {
             </span>
           </div>
         </div>
+
+        {/* Foundations of Energy tier (Sub-Tier 1A) — sits above the
+            existing concept map. Distinct gold accent so the new tier is
+            visually separated from the original 3 tiers below. */}
+        <ContainedCard style={{ marginBottom: S.md, height: 220 }}>
+          <div
+            style={{
+              display:        'flex',
+              justifyContent: 'space-between',
+              alignItems:     'center',
+              marginBottom:   S.md,
+            }}
+          >
+            <span
+              style={{
+                fontFamily:    F.mono,
+                fontSize:      11,
+                fontWeight:    600,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color:         C.falconGold,
+              }}
+            >
+              FOUNDATIONS OF ENERGY · 6 ENTRIES · SUB-TIER 1A
+            </span>
+            <span
+              style={{
+                fontFamily:    F.mono,
+                fontSize:      11,
+                color:         'rgba(245,158,11,0.65)',
+                letterSpacing: '0.08em',
+              }}
+            >
+              READ FIRST
+            </span>
+          </div>
+          <div style={{ height: 'calc(100% - 32px)', minHeight: 0 }}>
+            <FoundationsOfEnergyMap />
+          </div>
+        </ContainedCard>
 
         {/* Concept map */}
         <ContainedCard style={{ marginBottom: S.xl, height: 600 }}>

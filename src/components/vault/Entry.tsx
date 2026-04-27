@@ -4,7 +4,8 @@
 // the brief's render plan. Marks the layer visited on mount and gates
 // L3 + Next-entry behind L2 retrieval acknowledgement.
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
+import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
@@ -37,7 +38,7 @@ import { UnitConversionLadder } from '@/lib/curriculum/diagrams/unit-conversion-
 import { HotCoffeeCooling } from '@/lib/curriculum/diagrams/hot-coffee-cooling';
 import { EfficiencyBoundary } from '@/lib/curriculum/diagrams/efficiency-boundary';
 
-type DiagramComponent = (props: { layer: LayerKey }) => JSX.Element;
+type DiagramComponent = (props: { layer: LayerKey }) => ReactElement;
 
 const DIAGRAM_COMPONENTS: Record<string, DiagramComponent> = {
   EnergyTransformationChain,

@@ -59,9 +59,9 @@ export function HotCoffeeCooling({ layer }: Props) {
 
       <text x="360" y="28" textAnchor="middle" className="head">Hot Coffee · Why Energy Disperses</text>
 
-      <Panel x="40"  y="64" title="BEFORE"  coffeeFill="#7c2d12" arrowHeat={false} uniformGlow={false} />
-      <Panel x="270" y="64" title="DURING"  coffeeFill="#dc7d3d" arrowHeat={true}  uniformGlow={false} />
-      <Panel x="500" y="64" title="AFTER"   coffeeFill="#8a8a8a" arrowHeat={false} uniformGlow={true} />
+      <Panel x={40}  y={64} title="BEFORE"  coffeeFill="#7c2d12" arrowHeat={false} uniformGlow={false} />
+      <Panel x={270} y={64} title="DURING"  coffeeFill="#dc7d3d" arrowHeat={true}  uniformGlow={false} />
+      <Panel x={500} y={64} title="AFTER"   coffeeFill="#8a8a8a" arrowHeat={false} uniformGlow={true} />
 
       {/* Entropy-vs-time curve */}
       <g transform="translate(80,260)">

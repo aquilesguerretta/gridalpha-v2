@@ -18,6 +18,7 @@ import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { RegimeBadge } from '@/components/terminal/RegimeBadge';
 import { StatusDot } from '@/components/terminal/StatusDot';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   BATTERY_ASSETS,
   REVENUE_ATTRIBUTION_30D,
@@ -202,6 +203,8 @@ function StorageHeroBlock() {
         </div>
 
         <div style={{ height: 120, flex: 1, minWidth: 240 }}>
+          {/* hideToolbar — per-asset revenue chart is only 120px tall. */}
+          <AnnotatableChart chartId="storage:asset-revenue" hideToolbar>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} layout="vertical" margin={{ top: 4, right: 8, bottom: 4, left: 0 }}>
               <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" horizontal={false} />
@@ -223,6 +226,7 @@ function StorageHeroBlock() {
               <Bar dataKey="revenue" fill={C.electricBlue} radius={[0, 2, 2, 0]} barSize={14} />
             </BarChart>
           </ResponsiveContainer>
+          </AnnotatableChart>
         </div>
       </div>
     </div>
@@ -235,6 +239,7 @@ function RevenueAttributionCard() {
     <ContainedCard minHeight={280}>
       <SectionHeader eyebrow="REVENUE BY SOURCE · 30D" identity="Where it comes from." />
       <div style={{ height: 200, marginTop: S.md }}>
+        <AnnotatableChart chartId="storage:revenue-attribution-30d">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={REVENUE_ATTRIBUTION_30D} margin={{ top: 4, right: 8, bottom: 4, left: -12 }}>
             <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" vertical={false} />
@@ -269,6 +274,7 @@ function RevenueAttributionCard() {
             <Area type="monotone" dataKey="ancillary" stackId="1" stroke={C.alertNormal}  fill={C.alertNormal}  fillOpacity={0.5} name="Ancillary" />
           </AreaChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
       <div style={{ display: 'flex', gap: S.lg, marginTop: S.sm }}>
         <LegendChip label="Arbitrage" color={C.electricBlue} />
@@ -337,6 +343,7 @@ function DABidOptimizerCard() {
         </button>
       </div>
       <div style={{ height: 160, marginTop: S.md }}>
+        <AnnotatableChart chartId="storage:da-bid-optimizer">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: -8 }} stackOffset="sign">
             <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" vertical={false} />
@@ -369,6 +376,7 @@ function DABidOptimizerCard() {
             <Bar dataKey="discharge" stackId="bid" fill={C.falconGold} name="discharge" />
           </BarChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
       <div style={{ display: 'flex', gap: S.lg, marginTop: S.sm }}>
         <LegendChip label="Charge" color={C.electricBlue} />

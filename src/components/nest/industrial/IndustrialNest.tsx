@@ -15,6 +15,7 @@ import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { FlowSection } from '@/components/terminal/FlowSection';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   FACILITY_PROFILE,
   STRATEGIES,
@@ -425,6 +426,7 @@ function MonthlyBillCard() {
     <ContainedCard minHeight={260}>
       <SectionHeader eyebrow="MONTHLY BILL PROJECTION" identity="Twelve months ahead." />
       <div style={{ height: 170, marginTop: S.md }}>
+        <AnnotatableChart chartId="industrial:bill-projection-12mo">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: -4 }}>
             <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" vertical={false} />
@@ -460,6 +462,7 @@ function MonthlyBillCard() {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
     </ContainedCard>
   );

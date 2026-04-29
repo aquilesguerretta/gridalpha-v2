@@ -1410,3 +1410,194 @@ not need to change.
 The full audit — wrapped vs skipped, layout-impact notes, API
 divergence from the Wave 2 brief — lives at
 `docs/wave-3-conduit-audit.md`.
+
+## ORACLE WAVE 2 — CONTEXTUAL AI ASSISTANT
+
+Owned by ORACLE. Wave 1 shipped a working chat with PJM market
+knowledge. Wave 2 makes the assistant deeply aware of what the user
+is looking at — surface, profile, current item, layer, zone — and
+lets every response reference the screen the user is on.
+
+### The three context layers
+
+The system prompt that goes to Claude on every send is composed from
+three layers:
+
+1. **Surface context** — WHERE the user is. A `SurfaceContext`
+   produced by the registered provider for the current surface
+   (Trader Nest / Atlas / Vault Entry / etc.). Includes
+   `surfaceLabel`, `selectedZone`, `currentItemId`, `currentItemTitle`,
+   `currentLayer` (Alexandria entries), `selectedTab` (multi-tab
+   surfaces), and a `visibleData` summary describing what is
+   rendered on screen.
+2. **User context** — WHO the user is. Profile from `authStore`,
+   profile-detail bag, the last 3 surfaces visited (sessionStorage),
+   and selected zone preference.
+3. **Domain context** — WHAT they are asking about. Inferred
+   client-side from the response text via cross-link matching against
+   SCRIBE's `CROSS_LINK_MAP`; surfaced as the Related-Concepts footer.
+
+### Provider registry pattern
+
+Each surface registers a pure provider in `src/services/contextProviders/`
+that takes a `ProviderInput` and returns a `Partial<SurfaceContext>`.
+The registry binding lives in `src/services/aiContext.registry.ts`.
+
+```ts
+// Adding a provider for a new surface:
+// 1. Create the provider:
+export const myNewSurfaceContextProvider: ContextProvider = (input) => ({
+  surfaceLabel: 'My Surface',
+  selectedZone: input.selectedZone,
+  visibleData: { description: '…' },
+});
+
+// 2. Add a SurfaceKey union member in `aiContext.ts`.
+// 3. Update `surfaceFromPathname()` to map the URL pattern to the key.
+// 4. Bind the key → provider in `aiContext.registry.ts`.
+// 5. Add a label in `labelForSurface()`.
+```
+
+The provider must NOT call React hooks, must NOT mutate state, and
+must NOT touch network. It reads from the supplied `input` and from
+mock-data modules (or future hooks that fetch deterministic data).
+
+### useAIContextSnapshot
+
+The integration point between the AIAssistant and the provider system.
+Reads pathname + profile + auth profile-details + caller-supplied zone,
+runs the matching provider, and returns an `AIContextSnapshot`.
+Memoised on every meaningful input — the snapshot only re-builds when
+the user navigates, switches profile, or the zone changes.
+
+```ts
+const snapshot = useAIContextSnapshot({
+  zone: selectedZone,           // optional
+  subContext: { selectedTab },  // optional sub-context override
+  surface: 'analytics',         // optional explicit surface override
+});
+```
+
+### InlineAITrigger primitive
+
+`src/components/shared/InlineAITrigger.tsx` lets any chart, value, or
+term opt into "ask AI about this." The wrapper writes a
+`PendingTrigger { prompt, subContext, autoSubmit }` to the
+conversation store and opens the AIAssistant; the panel consumes the
+pending trigger on open and either pre-fills the input or
+auto-submits.
+
+```tsx
+import { InlineAITrigger } from '@/components/shared/InlineAITrigger';
+
+<InlineAITrigger
+  contextPrompt="Why is the spread compressed for this plant?"
+  subContext={{ selectedTab: 'spread' }}
+  treatment="overlay"   // 'inline' | 'overlay' | 'wrapped'
+  autoSubmit={false}
+>
+  <SparkSpreadCell value={6.42} />
+</InlineAITrigger>
+```
+
+ORACLE does not retrofit any existing component in this sprint. Other
+agents wrap their content when they're ready. Three treatments are
+available: `inline` (icon next to content), `overlay` (icon-on-hover
+at the corner), `wrapped` (whole region clickable).
+
+### Contextual entry point prompts
+
+`src/lib/prompts/contextualPrompts.ts` exposes
+`CONTEXTUAL_PROMPTS` — a stable map of `ContextualPromptId → prompt
+text`. The AIAssistant renders the four chips listed in
+`QUICK_ACTION_CHIP_IDS` above the input bar when the conversation is
+empty. Adding a new prompt is two lines: append to `CONTEXTUAL_PROMPTS`
+and `CONTEXTUAL_PROMPT_LABELS`. Add the id to
+`QUICK_ACTION_CHIP_IDS` to surface it as a chip.
+
+### Response enrichment
+
+On Vault surfaces (`vault-index`, `vault-alexandria`, `vault-lesson`,
+`vault-entry`, `vault-case-study`), each assistant message is
+post-processed by `extractRelatedConcepts()`
+(`src/services/relatedConcepts.ts`). The extractor scans for
+canonical terms in SCRIBE's `CROSS_LINK_MAP` (whole-word, case-
+insensitive, longest-match-wins) and renders matches as React-Router
+`Link` chips below the message — one tap to jump to the matching
+Alexandria entry. The currently-viewed entry is excluded from its
+own footer.
+
+### System prompt context injection
+
+`src/lib/prompts/systemPrompt.ts` ships two exports:
+
+- `BASE_SYSTEM_PROMPT` — the role / scope / tone block.
+- `buildSystemPrompt(snapshot)` — wraps the base with a CURRENT
+  CONTEXT block describing surface, selected zone, current item,
+  current layer, selected tab, visible-data description, key
+  metrics, alerts, profile, and recent surfaces.
+
+The Wave 2 `useAIChat(snapshot)` calls `buildSystemPrompt` per send;
+the result is forwarded as the `system` field of the
+`/api/ai/complete` payload. Wave 1 callers that pass no snapshot get
+the legacy context-block fallback so existing chat surfaces keep
+working without refactor.
+
+### Backend wiring
+
+All requests go through the FastAPI proxy at `/api/ai/complete`
+(`app/routers/ai.py`). The proxy holds the `ANTHROPIC_API_KEY`
+server-side; the browser never sees it. The proxy is non-streaming
+(JSON in → JSON out); the Wave 2 `streamChat` simulates progressive
+rendering by emitting word-sized chunks at ~24 chunks/sec. When the
+proxy upgrades to SSE, swap the inner loop for a stream reader
+without touching the public API.
+
+Sprint default: `claude-sonnet-4-20250514` with 1000 max_tokens.
+
+### Conversation persistence
+
+`conversationStore` persists `messages` and `surfaceContext` to
+`sessionStorage` (key `gridalpha-conversation`). The surface context
+anchors on the FIRST send — subsequent sends preserve the original
+anchor so "started on Trader Nest" stays accurate even after the
+user navigates. When the user reopens the panel on a different
+surface, a `SurfaceMismatchNotice` offers Continue or Start fresh.
+
+### What ORACLE owns (Wave 2 scope)
+
+- `src/services/aiContext.ts` (extended in Wave 2 — surface context type system + capture entry point)
+- `src/services/aiContext.registry.ts` (new — provider binding)
+- `src/services/contextProviders/*.ts` (10 files — one per surface, plus vaultContext.ts which exports 5 vault providers)
+- `src/services/anthropic.ts` (refactored to call `/api/ai/complete`)
+- `src/services/relatedConcepts.ts` (response enrichment)
+- `src/lib/prompts/systemPrompt.ts` (extended with `buildSystemPrompt`)
+- `src/lib/prompts/contextualPrompts.ts` (new)
+- `src/hooks/useAIChat.ts` (extended to accept AIContextSnapshot)
+- `src/hooks/useAIContextSnapshot.ts` (new)
+- `src/stores/conversationStore.ts` (extended — `surfaceContext`, `pendingTrigger`)
+- `src/components/shared/AIAssistant.tsx` (extended — context chip, mismatch notice, related-concepts footer, quick-action chips, pending-trigger consumer)
+- `src/components/shared/InlineAITrigger.tsx` (new)
+- This section of CLAUDE.md
+
+### Read-only consumers
+
+ORACLE reads from but never modifies: every nest, vault component,
+atlas, analytics tab, peregrine surface; every store outside the
+conversation store; every mock-data file; SCRIBE's `crossLinkMap.ts`
+and curriculum index/entries.
+
+### Known gaps for future waves
+
+- **`viewStore` not yet shipped.** ARCHITECT was scheduled to ship
+  `src/stores/viewStore.ts` exposing `selectedZone` and the active
+  analytics tab. Until it lands, providers default to sensible values
+  (zone falls back to `WEST_HUB` on Trader Nest, `null` elsewhere)
+  and `useAIContextSnapshot` accepts an explicit `zone` arg. Wiring
+  is a one-line change once `viewStore` ships.
+- **Backend streaming.** The FastAPI proxy is one-shot. When SSE
+  ships, swap the simulated-stream loop in `services/anthropic.ts`
+  for a real stream reader.
+- **InlineAITrigger adoption.** The primitive is opt-in. Future
+  sprints will land trigger wraps on charts, KPI tiles, and key
+  values across the platform.

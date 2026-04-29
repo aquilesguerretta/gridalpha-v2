@@ -86,13 +86,15 @@ export function AnnotationDrawer({
         right: 0,
         width: 360,
         height: '100vh',
-        background: C.bgElevated,
+        background: C.bgOverlay,
         borderLeft: `1px solid ${C.borderDefault}`,
         borderTop: `1px solid ${C.borderActive}`,
         zIndex: 9300,
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '-12px 0 32px rgba(0,0,0,0.40)',
+        // Subtle lift — borders carry the hierarchy, the shadow only
+        // separates the drawer from the page behind it.
+        boxShadow: '-8px 0 24px rgba(0,0,0,0.20)',
       }}
     >
       {/* Header */}

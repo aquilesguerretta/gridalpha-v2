@@ -56,9 +56,11 @@ export function SaveViewModal({ open, onClose, onSave, preview }: Props) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
+        // Modal backdrop — slightly bluer-and-darker than pure black, so
+        // the panel reads as "lifted" rather than "punched out".
+        background: 'rgba(8,9,11,0.72)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',

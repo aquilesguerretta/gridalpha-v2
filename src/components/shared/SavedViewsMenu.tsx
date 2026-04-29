@@ -125,7 +125,7 @@ export function SavedViewsMenu({
           right: position.right,
           width: 320,
           maxHeight: '70vh',
-          background: C.bgElevated,
+          background: C.bgOverlay,
           border: `1px solid ${C.borderDefault}`,
           borderTop: `1px solid ${C.borderActive}`,
           borderRadius: R.lg,
@@ -133,7 +133,9 @@ export function SavedViewsMenu({
           display: 'flex',
           flexDirection: 'column',
           zIndex: 9500,
-          boxShadow: '0 12px 32px rgba(0,0,0,0.40)',
+          // Subtle lift — borders carry the hierarchy, the shadow only
+          // separates the dropdown from the chrome behind it.
+          boxShadow: '0 8px 24px rgba(0,0,0,0.20)',
         }}
       >
         {/* Header — save current view */}

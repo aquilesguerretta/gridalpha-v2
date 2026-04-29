@@ -1161,3 +1161,120 @@ See `docs/wave-3-chroma-audit.md` for the full list of visual-cohesion
 deviations CHROMA cannot fix without crossing an ownership boundary,
 plus a token-extension proposal for FOUNDRY (elevation shadow tokens
 and profile color tokens).
+
+## FORGE WAVE 2 — INDUSTRIAL STRATEGY SIMULATOR
+
+The Industrial Consumer profile's signature feature. Real NPV simulator
+with sensitivity analysis, carbon reduction tracking, and ranked
+strategy combinations. Lives entirely inside the Industrial Nest as a
+new tab beside the existing OVERVIEW. The same surgical-tab-strip
+pattern as FORGE Wave 1 (Trader Journal) — one new tab, no reshape of
+the locked layouts.
+
+This is also the proof-of-concept for **GridAlpha Simulate** — a future
+standalone product that will graduate the simulator out of the Nest
+and into its own surface.
+
+### Architecture
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/types/simulator.ts` | Type system: `FacilityProfile`, `Strategy`, `StrategyComponent`, `StrategyResult`, `ScenarioResult`, `DispatchHour`, `SensitivityScenario`, `RiskRanking`. |
+| `src/lib/mock/simulator-mock.ts` | 4 representative facility profiles (mining, manufacturing, datacenter, agricultural), 4 PJM tariff structures, technology cost assumptions, zone carbon-intensity table, hourly load profile shapes, solar irradiance coefficients. |
+| `src/lib/simulator/npv.ts` | Pure NPV / payback math. End-of-year cashflows, year-zero capex. |
+| `src/lib/simulator/dispatch.ts` | Heuristic hour-by-hour dispatch. Solar serves load → surplus charges battery → battery discharges if economic → grid covers remainder. Diesel is reserve-only in V1. |
+| `src/lib/simulator/scenarios.ts` | `generateStrategies(profile)` — produces up to 11 evaluable strategies based on the facility's existing assets and capital budget. |
+| `src/lib/simulator/sensitivity.ts` | The 3 fixed scenarios (base / optimistic / pessimistic) and their multipliers. |
+| `src/lib/simulator/runSimulation.ts` | Main entry. Runs 8,760 hours × 11 strategies × 3 scenarios (~290k dispatch calls), computes per-strategy NPV / payback / carbon delta / representative-day dispatch, ranks by base NPV. |
+| `src/stores/simulatorStore.ts` | Zustand store. Persists facility profiles + active selection to `localStorage` under `gridalpha-simulator`. **Does not persist results** — they recompute on demand. |
+| `src/hooks/useSimulator.ts` | Orchestration hook. Exposes `{ profile, results, isRunning, run, setProfile, selectStrategy, selectScenario, clear }`. `run()` defers the synchronous engine work by one tick so the UI can render the running state. |
+| `src/components/nest/industrial/StrategySimulator/SimulatorView.tsx` | Top-level page. Three states: no profile → form; profile + no results → CTA; results → ranking + detail. |
+| `src/components/nest/industrial/StrategySimulator/FacilityProfileForm.tsx` | Form: preset dropdown, name, zone, annual MWh slider, tariff kind, energy rate, demand charge, existing solar / battery, capital budget, discount rate. |
+| `src/components/nest/industrial/StrategySimulator/StrategyRanking.tsx` | Sorted list. Top row = "RECOMMENDED" in falcon-gold. Click a row to select. |
+| `src/components/nest/industrial/StrategySimulator/StrategyDetail.tsx` | Detail panel: header + KPI strip + scenario toggle + Sensitivity / Dispatch / Carbon visuals + components breakdown + ExportMemoButton. |
+| `src/components/nest/industrial/StrategySimulator/SensitivityChart.tsx` | Recharts BarChart wrapped in `AnnotatableChart` (chartId `industrial-sim-sensitivity-<id>`). |
+| `src/components/nest/industrial/StrategySimulator/HourlyDispatchChart.tsx` | Stacked AreaChart of representative day, wrapped in `AnnotatableChart` (chartId `industrial-sim-dispatch-<id>`). |
+| `src/components/nest/industrial/StrategySimulator/CarbonReduction.tsx` | Hero number + cumulative reduction LineChart, with EPA-style equivalences. |
+| `src/components/nest/industrial/StrategySimulator/ExportMemoButton.tsx` | Stub. Feature-detects `@/services/pdfExport` at runtime; disabled with "PDF export coming soon" until CONDUIT-2 ships the pipeline. |
+
+### How a simulation runs
+
+1. User opens the Industrial Nest → STRATEGY SIMULATOR tab.
+2. If no profile is persisted, `FacilityProfileForm` renders.
+3. User picks a preset (or "Custom") and tunes the sliders.
+4. On submit, the profile lands in the simulator store (persisted).
+5. `useSimulator.run()` defers 50 ms, then calls `runSimulation(profile)`.
+6. `runSimulation` calls `generateStrategies(profile)` → for each
+   strategy, runs an 8,760-hour dispatch under base/optimistic/pessimistic,
+   sums to annual cost, projects 10 years of constant savings,
+   discounts to NPV, computes carbon delta vs baseline, and assesses
+   risk by comparing the pessimistic to base NPV.
+7. Results sort by base NPV descending; the top strategy auto-selects.
+8. `StrategyRanking` shows the list; `StrategyDetail` shows the
+   scenario toggle and the visual trio for the selected strategy.
+
+Engine completes well under 2 s for default facilities.
+
+### Persistence and state
+
+- `localStorage` key: `gridalpha-simulator`.
+- Persisted: `facilityProfiles`, `activeFacilityId`, `selectedScenario`.
+- **Not** persisted: `results`, `isRunning`, `selectedStrategyId` —
+  these recompute / re-derive on every load. The user sees the
+  CTA card after reload and clicks "RUN SIMULATION →" again.
+
+### NPV math
+
+```
+NPV = -CapEx + Σᵢ (Annual_Savings_i / (1 + r)^(i+1))     for i = 0..9
+```
+
+- `CapEx` paid at year zero, scaled by `scenario.capExMultiplier`.
+- `Annual_Savings_i` = `baseline_annual_cost - strategy_annual_cost`.
+- `r` = `profile.discountRate` (default 0.08).
+- 10-year horizon (configurable in a future iteration).
+
+### Sensitivity multipliers
+
+| Scenario | Grid price | Capex | Solar yield |
+| --- | --- | --- | --- |
+| Base | 1.00× | 1.00× | 1.00× |
+| Optimistic | 0.90× | 0.85× | 1.05× |
+| Pessimistic | 1.20× | 1.05× | 0.95× |
+
+### Carbon model
+
+- Grid: zone-specific gCO₂/kWh (e.g. WEST_HUB ~420; AEP ~510; PSEG ~350).
+- Solar: 0 gCO₂/kWh operational.
+- Battery losses: charged back to grid intensity (`(1 - RTE) × battery_throughput`).
+- Diesel: 800 gCO₂/kWh.
+
+### What FORGE owns (Wave 2 scope)
+
+- `src/lib/types/simulator.ts`
+- `src/lib/mock/simulator-mock.ts`
+- `src/lib/simulator/*` (npv, dispatch, scenarios, sensitivity, runSimulation)
+- `src/stores/simulatorStore.ts`
+- `src/hooks/useSimulator.ts`
+- `src/components/nest/industrial/StrategySimulator/*` (8 components)
+- `src/components/nest/industrial/IndustrialNest.tsx` — added a tab strip and replaced the legacy `<StrategySimulatorCard />` placeholder with the new `<SimulatorView />` mounted on the SIMULATOR tab. The Nest's other surfaces (hero, tariff, carbon, demand response, alerts, profile card) are unchanged.
+- This section of CLAUDE.md
+
+### Future work
+
+- **PDF memo export** — depends on CONDUIT-2's `src/services/pdfExport.ts`
+  pipeline. ExportMemoButton already feature-detects via runtime
+  dynamic-import; flipping a single flag enables it.
+- **Optimization solver** — replace the heuristic dispatch with an
+  actual MILP. The current heuristic biases toward conservative
+  battery utilization (proxies the round-trip cost as a fraction of
+  grid rate); a proper MILP can extract more arbitrage value.
+- **Live PJM data** — the dispatch loop currently reads the static
+  tariff and solar coefficients. When the FastAPI backend lands
+  (`gridalpha-v2-production.up.railway.app`), the simulator reads
+  zone LMP forecasts and zone-specific irradiance forecasts directly.
+- **GridAlpha Simulate as standalone** — once feature parity is
+  reached, the simulator graduates from Industrial Nest to its own
+  destination. The `runSimulation` engine + types are designed to
+  ship unchanged when that happens; only the surface and routing
+  move.

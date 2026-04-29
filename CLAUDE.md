@@ -1036,3 +1036,128 @@ falcon-gold border accent. Visited / completed semantics:
 - This section of CLAUDE.md
 
 `ALEXANDRIA_NODES` and the existing 4 Lesson files remain locked.
+
+## CHROMA WAVE 2 — VISUAL COHESION MAP
+
+CHROMA owns visual cohesion across the platform. Wave 1 established the
+PageAtmosphere primitive and propagated atmospheric vignettes to every
+new surface (Nests, Vault, Analytics tabs). Wave 2 layered profile-
+specific tints on top of that foundation, swept through everything
+shipped after Wave 1 (Trader Journal, AI Assistant, Saved Views,
+Annotations, Peregrine, SCRIBE's Lesson surface, the new Sub-Tier 1A
+Entry viewer), and applied a hero-hierarchy lock on Analytics tabs and
+Peregrine.
+
+### Surfaces with the CHROMA pass applied
+
+| Surface | Wave 1 | Wave 2 | Notes |
+| --- | --- | --- | --- |
+| TraderNest | ✓ | (locked) | Inline atmospheric vignette — the reference pattern. Do not modify. |
+| AnalystNest | ✓ | ✓ | tint="analyst" — cool blue-gray |
+| StorageNest | ✓ | ✓ | tint="storage" — subtle teal-blue |
+| IndustrialNest | ✓ | ✓ | tint="industrial" — warm sand |
+| StudentNest | ✓ | ✓ | tint="student" — subtle green |
+| DeveloperNest | ✓ | ✓ | tint="developer" — warm gold |
+| VaultIndex | ✓ | (verified) | variant="standard" |
+| Alexandria | ✓ | (verified) | variant="standard" — 4-tier concept map (SCRIBE) |
+| CaseStudyView | ✓ | ✓ | variant="hero" + WrittenSection paragraph splitting |
+| Lesson (SCRIBE) | — | (verified) | variant="hero" + 16px body / line-height 1.7 |
+| Entry (SCRIBE Sub-Tier 1A) | — | (deferred per ownership) | SCRIBE-owned — already on editorial standard |
+| Analytics tabs (5) | ✓ | ✓ | Each tab has one hero element, marginBottom S.lg → S.xl |
+| PeregrineFullPage | — | ✓ | Hero / standard / compact tier in news feed |
+| TraderNest > Journal | — | ✓ | Header rhythm aligned with rest of platform |
+| AI Assistant | — | (deferred) | ORACLE actively iterating; small audit notes filed |
+| SaveViewModal | — | ✓ | Backdrop alpha 0.6 → 0.72, blur 4px → 8px |
+| SavedViewsMenu | — | ✓ | bgElevated → bgOverlay, shadow alpha 0.40 → 0.20 |
+| AnnotationDrawer | — | ✓ | Same elevation+shadow refinement |
+
+### Profile-specific atmospheric tints
+
+`PageAtmosphere` accepts an optional `tint` prop that overrides the
+neutral white-luminance variant. Each tint is a subtle wash layered on
+top of the standard vignette, giving each profile Nest a distinctive
+emotional temperature without breaking from the unified product.
+
+```tsx
+<PageAtmosphere tint="analyst">{/* … */}</PageAtmosphere>
+```
+
+| Tint | RGBA core | Reads as |
+| --- | --- | --- |
+| `analyst` | `rgba(180,200,220,0.020)` | precision, comparison |
+| `storage` | `rgba(120,200,220,0.022)` | movement, dispatch |
+| `industrial` | `rgba(220,200,180,0.022)` | operations, facility |
+| `student` | `rgba(180,220,200,0.020)` | growth, learning |
+| `developer` | `rgba(220,200,160,0.022)` | build, capital |
+
+The neutral `variant` prop (`'standard'` / `'hero'` / `'subtle'`) still
+exists for surfaces that do not belong to a single profile (Vault,
+Analytics tabs, generic Nest fallback).
+
+### Four-tier text hierarchy
+
+Use these tokens, in this order of weight, on every surface:
+
+| Token | Value | When to use |
+| --- | --- | --- |
+| `C.textPrimary` | `#F1F1F3` | hero numbers, primary destination headings, the one element the eye lands on |
+| `C.textSecondary` | `rgba(241,241,243,0.60)` | body prose, secondary metrics, button text |
+| `C.textMuted` | `rgba(241,241,243,0.35)` | labels, eyebrows, metadata, axis ticks |
+| inline ~0.25 alpha | (not a token) | disabled / archived / placeholder — use sparingly |
+
+If a surface uses only `textPrimary` and `textMuted`, the missing middle
+tier flattens the hierarchy. Introduce `textSecondary` for body prose
+and the eye gets somewhere to rest between the hero and the chrome.
+
+### Four-tier surface elevation
+
+The token names are anchored at `#111117` rather than the
+`#0C0D10`-anchored scheme described in the Wave 2 brief. Treat the
+tokens below as the contract:
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `C.bgBase` | `#111117` | page canvas — the layer PageAtmosphere paints on |
+| `C.bgElevated` | `#18181f` | data card surfaces (`ContainedCard`), inline panels |
+| `C.bgSurface` | `#1f1f28` | nested cells, mini-tooltip popovers, inputs |
+| `C.bgOverlay` | `#27272f` | floating dropdowns, modal panels, side drawers (raised UI) |
+
+Wave 2 standardised SavedViewsMenu and AnnotationDrawer to `bgOverlay`
+so floating UI sits one tier above the page. AIAssistant (inline panel
+docked at the corner) stays on `bgElevated` because it is part of the
+page chrome, not a raised modal.
+
+### Hero hierarchy rule
+
+Every screen must have ONE element that the eye lands on first.
+Per-Nest focal elements are documented in the existing "VISUAL
+COHESION — APPLIED PATTERNS" section above. Wave 2 added two more
+locks:
+
+| Surface | Hero element |
+| --- | --- |
+| Each Analytics tab | the first major chart card (height bumped, marginBottom S.lg → S.xl) |
+| PeregrineFullPage news feed | item index 0 — Instrument Serif title at 32px, summary at 16px line-height 1.6, atmospheric glow over the row |
+
+### How to extend
+
+- New surface added by another agent? Wrap with `<PageAtmosphere>`
+  using the appropriate variant (or tint, if it's a per-profile
+  surface).
+- New floating panel? Use `bgOverlay`, `border: 1px solid borderDefault`,
+  `borderTop: 1px solid borderActive`, shadow alpha ≤ 0.25.
+- New body prose? `F.sans`, 16px, line-height 1.6-1.7, max-width
+  720-780. Anything denser belongs in a label (`F.mono` 10-11px caps).
+
+### Reference: PageAtmosphere primitive
+
+`src/components/terminal/PageAtmosphere.tsx`. Wave 1 added the
+`variant` prop. Wave 2 added the additive `tint` prop. Existing
+callers using `variant` continue to work unchanged.
+
+### Deferred items
+
+See `docs/wave-3-chroma-audit.md` for the full list of visual-cohesion
+deviations CHROMA cannot fix without crossing an ownership boundary,
+plus a token-extension proposal for FOUNDRY (elevation shadow tokens
+and profile color tokens).

@@ -154,6 +154,13 @@ export function AIAssistant() {
       {/* Context chip — shows what surface the assistant is analysing. */}
       <ContextChip snapshot={snapshot} />
 
+      {/* Surface-mismatch notice — appears when the user reopens a
+          conversation on a different surface than where it started. */}
+      <SurfaceMismatchNotice
+        snapshot={snapshot}
+        onStartFresh={clear}
+      />
+
       {/* Chat history */}
       <div
         ref={scrollRef}
@@ -511,6 +518,107 @@ function QuickActionChips({ onPick }: QuickActionChipsProps) {
           {CONTEXTUAL_PROMPT_LABELS[id]}
         </button>
       ))}
+    </div>
+  );
+}
+
+// ─── Surface mismatch notice ─────────────────────────────────────────
+// When the user reopens a conversation that was anchored on a different
+// surface than the current view, show a small banner letting them
+// continue or start fresh. Only renders when both an anchor exists AND
+// the current surface differs from it.
+
+interface SurfaceMismatchNoticeProps {
+  snapshot: ReturnType<typeof useAIContextSnapshot>;
+  onStartFresh: () => void;
+}
+
+function SurfaceMismatchNotice({
+  snapshot,
+  onStartFresh,
+}: SurfaceMismatchNoticeProps) {
+  const stored = useConversationStore((s) => s.surfaceContext);
+  const messageCount = useConversationStore((s) => s.messages.length);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) return null;
+  if (!stored || messageCount === 0) return null;
+  if (stored.surface.surface === snapshot.surface.surface) return null;
+
+  return (
+    <div
+      role="alert"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: S.xs,
+        padding: `${S.sm} ${S.md}`,
+        borderBottom: `1px solid ${C.borderDefault}`,
+        background: C.falconGoldWash,
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: F.sans,
+          fontSize: 12,
+          lineHeight: 1.4,
+          color: C.textPrimary,
+        }}
+      >
+        This conversation was started on{' '}
+        <strong style={{ color: C.falconGold }}>
+          {stored.surface.surfaceLabel}
+        </strong>
+        . You&apos;re now on{' '}
+        <strong style={{ color: C.electricBlue }}>
+          {snapshot.surface.surfaceLabel}
+        </strong>
+        .
+      </span>
+      <div style={{ display: 'flex', gap: S.sm }}>
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          style={{
+            padding: `${S.xs} ${S.sm}`,
+            background: 'transparent',
+            border: `1px solid ${C.borderDefault}`,
+            borderRadius: R.sm,
+            fontFamily: F.mono,
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.10em',
+            textTransform: 'uppercase',
+            color: C.textSecondary,
+            cursor: 'pointer',
+          }}
+        >
+          Continue
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            onStartFresh();
+            setDismissed(false);
+          }}
+          style={{
+            padding: `${S.xs} ${S.sm}`,
+            background: C.electricBlueWash,
+            border: `1px solid ${C.borderActive}`,
+            borderRadius: R.sm,
+            fontFamily: F.mono,
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.10em',
+            textTransform: 'uppercase',
+            color: C.electricBlue,
+            cursor: 'pointer',
+          }}
+        >
+          Start fresh
+        </button>
+      </div>
     </div>
   );
 }

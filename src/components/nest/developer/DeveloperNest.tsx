@@ -610,7 +610,7 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
 // ─── MAIN ─────────────────────────────────────────────────────────
 export function DeveloperNest() {
   return (
-    <PageAtmosphere>
+    <PageAtmosphere tint="developer">
       <div
         style={{
           display: 'grid',

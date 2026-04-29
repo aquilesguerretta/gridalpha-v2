@@ -514,20 +514,36 @@ export function CaseStudyView({ caseStudyId }: CaseStudyViewProps) {
 }
 
 function WrittenSection({ title, body }: { title: string; body: string }) {
+  // Editorial paragraph rhythm — split on blank lines so multi-paragraph
+  // bodies read as long-form journalism, not a wall of text. Mirrors the
+  // pattern used by SCRIBE's Lesson viewer.
+  const paragraphs = body.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
   return (
     <div style={{ marginBottom: S.xl }}>
       <EditorialIdentity size="hero">{title}</EditorialIdentity>
       <div style={{ height: S.md }} />
       <div
         style={{
-          fontFamily: F.sans,
-          fontSize:   16,
-          color:      C.textSecondary,
-          lineHeight: 1.7,
-          maxWidth:   780,
+          display:        'flex',
+          flexDirection:  'column',
+          gap:            S.md,
+          maxWidth:       780,
         }}
       >
-        {body}
+        {paragraphs.map((p, i) => (
+          <p
+            key={i}
+            style={{
+              margin:     0,
+              fontFamily: F.sans,
+              fontSize:   16,
+              color:      C.textSecondary,
+              lineHeight: 1.7,
+            }}
+          >
+            {p}
+          </p>
+        ))}
       </div>
     </div>
   );

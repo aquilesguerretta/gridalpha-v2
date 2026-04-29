@@ -628,7 +628,7 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
 // ─── MAIN ─────────────────────────────────────────────────────────
 export function IndustrialNest() {
   return (
-    <PageAtmosphere>
+    <PageAtmosphere tint="industrial">
       <div
         style={{
           display: 'grid',

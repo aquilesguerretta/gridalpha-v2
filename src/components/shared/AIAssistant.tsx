@@ -6,6 +6,12 @@ import { useAIChat } from '@/hooks/useAIChat';
 import { useAIContextSnapshot } from '@/hooks/useAIContextSnapshot';
 import { isApiKeyConfigured } from '@/services/anthropic';
 import { useConversationStore } from '@/stores/conversationStore';
+import {
+  CONTEXTUAL_PROMPT_LABELS,
+  CONTEXTUAL_PROMPTS,
+  QUICK_ACTION_CHIP_IDS,
+  type ContextualPromptId,
+} from '@/lib/prompts/contextualPrompts';
 
 // ORACLE shared — floating AI Assistant chat panel.
 // Bottom-right, 360×480, zIndex 9000. Streams real Claude responses via
@@ -251,6 +257,17 @@ export function AIAssistant() {
         </div>
       )}
 
+      {/* Quick-action chips — pre-populated prompts for common questions
+          about the current surface. Hidden once the conversation has any
+          messages so the chips don't compete with the chat history. */}
+      {messages.length === 0 && !isStreaming && !error && apiKeyOk && (
+        <QuickActionChips
+          onPick={(id) => {
+            void send(CONTEXTUAL_PROMPTS[id]);
+          }}
+        />
+      )}
+
       {/* Input bar */}
       <div
         style={{
@@ -399,5 +416,61 @@ function ContextEyeIcon() {
       <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" />
       <circle cx="8" cy="8" r="2" />
     </svg>
+  );
+}
+
+// ─── Quick-action chips ──────────────────────────────────────────────
+// Pre-populated prompts for common questions about the current surface.
+// Sit above the input bar; hidden once the conversation has messages.
+
+interface QuickActionChipsProps {
+  onPick: (id: ContextualPromptId) => void;
+}
+
+function QuickActionChips({ onPick }: QuickActionChipsProps) {
+  return (
+    <div
+      role="toolbar"
+      aria-label="Quick prompts"
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: S.xs,
+        padding: `${S.sm} ${S.md} 0 ${S.md}`,
+        flexShrink: 0,
+      }}
+    >
+      {QUICK_ACTION_CHIP_IDS.map((id) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => onPick(id)}
+          style={{
+            padding: `${S.xs} ${S.sm}`,
+            background: 'transparent',
+            border: `1px solid ${C.borderAccent}`,
+            borderRadius: R.sm,
+            fontFamily: F.mono,
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: C.electricBlueLight,
+            cursor: 'pointer',
+            transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = C.electricBlueWash;
+            e.currentTarget.style.borderColor = C.borderActive;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.borderColor = C.borderAccent;
+          }}
+        >
+          {CONTEXTUAL_PROMPT_LABELS[id]}
+        </button>
+      ))}
+    </div>
   );
 }

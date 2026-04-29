@@ -3,6 +3,7 @@ import { C, F, R, S } from '@/design/tokens';
 import { useUIStore } from '@/stores/uiStore';
 import { StatusDot } from '@/components/terminal/StatusDot';
 import { useAIChat } from '@/hooks/useAIChat';
+import { useAIContextSnapshot } from '@/hooks/useAIContextSnapshot';
 import { isApiKeyConfigured } from '@/services/anthropic';
 import { useConversationStore } from '@/stores/conversationStore';
 
@@ -16,8 +17,12 @@ const CARET_KEYFRAMES_CSS =
 
 export function AIAssistant() {
   const open = useUIStore((s) => s.aiAssistantOpen);
+  // Capture a fresh surface snapshot whenever the panel opens or the user
+  // navigates while it's open. The hook already memoises on pathname /
+  // profile / search params.
+  const snapshot = useAIContextSnapshot();
   const { messages, isStreaming, streamingText, error, send, clear } =
-    useAIChat();
+    useAIChat(snapshot);
   const setError = useConversationStore((s) => s.setError);
 
   const [draft, setDraft] = useState('');
@@ -114,6 +119,9 @@ export function AIAssistant() {
           </button>
         )}
       </div>
+
+      {/* Context chip — shows what surface the assistant is analysing. */}
+      <ContextChip snapshot={snapshot} />
 
       {/* Chat history */}
       <div
@@ -319,5 +327,77 @@ export function AIAssistant() {
         </button>
       </div>
     </div>
+  );
+}
+
+// ─── Context chip ────────────────────────────────────────────────────
+// Sits below the header and above the message list. Shows the surface
+// the assistant is currently analysing — the user always knows what
+// "this" refers to in their question.
+
+interface ContextChipProps {
+  snapshot: ReturnType<typeof useAIContextSnapshot>;
+}
+
+function ContextChip({ snapshot }: ContextChipProps) {
+  const { surface } = snapshot;
+  const parts: string[] = [surface.surfaceLabel];
+  if (surface.selectedZone) parts.push(surface.selectedZone);
+  if (surface.currentItemTitle) parts.push(surface.currentItemTitle);
+  if (surface.currentLayer) parts.push(surface.currentLayer);
+  if (surface.selectedTab) parts.push(surface.selectedTab.toUpperCase());
+
+  const label = parts.join(' · ');
+
+  return (
+    <div
+      role="status"
+      aria-label="AI Assistant context"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: S.xs,
+        padding: `${S.xs} ${S.lg}`,
+        background: C.bgElevated,
+        borderBottom: `1px solid ${C.borderDefault}`,
+        flexShrink: 0,
+      }}
+    >
+      <ContextEyeIcon />
+      <span
+        style={{
+          fontFamily: F.mono,
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: '0.10em',
+          textTransform: 'uppercase',
+          color: C.electricBlue,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+        }}
+        title={label}
+      >
+        Analyzing&nbsp;·&nbsp;{label}
+      </span>
+    </div>
+  );
+}
+
+function ContextEyeIcon() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      width={11}
+      height={11}
+      fill="none"
+      stroke={C.electricBlue}
+      strokeWidth={1.5}
+      aria-hidden
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" />
+      <circle cx="8" cy="8" r="2" />
+    </svg>
   );
 }

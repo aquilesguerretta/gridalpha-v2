@@ -18,6 +18,7 @@ import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import { useJournalStore } from '@/stores/journalStore';
 
 interface ChartPoint {
@@ -167,6 +168,7 @@ export function JournalPnLChart() {
         </div>
       ) : (
         <div style={{ height: 320 }}>
+          <AnnotatableChart chartId="journal:pnl">
           <ResponsiveContainer>
             <LineChart
               data={chartData}
@@ -230,6 +232,7 @@ export function JournalPnLChart() {
               />
             </LineChart>
           </ResponsiveContainer>
+          </AnnotatableChart>
         </div>
       )}
     </ContainedCard>

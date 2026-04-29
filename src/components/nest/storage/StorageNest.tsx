@@ -516,7 +516,7 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
 // ─── MAIN ─────────────────────────────────────────────────────────
 export function StorageNest() {
   return (
-    <PageAtmosphere>
+    <PageAtmosphere tint="storage">
       <div
         style={{
           display: 'flex',

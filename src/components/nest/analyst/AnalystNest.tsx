@@ -509,7 +509,7 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
 // ─── MAIN ──────────────────────────────────────────────────────────
 export function AnalystNest() {
   return (
-    <PageAtmosphere>
+    <PageAtmosphere tint="analyst">
       <div
         style={{
           display: 'grid',

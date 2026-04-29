@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { ChatMessage } from '@/services/anthropic';
-import type { AIContextSnapshot } from '@/services/aiContext';
+import type { AIContextSnapshot, SurfaceContext } from '@/services/aiContext';
+
+export interface PendingTrigger {
+  prompt: string;
+  subContext?: Partial<SurfaceContext>;
+  /** When true, the AIAssistant auto-submits on consume. */
+  autoSubmit?: boolean;
+}
 
 export interface ConversationState {
   messages: ChatMessage[];
@@ -14,6 +21,12 @@ export interface ConversationState {
    * detect the mismatch (Phase 11). Null until the first send happens.
    */
   surfaceContext: AIContextSnapshot | null;
+  /**
+   * Slot used by InlineAITrigger to forward a pre-filled prompt + optional
+   * sub-context override to the AIAssistant. Consumed and cleared by the
+   * panel on open. Not persisted — purely ephemeral.
+   */
+  pendingTrigger: PendingTrigger | null;
 
   appendUserMessage: (content: string) => void;
   appendAssistantMessage: (content: string) => void;
@@ -23,6 +36,8 @@ export interface ConversationState {
   setError: (err: string | null) => void;
   clearConversation: () => void;
   recordSurfaceContext: (snapshot: AIContextSnapshot) => void;
+  setPendingTrigger: (trigger: PendingTrigger) => void;
+  consumePendingTrigger: () => PendingTrigger | null;
 }
 
 export const useConversationStore = create<ConversationState>()(
@@ -33,6 +48,7 @@ export const useConversationStore = create<ConversationState>()(
       streamingText: '',
       error: null,
       surfaceContext: null,
+      pendingTrigger: null,
 
       appendUserMessage: (content) =>
         set((s) => ({
@@ -89,6 +105,14 @@ export const useConversationStore = create<ConversationState>()(
           // even after the user navigates away mid-conversation.
           surfaceContext: s.surfaceContext ?? snapshot,
         })),
+
+      setPendingTrigger: (trigger) => set({ pendingTrigger: trigger }),
+
+      consumePendingTrigger: () => {
+        const current = get().pendingTrigger;
+        if (current) set({ pendingTrigger: null });
+        return current;
+      },
     }),
     {
       name: 'gridalpha-conversation',

@@ -25,8 +25,15 @@ export function AIAssistant() {
   const open = useUIStore((s) => s.aiAssistantOpen);
   // Capture a fresh surface snapshot whenever the panel opens or the user
   // navigates while it's open. The hook already memoises on pathname /
-  // profile / search params.
-  const snapshot = useAIContextSnapshot();
+  // profile / search params. The pending-trigger's subContext is merged
+  // into the snapshot via the hook's `subContext` option below.
+  const consumePendingTrigger = useConversationStore(
+    (s) => s.consumePendingTrigger,
+  );
+  const pendingTrigger = useConversationStore((s) => s.pendingTrigger);
+  const snapshot = useAIContextSnapshot({
+    subContext: pendingTrigger?.subContext,
+  });
   const { messages, isStreaming, streamingText, error, send, clear } =
     useAIChat(snapshot);
   const setError = useConversationStore((s) => s.setError);
@@ -41,6 +48,19 @@ export function AIAssistant() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, streamingText, isStreaming, error, open]);
+
+  // Consume any pending InlineAITrigger payload on open. Pre-fill the
+  // input or auto-submit depending on `autoSubmit`.
+  useEffect(() => {
+    if (!open) return;
+    const pending = consumePendingTrigger();
+    if (!pending) return;
+    if (pending.autoSubmit) {
+      void send(pending.prompt);
+    } else {
+      setDraft(pending.prompt);
+    }
+  }, [open, consumePendingTrigger, send]);
 
   if (!open) return null;
 

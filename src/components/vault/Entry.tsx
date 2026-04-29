@@ -29,7 +29,7 @@ import { RetrievalPrompt } from './RetrievalPrompt';
 import { WorkedExample } from './WorkedExample';
 import { PrimarySourceList } from './PrimarySourceList';
 import { ClosingAnchor } from './ClosingAnchor';
-import { CrossLinkResolver } from './CrossLinkResolver';
+import { MarkdownProse } from './MarkdownProse';
 
 import { EnergyTransformationChain } from '@/lib/curriculum/diagrams/energy-transformation-chain';
 import { SpeedometerOdometer } from '@/lib/curriculum/diagrams/speedometer-odometer';
@@ -195,26 +195,7 @@ function ProseBlock({
   currentEntryId: string;
   fontSize?: number;
 }) {
-  const paragraphs = body.split('\n\n').filter((p) => p.trim().length > 0);
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: S.md, maxWidth: 780 }}>
-      {paragraphs.map((p, i) => (
-        <p
-          key={i}
-          style={{
-            margin:     0,
-            fontFamily: F.sans,
-            fontSize,
-            color:      C.textSecondary,
-            lineHeight: 1.7,
-            whiteSpace: 'pre-wrap',
-          }}
-        >
-          <CrossLinkResolver text={p} currentEntryId={currentEntryId} />
-        </p>
-      ))}
-    </div>
-  );
+  return <MarkdownProse body={body} currentEntryId={currentEntryId} fontSize={fontSize} />;
 }
 
 function Diagram({ entry, layer }: { entry: CurriculumEntry; layer: LayerKey }) {
@@ -310,7 +291,9 @@ function LayerTwoBody({
     <>
       <ProseBlock body={content.body} currentEntryId={entry.id} />
       <Diagram entry={entry} layer="L2" />
-      {content.workedExample && <WorkedExample workedExample={content.workedExample} />}
+      {content.workedExample && (
+        <WorkedExample workedExample={content.workedExample} currentEntryId={entry.id} />
+      )}
       {content.retrievalPrompt && (
         <RetrievalPrompt entryId={entry.id} layer="L2" prompt={content.retrievalPrompt} />
       )}

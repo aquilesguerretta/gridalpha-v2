@@ -7,16 +7,16 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import type { EntryWorkedExample } from '@/lib/types/curriculum';
 import { WidgetPlaceholder } from './WidgetPlaceholder';
+import { MarkdownProse } from './MarkdownProse';
 
 interface Props {
   workedExample: EntryWorkedExample;
+  /** Slug of the entry that owns this worked example, used for cross-link
+   *  self-link suppression. */
+  currentEntryId?: string;
 }
 
-export function WorkedExample({ workedExample }: Props) {
-  const paragraphs = workedExample.body
-    .split('\n\n')
-    .filter((p) => p.trim().length > 0);
-
+export function WorkedExample({ workedExample, currentEntryId }: Props) {
   return (
     <ContainedCard padding={S.lg} style={{ marginTop: S.xl }}>
       <div
@@ -34,23 +34,11 @@ export function WorkedExample({ workedExample }: Props) {
       </div>
       <EditorialIdentity size="hero">{workedExample.title}</EditorialIdentity>
       <div style={{ height: S.md }} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: S.md, maxWidth: 780 }}>
-        {paragraphs.map((p, i) => (
-          <p
-            key={i}
-            style={{
-              margin:     0,
-              fontFamily: F.sans,
-              fontSize:   14,
-              color:      C.textSecondary,
-              lineHeight: 1.7,
-              whiteSpace: 'pre-wrap',
-            }}
-          >
-            {p}
-          </p>
-        ))}
-      </div>
+      <MarkdownProse
+        body={workedExample.body}
+        currentEntryId={currentEntryId ?? ''}
+        fontSize={14}
+      />
       {workedExample.widgetSpec && (
         <WidgetPlaceholder spec={workedExample.widgetSpec} />
       )}

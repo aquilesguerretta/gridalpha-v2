@@ -432,7 +432,7 @@ export default function SparkSpread() {
         </div>
 
         {/* Hero — Dispatch Frontier */}
-        <ContainedCard style={{ marginBottom: S.lg, height: 480, display: 'flex', flexDirection: 'column' }}>
+        <ContainedCard style={{ marginBottom: S.xl, height: 480, display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
               display:        'flex',

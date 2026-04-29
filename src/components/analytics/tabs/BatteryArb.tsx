@@ -421,7 +421,7 @@ export default function BatteryArb() {
         </div>
 
         {/* Optimal schedule chart */}
-        <ContainedCard style={{ marginBottom: S.lg, height: 320, display: 'flex', flexDirection: 'column' }}>
+        <ContainedCard style={{ marginBottom: S.xl, height: 380, display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
               display:        'flex',

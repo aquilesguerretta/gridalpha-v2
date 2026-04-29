@@ -308,8 +308,8 @@ export default function MarginalFuel() {
           <EditorialIdentity size="hero">Who sets the price.</EditorialIdentity>
         </div>
 
-        {/* Gantt timeline */}
-        <ContainedCard style={{ marginBottom: S.lg }}>
+        {/* Gantt timeline — hero element, owns the page */}
+        <ContainedCard style={{ marginBottom: S.xl }}>
           <div
             style={{
               display:        'flex',

@@ -17,6 +17,7 @@ import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { FlowSection } from '@/components/terminal/FlowSection';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   COMPARISON_SERIES,
   SAVED_QUERIES,
@@ -161,6 +162,7 @@ function ComparisonChartCard() {
     <ContainedCard minHeight={360}>
       <SectionHeader eyebrow="PSEG vs WEST HUB · 90-DAY" identity="Side by side." />
       <div style={{ height: 270, marginTop: S.md }}>
+        <AnnotatableChart chartId="analyst:comparison-pseg-westhub">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 12, bottom: 8, left: -8 }}>
             <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" vertical={false} />
@@ -194,6 +196,7 @@ function ComparisonChartCard() {
             <Line type="monotone" dataKey="westHub" stroke={C.falconGold} strokeWidth={1.5} dot={false} name="westHub" />
           </LineChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
       <div style={{ display: 'flex', gap: S.lg, marginTop: S.sm }}>
         <LegendChip label="PSEG" color={C.electricBlue} />
@@ -278,6 +281,8 @@ function SeasonalPatternCard() {
     <ContainedCard minHeight={200}>
       <SectionHeader eyebrow="SEASONAL PATTERN" identity="The yearly rhythm." />
       <div style={{ height: 120, marginTop: S.md }}>
+        {/* hideToolbar — chart is only 120px tall; dots still render. */}
+        <AnnotatableChart chartId="analyst:seasonal-pattern" hideToolbar>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
             <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" vertical={false} />
@@ -296,6 +301,7 @@ function SeasonalPatternCard() {
             <Line type="monotone" dataKey="value" stroke={C.electricBlue} strokeWidth={1.5} dot={{ r: 2, fill: C.electricBlue }} />
           </LineChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
     </ContainedCard>
   );
@@ -311,6 +317,8 @@ function AnomalyDetectionCard() {
     <ContainedCard minHeight={200}>
       <SectionHeader eyebrow="ANOMALY DETECTION" identity="σ deviations." />
       <div style={{ height: 120, marginTop: S.md }}>
+        {/* hideToolbar — chart is only 120px tall; dots still render. */}
+        <AnnotatableChart chartId="analyst:anomaly-detection" hideToolbar>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: -16 }}>
             <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" vertical={false} />
@@ -334,6 +342,7 @@ function AnomalyDetectionCard() {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
     </ContainedCard>
   );

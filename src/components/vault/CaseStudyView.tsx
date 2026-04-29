@@ -17,6 +17,7 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { MetricTile } from '@/components/terminal/MetricTile';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import { CASE_STUDIES } from '@/lib/mock/vault-mock';
 import type { CaseCategory, CaseSeverity } from '@/lib/types/vault';
 
@@ -347,6 +348,7 @@ export function CaseStudyView({ caseStudyId }: CaseStudyViewProps) {
             </span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
+            <AnnotatableChart chartId={`vault:case-study:${study.id}:lmp-24h`}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 24, right: 24, bottom: 24, left: 40 }}>
                 <CartesianGrid horizontal vertical={false} strokeDasharray="2 4" stroke={C.borderDefault} />
@@ -403,6 +405,7 @@ export function CaseStudyView({ caseStudyId }: CaseStudyViewProps) {
                 />
               </LineChart>
             </ResponsiveContainer>
+            </AnnotatableChart>
           </div>
         </ContainedCard>
 

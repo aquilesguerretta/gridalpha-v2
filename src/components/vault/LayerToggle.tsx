@@ -47,7 +47,11 @@ export function LayerToggle({ l3Disabled = false, l3DisabledTooltip }: LayerTogg
     >
       {LAYERS.map((l) => {
         const active = l.key === current;
-        const disabled = l.key === 'L3' && l3Disabled;
+        // The active tab is never disabled — if the user is already on L3
+        // (deep link, refresh, or post-acknowledgement), the gate has been
+        // crossed and clicking the current tab should be a no-op rather
+        // than feel broken.
+        const disabled = l.key === 'L3' && l3Disabled && !active;
         return (
           <button
             key={l.key}

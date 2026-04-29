@@ -1278,3 +1278,135 @@ NPV = -CapEx + Σᵢ (Annual_Savings_i / (1 + r)^(i+1))     for i = 0..9
   destination. The `runSimulation` engine + types are designed to
   ship unchanged when that happens; only the surface and routing
   move.
+
+## CONDUIT WAVE 2 — ANNOTATIONS ROLLOUT
+
+CONDUIT Wave 1 shipped annotation infrastructure (layer, dot, drawer,
+`AnnotatableChart` wrapper, `annotationStore`, `useAnnotations`). It
+was opt-in and nothing was wrapped. Wave 2 is the wrapping sprint —
+every Recharts chart in the platform that benefits from notes is now
+wrapped. Twenty new wraps owned by CONDUIT, plus three pre-existing
+wraps owned by FORGE inside the Industrial Strategy Simulator.
+
+### Wave 1 contract (unchanged)
+
+`AnnotatableChart` API:
+
+```ts
+interface Props {
+  chartId: string;
+  children: React.ReactNode;
+  hideToolbar?: boolean;
+  toolbarPosition?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+}
+```
+
+To opt a chart in: wrap the inner chart container (the one that holds
+the `ResponsiveContainer`) — not the surrounding card chrome — so the
+toolbar lands inside the visualization area, not over the card title.
+
+### chartId convention
+
+Format: `<surface>:<chart>[:<scope>]`. Scope is the dynamic suffix
+(zone, asset, period, case-study id, strategy id) when the same
+chart serves multiple data slices. Two pre-existing FORGE-owned ids
+use dashes (`industrial-sim-dispatch-{strategyId}`); both forms are
+resolvable via `getChartMeta` in the registry.
+
+Examples in the codebase:
+
+- `trader:lmp-24h:WEST_HUB`
+- `analytics:price-intel-overlay`
+- `vault:case-study:storm-elliott:lmp-24h`
+- `industrial:sim-carbon-strategy-3`
+- `journal:pnl`
+
+When the chartId changes (zone switch, period filter, etc.) the
+wrapper re-mounts and the dots flip to the new id's annotations.
+
+### Registry — `src/lib/annotatableCharts.ts`
+
+Every wrapped chart is listed in `ANNOTATABLE_CHARTS`. The registry is
+descriptive (wrapping a chart not in the list still works), but the
+list keeps the platform legible and supports tooling like
+"show me all annotations across all charts."
+
+```ts
+import { ANNOTATABLE_CHARTS, getChartMeta, chartsBySurface } from '@/lib/annotatableCharts';
+
+getChartMeta('storage:asset-revenue:bess-001');
+//   → { chartId: 'storage:asset-revenue', surface: 'Storage Nest', ... }
+```
+
+Each entry carries `surface`, `description`, `scope`, `hideToolbar`,
+and `owner`. `getChartMeta` does longest-prefix match so scoped ids
+resolve to their parent registry entry.
+
+### When to use `hideToolbar`
+
+The toolbar is 26px tall and floats with an 8px inset. On charts
+≤120px tall it consumes most of the visualization. CONDUIT applies
+`hideToolbar` to those — existing dots still render (read-only); users
+who need to add notes do so from the larger detailed chart on the
+same surface.
+
+Charts shipped with `hideToolbar` in Wave 2:
+
+- `trader:spark-spread:WEST_HUB` (40px sparkline)
+- `analyst:seasonal-pattern` (120px line)
+- `analyst:anomaly-detection` (120px bars)
+- `storage:asset-revenue` (120px horizontal bars)
+- `industrial:sim-carbon-{strategyId}` (180px line that sits next
+  to a hero number; the toolbar would clash)
+
+### Charts not wrapped (deliberately)
+
+| Component | Reason |
+| --- | --- |
+| `atlas/GridAtlasView.tsx`, `atlas/GridAtlasMap.tsx` | Mapbox 3D — needs a different annotation layer (out of scope). |
+| `analytics/tabs/SparkSpread.tsx` | Brief excludes the Dispatch Frontier custom SVG. |
+| `analytics/tabs/MarginalFuel.tsx` | Custom-SVG fuel gantt and reserve plot — not Recharts. |
+| `nest/trader/ZoneWatchlist.tsx` | Per-row 30px sparklines — toolbar overhead would dominate. |
+| `nest/trader/tiles/BessTile.tsx`, `FuelMixTile.tsx` | No Recharts charts (SOC dial is custom SVG). |
+| `nest/student/StudentNest.tsx` | Placeholder content, no charts yet. |
+| `peregrine/*` | No Recharts charts in any Peregrine surface. |
+| `nest/everyone/EveryoneNest.tsx` | Not in CONDUIT's Wave 2 ownership list. |
+| `LMPCard.tsx` (legacy) | Slated for deprecation. |
+
+### How to wrap a new chart in future sprints
+
+Chart owners landing new visualizations should:
+
+1. Wrap the inner chart container (around `ResponsiveContainer`),
+   leaving card chrome untouched.
+2. Pick a chartId following the `<surface>:<chart>[:<scope>]` pattern.
+3. Append a row to `ANNOTATABLE_CHARTS` in
+   `src/lib/annotatableCharts.ts` with surface, description, and scope.
+4. Pass `hideToolbar` if the chart container is ≤120px tall or if the
+   toolbar would land on existing chart chrome.
+
+```tsx
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
+
+<div style={{ height: 280 }}>
+  <AnnotatableChart chartId={`mysurface:my-chart:${zoneId}`}>
+    <ResponsiveContainer width="100%" height="100%">
+      {/* recharts JSX, unchanged */}
+    </ResponsiveContainer>
+  </AnnotatableChart>
+</div>
+```
+
+### Persistence (unchanged from Wave 1)
+
+Annotations persist to `localStorage` under `gridalpha-annotations`
+via Zustand's `persist` middleware. They survive tab close. When
+the FastAPI backend lands, the persist layer should mirror writes
+server-side; the public hook surface (`useAnnotations(chartId)`) will
+not need to change.
+
+### Audit doc
+
+The full audit — wrapped vs skipped, layout-impact notes, API
+divergence from the Wave 2 brief — lives at
+`docs/wave-3-conduit-audit.md`.

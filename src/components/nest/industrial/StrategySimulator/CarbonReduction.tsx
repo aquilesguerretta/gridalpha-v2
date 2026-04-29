@@ -15,6 +15,7 @@ import {
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import type { StrategyResult } from '@/lib/types/simulator';
 
 interface Props {
@@ -127,6 +128,7 @@ export function CarbonReduction({ result }: Props) {
         </div>
 
         <div style={{ height: 180 }}>
+          <AnnotatableChart chartId={`industrial:sim-carbon-${result.strategy.id}`} hideToolbar>
           <ResponsiveContainer>
             <LineChart
               data={data}
@@ -169,6 +171,7 @@ export function CarbonReduction({ result }: Props) {
               />
             </LineChart>
           </ResponsiveContainer>
+          </AnnotatableChart>
         </div>
       </div>
     </ContainedCard>

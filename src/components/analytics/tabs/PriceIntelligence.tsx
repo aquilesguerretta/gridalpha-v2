@@ -18,6 +18,7 @@ import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { MetricTile } from '@/components/terminal/MetricTile';
 import { DataTable, type ColumnDef } from '@/components/terminal/DataTable';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   PRICE_COMPONENTS_BREAKDOWN,
   PRICE_INTELLIGENCE_KPIS,
@@ -347,6 +348,7 @@ export default function PriceIntelligence() {
             </span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
+            <AnnotatableChart chartId="analytics:price-intel-overlay">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={overlayData} margin={{ top: 8, right: 16, bottom: 24, left: 32 }}>
                 <CartesianGrid
@@ -394,6 +396,7 @@ export default function PriceIntelligence() {
                 />
               </LineChart>
             </ResponsiveContainer>
+            </AnnotatableChart>
           </div>
         </ContainedCard>
 
@@ -426,6 +429,7 @@ export default function PriceIntelligence() {
             </div>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
+            <AnnotatableChart chartId="analytics:price-intel-components">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={componentsData} margin={{ top: 8, right: 16, bottom: 24, left: 32 }}>
                 <CartesianGrid
@@ -484,6 +488,7 @@ export default function PriceIntelligence() {
                 />
               </AreaChart>
             </ResponsiveContainer>
+            </AnnotatableChart>
           </div>
         </ContainedCard>
 

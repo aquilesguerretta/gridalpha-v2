@@ -16,6 +16,7 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   BATTERY_OPTIMAL_SCHEDULE,
   BATTERY_SENSITIVITY_COLS,
@@ -448,6 +449,7 @@ export default function BatteryArb() {
             </div>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
+            <AnnotatableChart chartId="analytics:battery-schedule">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ top: 8, right: 16, bottom: 24, left: 32 }} stackOffset="sign">
                 <CartesianGrid horizontal vertical={false} strokeDasharray="2 4" stroke={C.borderDefault} />
@@ -476,6 +478,7 @@ export default function BatteryArb() {
                 <Bar dataKey="dischargeMw" fill={C.falconGold}   stackId="bat" isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
+            </AnnotatableChart>
           </div>
         </ContainedCard>
 

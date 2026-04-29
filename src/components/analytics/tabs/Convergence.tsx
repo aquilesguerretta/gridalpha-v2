@@ -19,6 +19,7 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   CONVERGENCE_24H,
   CONVERGENCE_OPPORTUNITIES,
@@ -292,6 +293,7 @@ export default function Convergence() {
             </div>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
+            <AnnotatableChart chartId="analytics:convergence-overlay">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={overlayData} margin={{ top: 8, right: 16, bottom: 24, left: 32 }}>
                 <CartesianGrid horizontal vertical={false} strokeDasharray="2 4" stroke={C.borderDefault} />
@@ -320,6 +322,7 @@ export default function Convergence() {
                 <Line type="monotone" dataKey="RT" stroke={C.falconGold}   strokeWidth={2} dot={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
+            </AnnotatableChart>
           </div>
         </ContainedCard>
 
@@ -357,6 +360,7 @@ export default function Convergence() {
             </span>
           </div>
           <div style={{ flex: 1, minHeight: 0 }}>
+            <AnnotatableChart chartId="analytics:convergence-spread">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={spreadData} margin={{ top: 8, right: 16, bottom: 24, left: 32 }}>
                 <CartesianGrid horizontal vertical={false} strokeDasharray="2 4" stroke={C.borderDefault} />
@@ -389,6 +393,7 @@ export default function Convergence() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            </AnnotatableChart>
           </div>
         </ContainedCard>
 

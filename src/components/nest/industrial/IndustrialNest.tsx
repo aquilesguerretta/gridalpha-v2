@@ -24,6 +24,9 @@ import {
   CARBON_INTENSITY,
   MONTHLY_BILL_PROJECTION,
 } from '@/lib/mock/industrial-mock';
+import { SimulatorView } from './StrategySimulator/SimulatorView';
+
+type IndustrialTab = 'overview' | 'simulator';
 
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const CURRENT_MONTH_IDX = 3; // April highlighted
@@ -628,33 +631,100 @@ function SectionHeader({ eyebrow, identity }: { eyebrow: string; identity: strin
   );
 }
 
+// ─── TAB STRIP ────────────────────────────────────────────────────
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        fontFamily: F.mono,
+        fontSize: 12,
+        fontWeight: 600,
+        letterSpacing: '0.16em',
+        textTransform: 'uppercase',
+        color: active ? C.electricBlue : C.textMuted,
+        padding: `${S.sm} 0`,
+        borderBottom: active
+          ? `2px solid ${C.electricBlue}`
+          : '2px solid transparent',
+        marginBottom: -1,
+        transition: 'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 // ─── MAIN ─────────────────────────────────────────────────────────
 export function IndustrialNest() {
+  const [tab, setTab] = useState<IndustrialTab>('overview');
+
   return (
     <PageAtmosphere tint="industrial">
+      {/* Tab strip — surgical addition above the existing layout */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: '2fr 1fr',
-          gap: S.sm,
-          padding: S.xl,
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          gap: S.lg,
+          padding: `${S.md} ${S.xl} 0`,
+          borderBottom: `1px solid ${C.borderDefault}`,
         }}
       >
-        {/* LEFT COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: S.xl }}>
-          <IndustrialHeroBlock />
-          <StrategySimulatorCard />
-          <TariffOptimizationCard />
-          <CarbonAndBillRow />
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: S.xl }}>
-          <DemandResponseSection />
-          <TariffAlertsSection />
-          <FacilityProfileCard />
-        </div>
+        <TabButton
+          active={tab === 'overview'}
+          onClick={() => setTab('overview')}
+        >
+          OVERVIEW
+        </TabButton>
+        <TabButton
+          active={tab === 'simulator'}
+          onClick={() => setTab('simulator')}
+        >
+          STRATEGY SIMULATOR
+        </TabButton>
       </div>
+
+      {tab === 'overview' && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 1fr',
+            gap: S.sm,
+            padding: S.xl,
+          }}
+        >
+          {/* LEFT COLUMN */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: S.xl }}>
+            <IndustrialHeroBlock />
+            <TariffOptimizationCard />
+            <CarbonAndBillRow />
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: S.xl }}>
+            <DemandResponseSection />
+            <TariffAlertsSection />
+            <FacilityProfileCard />
+          </div>
+        </div>
+      )}
+
+      {tab === 'simulator' && <SimulatorView />}
     </PageAtmosphere>
   );
 }

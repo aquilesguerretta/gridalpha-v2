@@ -12,6 +12,7 @@ import { C, F, S } from '@/design/tokens';
 import type { CSSProperties } from 'react';
 import { ZONE_LMP_DETAIL, ZONE_24H_PRICES } from '../../../lib/pjm/mock-data';
 import { HeroNumber } from '../../terminal/HeroNumber';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 
 const ZONE_OPTIONS: { key: string; label: string }[] = [
   { key: 'WEST_HUB', label: 'WEST HUB' },
@@ -254,6 +255,7 @@ export function HeroLMPBlock() {
 
       {/* Section E — Recharts sparkline */}
       <div style={{ width: '100%', height: 140 }}>
+        <AnnotatableChart chartId="trader:hero-lmp:WEST_HUB">
         <ResponsiveContainer width="100%" height={140}>
           <LineChart
             data={chartData}
@@ -332,6 +334,7 @@ export function HeroLMPBlock() {
             />
           </LineChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
 
       {/* Section F — day stats row */}

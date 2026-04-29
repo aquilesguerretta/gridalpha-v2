@@ -1,6 +1,7 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { C, F, R, S } from '@/design/tokens';
 import { useHoverState } from '../../../terminal/useHoverState';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 
 const SPARK_SERIES = [
   12.4, 12.2, 12.6, 13.1, 13.0, 13.4, 13.9, 14.2, 14.0, 14.6,
@@ -101,6 +102,10 @@ export function SparkSpreadTile() {
 
       {/* Sparkline (Recharts) */}
       <div style={{ width: '100%', height: 40 }}>
+        {/* hideToolbar — the 40px sparkline doesn't have room for the
+            toolbar chrome. Existing annotation dots still render
+            read-only; users add notes from the full LMP24H chart. */}
+        <AnnotatableChart chartId="trader:spark-spread:WEST_HUB" hideToolbar>
         <ResponsiveContainer width="100%" height={40}>
           <LineChart
             data={SPARK_SERIES}
@@ -116,6 +121,7 @@ export function SparkSpreadTile() {
             />
           </LineChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
 
       {/* Footer */}

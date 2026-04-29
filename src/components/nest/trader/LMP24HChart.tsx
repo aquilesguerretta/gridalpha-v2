@@ -10,6 +10,7 @@ import {
 import { C, F, R, S } from '@/design/tokens';
 import { ZONE_24H_PRICES, ZONE_LMP_DETAIL } from '../../../lib/pjm/mock-data';
 import { useHoverState } from '../../terminal/useHoverState';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 
 // Hour labels: -24H, -23H, ..., -1H, NOW (24-point series)
 function formatHour(idx: number): string {
@@ -149,6 +150,7 @@ export function LMP24HChart() {
 
       {/* Chart */}
       <div style={{ flex: 1, minHeight: 280 }}>
+        <AnnotatableChart chartId="trader:lmp-24h:WEST_HUB">
         <ResponsiveContainer width="100%" height={280}>
           <LineChart
             data={data}
@@ -199,6 +201,7 @@ export function LMP24HChart() {
             />
           </LineChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
     </div>
   );

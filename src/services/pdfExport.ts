@@ -1,9 +1,16 @@
 // CONDUIT-2 — PDF export pipeline entry point.
 //
-// Public API: one function per template, plus a couple of utility
-// helpers (filename builder, SVG → PNG rasterizer). New templates
-// expose a sibling `exportXxx()` function and register themselves in
-// the `PDF_TEMPLATES` map.
+// Public API: one function per template, plus utility helpers
+// (filename builder, SVG → PNG rasterizer). New templates expose a
+// sibling `exportXxx()` function and register themselves in
+// `PDF_TEMPLATES`.
+//
+// Calling convention: positional args, second arg may be a single
+// `StrategyResult` OR an array. This matches FORGE's
+// `ExportMemoButton.tsx` integration point — that component calls
+// `api.exportStrategyMemo(profile, result)` with a singular result —
+// while still letting other callers pass a full ranked-strategy list
+// for the ranking table.
 
 import { pdf } from '@react-pdf/renderer';
 import { createElement } from 'react';
@@ -28,11 +35,13 @@ function todayIso(): string {
 
 /** Sanitize an arbitrary string into a filename-safe slug. */
 function slug(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60) || 'gridalpha';
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'gridalpha'
+  );
 }
 
 /** Trigger a browser download for a Blob. Returns the filename used. */
@@ -53,13 +62,8 @@ function downloadBlob(blob: Blob, filename: string): string {
  * Rasterize an SVG markup string into a PNG data URL using the browser
  * canvas. Templates accept PNG data URLs (not SVG) because
  * `@react-pdf/renderer`'s `<Image>` rasterizes raster formats reliably
- * but doesn't natively render arbitrary SVG. Caller picks `width` and
- * `height` in pixels; result is a data URL that can be passed straight
- * into a `PDFChartImage` `src` prop.
- *
- * No-ops in non-browser environments (returns `null`); callers should
- * branch on the null case and let the template fall back to its
- * text-only substitute.
+ * but doesn't natively render arbitrary SVG. Returns `null` outside a
+ * browser environment so callers can fall back to text-only content.
  */
 export async function svgStringToPngDataUrl(
   svg: string,
@@ -99,24 +103,42 @@ export async function svgStringToPngDataUrl(
 
 // ─── Strategy memo ─────────────────────────────────────────────────
 
-interface ExportStrategyMemoArgs {
-  facilityProfile: FacilityProfile;
-  results: StrategyResult[];
-  scenario?: ScenarioName;
-  /** Optional pre-rasterized chart PNGs. Templates fall back to text
-   *  when these aren't provided. */
+interface ExportStrategyMemoOptions extends PDFExportOptions {
+  /** Optional pre-rasterized chart PNG data URLs. The template falls
+   *  back to text-only digests when these aren't supplied. */
   chartImages?: { sensitivity?: string; dispatch?: string };
-  options?: PDFExportOptions;
 }
 
-export async function exportStrategyMemo({
-  facilityProfile,
-  results,
-  scenario = 'base',
-  chartImages,
-  options,
-}: ExportStrategyMemoArgs): Promise<PDFExportResult> {
+/**
+ * Export an Industrial Strategy Simulator memo.
+ *
+ * Calling shape (matches FORGE's `ExportMemoButton` integration):
+ *   `exportStrategyMemo(profile, result)` — single strategy
+ *   `exportStrategyMemo(profile, results, scenario, options)` — full set
+ *
+ * Returns `PDFExportResult`; FORGE's button awaits and discards, our
+ * own `PDFExportButton` reads `success` and `error` to surface UI.
+ */
+export async function exportStrategyMemo(
+  facilityProfile: FacilityProfile,
+  resultOrResults: StrategyResult | StrategyResult[],
+  scenario: ScenarioName = 'base',
+  options?: ExportStrategyMemoOptions,
+): Promise<PDFExportResult> {
   try {
+    // Normalize to an array — single result still produces a memo,
+    // just with a one-row strategy ranking table.
+    const results: StrategyResult[] = Array.isArray(resultOrResults)
+      ? resultOrResults
+      : [resultOrResults];
+
+    if (results.length === 0) {
+      return {
+        success: false,
+        error: 'exportStrategyMemo requires at least one StrategyResult.',
+      };
+    }
+
     const meta: PDFDocumentMeta = {
       documentType: 'STRATEGY MEMO',
       documentTitle: `${facilityProfile.name} · Strategy Analysis`,
@@ -132,7 +154,7 @@ export async function exportStrategyMemo({
       facilityProfile,
       results,
       scenarioForCharts: scenario,
-      chartImages,
+      chartImages: options?.chartImages,
       meta,
     });
 
@@ -147,8 +169,6 @@ export async function exportStrategyMemo({
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Unknown PDF export error';
-    // Console-log preserves the stack for debugging without surfacing
-    // it to end-users; the result.error is the human-readable form.
     if (typeof console !== 'undefined') {
       // eslint-disable-next-line no-console
       console.error('[CONDUIT-2] PDF export failed:', err);
@@ -161,8 +181,8 @@ export async function exportStrategyMemo({
 
 /**
  * Map of available template export functions. New templates register
- * here so dev tooling and future "export from anywhere" UI can list
- * them without each caller knowing the function names.
+ * here so dev tooling and any future "export from anywhere" UI can
+ * list them without each caller knowing the function names.
  */
 export const PDF_TEMPLATES = {
   strategyMemo: exportStrategyMemo,

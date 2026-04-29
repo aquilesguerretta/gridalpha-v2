@@ -1,21 +1,39 @@
+// ORACLE Wave 2 — high-level chat hook.
+//
+// Wave 1 derived its context from { profile, view, zone } primitives. Wave 2
+// accepts a full AIContextSnapshot — built by useAIContextSnapshot or
+// captured at panel-invocation time. The snapshot drives both the system
+// prompt (via buildSystemPrompt) and the conversationStore's per-thread
+// context record.
+
 import { useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useConversationStore } from '@/stores/conversationStore';
 import { useAuthStore } from '@/stores/authStore';
 import { streamChat } from '@/services/anthropic';
-import { buildContextBlock, viewFromPathname } from '@/services/aiContext';
+import {
+  buildContextBlock,
+  viewFromPathname,
+  type AIContextSnapshot,
+} from '@/services/aiContext';
+import { buildSystemPrompt } from '@/lib/prompts/systemPrompt';
 
 /**
- * High-level hook that backs the AIAssistant component. Reads the
- * conversation state from `conversationStore`, derives the current view
- * from the router pathname, and exposes a `send` action that streams a
- * response from Claude into the store.
+ * High-level hook that backs the AIAssistant component.
  *
- * Zone is currently sourced from props (or null) until ARCHITECT ships
- * `viewStore` — at that point this hook can read `useViewStore.selectedZone`
- * directly without changing its public surface.
+ * Wave 2 signature: optionally accepts the AIContextSnapshot produced by
+ * `useAIContextSnapshot`. When provided, every send uses
+ * `buildSystemPrompt(snapshot)` so Claude's response references the user's
+ * current view. When omitted, the hook falls back to the Wave 1
+ * profile/view/zone context block — keeps existing callers working.
+ *
+ * The optional `zone` argument (Wave 1 compat) is honoured for callers
+ * that still pass a zone primitive directly.
  */
-export function useAIChat(zone: string | null = null) {
+export function useAIChat(
+  snapshot?: AIContextSnapshot | null,
+  zone: string | null = null,
+) {
   const messages = useConversationStore((s) => s.messages);
   const isStreaming = useConversationStore((s) => s.isStreaming);
   const streamingText = useConversationStore((s) => s.streamingText);
@@ -29,6 +47,9 @@ export function useAIChat(zone: string | null = null) {
   const finishStreaming = useConversationStore((s) => s.finishStreaming);
   const setError = useConversationStore((s) => s.setError);
   const clearConversation = useConversationStore((s) => s.clearConversation);
+  const recordSurfaceContext = useConversationStore(
+    (s) => s.recordSurfaceContext,
+  );
 
   const profile = useAuthStore((s) => s.selectedProfile);
   const location = useLocation();
@@ -42,7 +63,24 @@ export function useAIChat(zone: string | null = null) {
       appendUserMessage(trimmed);
       startStreaming();
 
-      const contextBlock = buildContextBlock({ profile, view, zone });
+      // Persist the surface context used for this send. The conversation
+      // store keeps the snapshot alongside the message stream so reopening
+      // the conversation later can compare against the current surface.
+      if (snapshot) {
+        recordSurfaceContext(snapshot);
+      }
+
+      const systemPrompt = snapshot
+        ? buildSystemPrompt(snapshot)
+        : undefined;
+
+      // Legacy fallback context block — only used when no snapshot is
+      // supplied (Wave 1 compatibility path).
+      const fallbackBlock = buildContextBlock({
+        profile,
+        view,
+        zone: snapshot?.user.selectedZone ?? zone,
+      });
 
       const conversationMessages = [
         ...messages,
@@ -52,7 +90,8 @@ export function useAIChat(zone: string | null = null) {
       try {
         for await (const chunk of streamChat(
           conversationMessages,
-          contextBlock,
+          fallbackBlock,
+          { systemPrompt },
         )) {
           if (chunk.type === 'text' && chunk.text) {
             appendStreamingText(chunk.text);
@@ -73,11 +112,13 @@ export function useAIChat(zone: string | null = null) {
       profile,
       view,
       zone,
+      snapshot,
       appendUserMessage,
       startStreaming,
       appendStreamingText,
       finishStreaming,
       setError,
+      recordSurfaceContext,
     ],
   );
 

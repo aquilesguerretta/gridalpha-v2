@@ -16,6 +16,7 @@ import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { FlowSection } from '@/components/terminal/FlowSection';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   PROJECT_PIPELINE,
   ZONE_REVENUE_HISTORY_24M,
@@ -175,6 +176,7 @@ function ZoneRevenueCard() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 200px', gap: S.lg, marginTop: S.md }}>
         {/* Chart */}
         <div style={{ height: 220 }}>
+          <AnnotatableChart chartId="developer:zone-revenue-24m">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 4, right: 8, bottom: 4, left: -4 }}>
               <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" vertical={false} />
@@ -207,6 +209,7 @@ function ZoneRevenueCard() {
               <Line type="monotone" dataKey="cumulative" stroke={C.electricBlue} strokeWidth={1.75} dot={false} />
             </LineChart>
           </ResponsiveContainer>
+          </AnnotatableChart>
         </div>
 
         {/* Inputs (visual only, non-functional) */}
@@ -383,6 +386,7 @@ function CongestionPatternCard() {
     <ContainedCard minHeight={240}>
       <SectionHeader eyebrow="CONSTRAINT FREQUENCY · PSEG · 12 MONTHS" identity="Where the bottlenecks are." />
       <div style={{ height: 160, marginTop: S.md }}>
+        <AnnotatableChart chartId="developer:binding-constraints-12mo">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 4, left: 8 }}>
             <CartesianGrid stroke={C.borderDefault} strokeDasharray="2 4" horizontal={false} />
@@ -420,6 +424,7 @@ function CongestionPatternCard() {
             <Bar dataKey="frequency" fill={C.electricBlue} radius={[0, 2, 2, 0]} barSize={14} />
           </BarChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
     </ContainedCard>
   );

@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
 });
 
 interface Props {
-  children: string;
+  children: React.ReactNode;
   variant?: 'section' | 'hero';
 }
 

@@ -1601,3 +1601,186 @@ and curriculum index/entries.
 - **InlineAITrigger adoption.** The primitive is opt-in. Future
   sprints will land trigger wraps on charts, KPI tiles, and key
   values across the platform.
+
+## CONDUIT-2 — PDF EXPORT PIPELINE
+
+CONDUIT-2 ships V1 of the platform-wide PDF export pipeline. Real
+layered PDF documents — proper typography, multi-page pagination,
+branded chrome — generated client-side via `@react-pdf/renderer`. No
+backend required. The Industrial Strategy Simulator memo is the
+first concrete template; Analyst Report, Trader Position Brief, and
+Developer Site Report are stubbed for future sprints.
+
+### Architecture
+
+`BasePDFTemplate` defines page setup (Letter portrait, 0.75" margins,
+white background) and mounts the fixed `PDFHeader` / `PDFFooter` so
+those repeat on every page. Each per-feature template wraps its
+content in `BasePDFTemplate` and uses the shared component library.
+The `services/pdfExport.ts` entry point wires templates to the
+download flow.
+
+```
+BasePDFTemplate
+├── PDFHeader (fixed)              ← brand wordmark + doc type + date
+├── <children>                     ← per-template content
+│   ├── PDFEyebrow                 ← F.mono caps electricBlue
+│   ├── PDFHeading                 ← Times-Roman 32pt / 18pt / 14pt
+│   ├── PDFBody / PDFBulletList    ← body prose, bullets
+│   ├── PDFTable                   ← header row + alternating rows
+│   ├── PDFMetricCallout           ← large value with tone color
+│   └── PDFChartImage              ← PNG data URL with caption
+└── PDFFooter (fixed)              ← brand line + Page X of Y
+```
+
+### Files (CONDUIT-2-owned)
+
+| Path | Purpose |
+| --- | --- |
+| `src/services/pdfExport.ts` | Pipeline entry point. Exports `exportStrategyMemo()` and the `PDF_TEMPLATES` registry. Includes `svgStringToPngDataUrl()` helper for chart rasterization. |
+| `src/services/pdfTemplates/types.ts` | `PDFDocumentMeta`, `PDFExportOptions`, `PDFExportResult`. |
+| `src/services/pdfTemplates/BasePDFTemplate.tsx` | Page setup + fixed chrome. Every template renders inside this. |
+| `src/services/pdfTemplates/StrategyMemoTemplate.tsx` | Industrial Strategy Simulator memo — hero, exec summary, ranking, top detail, sensitivity, dispatch, carbon, methodology, disclaimer. |
+| `src/services/pdfTemplates/AnalystReportTemplate.tsx` | Stub — throws "not yet implemented". |
+| `src/services/pdfTemplates/TraderBriefTemplate.tsx` | Stub — throws "not yet implemented". |
+| `src/services/pdfTemplates/DeveloperSiteReportTemplate.tsx` | Stub — throws "not yet implemented". |
+| `src/services/pdfTemplates/components/PDFHeader.tsx` | GridAlpha wordmark + document-type/date row, fixed. |
+| `src/services/pdfTemplates/components/PDFFooter.tsx` | Brand line + `Page X of Y`, fixed. |
+| `src/services/pdfTemplates/components/PDFEyebrow.tsx` | F.mono caps eyebrow (`section` and `hero` variants). |
+| `src/services/pdfTemplates/components/PDFHeading.tsx` | Levels 1/2/3 plus `subtitle` italic-gray variant. |
+| `src/services/pdfTemplates/components/PDFBody.tsx` | Body prose + `PDFBulletList`. |
+| `src/services/pdfTemplates/components/PDFTable.tsx` | Header row, alternating row backgrounds, per-column align/flex. |
+| `src/services/pdfTemplates/components/PDFMetricCallout.tsx` | Large value with `neutral` / `positive` / `negative` tone. |
+| `src/services/pdfTemplates/components/PDFChartImage.tsx` | PNG/JPEG data URL with caption + dashed-border placeholder. |
+| `src/components/shared/PDFExportButton.tsx` | Reusable button — handles loading and error UI in-place. |
+| `src/hooks/usePDFExport.ts` | Optional orchestration hook for callers that want shared exporting state. |
+
+### Design standard
+
+| Spec | Value |
+| --- | --- |
+| Page size | LETTER, portrait |
+| Margins | 54pt top/right/left, 72pt bottom (0.75" / 1.0") |
+| Background | `#FFFFFF` |
+| Body type | Helvetica 11pt @ 1.45 line-height (Inter substitute — see Limitations) |
+| Display headings | Times-Roman 32 / 18 / 14pt (Instrument Serif substitute) |
+| Mono | Courier (Geist Mono substitute) |
+| Body color | `#1F2937` |
+| Secondary color | `#71717A` |
+| Accent (eyebrows, neutral callouts) | `#3B82F6` (electric blue) |
+| Emphasis (positive metrics, top-edge accent) | `#F59E0B` (falcon gold) |
+| Negative tone | `#EF4444` |
+| Header/footer rule | `#E5E7EB` 1pt |
+| Table alt rows | `#F8F9FA` |
+
+### Export API
+
+The Strategy Memo export accepts both calling shapes — the singular-
+result form (used by FORGE's `ExportMemoButton`) and the multi-result
+array form for full ranking output:
+
+```ts
+import { exportStrategyMemo } from '@/services/pdfExport';
+
+// Singular result (FORGE-compatible)
+await exportStrategyMemo(profile, results[0]);
+
+// Full result set with options
+await exportStrategyMemo(profile, results, 'base', {
+  filename: 'morning-pull.pdf',
+  meta: { brandLine: 'Acme Energy · Internal' },
+  chartImages: { sensitivity: pngDataUrl, dispatch: pngDataUrl },
+});
+```
+
+Every export returns a `PDFExportResult { success, blob?, filename?, error? }`.
+Callers using `await` can ignore the result; richer integrations can
+branch on `success`.
+
+### Reusable button
+
+```tsx
+import { PDFExportButton } from '@/components/shared/PDFExportButton';
+import { exportStrategyMemo } from '@/services/pdfExport';
+
+<PDFExportButton
+  onExport={() => exportStrategyMemo(profile, results)}
+  label="Export memo"
+  size="default"  // or "compact"
+/>
+```
+
+The button manages `isExporting` and surfaces `result.error` inline.
+For multi-button layouts that need shared state, `usePDFExport()`
+exposes the same machinery as a hook.
+
+### Charts
+
+V1 supports PNG/JPEG data URLs only. `PDFChartImage` renders the image
+inside a fixed-width frame with optional caption; when no `src` is
+supplied it renders a dashed-border placeholder so the document
+doesn't break.
+
+`svgStringToPngDataUrl(svg, w, h)` rasterizes an SVG markup string via
+the browser canvas. Caller flow for a chart-bearing memo:
+
+```ts
+const sensSvg = chartContainer.querySelector('svg')?.outerHTML;
+const sensPng = sensSvg ? await svgStringToPngDataUrl(sensSvg, 540, 220) : undefined;
+await exportStrategyMemo(profile, results, 'base', {
+  chartImages: { sensitivity: sensPng },
+});
+```
+
+True vector-PDF chart rendering (parsing SVG into the
+`@react-pdf/renderer` `<Svg>` primitives) is deferred to V2.
+
+### Limitations carried into V1
+
+- **Fonts** — Helvetica / Times-Roman / Courier are used in place of
+  Inter / Instrument Serif / Geist Mono. The brief authorized the
+  fallback. V2 should `Font.register()` real GridAlpha typefaces from
+  TTFs in `public/fonts/`. `BasePDFTemplate` is the single
+  registration site.
+- **macOS Preview cross-renderer pass** — pending. V1 was verified
+  in Chrome's PDF viewer + via programmatic PDF stream inspection
+  (decompressed content streams, painted-text extraction from `TJ`
+  hex-string operators).
+- **FORGE feature-detect bug** — `ExportMemoButton.tsx` builds its
+  import specifier at runtime with `@vite-ignore` and the alias never
+  resolves. Documented in `docs/wave-3-conduit2-test-results.md` with
+  a one-line suggested fix. The pipeline itself is reachable through
+  ordinary static imports and the dev-server raw path; the
+  feature-detect path is what's broken on the FORGE side.
+
+### What CONDUIT-2 owns
+
+CONDUIT-2 may create or modify any file listed in the table above.
+The dependency add (`@react-pdf/renderer`) is the one exception to
+the "no new deps" rule, scoped to this sprint only.
+
+CONDUIT-2 must not modify FORGE's simulator code, any FOUNDRY
+primitive, any chart component, the backend, or any Nest / Vault /
+Atlas / Analytics / Peregrine surface.
+
+### Future templates
+
+Three stubs are in place, each throwing on render so missed
+integrations fail loudly during dev:
+
+- `AnalystReportTemplate` — Analyst signature feature
+- `TraderBriefTemplate` — Trader Position Brief
+- `DeveloperSiteReportTemplate` — Developer Site Report
+
+Each future implementation should:
+
+1. Build its component on top of the shared component library.
+2. Export an `exportXxx(...)` function from `services/pdfExport.ts`.
+3. Register the function in `PDF_TEMPLATES`.
+4. Match the brand chrome — same `BasePDFTemplate`, same colors, same
+   typography hierarchy.
+
+### Test results
+
+Full V1 verification log lives at
+`docs/wave-3-conduit2-test-results.md`.

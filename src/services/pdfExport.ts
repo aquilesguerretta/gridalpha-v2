@@ -13,7 +13,9 @@
 // for the ranking table.
 
 import { pdf } from '@react-pdf/renderer';
+import type { DocumentProps } from '@react-pdf/renderer';
 import { createElement } from 'react';
+import type { ReactElement } from 'react';
 import { StrategyMemoTemplate } from './pdfTemplates/StrategyMemoTemplate';
 import type {
   FacilityProfile,
@@ -158,7 +160,13 @@ export async function exportStrategyMemo(
       meta,
     });
 
-    const blob = await pdf(element).toBlob();
+    // Template renders `<Document>` via `BasePDFTemplate`. TS can't see
+    // through the function-component boundary, so we cast at the
+    // `pdf()` boundary — this is the only place the assertion is
+    // needed and the call is purely structural.
+    const blob = await pdf(
+      element as unknown as ReactElement<DocumentProps>,
+    ).toBlob();
     const filename =
       options?.filename ??
       `gridalpha-strategy-memo-${slug(facilityProfile.name)}-${todayIso()}.pdf`;

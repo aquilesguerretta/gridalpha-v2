@@ -94,8 +94,8 @@ export function SimulatorView() {
         <FacilityProfileForm onSubmit={handleProfileSubmit} />
       )}
 
-      {/* Profile set but actively editing or no results yet */}
-      {profile && (editing || (!results && !isRunning)) && (
+      {/* Profile set, user clicked EDIT PROFILE — re-render form pre-filled */}
+      {profile && editing && (
         <FacilityProfileForm
           initial={profile}
           onSubmit={handleProfileSubmit}

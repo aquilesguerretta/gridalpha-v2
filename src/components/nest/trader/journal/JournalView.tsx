@@ -117,19 +117,23 @@ export function JournalView() {
         gap: S.lg,
       }}
     >
-      {/* Page header */}
-      <div>
+      {/* Page header — eyebrow + editorial identity, matching the rhythm
+          used across VaultIndex, Alexandria, and the per-profile Nests.
+          Replaces the previous sans-32 "Journal" H1 (which competed with
+          the identity line beneath it). */}
+      <div style={{ marginBottom: S.sm }}>
         <div
           style={{
-            fontFamily: F.sans,
-            fontSize: 32,
-            fontWeight: 500,
-            color: C.textPrimary,
-            letterSpacing: '-0.01em',
-            lineHeight: 1.1,
+            fontFamily: F.mono,
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase' as const,
+            color: C.electricBlue,
+            marginBottom: S.xs,
           }}
         >
-          Journal
+          TRADE LEDGER · {entries.length} {entries.length === 1 ? 'ENTRY' : 'ENTRIES'}
         </div>
         <EditorialIdentity size="hero">Your record.</EditorialIdentity>
       </div>

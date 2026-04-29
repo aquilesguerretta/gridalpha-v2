@@ -18,7 +18,6 @@ import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import {
   FACILITY_PROFILE,
-  STRATEGIES,
   TARIFF_COMPARISON,
   DEMAND_RESPONSE_OPPS,
   CARBON_INTENSITY,
@@ -103,145 +102,12 @@ function ArrowGlyph({ dir, color }: { dir: 'up' | 'down'; color: string }) {
 }
 
 // ─── STRATEGY SIMULATOR ───────────────────────────────────────────
-function StrategySimulatorCard() {
-  const maxNpv = Math.max(...STRATEGIES.map((s) => s.npv10yr));
-  const [memoHovered, setMemoHovered] = useState(false);
-
-  return (
-    <ContainedCard minHeight={420}>
-      <SectionHeader eyebrow="STRATEGY SIMULATOR · 10-YEAR NPV" identity="What to do about it." />
-
-      <div style={{ marginTop: S.md, display: 'flex', flexDirection: 'column' }}>
-        {/* Header row */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1.5fr 110px 90px 80px 1fr',
-          gap: S.md,
-          padding: `${S.xs} ${S.sm}`,
-          fontFamily: F.mono,
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: C.textMuted,
-          borderBottom: `1px solid ${C.borderDefault}`,
-        }}>
-          <span>Strategy</span>
-          <span style={{ textAlign: 'right' }}>Capital</span>
-          <span style={{ textAlign: 'right' }}>Payback</span>
-          <span style={{ textAlign: 'right' }}>IRR</span>
-          <span>NPV (10Y)</span>
-        </div>
-
-        {STRATEGIES.map((s, i) => (
-          <div
-            key={s.id}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1.5fr 110px 90px 80px 1fr',
-              gap: S.md,
-              alignItems: 'center',
-              height: 56,
-              padding: `0 ${S.sm}`,
-              borderBottom: i === STRATEGIES.length - 1 ? 'none' : `1px solid ${C.borderDefault}`,
-            }}
-          >
-            <span style={{ fontFamily: F.sans, fontSize: 14, color: C.textPrimary }}>
-              {s.name}
-            </span>
-            <span style={{
-              fontFamily: F.mono,
-              fontSize: 12,
-              color: C.textPrimary,
-              textAlign: 'right',
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {s.capitalCost === 0 ? '$0' : `$${(s.capitalCost / 1_000_000).toFixed(1)}M`}
-            </span>
-            <span style={{
-              fontFamily: F.mono,
-              fontSize: 12,
-              color: C.textSecondary,
-              textAlign: 'right',
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {s.paybackYears.toFixed(1)} yr
-            </span>
-            <span style={{
-              fontFamily: F.mono,
-              fontSize: 12,
-              color: C.falconGold,
-              textAlign: 'right',
-              fontVariantNumeric: 'tabular-nums',
-              fontWeight: 600,
-            }}>
-              {(s.irr * 100).toFixed(1)}%
-            </span>
-            <NPVBar value={s.npv10yr} max={maxNpv} />
-          </div>
-        ))}
-      </div>
-
-      <button
-        onMouseEnter={() => setMemoHovered(true)}
-        onMouseLeave={() => setMemoHovered(false)}
-        style={{
-          width: '100%',
-          height: 40,
-          marginTop: S.lg,
-          background: memoHovered ? C.electricBlueMuted : C.electricBlue,
-          color: '#FFFFFF',
-          border: 'none',
-          borderRadius: R.md,
-          fontFamily: F.mono,
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          cursor: 'pointer',
-          transition: 'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
-        GENERATE BOARD-READY MEMO
-      </button>
-    </ContainedCard>
-  );
-}
-
-function NPVBar({ value, max }: { value: number; max: number }) {
-  const pct = Math.max(2, (value / max) * 100);
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: S.sm, minWidth: 0 }}>
-      <div style={{
-        flex: 1,
-        height: 8,
-        background: C.borderDefault,
-        borderRadius: R.sm,
-        overflow: 'hidden',
-        position: 'relative',
-      }}>
-        <div style={{
-          height: '100%',
-          width: `${pct}%`,
-          background: C.electricBlue,
-          borderRadius: R.sm,
-        }} />
-      </div>
-      <span style={{
-        fontFamily: F.mono,
-        fontSize: 11,
-        color: C.textPrimary,
-        fontVariantNumeric: 'tabular-nums',
-        whiteSpace: 'nowrap',
-        flexShrink: 0,
-        width: 56,
-        textAlign: 'right',
-      }}>
-        ${(value / 1_000_000).toFixed(2)}M
-      </span>
-    </div>
-  );
-}
+// FORGE Wave 2: the real Strategy Simulator now lives at
+// `./StrategySimulator/SimulatorView.tsx` and renders inside the
+// 'simulator' tab below. The previous mock-data placeholder
+// (StrategySimulatorCard / NPVBar) has been removed. The mock STRATEGIES
+// export in `industrial-mock.ts` is preserved for any other consumers
+// that still reference it.
 
 // ─── TARIFF OPTIMIZATION ──────────────────────────────────────────
 function TariffOptimizationCard() {

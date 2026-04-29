@@ -56,10 +56,12 @@ function effectiveParams(
   let solarKW = profile.existingSolarKW;
   let batteryKWh = profile.existingBatteryKWh;
   let batteryKW = profile.existingBatteryKW;
-  let batteryRTE = TECH_COSTS.batteryRTE;
+  // Widen TECH_COSTS' literal `0.87` to plain `number` so battery-add
+  // components can override it.
+  let batteryRTE: number = TECH_COSTS.batteryRTE;
   let dieselKW = 0;
   let drReduction = 0;
-  let tariff = profile.tariff;
+  let tariff: TariffStructure = profile.tariff;
 
   for (const c of strategy.components) {
     switch (c.kind) {
@@ -280,7 +282,7 @@ function annualCarbonTons(
 
 function assessRisk(
   base: ScenarioResult,
-  optimistic: ScenarioResult,
+  _optimistic: ScenarioResult,
   pessimistic: ScenarioResult,
 ): StrategyResult['riskRanking'] {
   // Range relative to base NPV. If the pessimistic case still beats baseline

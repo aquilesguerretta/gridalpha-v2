@@ -24,19 +24,21 @@ interface PdfExportApi {
 
 /**
  * Feature-detect CONDUIT-2's PDF export service. We dynamically import to
- * avoid a hard dependency at compile time. Returns null if the module
- * isn't on disk yet.
+ * avoid a hard dependency at compile time. The specifier is built at
+ * runtime so TypeScript does not try to resolve it; if the module isn't
+ * on disk yet, the import rejects and we return null.
  */
 async function loadPdfExport(): Promise<PdfExportApi | null> {
   try {
-    // @vite-ignore: dynamic specifier intentional — avoid resolution failure
-    // when the module hasn't shipped.
-    const mod = await import(
-      /* @vite-ignore */ '@/services/pdfExport'
-    ).catch(() => null);
-    if (!mod) return null;
-    if (typeof mod.exportStrategyMemo !== 'function') return null;
-    return mod as PdfExportApi;
+    // Build the specifier at runtime so TS doesn't statically resolve it.
+    const specifier = ['@', '/services/pdfExport'].join('');
+    const mod: unknown = await import(/* @vite-ignore */ specifier).catch(
+      () => null,
+    );
+    if (!mod || typeof mod !== 'object') return null;
+    const candidate = mod as Partial<PdfExportApi>;
+    if (typeof candidate.exportStrategyMemo !== 'function') return null;
+    return candidate as PdfExportApi;
   } catch {
     return null;
   }

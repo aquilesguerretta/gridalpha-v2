@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { C, F, R, S } from '@/design/tokens';
 import { useUIStore } from '@/stores/uiStore';
 import { StatusDot } from '@/components/terminal/StatusDot';
@@ -12,6 +13,10 @@ import {
   QUICK_ACTION_CHIP_IDS,
   type ContextualPromptId,
 } from '@/lib/prompts/contextualPrompts';
+import {
+  extractRelatedConcepts,
+  isVaultSurface,
+} from '@/services/relatedConcepts';
 
 // ORACLE shared — floating AI Assistant chat panel.
 // Bottom-right, 360×480, zIndex 9000. Streams real Claude responses via
@@ -186,21 +191,36 @@ export function AIAssistant() {
             style={{
               alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
               maxWidth: '80%',
-              padding: `${S.sm} ${S.md}`,
-              background: m.role === 'user' ? C.electricBlueWash : C.bgSurface,
-              border: `1px solid ${
-                m.role === 'user' ? C.borderAccent : C.borderDefault
-              }`,
-              borderRadius: R.md,
-              fontFamily: F.sans,
-              fontSize: 13,
-              lineHeight: 1.5,
-              color: m.role === 'user' ? C.textPrimary : C.textSecondary,
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: S.xs,
             }}
           >
-            {m.content}
+            <div
+              style={{
+                padding: `${S.sm} ${S.md}`,
+                background: m.role === 'user' ? C.electricBlueWash : C.bgSurface,
+                border: `1px solid ${
+                  m.role === 'user' ? C.borderAccent : C.borderDefault
+                }`,
+                borderRadius: R.md,
+                fontFamily: F.sans,
+                fontSize: 13,
+                lineHeight: 1.5,
+                color: m.role === 'user' ? C.textPrimary : C.textSecondary,
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {m.content}
+            </div>
+            {m.role === 'assistant' &&
+              isVaultSurface(snapshot.surface.surface) && (
+                <RelatedConceptsFooter
+                  text={m.content}
+                  excludeSlug={snapshot.surface.currentItemId}
+                />
+              )}
           </div>
         ))}
 
@@ -490,6 +510,82 @@ function QuickActionChips({ onPick }: QuickActionChipsProps) {
         >
           {CONTEXTUAL_PROMPT_LABELS[id]}
         </button>
+      ))}
+    </div>
+  );
+}
+
+// ─── Related concepts footer ─────────────────────────────────────────
+// Rendered below assistant messages on Vault surfaces. Scans the message
+// for canonical Alexandria concept terms and surfaces them as Links the
+// user can click to jump to the matching entry.
+
+interface RelatedConceptsFooterProps {
+  text: string;
+  /** Slug of the entry currently being viewed — excluded from the footer. */
+  excludeSlug?: string;
+}
+
+function RelatedConceptsFooter({
+  text,
+  excludeSlug,
+}: RelatedConceptsFooterProps) {
+  const concepts = extractRelatedConcepts(text, excludeSlug);
+  if (concepts.length === 0) return null;
+
+  return (
+    <div
+      role="navigation"
+      aria-label="Related Alexandria concepts"
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: S.xs,
+        padding: `0 ${S.xs}`,
+        marginTop: S.xs,
+      }}
+    >
+      <span
+        style={{
+          fontFamily: F.mono,
+          fontSize: 9,
+          fontWeight: 600,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: C.textMuted,
+          marginRight: S.xs,
+        }}
+      >
+        Related
+      </span>
+      {concepts.map(({ term, slug }) => (
+        <Link
+          key={slug}
+          to={`/vault/alexandria/entry/${slug}`}
+          style={{
+            padding: `2px ${S.xs}`,
+            border: `1px solid ${C.borderAccent}`,
+            borderRadius: R.sm,
+            fontFamily: F.mono,
+            fontSize: 10,
+            fontWeight: 500,
+            letterSpacing: '0.04em',
+            color: C.electricBlueLight,
+            textDecoration: 'none',
+            transition: 'all 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = C.electricBlueWash;
+            e.currentTarget.style.borderColor = C.borderActive;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.borderColor = C.borderAccent;
+          }}
+        >
+          {term}
+        </Link>
       ))}
     </div>
   );

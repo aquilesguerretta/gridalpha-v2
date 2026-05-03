@@ -378,3 +378,117 @@ async def get_lmp_24h(zone_id: str) -> dict[str, Any]:
         meta["degraded_mode"] = True
 
     return build_envelope(meta=meta, data=series, summary=summary)
+
+
+# ── Endpoint 4: day-ahead hourly forecast, single zone ──────────────────────
+
+
+def _resolve_market_date(date_iso: str | None) -> datetime:
+    """Default to tomorrow (EPT) when ``date_iso`` is empty.
+
+    Returns a naive EPT datetime at 00:00 on the requested market date.
+    """
+    if date_iso:
+        try:
+            d = dateparser.parse(date_iso).date()
+        except (TypeError, ValueError, OverflowError) as e:
+            raise ValueError(f"invalid date '{date_iso}'") from e
+    else:
+        d = (datetime.now(EPT) + timedelta(days=1)).date()
+    return datetime(d.year, d.month, d.day, 0, 0, tzinfo=EPT)
+
+
+def _ept_day_filter(market_day_ept: datetime) -> str:
+    """PJM ``datetime_beginning_ept`` filter spanning a full EPT day."""
+    end = market_day_ept + timedelta(hours=23)
+    fmt = "{m}/{d}/{y} {hh:02d}:{mm:02d}"
+    s = fmt.format(
+        m=market_day_ept.month,
+        d=market_day_ept.day,
+        y=market_day_ept.year,
+        hh=0,
+        mm=0,
+    )
+    e = fmt.format(m=end.month, d=end.day, y=end.year, hh=23, mm=0)
+    return f"{s} to {e}"
+
+
+def _fmt_iso_date(ept_dt: datetime) -> str:
+    return f"{ept_dt.year:04d}-{ept_dt.month:02d}-{ept_dt.day:02d}"
+
+
+async def _load_lmp_da_forecast(zone_id: str, date_iso: str | None) -> dict[str, Any]:
+    pname = pnode_name_for(zone_id)
+    market_day = _resolve_market_date(date_iso)
+
+    rows = await _paginated_fetch(
+        DA_DATASET,
+        {
+            "pnode_name": pname,
+            "fields": _DA_FIELDS,
+            "datetime_beginning_ept": _ept_day_filter(market_day),
+        },
+        max_rows=48,  # 24 hours expected; pad for DST spring-forward/fall-back
+    )
+
+    by_hour: dict[int, float] = {}
+    for row in rows:
+        dt = _parse_utc(_row_dt_utc(row))
+        if dt is None:
+            continue
+        hour_ept = dt.astimezone(EPT)
+        if (hour_ept.year, hour_ept.month, hour_ept.day) != (
+            market_day.year,
+            market_day.month,
+            market_day.day,
+        ):
+            continue
+        by_hour[hour_ept.hour] = round(_f(row.get("total_lmp_da")), 2)
+
+    series = [
+        {"hour": h, "lmp": by_hour[h]} for h in sorted(by_hour.keys())
+    ]
+
+    return {
+        "zone": zone_id,
+        "market_date": _fmt_iso_date(market_day),
+        "series": series,
+    }
+
+
+async def get_lmp_da_forecast(
+    zone_id: str, date_iso: str | None = None
+) -> dict[str, Any]:
+    """Build the canonical envelope for ``/api/lmp/da-forecast``."""
+    if not is_valid_zone(zone_id):
+        raise ValueError(f"unknown zone id: {zone_id}")
+
+    market_day = _resolve_market_date(date_iso)
+    cache_key = f"lmp:da-forecast:{zone_id}:{_fmt_iso_date(market_day)}"
+    payload = await get_cached(
+        cache_key,
+        3600.0,
+        lambda: _load_lmp_da_forecast(zone_id, date_iso),
+    )
+
+    series = payload["series"]
+    if not series:
+        raise LookupError(
+            f"PJM returned no DA forecast for {zone_id} on {payload['market_date']}"
+        )
+
+    peak = max(series, key=lambda p: p["lmp"])
+    trough = min(series, key=lambda p: p["lmp"])
+    summary = (
+        f"Day-ahead {zone_id} forecast: peak ${peak['lmp']:.2f} at hour {peak['hour']}, "
+        f"trough ${trough['lmp']:.2f} at hour {trough['hour']}."
+    )
+
+    meta = {
+        "zone": zone_id,
+        "market_date": payload["market_date"],
+        "interval": "hourly",
+        "row_count": len(series),
+        "source": "pjm-da",
+    }
+    return build_envelope(meta=meta, data=series, summary=summary)

@@ -43,7 +43,10 @@ const stormElliott = {
 const CHECKS: Check[] = [
   {
     label: "Endpoint 1 - /api/lmp/current",
-    path: "/api/lmp/current?zone=WEST_HUB",
+    // PSEG covers the V1-proxy fallback path; WEST_HUB has no V1 source,
+    // so probing it here would mask that the fallback is healthy whenever
+    // V2 PJM is rate-limited. WEST_HUB freshness is asserted via Endpoint 2.
+    path: "/api/lmp/current?zone=PSEG",
     extra: (env) => {
       const d = env.data as Record<string, unknown>;
       if (typeof d.lmp_total !== "number") return "data.lmp_total missing";
@@ -58,10 +61,20 @@ const CHECKS: Check[] = [
     extra: (env) => {
       const d = env.data as Record<string, unknown>;
       const zones = Object.keys(d);
-      if (zones.length < 18)
-        return `expected ~20 zones, got ${zones.length}`;
-      if (!("WEST_HUB" in d) || !("PSEG" in d))
-        return "expected WEST_HUB and PSEG zones";
+      const meta = (env.meta as Record<string, unknown>) || {};
+      const degraded = meta.degraded_mode === true;
+      const unavailable = (meta.zones_unavailable as string[] | undefined) || [];
+      // In V1-proxy fallback mode V1 has no hubs, so WEST_HUB will be
+      // listed in zones_unavailable. Accept that, but require the
+      // remainder of the contract zones to be present.
+      const minExpected = degraded ? 18 : 20;
+      if (zones.length < minExpected)
+        return `expected >=${minExpected} zones, got ${zones.length}`;
+      if (!("PSEG" in d)) return "expected PSEG zone";
+      if (!degraded && !("WEST_HUB" in d))
+        return "expected WEST_HUB zone (not degraded)";
+      if (degraded && !("WEST_HUB" in d) && !unavailable.includes("WEST_HUB"))
+        return "WEST_HUB missing without being listed in meta.zones_unavailable";
       return null;
     },
   },

@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import ai, atlas, energy, lmp, news, weather
+from app.routers import ai, atlas, energy, lmp, news, spark_spread, weather
 
 app = FastAPI(title="GridAlpha API", version="2.0")
 
@@ -37,6 +37,7 @@ app.include_router(energy.router)  # /api/energy/*
 app.include_router(weather.router)  # /api/weather/*
 app.include_router(ai.router)  # /api/ai/*
 app.include_router(lmp.router)  # /api/lmp/* (Wave 5 canonical)
+app.include_router(spark_spread.router)  # /api/spark-spread/* (Wave 5)
 
 
 @app.get("/health")

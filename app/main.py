@@ -10,6 +10,7 @@ from app.routers import (
     fuel_mix,
     lmp,
     news,
+    reserve_margin,
     spark_spread,
     weather,
 )
@@ -48,6 +49,7 @@ app.include_router(ai.router)  # /api/ai/*
 app.include_router(lmp.router)  # /api/lmp/* (Wave 5 canonical)
 app.include_router(spark_spread.router)  # /api/spark-spread/* (Wave 5)
 app.include_router(fuel_mix.router)  # /api/fuel-mix/* (Wave 5)
+app.include_router(reserve_margin.router)  # /api/reserve-margin/* (Wave 5)
 
 
 @app.get("/health")

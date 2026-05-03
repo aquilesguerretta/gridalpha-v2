@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,10 +15,22 @@ from app.routers import (
     outages_v2,
     reserve_margin,
     spark_spread,
+    stream,
     weather,
 )
+from app.services.pjm_stream import HUB
 
-app = FastAPI(title="GridAlpha API", version="2.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await HUB.start()
+    try:
+        yield
+    finally:
+        await HUB.stop()
+
+
+app = FastAPI(title="GridAlpha API", version="2.0", lifespan=lifespan)
 
 _cors_origins = [
     "https://gridalpha.vercel.app",
@@ -42,18 +55,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Peregrine + Sprint 3B/3C intelligence (single Railway service)
+# Peregrine + Sprint 3B/3C intelligence (legacy, frozen).
 app.include_router(news.router)  # /api/news/*
 app.include_router(atlas.router)  # /api/atlas/*
 app.include_router(energy.router)  # /api/energy/*
 app.include_router(weather.router)  # /api/weather/*
 app.include_router(ai.router)  # /api/ai/*
-app.include_router(lmp.router)  # /api/lmp/* (Wave 5 canonical)
-app.include_router(spark_spread.router)  # /api/spark-spread/* (Wave 5)
-app.include_router(fuel_mix.router)  # /api/fuel-mix/* (Wave 5)
-app.include_router(reserve_margin.router)  # /api/reserve-margin/* (Wave 5)
-app.include_router(outages_v2.router)  # /api/outages/* (Wave 5)
-app.include_router(ancillary.router)  # /api/ancillary/* (Wave 5)
+
+# Wave 5 canonical endpoints (see docs/v2-backend-contract.md).
+app.include_router(lmp.router)  # /api/lmp/*
+app.include_router(spark_spread.router)  # /api/spark-spread/*
+app.include_router(fuel_mix.router)  # /api/fuel-mix/*
+app.include_router(reserve_margin.router)  # /api/reserve-margin/*
+app.include_router(outages_v2.router)  # /api/outages/*
+app.include_router(ancillary.router)  # /api/ancillary/*
+app.include_router(stream.router)  # /api/stream (SSE)
 
 
 @app.get("/health")

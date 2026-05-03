@@ -1954,3 +1954,181 @@ when present.
 - SCRIBE's `progressStore` (read only)
 - Wave 1 / Wave 2 ORACLE files (those stay stable)
 - Any non-curriculum component, chart, or Nest
+
+## FORGE WAVE 3 — STORAGE DA BID OPTIMIZER
+
+The Storage Operator's signature feature. Generates an optimal hourly
+day-ahead bid curve for every battery in the operator's fleet, stacks
+ancillary services on idle hours, attributes net revenue across
+energy / ancillary / degradation, and exports the whole pack as a
+board-ready PDF. Lives entirely inside the Storage Nest as a tab
+beside the existing OVERVIEW. Same surgical-tab-strip pattern as
+Wave 1 (Trader Journal) and Wave 2 (Industrial Strategy Simulator).
+
+### Architecture
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/types/storage.ts` | Type system: `BatteryAsset`, `Fleet`, `BidHour`, `AssetResult`, `FleetResult`, `MarketContext`, `AncillaryService`, `ScenarioName`, `OptimizerConfig`. |
+| `src/lib/mock/storage-optimizer-mock.ts` | 3 representative fleets (single-asset 100MW, 4-asset 280MW portfolio, 8-asset 600MW IPP), DA forecast / yesterday's actuals by zone, ancillary MCP curves by service type, default mileage payment, default `MarketContext`. **Sibling to** FOUNDRY's pre-existing `storage-mock.ts` (which exports its own `BatteryAsset` for the OVERVIEW tab) — the two coexist; OVERVIEW reads FOUNDRY's, OPTIMIZER reads this one. |
+| `src/lib/storage/socSimulator.ts` | Walks a 24-hour bid plan forward through SOC bookkeeping (charge × RTE adds; discharge subtracts; idle/ancillary unchanged). Returns trajectory + equivalent full cycles + feasibility verdict. |
+| `src/lib/storage/degradation.ts` | V1 linear $/MWh-throughput degradation cost. Documented future-work: depth-of-discharge curve, calendar age, temperature derating. |
+| `src/lib/storage/ancillary.ts` | Decorates idle hours with ancillary reservations (capacity revenue + V1 deterministic mileage). Mutates the bid curve in place AND returns per-hour breakdown. |
+| `src/lib/storage/optimizer.ts` | Heuristic bid generator: pick N lowest-LMP charge hours and N highest-LMP discharge hours (N = duration); validate via SOC sim; rebalance by dropping the weakest discharge hour until feasible. |
+| `src/lib/storage/attribution.ts` | Splits net revenue into energy / ancillary / degradation. Energy = Σ(discharge LMP × MW) − Σ(charge LMP × MW / RTE). |
+| `src/lib/storage/runOptimization.ts` | Main entry. Runs base / volatility-up / forecast-miss scenarios, ranks assets by base net revenue, computes fleet cycles + performance-vs-optimal benchmark. |
+| `src/stores/storageStore.ts` | Zustand store. Persists `fleets`, `activeFleetId`, `selectedScenario` to `localStorage` under `gridalpha-storage-optimizer`. **Does not persist** results (recompute on demand). |
+| `src/hooks/useStorageOptimizer.ts` | Orchestration. `run()` defers 50ms then calls `runOptimization`. Engine completes in <100 ms for an 8-asset fleet. |
+| `src/components/nest/storage/DABidOptimizer/OptimizerView.tsx` | Top-level page. State machine: no fleet → form; fleet + no results → CTA; running → loading; results → 1fr/2fr grid. |
+| `src/components/nest/storage/DABidOptimizer/AssetRegistrationForm.tsx` | Preset-fleet picker + custom single-asset form. |
+| `src/components/nest/storage/DABidOptimizer/FleetOverview.tsx` | Sorted asset ranking + scenario revenue strip + performance-vs-optimal gauge. |
+| `src/components/nest/storage/DABidOptimizer/AssetDetail.tsx` | Header + 5-card visualization stack + Bid Pack export. |
+| `src/components/nest/storage/DABidOptimizer/BidCurveChart.tsx` | 24-hour bar chart colored by action + LMP overlay. Wrapped in `AnnotatableChart` (`storage-bid-curve-<assetId>`). |
+| `src/components/nest/storage/DABidOptimizer/SOCTrajectoryChart.tsx` | SOC % over 24 hours with min/max reference lines. Wrapped (`storage-soc-<assetId>`). |
+| `src/components/nest/storage/DABidOptimizer/RevenueAttribution.tsx` | Stacked attribution bar + hero net + degradation deduction strip. |
+| `src/components/nest/storage/DABidOptimizer/AncillaryStackChart.tsx` | Reserved MW per hour + ancillary MCP overlay. Wrapped (`storage-ancillary-<assetId>`). Empty-state when ancillary disabled. |
+| `src/components/nest/storage/DABidOptimizer/PerformanceVsOptimal.tsx` | Gauge showing fleet revenue ÷ theoretical perfect-foresight optimum. |
+| `src/components/nest/storage/DABidOptimizer/ExportBidPackButton.tsx` | **Static** import of `exportStorageBidPack` from `@/services/pdfExport`. NO dynamic feature-detect (see "Critical bug avoided" below). |
+| `src/services/pdfTemplates/StorageBidPackTemplate.tsx` | CONDUIT-2 PDF extension. Hero → exec summary → per-asset bid schedule + headline metrics + SOC chart (if rasterized) → sensitivity strip → methodology + disclaimer. |
+| `src/components/nest/storage/StorageNest.tsx` | Modified to add an `OVERVIEW` / `DA BID OPTIMIZER` tab strip above the existing layout. OVERVIEW renders the locked content unchanged; OPTIMIZER renders `<OptimizerView />`. |
+
+### How an optimization runs
+
+1. User opens Storage Nest → DA BID OPTIMIZER tab.
+2. If no fleet is registered, `AssetRegistrationForm` renders. The user
+   either picks a preset fleet (3 options) or builds a custom
+   single-asset fleet inline.
+3. On submit, the fleet lands in the storage store (persisted).
+4. `useStorageOptimizer.run()` defers 50 ms, then calls
+   `runOptimization(fleet, market)`.
+5. `runOptimization` runs three scenarios — base, volatility-up
+   (1.5× spread amplification), forecast-miss (LMP rotated forward
+   3 hours) — and returns a ranked list of `AssetResult`.
+6. Top-ranked asset auto-selects; `FleetOverview` shows the ranking +
+   scenario strip + perf-vs-optimal gauge. `AssetDetail` shows the
+   five chart panels for the selected asset.
+7. Operator can EDIT FLEET, RE-RUN, or CLEAR from the toolbar.
+8. Export Bid Pack button at the bottom of `AssetDetail` exports the
+   full fleet plan as a PDF.
+
+### Optimizer model — V1 limitations
+
+- **Heuristic, not MILP.** The optimizer picks the N lowest-LMP hours
+  to charge and the N highest-LMP hours to discharge (N = duration).
+  This is correct for the simple arbitrage case but leaves money on
+  the table when mid-merit hours are profitable enough to be worth
+  cycling for. A future MILP solver can extract more value.
+- **Daily horizon only.** No multi-day optimization, no carry-over
+  SOC strategy, no end-of-day terminal value. Each 24-hour plan
+  stands alone.
+- **No rolling re-optimization mid-day.** Real operators re-bid as
+  the RT market clears and forecasts update. V1 is single-shot DA.
+- **Linear degradation cost.** $/MWh-throughput, no depth-of-discharge
+  curve, no temperature derating, no calendar-age component.
+- **Deterministic ancillary utilization.** RegD = 8% of reserved MW
+  dispatched, RegA = 4%, Spin = 0%. Real values are statistical and
+  time-of-day shaped.
+- **No inter-asset coordination.** Each asset is optimized
+  independently. A future revision can co-optimize assets in the
+  same zone to avoid bidding into self-imposed congestion.
+
+### Sensitivity scenarios
+
+| Scenario | LMP transform | Captures |
+| --- | --- | --- |
+| Base | unchanged | Best-estimate forecast |
+| Volatility-up | peaks +50%, troughs −25% (vs day's median) | High-vol day risk |
+| Forecast-miss | rotate curve forward 3 hours | Peak arrives early |
+
+### Performance-vs-optimal benchmark
+
+Theoretical perfect-foresight optimum per asset:
+
+```
+optimum = (avg_high_half_LMP − avg_low_half_LMP / RTE) × power_MW × duration_hr
+```
+
+Sum across the fleet, divide base-case revenue into it, clamp to [0,1].
+Gives the operator a single "how well did we do" number relative to a
+loose upper bound. A real LP solver would tighten this benchmark.
+
+### Storage Bid Pack template
+
+Extends CONDUIT-2's PDF infrastructure. Lives at
+`src/services/pdfTemplates/StorageBidPackTemplate.tsx`. Export entry
+point is `exportStorageBidPack(fleet, result, options?)` in
+`src/services/pdfExport.ts`, registered in the `PDF_TEMPLATES` map
+under key `storageBidPack`.
+
+The template is structured to mirror `StrategyMemoTemplate`:
+
+- **Hero** — operator name + fleet capacity + base revenue / cycles /
+  performance-vs-optimal callouts.
+- **Executive summary** — net revenue + ancillary share + cycles +
+  perf-vs-optimal as bullet list.
+- **Per-asset section (one per asset, page-breaks between)** —
+  headline metrics, SOC chart (if rasterized PNG supplied via
+  `chartImages.socByAssetId`), full hourly bid schedule table.
+- **Sensitivity strip** — base / volatility-up / forecast-miss revenue
+  callouts.
+- **Methodology** — heuristic optimizer, SOC validation, ancillary
+  stacking, degradation model, perf-vs-optimal definition.
+- **Disclaimer** — decision-support artifact, not auto-bid execution.
+
+### Critical bug avoided — static import only
+
+Wave 2's `ExportMemoButton.tsx` originally used a dynamic
+`import(/* @vite-ignore */ specifier)` pattern to feature-detect
+CONDUIT-2's pipeline. The `@/` alias never resolves through that
+escape hatch, so the button was permanently disabled even after the
+pipeline shipped. The Wave 2 button was subsequently fixed to a
+static import.
+
+`ExportBidPackButton.tsx` is **static-import only from day one**:
+
+```ts
+import { exportStorageBidPack } from '@/services/pdfExport';
+```
+
+No dynamic specifier construction, no `@vite-ignore`, no feature
+flag. The dependency exists at build time (verified by `npm run
+build`) so the button is always wired.
+
+### What FORGE owns (Wave 3 scope)
+
+- `src/lib/types/storage.ts`
+- `src/lib/storage/*` (npv-equivalent: socSimulator, degradation,
+  ancillary, optimizer, attribution, runOptimization)
+- `src/lib/mock/storage-optimizer-mock.ts` (sibling to FOUNDRY's
+  `storage-mock.ts`, which is left untouched)
+- `src/stores/storageStore.ts`
+- `src/hooks/useStorageOptimizer.ts`
+- `src/components/nest/storage/DABidOptimizer/*` (9 components)
+- `src/components/nest/storage/StorageNest.tsx` — added a tab strip
+  above the existing OVERVIEW layout. The Nest's other surfaces
+  (PortfolioStrip, StorageHeroBlock, RevenueAttributionCard,
+  DABidOptimizerCard, CyclingTrackerSection, AncillaryServicesSection,
+  AssetHealthSection) are unchanged.
+- `src/services/pdfTemplates/StorageBidPackTemplate.tsx` (new template,
+  consumes CONDUIT-2's primitives only)
+- `src/services/pdfExport.ts` — added `exportStorageBidPack` exporter
+  function and `storageBidPack` registry entry. `exportStrategyMemo`
+  and existing template imports unchanged.
+- This section of CLAUDE.md
+
+### Future work
+
+- **Real MILP solver** — replace the heuristic with an actual
+  linear-programming optimizer (use `glpk.js` or similar in-browser).
+- **Multi-day optimization** — co-optimize 7-14 day horizons with
+  carry-over SOC; capture weekend-vs-weekday spread arbitrage.
+- **Live PJM DA forecast wire-up** — when the FastAPI backend ships
+  zone-level DA forecasts, swap the static `defaultMarketContext()`
+  with a live fetch.
+- **Real-time bid adjustment** — re-optimize hourly as RT market
+  clears and DA forecast updates.
+- **Co-asset coordination** — optimize multi-asset fleets in the
+  same zone simultaneously to avoid self-congestion.
+- **Statistical ancillary utilization** — replace V1's deterministic
+  utilization fractions with PJM-published rolling averages by
+  time-of-day and service type.

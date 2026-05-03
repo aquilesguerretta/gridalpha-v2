@@ -498,6 +498,84 @@ async def get_lmp_da_forecast(
     return build_envelope(meta=meta, data=series, summary=summary)
 
 
+# ── Endpoint 11: day-ahead hourly forecast, all 20 zones ────────────────────
+
+
+async def _load_lmp_da_forecast_all(date_iso: str | None) -> dict[str, Any]:
+    """Fan out across all 20 zones in parallel; reuse per-zone cache."""
+    market_day = _resolve_market_date(date_iso)
+    market_date_str = _fmt_iso_date(market_day)
+
+    async def one(zone_id: str) -> tuple[str, list[dict[str, Any]]]:
+        cache_key = f"lmp:da-forecast:{zone_id}:{market_date_str}"
+        try:
+            payload = await get_cached(
+                cache_key,
+                3600.0,
+                lambda: _load_lmp_da_forecast(zone_id, date_iso),
+            )
+            return zone_id, payload["series"]
+        except (LookupError, ValueError):
+            return zone_id, []
+
+    results = await asyncio.gather(*(one(z) for z in ZONE_IDS))
+
+    by_zone: dict[str, list[dict[str, Any]]] = {}
+    failures: list[str] = []
+    for zone_id, series in results:
+        if not series:
+            failures.append(zone_id)
+            continue
+        by_zone[zone_id] = series
+
+    return {
+        "market_date": market_date_str,
+        "by_zone": by_zone,
+        "failures": failures,
+    }
+
+
+async def get_lmp_da_forecast_all_zones(
+    date_iso: str | None = None,
+) -> dict[str, Any]:
+    """Build the canonical envelope for ``/api/lmp/da-forecast/all-zones``."""
+    market_day = _resolve_market_date(date_iso)
+    cache_key = f"lmp:da-forecast:all-zones:{_fmt_iso_date(market_day)}"
+    payload = await get_cached(
+        cache_key,
+        3600.0,
+        lambda: _load_lmp_da_forecast_all(date_iso),
+    )
+
+    by_zone = payload["by_zone"]
+    if not by_zone:
+        raise LookupError(
+            f"PJM returned no DA forecast for any zone on {payload['market_date']}"
+        )
+
+    # System-wide stats for the summary line.
+    all_lmps = [pt["lmp"] for series in by_zone.values() for pt in series]
+    avg = round(sum(all_lmps) / len(all_lmps), 2) if all_lmps else 0.0
+    lo = round(min(all_lmps), 2) if all_lmps else 0.0
+    hi = round(max(all_lmps), 2) if all_lmps else 0.0
+    summary = (
+        f"Day-ahead {payload['market_date']}: {len(by_zone)} zones, "
+        f"system average ${avg}, range ${lo}-${hi}."
+    )
+
+    meta: dict[str, Any] = {
+        "market_date": payload["market_date"],
+        "interval": "hourly",
+        "zone_count": len(by_zone),
+        "source": "pjm-da",
+    }
+    if payload["failures"]:
+        meta["zones_unavailable"] = payload["failures"]
+        meta["degraded_mode"] = True
+
+    return build_envelope(meta=meta, data=by_zone, summary=summary)
+
+
 # ── Endpoint 5: historical LMP, single zone, arbitrary range ────────────────
 
 

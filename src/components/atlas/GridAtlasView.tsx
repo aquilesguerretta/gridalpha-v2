@@ -18,12 +18,16 @@ import {
 import {
   useFuelMix,
   useBindingConstraints,
-  useOutages,
   useSubstations,
   useGasPipelines,
   useEarthquakes,
 } from '../../hooks/data/useAtlasData';
 import { useWeatherData } from '../../hooks/data/useWeatherData';
+
+// Wave 2 — time travel infrastructure
+import { useTimeTravelData } from '@/hooks/useTimeTravelData';
+import { useTimeTravelStore } from '@/stores/timeTravelStore';
+import { TimeTravelScrubber } from './TimeTravelScrubber';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
 
@@ -223,50 +227,11 @@ const MOCK_SUBSTATIONS: GeoJSON.FeatureCollection = {
   ],
 };
 
-// ── Mock 48-hour historical LMP frames ────────────────────────────────────
-// Pre-generates 49 frames (index 0 = -48h, index 48 = NOW).
-// Diurnal pattern: higher at 6-9a and 5-8p (peak), lower overnight.
-// Per-zone offset from each zone's static lmp value + deterministic noise.
-// When the backend historical endpoint ships, swap this generator — the
-// scrubber architecture stays the same.
-
-interface FrameZone { id: string; lmp_total: number }
-interface Frame { ts: number; zones: FrameZone[]; avg: number; volatility: number }
-
-function buildLMPFrames(
-  zones: Array<{ id: string; lmp: number }>,
-  now: number,
-): Frame[] {
-  const FRAMES = 49; // 48 historical + 1 "now"
-  const out: Frame[] = [];
-  for (let i = 0; i < FRAMES; i++) {
-    const hoursAgo = FRAMES - 1 - i;
-    const ts = now - hoursAgo * 3600_000;
-    const hourOfDay = new Date(ts).getHours();
-
-    // Diurnal multiplier: peaks at 7a (hour=7) and 6p (hour=18).
-    const morningPeak = Math.exp(-Math.pow((hourOfDay - 7) / 2.2, 2));
-    const eveningPeak = Math.exp(-Math.pow((hourOfDay - 18) / 2.6, 2));
-    const baseLow     = 0.82;
-    const diurnal     = baseLow + 0.55 * morningPeak + 0.65 * eveningPeak;
-
-    // Occasional gas-price shock (deterministic by frame index).
-    const shock = (i % 11 === 0) ? 1.18 : (i % 13 === 0) ? 1.12 : 1.0;
-
-    const frameZones: FrameZone[] = zones.map((z, zIdx) => {
-      const noise = 0.92 + 0.16 * (Math.sin(i * 0.37 + zIdx * 1.31) * 0.5 + 0.5);
-      return { id: z.id, lmp_total: +(z.lmp * diurnal * shock * noise).toFixed(2) };
-    });
-
-    const avg = frameZones.reduce((s, z) => s + z.lmp_total, 0) / frameZones.length;
-    const volatility = Math.sqrt(
-      frameZones.reduce((s, z) => s + Math.pow(z.lmp_total - avg, 2), 0) / frameZones.length,
-    );
-
-    out.push({ ts, zones: frameZones, avg, volatility });
-  }
-  return out;
-}
+// Wave 2 swap: the legacy 49-frame `buildLMPFrames` system was replaced
+// by the typed AtlasSnapshot pipeline (see src/lib/atlas/historicalSnapshots.ts
+// + src/hooks/useTimeTravelData.ts). The map now consumes a single snapshot
+// per render — produced by the historical buffer (live/scrubbed) or the
+// curated event library (event-replay).
 
 // ── Left panel icon definitions ───────────────────────────────────────────
 
@@ -313,28 +278,19 @@ export default function GridAtlasView() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [showResults,   setShowResults]   = useState(false);
 
-  // Timeline — index 0 = 48h ago, index 48 = NOW.
-  const [timeOffset, setTimeOffset] = useState(48);
-
   // Which left-panel icon is expanded (null = all collapsed to icon rail).
   const [expandedPanel, setExpandedPanel] = useState<PanelId | null>(null);
 
-  // 48-hour mock LMP frame stack. Rebuilt when zones change (static in practice).
-  const frames = useMemo(
-    () => buildLMPFrames(
-      PJM_ZONES.map(z => ({ id: z.id, lmp: z.lmp })),
-      Date.now(),
-    ),
-    [],
-  );
-  const frameIdx    = Math.max(0, Math.min(frames.length - 1, timeOffset));
-  const currentFrame = frames[frameIdx];
-  const isLiveFrame  = frameIdx === frames.length - 1;
+  // Wave 2 — derive every time-driven map input from the AtlasSnapshot.
+  const snapshot   = useTimeTravelData();
+  const ttMode     = useTimeTravelStore((s) => s.mode);
+  const isLiveFrame = ttMode === 'live';
 
   // Live data hooks (gracefully return empty when backend not ready)
+  // Note: live useOutages() is replaced by snapshot.outages — the time-travel
+  // pipeline is the single source of truth for outage state on the map.
   const { data: fuelMixData,    live: fuelLive   } = useFuelMix();
   const { data: constraintData } = useBindingConstraints();
-  const { data: outageData     } = useOutages();
   const { data: substationGeoJsonBackend } = useSubstations();
   const { data: pipelineGeoJsonBackend }   = useGasPipelines();
   const substationGeoJson = substationGeoJsonBackend ?? MOCK_SUBSTATIONS;
@@ -343,8 +299,8 @@ export default function GridAtlasView() {
   const { data: weatherData, live: weatherLive } = useWeatherData();
 
   const totalOutageMW = useMemo(
-    () => outageData?.outages.reduce((sum, o) => sum + o.mw, 0) ?? 0,
-    [outageData],
+    () => snapshot.outages.reduce((sum, o) => sum + o.mw, 0),
+    [snapshot.outages],
   );
 
   const weatherGeoJson = useMemo((): GeoJSON.FeatureCollection => ({
@@ -392,10 +348,9 @@ export default function GridAtlasView() {
   const plantGeoJson = filterPlants(rawPlants, fuelFilter, minCapacity);
 
   // Build hub node GeoJSON from PJM_ZONES centroids. LMP is driven by the
-  // current timeline frame — hub dot colors animate with the scrubber.
+  // AtlasSnapshot — hub dot colors animate as the scrubber moves through
+  // the historical buffer or an event timeline.
   const hubGeoJson: GeoJSON.FeatureCollection = useMemo(() => {
-    const frameLmp: Record<string, number> = {};
-    for (const z of currentFrame.zones) frameLmp[z.id] = z.lmp_total;
     return {
       type: 'FeatureCollection',
       features: PJM_ZONES.map(z => ({
@@ -403,12 +358,30 @@ export default function GridAtlasView() {
         properties: {
           id:    z.id,
           label: z.label,
-          lmp:   frameLmp[z.id] ?? z.lmp ?? 33,
+          lmp:   snapshot.zoneStates[z.id]?.lmp ?? z.lmp ?? 33,
         },
         geometry: { type: 'Point' as const, coordinates: [z.lon, z.lat] },
       })),
     };
-  }, [currentFrame]);
+  }, [snapshot.zoneStates]);
+
+  // Outage markers — one feature per active outage in the current snapshot.
+  // Markers fade in/out as outages enter/leave the snapshot's roster.
+  const outagesGeoJson: GeoJSON.FeatureCollection = useMemo(() => ({
+    type: 'FeatureCollection',
+    features: snapshot.outages.map((o) => ({
+      type: 'Feature' as const,
+      properties: {
+        id:   o.id,
+        name: o.name,
+        zone: o.zone,
+        mw:   o.mw,
+        fuel: o.fuel,
+        kind: o.kind,
+      },
+      geometry: { type: 'Point' as const, coordinates: [o.lon, o.lat] },
+    })),
+  }), [snapshot.outages]);
 
   // Search
   const handleSearch = useCallback((q: string) => {
@@ -489,6 +462,7 @@ export default function GridAtlasView() {
             txGeoJson={txGeoJson}
             plantGeoJson={plantGeoJson}
             hubGeoJson={hubGeoJson}
+            outagesGeoJson={outagesGeoJson}
             substationGeoJson={substationGeoJson}
             pipelineGeoJson={pipelineGeoJson}
             earthquakeGeoJson={earthquakeGeoJson}
@@ -537,12 +511,9 @@ export default function GridAtlasView() {
           ) : (
             <>
               <span style={{ fontFamily: F.mono, fontSize: '0.65rem', color: '#FBBF24', letterSpacing: '0.15em' }}>
-                PJM · HISTORICAL · {new Date(currentFrame.ts).toLocaleString('en-US', {
+                PJM · {ttMode === 'event-replay' ? 'EVENT REPLAY' : 'HISTORICAL'} · {new Date(snapshot.timestamp).toLocaleString('en-US', {
                   month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York',
                 })} EPT
-              </span>
-              <span style={{ fontFamily: F.mono, fontSize: '0.58rem', color: C.textMuted, letterSpacing: '0.1em' }}>
-                · T−{String(frames.length - 1 - frameIdx).padStart(2, '0')}H
               </span>
             </>
           )}
@@ -903,41 +874,46 @@ export default function GridAtlasView() {
         </div>
       )}
 
-      {/* ── Floating timeline pill ─────────────────────── */}
-      <div style={{
-        position: 'absolute',
-        bottom: 18, left: '50%', transform: 'translateX(-50%)',
-        width: 'min(620px, calc(100% - 72px))',
-        zIndex: 10,
-        background: 'rgba(10,10,11,0.55)',
-        border: `1px solid ${C.borderDefault}`,
-        borderRadius: 22,
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        padding: '10px 20px 12px',
-        pointerEvents: 'auto',
-        boxShadow: '0 8px 22px rgba(0,0,0,0.35)',
-      }}>
-        <input type="range" min={0} max={frames.length - 1} value={timeOffset}
-          onChange={e => setTimeOffset(Number(e.target.value))}
-          style={{
-            width: '100%', appearance: 'none', height: 4, borderRadius: 2,
-            outline: 'none', cursor: 'pointer',
-            background: `linear-gradient(to right,${C.electricBlue} ${(frameIdx/(frames.length-1))*100}%,rgba(255,255,255,0.12) ${(frameIdx/(frames.length-1))*100}%)`,
-          }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-          {['-48H', '-36H', '-24H', '-12H', 'NOW'].map(label => (
-            <span key={label} style={{
-              fontFamily: F.mono, fontSize: '0.55rem',
-              color: label === 'NOW'
-                ? (isLiveFrame ? '#10B981' : C.electricBlue)
-                : C.textMuted,
-              letterSpacing: '0.1em',
-            }}>{label}</span>
-          ))}
+      {/* ── TIME TRAVEL ACTIVE indicator (top-right) ────────────── */}
+      {!isLiveFrame && (
+        <div style={{
+          position:       'absolute',
+          top:            12,
+          right:          12,
+          zIndex:         15,
+          padding:        '6px 12px',
+          background:     'rgba(15,15,18,0.92)',
+          border:         '1px solid rgba(245,158,11,0.55)',
+          borderRadius:   18,
+          backdropFilter: 'blur(12px)',
+          display:        'flex',
+          alignItems:     'center',
+          gap:            6,
+          pointerEvents:  'none',
+        }}>
+          <span style={{
+            display:      'inline-block',
+            width:        6,
+            height:       6,
+            borderRadius: '50%',
+            background:   '#FBBF24',
+            boxShadow:    '0 0 6px rgba(251,191,36,0.85)',
+          }} />
+          <span style={{
+            fontFamily:    F.mono,
+            fontSize:      '0.6rem',
+            fontWeight:    700,
+            letterSpacing: '0.18em',
+            color:         '#FBBF24',
+            textTransform: 'uppercase',
+          }}>
+            TIME TRAVEL ACTIVE
+          </span>
         </div>
-      </div>
+      )}
+
+      {/* ── Wave 2 time-travel scrubber ────────────────────────── */}
+      <TimeTravelScrubber />
     </div>
   );
 }

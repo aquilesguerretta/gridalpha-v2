@@ -13,7 +13,7 @@
 // real second), advances scrubPosition, and stops at the range end.
 
 import { useEffect, useMemo, useRef } from 'react';
-import { shallow } from 'zustand/shallow';
+import { useShallow } from 'zustand/react/shallow';
 import { useTimeTravelStore } from '@/stores/timeTravelStore';
 import {
   getCurrentSnapshot,
@@ -38,12 +38,11 @@ import type { AtlasSnapshot } from '@/lib/types/timeTravel';
  */
 export function useTimeTravelData(): AtlasSnapshot {
   const { mode, currentTimestamp, activeEventId } = useTimeTravelStore(
-    (s) => ({
+    useShallow((s) => ({
       mode: s.mode,
       currentTimestamp: s.currentTimestamp,
       activeEventId: s.activeEventId,
-    }),
-    shallow,
+    })),
   );
 
   // Playback driver — separate selector so it doesn't re-trigger snapshot

@@ -30,12 +30,37 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 from dateutil import parser as dateparser
 
 from app.services.intelligence_cache import get_cached
 from app.services.pjm_zones import ZONE_IDS
+
+EPT = ZoneInfo("America/New_York")
+
+
+def _to_iso_z(raw: str) -> str:
+    """Normalize a V1 timestamp string to ``...Z`` UTC.
+
+    V1 emits two flavors:
+      * ``timestamp_utc``: offset-aware ISO 8601 (already UTC)
+      * ``timestamp``:    naive ISO 8601, semantically Eastern Prevailing Time
+
+    Treating the naive form as UTC would understate freshness by ~4-5h
+    in summer, so any naive value is interpreted as EPT before being
+    rendered back as a Z-suffixed UTC string.
+    """
+    if not raw:
+        return ""
+    try:
+        dt = dateparser.parse(raw)
+    except (TypeError, ValueError, OverflowError):
+        return raw
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=EPT)
+    return dt.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 # Map our contract zone ids to the zone_name strings V1 returns.
 # WEST_HUB is intentionally absent - V1 does not expose hubs.
@@ -151,17 +176,9 @@ async def build_v1_lmp_payload(zone_id: str) -> dict[str, Any]:
     cong = round(_f(row.get("congestion_component")), 2)
     loss = round(_f(row.get("loss_component")), 2)
 
-    # Best-effort observed_at: V1 row carries timestamp_utc (preferred)
-    # then falls back to timestamp (EPT, no offset).
-    observed = str(row.get("timestamp_utc") or row.get("timestamp") or "").strip()
-    # Re-render to canonical 'Z' suffix when we have an offset-aware string.
-    try:
-        if observed:
-            dt = dateparser.parse(observed)
-            if dt.tzinfo is not None:
-                observed = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    except (TypeError, ValueError, OverflowError):
-        pass
+    observed = _to_iso_z(
+        str(row.get("timestamp_utc") or row.get("timestamp") or "").strip()
+    )
 
     # V1 publishes a single snapshot, so we have no prior interval to
     # compute delta_pct_5min against. Frontend treats absent delta as 0.
@@ -198,3 +215,49 @@ async def get_v1_spark_spread_snapshot() -> dict[str, dict[str, Any]]:
         60.0,
         _fetch_v1_spark_spread_snapshot,
     )
+
+
+async def build_v1_spark_spread_payload(zone_id: str) -> dict[str, Any]:
+    """Full V1-sourced spark-spread row for ``/api/spark-spread/current``.
+
+    Used when EIA Henry Hub is also unreachable from V2's egress IP, so
+    we cannot recompute spread locally even with a successful V1 LMP.
+    V1's spark-spread row carries its own gas price and heat rate, so
+    we surface them honestly instead of substituting our usual defaults.
+    """
+    if not has_v1_coverage(zone_id):
+        raise LookupError(
+            f"V1 backend has no spark-spread for {zone_id} (zones only, no hubs)"
+        )
+
+    snapshot = await get_v1_spark_spread_snapshot()
+    v1_name = CONTRACT_TO_V1[zone_id]
+    row = snapshot.get(v1_name)
+    if not row:
+        raise LookupError(f"V1 returned no spark-spread row for {v1_name}")
+
+    lmp_total = round(_f(row.get("lmp")), 2)
+    gas_cost = round(_f(row.get("gas_cost")), 2)
+    spark = round(_f(row.get("spark_spread")), 2)
+    heat_rate = _f(row.get("heat_rate"))  # V1 uses BTU/Wh, e.g. 7.0
+    if 0 < heat_rate < 100:
+        heat_rate_btu_per_kwh = int(round(heat_rate * 1000.0))
+    else:
+        heat_rate_btu_per_kwh = int(round(heat_rate))
+    gas_price = round(_f(row.get("gas_price_used")), 4)
+
+    observed = _to_iso_z(
+        str(row.get("timestamp_utc") or row.get("timestamp") or "").strip()
+    )
+
+    return {
+        "zone": zone_id,
+        "pnode_name": v1_name,
+        "observed_at": observed,
+        "lmp_total": lmp_total,
+        "gas_equivalent_cost": gas_cost,
+        "spark_spread": spark,
+        "heat_rate_btu_per_kwh": heat_rate_btu_per_kwh,
+        "gas_price_mmbtu": gas_price,
+        "_via_v1_proxy": True,
+    }

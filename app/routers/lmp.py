@@ -10,7 +10,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Query
 
 from app.services.intelligence_data import ConfigurationError
-from app.services.pjm_lmp import get_lmp_current
+from app.services.pjm_lmp import get_lmp_all_zones, get_lmp_current
 from app.services.pjm_zones import ZONE_IDS, is_valid_zone
 
 router = APIRouter(prefix="/api/lmp", tags=["lmp"])
@@ -33,6 +33,20 @@ async def lmp_current(zone: str = Query(..., description="Contract zone id")):
         raise HTTPException(503, detail=e.message) from e
     except LookupError as e:
         raise HTTPException(404, detail=str(e)) from e
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(502, detail=f"PJM HTTP {e.response.status_code}") from e
+    except httpx.RequestError as e:
+        raise HTTPException(502, detail=str(e)) from e
+
+
+@router.get("/all-zones")
+async def lmp_all_zones():
+    try:
+        return await get_lmp_all_zones()
+    except ConfigurationError as e:
+        raise HTTPException(503, detail=e.message) from e
+    except LookupError as e:
+        raise HTTPException(502, detail=str(e)) from e
     except httpx.HTTPStatusError as e:
         raise HTTPException(502, detail=f"PJM HTTP {e.response.status_code}") from e
     except httpx.RequestError as e:

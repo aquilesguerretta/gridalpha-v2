@@ -19,6 +19,7 @@ fetchers are wrapped in the existing in-process TTL cache from
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -180,3 +181,72 @@ async def get_lmp_current(zone_id: str) -> dict[str, Any]:
         },
         summary=summary,
     )
+
+
+# ── Endpoint 2: current LMP, all 20 zones ───────────────────────────────────
+
+
+async def _load_lmp_all_zones() -> dict[str, Any]:
+    """Fan out across all 20 zones in parallel; reuse per-zone cache."""
+    results = await asyncio.gather(
+        *(get_cached(f"lmp:current:{z}", 60.0, lambda zid=z: _load_lmp_current(zid))
+          for z in ZONE_IDS),
+        return_exceptions=True,
+    )
+
+    zones: dict[str, dict[str, Any]] = {}
+    failures: list[str] = []
+    latest_observed: str = ""
+    max_age = 0
+    for zone_id, res in zip(ZONE_IDS, results):
+        if isinstance(res, BaseException):
+            failures.append(zone_id)
+            continue
+        zones[zone_id] = {
+            "lmp_total": res["lmp_total"],
+            "delta_pct_5min": res["delta_pct_5min"],
+        }
+        if res["observed_at"] and res["observed_at"] > latest_observed:
+            latest_observed = res["observed_at"]
+        if res["data_age_seconds"] > max_age:
+            max_age = res["data_age_seconds"]
+
+    return {
+        "zones": zones,
+        "failures": failures,
+        "observed_at": latest_observed,
+        "data_age_seconds": max_age,
+    }
+
+
+async def get_lmp_all_zones() -> dict[str, Any]:
+    """Build the canonical envelope for ``/api/lmp/all-zones``."""
+    payload = await get_cached(
+        "lmp:all-zones",
+        60.0,
+        _load_lmp_all_zones,
+    )
+
+    zones = payload["zones"]
+    if not zones:
+        raise LookupError("PJM returned no RT rows for any zone")
+
+    prices = [z["lmp_total"] for z in zones.values()]
+    avg = round(sum(prices) / len(prices), 2)
+    lo = round(min(prices), 2)
+    hi = round(max(prices), 2)
+    summary = (
+        f"{len(zones)} zones reporting. Average ${avg}, range ${lo}-${hi}."
+    )
+
+    meta: dict[str, Any] = {
+        "timestamp": payload["observed_at"] or utc_now_iso(),
+        "data_age_seconds": payload["data_age_seconds"],
+        "zone_count": len(zones),
+        "source": "pjm-rt",
+    }
+    if payload["failures"]:
+        meta["zones_unavailable"] = payload["failures"]
+        meta["degraded_mode"] = True
+
+    return build_envelope(meta=meta, data=zones, summary=summary)

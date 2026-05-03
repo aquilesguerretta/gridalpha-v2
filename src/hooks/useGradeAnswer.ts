@@ -13,6 +13,10 @@ import type {
   RetrievalPromptInstance,
 } from '@/lib/types/grading';
 
+// Stable empty array reference — Zustand's getSnapshot identity check
+// would loop infinitely if we returned `[]` from the selector each render.
+const EMPTY_ATTEMPTS: readonly GradedAnswer[] = [];
+
 export interface UseGradeAnswer {
   latestGrade: GradedAnswer | null;
   attempts: GradedAnswer[];
@@ -32,9 +36,13 @@ export function useGradeAnswer(
 ): UseGradeAnswer {
   const recordGradedAnswer = useGradingStore((s) => s.recordGradedAnswer);
   const resetGradedAnswers = useGradingStore((s) => s.resetGradedAnswers);
-  const attempts = useGradingStore(
-    (s) => s.gradedAnswers[prompt.promptId] ?? [],
+  // Select the underlying entry directly so the reference is stable
+  // when the prompt has no attempts (otherwise `?? []` rebuilds an empty
+  // array every render and triggers a getSnapshot loop).
+  const attemptsFromStore = useGradingStore(
+    (s) => s.gradedAnswers[prompt.promptId],
   );
+  const attempts = attemptsFromStore ?? (EMPTY_ATTEMPTS as GradedAnswer[]);
 
   const [isGrading, setIsGrading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -23,10 +23,15 @@ interface Props {
   assetResult: AssetResult;
 }
 
+// CHROMA Wave 3 — bid actions mapped onto the platform's accent system.
+// charge    → electricBlueLight (energy flowing in)
+// discharge → falconGold (the profit moment, matches "$ revenue" everywhere)
+// ancillary → alertNormal (extra-revenue grid service, reads as "good")
+// idle      → very low alpha white (recedes)
 const ACTION_COLOR: Record<BidAction, string> = {
-  charge: '#22D3EE', // cyan
+  charge: C.electricBlueLight,
   discharge: C.falconGold,
-  ancillary: '#14B8A6', // teal
+  ancillary: C.alertNormal,
   idle: 'rgba(255,255,255,0.05)',
 };
 

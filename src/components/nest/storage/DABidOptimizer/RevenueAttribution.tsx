@@ -87,7 +87,7 @@ export function RevenueAttribution({ assetResult }: Props) {
             <Row
               label="ANCILLARY"
               value={attribution.ancillaryUSD}
-              color="#14B8A6"
+              color={C.alertNormal}
             />
             <Row
               label="DEGRADATION"
@@ -121,7 +121,7 @@ export function RevenueAttribution({ assetResult }: Props) {
             <div
               style={{
                 width: `${ancillaryPct * 100}%`,
-                background: '#14B8A6',
+                background: C.alertNormal,
               }}
               title={`Ancillary ${formatUSD(attribution.ancillaryUSD)}`}
             />

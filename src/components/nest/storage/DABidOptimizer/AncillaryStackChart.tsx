@@ -132,7 +132,7 @@ export function AncillaryStackChart({ assetResult }: Props) {
               <Bar
                 yAxisId="mw"
                 dataKey="reservedMW"
-                fill="#14B8A6"
+                fill={C.alertNormal}
                 radius={[2, 2, 0, 0]}
               />
               <Line

@@ -2469,3 +2469,85 @@ continuous motion, not 24 discrete steps.
   future map layer could render flow magnitude as line thickness
   and bind highlights as pulsing accents — the data is ready;
   the map render just needs the layer.
+
+## CHROMA WAVE 3 — VISUAL COHESION MAP UPDATE
+
+CHROMA Wave 1 established the PageAtmosphere primitive and the
+four-tier text/elevation hierarchies. Wave 2 propagated profile-
+specific atmospheric tints, swept through every post-Wave-1
+surface, and added the cross-surface audit. Wave 3 carries the
+contract forward to surfaces shipped after Wave 2.
+
+### Wave 3 surfaces passed
+
+| Surface | Pass | Notes |
+| --- | --- | --- |
+| Storage DA Bid Optimizer (FORGE) | ✓ | 3 hardcoded hex literals (cyan / teal) replaced with `C.electricBlueLight` (charge), `C.alertNormal` (ancillary). Discharge stays `C.falconGold`. The 8 sub-components were already on FOUNDRY primitives. OptimizerView's wrapper is intentionally a positioned `<div>` because StorageNest already provides `<PageAtmosphere tint="storage">`. |
+| Atlas TimeTravelScrubber (ATLAS) | ✓ | Major de-neon. Neon cyan `#00FFF0` → `C.electricBlue` everywhere. Pill `borderRadius: 22` → `R.xl` (12, the documented max). Backdrop blur 14 → 8px. Shadow alpha 0.45 → 0.20. SIGNIFICANCE_COLOR map raw hex → tokens. "RETURN TO LIVE" green pill → falcon-gold underline-on-hover text-only. |
+| Atlas EventReplayMenu (ATLAS) | ✓ | bgOverlay surface, falcon-gold active edge, electric-blue hover border-left, F.mono 12px caps event names → F.sans 15px 500-weight (more reading-friendly). PLAY button neon cyan → `C.electricBlue`. |
+| Atlas TimeTravelLegend (ATLAS) | ✓ | Hex green/gold → token references. Secondary line fontSize 9 → 10. |
+| Cmd+P drawer outer shell (CONDUIT) | (verified) | Already on the AIAssistant sibling pattern: bgOverlay + active-edge top + low-alpha shadow. No change needed. |
+| Cmd+P result section + items (CONDUIT) | ✓ | Section header fontSize 10 → 11 + `1px borderDefault below`. Result rows: blue-tint hover → bgSurface→bgElevated lift. SynthesisCard background hex → `C.electricBlueWash`. Several 9px micro-labels promoted to 10px. |
+| CmdPSelectionIndicator (CONDUIT) | ✓ | bgOverlay 0.92 alpha (per spec). Visible opacity 0.96 → 1. Shadow alpha 0.30 → 0.20. |
+| RetrievalPromptGrader (ORACLE) | (verified) | Already used FOUNDRY primitives + tokens. |
+| GradeBadge (ORACLE) | (verified) | Already correct — color-coded dot + caps label, uses tokens. |
+| FeedbackPanel (ORACLE) | ✓ | Feedback prose color `C.textPrimary` → `C.textSecondary`, lineHeight 1.55 → 1.6. The AI's feedback is body prose, not a hero element — sits between the GradeBadge primary attention and the actions tier. |
+| LessonSummaryPanel (ORACLE) | (verified) | Already built on ContainedCard with the editorial AI badge pattern. |
+| RecallSession (ORACLE) | (verified) | Full-screen overlay matches the AIAssistant slide pattern. F.display italic 22px serif question, ContainedCard surfaces, GradeBadge integration. |
+
+### Cohesion contract — what holds across the platform
+
+After Wave 3, every surface that's been through CHROMA exhibits:
+
+1. **Atmospheric vignette** — every full-page terminal surface
+   wraps in `<PageAtmosphere>` (with appropriate variant or tint).
+2. **One dominant focal element** — every Nest, every Analytics
+   tab, every destination has a single hero. The eye lands somewhere.
+3. **Four-tier text hierarchy** — `textPrimary` for hero,
+   `textSecondary` for body prose, `textMuted` for labels and
+   metadata, ~0.25 alpha for disabled.
+4. **Four-tier surface elevation** — `bgBase` canvas, `bgElevated`
+   data cards, `bgSurface` nested cells / inputs / inline panels,
+   `bgOverlay` for raised modals / dropdowns / drawers.
+5. **Active-edge card chrome** — every ContainedCard reads with the
+   1px top border accent at 0.20 alpha that brightens to 0.40 on
+   hover. Borders carry the hierarchy.
+6. **No neon, no pills, no glows** — `C.electricBlue` is calm
+   blue-500. `R.xl` (12px) is the border-radius max. Drop-shadows
+   sit at alpha ≤ 0.25 wherever CHROMA has reached.
+7. **F.mono for labels and data values, F.sans for prose,
+   F.display for hero numbers + editorial titles** — never inverted.
+
+### Tip for future agents
+
+When you ship a new surface, the fastest way to land coherent is to
+copy the wrapper of the nearest CHROMA-passed surface:
+
+- New Nest tab? Copy from `IndustrialNest` or `StorageNest` — both
+  have the canonical tab strip + `<PageAtmosphere tint=...>`.
+- New floating panel? Copy from `CmdPDrawer` or `SaveViewModal` —
+  both have the right backdrop + bgOverlay surface + active-edge
+  top.
+- New chart? Wrap in `ContainedCard padding={S.lg}`, lead with
+  eyebrow + EditorialIdentity rhythm, use `C.electricBlue` for
+  primary lines, `C.falconGold` for the profitability moment, no
+  hardcoded hex.
+- New row in a list? Use `bgSurface` base, lift to `bgElevated` on
+  hover. F.sans 14px 500-weight for the title, F.mono caps for
+  any badge.
+
+### Deferred items
+
+See `docs/wave-4-chroma-audit.md` for the full list. Cross-cutting
+themes: drop-shadow alpha drift across overlays (a `T.elevation`
+token would solve it in one stroke), tabular-nums coverage on
+data-dense components, and the read-only Mapbox layer expressions
+in GridAtlasMap that still hardcode hex (which would need an
+`atlas/mapStyle.ts` constants module to clean up).
+
+### Reference
+
+- Primitive: `src/components/terminal/PageAtmosphere.tsx`
+- Tokens: `src/design/tokens.ts`
+- Wave 3 audit: `docs/wave-4-chroma-audit.md`
+- Wave 2 audit (still mostly open): `docs/wave-3-chroma-audit.md`

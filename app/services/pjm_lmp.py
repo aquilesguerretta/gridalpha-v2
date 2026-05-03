@@ -22,6 +22,9 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
+
+from dateutil import parser as dateparser
 
 from app.services.envelope import build_envelope, data_age_seconds, utc_now_iso
 from app.services.intelligence_cache import get_cached
@@ -32,6 +35,8 @@ from app.services.pjm_zones import (
     pnode_name_for,
     zone_id_for_pnode,
 )
+
+EPT = ZoneInfo("America/New_York")
 
 PJM_PAGE_SIZE = 100
 RT_DATASET = "rt_unverified_fivemin_lmps"
@@ -102,6 +107,42 @@ def _sort_by_dt_desc(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _sort_by_dt_asc(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(rows, key=_row_dt_utc)
+
+
+def _parse_utc(raw: str) -> datetime | None:
+    if not raw:
+        return None
+    try:
+        dt = dateparser.parse(raw)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _ept_filter(start_utc: datetime, end_utc: datetime) -> str:
+    """Format a PJM ``datetime_beginning_ept`` range filter.
+
+    PJM Data Miner 2 expects ``M/D/YYYY HH:MM`` (24-hour) with the
+    literal `` to `` separator and EPT (America/New_York) timestamps.
+    """
+    s = start_utc.astimezone(EPT)
+    e = end_utc.astimezone(EPT)
+    fmt = "{m}/{d}/{y} {hh:02d}:{mm:02d}"
+    s_str = fmt.format(m=s.month, d=s.day, y=s.year, hh=s.hour, mm=s.minute)
+    e_str = fmt.format(m=e.month, d=e.day, y=e.year, hh=e.hour, mm=e.minute)
+    return f"{s_str} to {e_str}"
+
+
+def _to_iso_z(dt_utc: datetime) -> str:
+    return dt_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _ept_clock(dt_utc: datetime) -> str:
+    """Render UTC datetime as 'HH:MM ET' for summary lines."""
+    e = dt_utc.astimezone(EPT)
+    return f"{e.hour:02d}:{e.minute:02d} ET"
 
 
 # ── Endpoint 1: current LMP, single zone ─────────────────────────────────────
@@ -250,3 +291,90 @@ async def get_lmp_all_zones() -> dict[str, Any]:
         meta["degraded_mode"] = True
 
     return build_envelope(meta=meta, data=zones, summary=summary)
+
+
+# ── Endpoint 3: 24-hour LMP history, single zone ────────────────────────────
+
+
+async def _load_lmp_24h(zone_id: str) -> dict[str, Any]:
+    pname = pnode_name_for(zone_id)
+    end_utc = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    # round end down to nearest 5-min boundary
+    end_utc = end_utc - timedelta(minutes=end_utc.minute % 5)
+    start_utc = end_utc - timedelta(hours=24)
+
+    base_params = {
+        "pnode_name": pname,
+        "fields": _RT_FIELDS,
+        "datetime_beginning_ept": _ept_filter(start_utc, end_utc),
+    }
+    rows = await _paginated_fetch(RT_DATASET, base_params, max_rows=400)
+
+    series: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in _sort_by_dt_asc(rows):
+        dt = _parse_utc(_row_dt_utc(row))
+        if dt is None:
+            continue
+        if dt < start_utc or dt > end_utc:
+            continue
+        ts = _to_iso_z(dt)
+        if ts in seen:
+            continue
+        seen.add(ts)
+        series.append(
+            {
+                "timestamp": ts,
+                "lmp_total": round(_f(row.get("total_lmp_rt")), 2),
+            }
+        )
+
+    return {
+        "zone": zone_id,
+        "start_utc": _to_iso_z(start_utc),
+        "end_utc": _to_iso_z(end_utc),
+        "series": series,
+    }
+
+
+async def get_lmp_24h(zone_id: str) -> dict[str, Any]:
+    """Build the canonical envelope for ``/api/lmp/24h?zone=``."""
+    if not is_valid_zone(zone_id):
+        raise ValueError(f"unknown zone id: {zone_id}")
+
+    payload = await get_cached(
+        f"lmp:24h:{zone_id}",
+        300.0,  # 5-minute cache
+        lambda: _load_lmp_24h(zone_id),
+    )
+
+    series = payload["series"]
+    row_count = len(series)
+    if row_count == 0:
+        raise LookupError(f"PJM returned no 24h rows for {zone_id}")
+
+    prices = [pt["lmp_total"] for pt in series]
+    lo = round(min(prices), 2)
+    hi = round(max(prices), 2)
+    avg = round(sum(prices) / len(prices), 2)
+    peak_pt = max(series, key=lambda p: p["lmp_total"])
+    peak_dt = _parse_utc(peak_pt["timestamp"])
+    peak_clock = _ept_clock(peak_dt) if peak_dt else "?"
+
+    summary = (
+        f"24h range ${lo}-${hi}, average ${avg}, peak at {peak_clock}."
+    )
+
+    meta: dict[str, Any] = {
+        "zone": zone_id,
+        "interval_minutes": 5,
+        "row_count": row_count,
+        "start": payload["start_utc"],
+        "end": payload["end_utc"],
+        "source": "pjm-rt",
+    }
+    if row_count < 280:
+        # 288 expected; small gaps are normal but flag aggressive shortfalls
+        meta["degraded_mode"] = True
+
+    return build_envelope(meta=meta, data=series, summary=summary)

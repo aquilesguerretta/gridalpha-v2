@@ -20,10 +20,12 @@ fetchers are wrapped in the existing in-process TTL cache from
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from zoneinfo import ZoneInfo
 
+import httpx
 from dateutil import parser as dateparser
 
 from app.services.envelope import build_envelope, data_age_seconds, utc_now_iso
@@ -35,8 +37,14 @@ from app.services.pjm_zones import (
     pnode_name_for,
     zone_id_for_pnode,
 )
+from app.services.v1_proxy import (
+    NO_V1_COVERAGE,
+    build_v1_lmp_payload,
+    has_v1_coverage,
+)
 
 EPT = ZoneInfo("America/New_York")
+LOG = logging.getLogger("gridalpha.pjm-lmp")
 
 PJM_PAGE_SIZE = 100
 RT_DATASET = "rt_unverified_fivemin_lmps"
@@ -152,7 +160,8 @@ def _ept_clock(dt_utc: datetime) -> str:
 # ── Endpoint 1: current LMP, single zone ─────────────────────────────────────
 
 
-async def _load_lmp_current(zone_id: str) -> dict[str, Any]:
+async def _fetch_lmp_current_pjm(zone_id: str) -> dict[str, Any]:
+    """Hit PJM directly for a single zone's RT 5-min LMP."""
     pname = pnode_name_for(zone_id)
     rows = await _pjm_fetch(
         RT_DATASET,
@@ -191,7 +200,42 @@ async def _load_lmp_current(zone_id: str) -> dict[str, Any]:
         "lmp_congestion": lmp_cong,
         "lmp_loss": lmp_loss,
         "delta_pct_5min": delta_pct,
+        "_via_v1_proxy": False,
     }
+
+
+async def _load_lmp_current(zone_id: str) -> dict[str, Any]:
+    """RT LMP for one zone - PJM primary, V1 backend fallback on PJM auth failure.
+
+    The fallback only triggers on PJM ``HTTPStatusError`` (rate-limit /
+    auth blocks). Other errors (network, parse) propagate so callers can
+    distinguish "PJM is rejecting us" from "the world is broken".
+    """
+    try:
+        payload = await _fetch_lmp_current_pjm(zone_id)
+        # Recompute data_age_seconds against now so cache hits stay fresh.
+        if payload.get("observed_at"):
+            payload["data_age_seconds"] = data_age_seconds(payload["observed_at"])
+        return payload
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code not in (401, 403, 429):
+            raise
+        if not has_v1_coverage(zone_id):
+            LOG.warning(
+                "PJM %s and no V1 coverage for %s; surfacing upstream error",
+                e.response.status_code,
+                zone_id,
+            )
+            raise
+        LOG.warning(
+            "PJM %s for %s; falling back to V1 proxy",
+            e.response.status_code,
+            zone_id,
+        )
+        payload = await build_v1_lmp_payload(zone_id)
+        if payload.get("observed_at"):
+            payload["data_age_seconds"] = data_age_seconds(payload["observed_at"])
+        return payload
 
 
 async def get_lmp_current(zone_id: str) -> dict[str, Any]:
@@ -210,13 +254,19 @@ async def get_lmp_current(zone_id: str) -> dict[str, Any]:
         f"{zone_id} LMP ${payload['lmp_total']:.2f}/MWh, "
         f"{direction}{payload['delta_pct_5min']}% over last 5 min."
     )
+    via_v1 = bool(payload.get("_via_v1_proxy"))
+    meta: dict[str, Any] = {
+        "zone": zone_id,
+        "timestamp": payload["observed_at"] or utc_now_iso(),
+        "data_age_seconds": payload["data_age_seconds"],
+        "source": "v1-proxy" if via_v1 else "pjm-rt",
+    }
+    if via_v1:
+        meta["degraded_mode"] = True
+        meta["fallback_reason"] = "v2 PJM auth rejected; reading via V1 backend"
+
     return build_envelope(
-        meta={
-            "zone": zone_id,
-            "timestamp": payload["observed_at"] or utc_now_iso(),
-            "data_age_seconds": payload["data_age_seconds"],
-            "source": "pjm-rt",
-        },
+        meta=meta,
         data={
             "lmp_total": payload["lmp_total"],
             "lmp_energy": payload["lmp_energy"],
@@ -241,6 +291,7 @@ async def _load_lmp_all_zones() -> dict[str, Any]:
 
     zones: dict[str, dict[str, Any]] = {}
     failures: list[str] = []
+    via_v1: list[str] = []
     latest_observed: str = ""
     max_age = 0
     for zone_id, res in zip(ZONE_IDS, results):
@@ -251,6 +302,8 @@ async def _load_lmp_all_zones() -> dict[str, Any]:
             "lmp_total": res["lmp_total"],
             "delta_pct_5min": res["delta_pct_5min"],
         }
+        if res.get("_via_v1_proxy"):
+            via_v1.append(zone_id)
         if res["observed_at"] and res["observed_at"] > latest_observed:
             latest_observed = res["observed_at"]
         if res["data_age_seconds"] > max_age:
@@ -259,6 +312,7 @@ async def _load_lmp_all_zones() -> dict[str, Any]:
     return {
         "zones": zones,
         "failures": failures,
+        "via_v1_proxy": via_v1,
         "observed_at": latest_observed,
         "data_age_seconds": max_age,
     }
@@ -284,15 +338,23 @@ async def get_lmp_all_zones() -> dict[str, Any]:
         f"{len(zones)} zones reporting. Average ${avg}, range ${lo}-${hi}."
     )
 
+    via_v1 = payload.get("via_v1_proxy") or []
+    all_via_v1 = bool(via_v1) and len(via_v1) == len(zones)
+
     meta: dict[str, Any] = {
         "timestamp": payload["observed_at"] or utc_now_iso(),
         "data_age_seconds": payload["data_age_seconds"],
         "zone_count": len(zones),
-        "source": "pjm-rt",
+        "source": "v1-proxy" if all_via_v1 else "pjm-rt",
     }
     if payload["failures"]:
         meta["zones_unavailable"] = payload["failures"]
         meta["degraded_mode"] = True
+    if via_v1:
+        meta["zones_via_v1_proxy"] = via_v1
+        if not all_via_v1:
+            meta["source"] = "mixed"
+            meta["degraded_mode"] = True
 
     return build_envelope(meta=meta, data=zones, summary=summary)
 

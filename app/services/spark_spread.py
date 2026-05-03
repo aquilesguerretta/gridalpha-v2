@@ -62,14 +62,20 @@ async def get_spark_spread_current(
         f"Gas ${gas_price:.2f}/MMBtu, heat rate {heat_rate}."
     )
 
-    meta = {
+    via_v1 = bool(lmp_payload.get("_via_v1_proxy"))
+    meta: dict[str, Any] = {
         "zone": zone_id,
         "heat_rate": heat_rate,
         "gas_price_mmbtu": round(gas_price, 4),
         "timestamp": lmp_payload["observed_at"] or utc_now_iso(),
         "data_age_seconds": lmp_payload["data_age_seconds"],
-        "source": "pjm-rt+eia-henry-hub",
+        "source": (
+            "v1-proxy+eia-henry-hub" if via_v1 else "pjm-rt+eia-henry-hub"
+        ),
     }
+    if via_v1:
+        meta["degraded_mode"] = True
+        meta["fallback_reason"] = "lmp via V1 proxy (V2 PJM auth rejected)"
     data = {
         "lmp_total": round(lmp_total, 2),
         "gas_equivalent_cost": gas_eq_cost,

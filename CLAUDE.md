@@ -2132,3 +2132,153 @@ build`) so the button is always wired.
 - **Statistical ancillary utilization** — replace V1's deterministic
   utilization fractions with PJM-published rolling averages by
   time-of-day and service type.
+
+## CONDUIT WAVE 3 — CMD+P CONTEXTUAL INTELLIGENCE
+
+CONDUIT Wave 3 turns the FOUNDRY Cmd+K stub into a real cross-cutting
+query: highlight any term anywhere on the platform, press `Cmd/Ctrl+P`,
+and a right-edge drawer opens with progressive results from Alexandria,
+Vault case studies, Peregrine articles, live PJM data points, and an
+AI-generated synthesis paragraph.
+
+Cmd+K opens the same drawer in manual (empty-input) mode. Cmd+P
+intercepts the browser print dialog (`preventDefault`) and routes
+through the contextual flow.
+
+### Architecture
+
+```
+text selection ──► useTextSelection ──► CmdPSelectionIndicator pill
+                                              │
+                                              │ click
+                                              ▼
+keyboard ──► useKeyboardShortcuts ──► dispatchCmdPTrigger
+                                              │
+                                              ▼
+                                       window.dispatchEvent('cmdp:trigger')
+                                              │
+                                              ▼
+                                  CommandPalette (mounted in GlobalShell)
+                                              │
+                                              ▼
+                                       useCmdP.openWithSelection
+                                              │
+                                              ▼
+                                       useCmdPStore.open(query)
+                                              │
+                                              ▼
+                                  resolveQuery (parallel fan-out)
+                                ┌────┬────┬────┬────┬────┐
+                            alex  vault  data  pere  ai-syn
+                                └────┴────┴────┴────┴────┘
+                                              │ progressive
+                                              ▼
+                                receivePartialResult per category
+                                              │
+                                              ▼
+                                CmdPDrawer renders sections as they land
+```
+
+### Files (CONDUIT Wave 3-owned)
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/types/cmdp.ts` | `CmdPQuery`, `CmdPResult`, `CmdPResultSet`, `ResultCategory`, `RESULT_CATEGORIES`, `CATEGORY_LABELS`, `emptyResultSet()`. |
+| `src/hooks/useTextSelection.ts` | Debounced (~80 ms) global text-selection observer. Skips selections inside `<input>` / `<textarea>` / `contenteditable`. |
+| `src/hooks/useCmdP.ts` | Orchestration: captures `AIContextSnapshot`, subscribes to `useNewsData`, runs `resolveQuery`, threads results back into `useCmdPStore`. Mounted once via `CommandPalette`. |
+| `src/stores/cmdpStore.ts` | Zustand store: `isOpen`, `currentQuery`, `results`, `history` (capped at 5). Not persisted — Cmd+P is ephemeral. |
+| `src/services/cmdp/queryResolver.ts` | Parallel fan-out across the 5 category resolvers, with per-category abort propagation and progressive `onPartialResult` callback. |
+| `src/services/cmdp/alexandriaQuery.ts` | Match selection text against `CROSS_LINK_MAP`; resolve to entry or lesson. |
+| `src/services/cmdp/peregrineQuery.ts` | Search live news items by title/summary/category, score by recency × keyword density. |
+| `src/services/cmdp/vaultQuery.ts` | Match against case-study title, headline, region, body — weighted by field. |
+| `src/services/cmdp/dataPointQuery.ts` | Surface live LMP / spark / battery / reserve values for the selected zone. |
+| `src/services/cmdp/aiSynthesisQuery.ts` | One-shot non-streaming call through ORACLE's `streamChat` proxy with a synthesis system prompt. |
+| `src/components/shared/CmdPSelectionIndicator.tsx` | Floating "⌘P TO EXPLORE" pill anchored above the selection; portaled to body. |
+| `src/components/shared/CmdPDrawer.tsx` | 480 px right-edge drawer; portaled to body; backdrop click + ESC close. |
+| `src/components/shared/CmdPResultSection.tsx` | Section header + skeleton + per-category sorted result list. |
+| `src/components/shared/CmdPResultItem.tsx` | Per-category row variants (Alexandria entry, case study, Peregrine article, data point, synthesis card). |
+| `src/components/shared/CommandPalette.tsx` | (REPLACED) Wrapper that mounts `useCmdP`, the drawer, and the selection indicator. Exports `dispatchCmdPTrigger` for any caller that wants to open Cmd+P programmatically. |
+| `src/hooks/useKeyboardShortcuts.ts` | Extended to map Cmd+P / Cmd+K to `dispatchCmdPTrigger`. ESC also closes the cmdp drawer in addition to UI overlays. |
+
+### Result categories and relevance
+
+| Category | Source | Relevance ceiling | Notes |
+| --- | --- | --- | --- |
+| `ai-synthesis` | ORACLE proxy `/api/ai/complete` | 0.5 (always shown when ready) | Slowest resolver (~1.5–2 s). |
+| `live-data-point` | `lib/pjm/mock-data.ts` | 0.7 | Falls back to `WEST_HUB` when no zone selected. |
+| `alexandria-entry` | `CROSS_LINK_MAP` + `entriesIndex` + `lessons/index` | 1.0 (exact match) | Exact-equality scores 1.0; partial scores 0.6–0.95. |
+| `vault-case-study` | `CASE_STUDIES` mock | 0.85 | Field-weighted: title 1.0, headline 0.7, body 0.25. |
+| `peregrine-article` | `useNewsData` items | 0.85 | Recency decay (1.0 → 0.4 over 72 hours). |
+| `related-zone` / `related-asset` | (not implemented in V1) | — | Reported empty by the resolver so the drawer skips the section. |
+
+### Drawer ordering
+
+The drawer renders sections in `RESULT_CATEGORIES` order:
+`ai-synthesis → live-data-point → alexandria-entry → vault-case-study → peregrine-article → related-zone → related-asset`. Within a section, items
+are sorted by `relevance` descending. Empty + not-loading sections are
+hidden entirely so the drawer stays compact.
+
+### Adding a new result category
+
+1. Add a new value to `ResultCategory` (and the constant arrays
+   `RESULT_CATEGORIES` and `CATEGORY_LABELS`) in `src/lib/types/cmdp.ts`.
+2. Build the resolver as a pure async function:
+   `(query: CmdPQuery, data: QueryDataSources) => Promise<CmdPResult[]>`.
+3. Register it in `RESOLVER_REGISTRY` inside `queryResolver.ts`.
+4. Add a render variant to `CmdPResultItem.tsx`.
+5. If the resolver needs new live data, extend the
+   `QueryDataSources` interface and thread it through `useCmdP`.
+
+### AI synthesis path
+
+Wraps `streamChat()` from `services/anthropic.ts` with
+`disableSimulatedStream: true` so the response collapses to one
+`text` chunk and a synthesis-tuned `systemPrompt`. Fails gracefully:
+network/quota errors render an "AI synthesis unavailable" card in
+red instead of breaking the drawer. Depends on the FastAPI
+`/api/ai/complete` proxy being available — same dependency as
+ORACLE's `AIAssistant`. No new env vars; no new endpoints.
+
+### `dispatchCmdPTrigger` programmatic API
+
+Any future component (chart toolbar, tile action button) can open
+the drawer with a pre-filled query without mounting `useCmdP`:
+
+```ts
+import { dispatchCmdPTrigger } from '@/components/shared/CommandPalette';
+dispatchCmdPTrigger({ rawText: 'spark spread', triggeredFrom: 'manual' });
+```
+
+The CommandPalette wrapper listens for the `cmdp:trigger` window
+event and dispatches the open through the orchestration hook — so
+the snapshot is captured at trigger time, not at registration time.
+
+### Limitations carried into V1
+
+- **Keyword matching only.** No semantic search, no embeddings.
+  Future work routes the query through a backend `/api/search/embed`
+  service (TBD) and merges semantic neighbors with the existing
+  keyword resolvers.
+- **Peregrine resolver depends on live news.** When the FastAPI news
+  proxy is unreachable (`useNewsData` returns empty), the Peregrine
+  section reports zero results. The drawer hides empty sections
+  rather than showing an error — the synthesis paragraph still tells
+  the user what they need to know.
+- **Alexandria match surface is the SCRIBE term map.** Adding a new
+  canonical term (e.g. `'spark spread' → 'a-spark-spread'`) requires
+  SCRIBE to extend `CROSS_LINK_MAP`. Until then, terms outside the
+  map fall back to the AI synthesis result.
+- **`related-zone` / `related-asset` are stubs.** The categories
+  exist in the type system and the drawer is ready to render them;
+  the resolvers are not implemented. They report empty and the
+  drawer skips them silently.
+
+### What CONDUIT Wave 3 owns
+
+Every file in the table above. The CommandPalette wrapper preserves
+the same export name as the FOUNDRY stub so anything currently
+importing `<CommandPalette />` continues to work. CONDUIT Wave 3
+must not modify any chart, Nest, destination surface, or other
+agent's territory. The keyboard handler integrates only via the
+exported `dispatchCmdPTrigger` event — no direct coupling to the
+cmdp store or hook.

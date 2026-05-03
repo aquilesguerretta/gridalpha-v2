@@ -1784,3 +1784,173 @@ Each future implementation should:
 
 Full V1 verification log lives at
 `docs/wave-3-conduit2-test-results.md`.
+
+## ORACLE WAVE 3 — CURRICULUM GRADING
+
+Owned by ORACLE. Wave 3 makes the Alexandria curriculum interactive:
+every retrieval prompt in the Sub-Tier 1A entries is now AI-graded,
+each entry has an on-demand AI summary, and a falcon-gold "Recall
+Session" CTA on the Vault index walks the student through 3–5 of the
+highest-priority prompts in their queue.
+
+### Architecture
+
+| File | Purpose |
+| --- | --- |
+| `src/lib/types/grading.ts` | Type contract: `RetrievalPromptInstance`, `GradeLevel`, `GradedAnswer`, `RecallQueueItem`, `LessonSummary`, plus `RECALL_PRIORITY_WEIGHTS`. |
+| `src/lib/prompts/gradingPrompts.ts` | Pinned `GRADER_SYSTEM_PROMPT` + `buildGradingPrompt(prompt, studentAnswer)` user-message builder. |
+| `src/lib/prompts/lessonSummaryPrompts.ts` | Pinned `SUMMARY_SYSTEM_PROMPT` + `buildSummaryPrompt(input)` user-message builder. |
+| `src/services/grading/gradeAnswer.ts` | One-shot POST to `/api/ai/complete` with `claude-sonnet-4-20250514`, `max_tokens: 1500`. Returns typed `GradingResult`. Never throws. |
+| `src/services/grading/responseParser.ts` | Parses the grader's JSON envelope. Handles fences (`​`​`​`json … ​`​`​`​`), trailing commas, leading prose, and malformed output. Returns a structured error on failure. |
+| `src/services/lessonSummary/generateSummary.ts` | One-shot POST for the summary. `max_tokens: 600`. |
+| `src/stores/gradingStore.ts` | Zustand store persisted to `localStorage` under `gridalpha-grading`. Holds `gradedAnswers` (per-prompt history) + `lessonSummaries` (cached summaries). Selectors: `getLatestGrade`, `attemptCount`, `buildRecallQueue`. |
+| `src/hooks/useGradeAnswer.ts` | Per-prompt orchestration. Returns `{ latestGrade, attempts, isGrading, error, submit, retry, resetHistory }`. |
+| `src/hooks/useLessonSummary.ts` | Per-(entrySlug, layer) summary orchestration. Returns `{ summary, isGenerating, error, generate, regenerate }`. |
+| `src/components/vault/RetrievalPromptGrader.tsx` | Wraps SCRIBE's `<RetrievalPrompt>` verbatim and adds the grading UI below. |
+| `src/components/vault/GradeBadge.tsx` | 6×6 dot + 11px caps label, color-coded per grade. |
+| `src/components/vault/FeedbackPanel.tsx` | Renders the `GradedAnswer` — Hit / Missed columns, prose feedback, optional pointer link, "Try again" button. |
+| `src/components/vault/LessonSummaryPanel.tsx` | Collapsible AI-summary panel mounted between header and body in `Entry.tsx`. |
+| `src/components/vault/RecallSession.tsx` | Full-screen overlay walking the student through 3–5 queued prompts. Reachable from VaultIndex. |
+| `src/lib/curriculum/index.ts` | Extended (additive) with `buildRetrievalPromptInstance(entry, layer)` and `listRetrievalPromptInstances()`. Reads SCRIBE's `entriesIndex.ts`; no curriculum content is modified. |
+| `src/components/vault/Entry.tsx` | Extended (additive). Wraps L1 + L2 retrieval prompts in `<RetrievalPromptGrader>` via a local `<GradedRetrievalPrompt>` helper. Also mounts `<LessonSummaryPanel>` below the header. |
+| `src/components/vault/VaultIndex.tsx` | Extended (additive). Adds the falcon-gold "Recall Session →" CTA next to "Open Alexandria →" and mounts `<RecallSession>` when toggled. |
+
+### The wrap-not-replace pattern
+
+SCRIBE's `RetrievalPrompt` component is **not modified**. The grader is
+a new wrapper that takes the SCRIBE component as `children` and renders
+it verbatim above its own grading UI. This means:
+
+- SCRIBE owns the question rendering, the L2 acknowledge button, and
+  the gating contract with `progressStore`.
+- ORACLE owns the textarea, Submit, grade display, attempt history,
+  and recall queue.
+
+The two systems coexist on every Sub-Tier 1A entry. Future curriculum
+tiers (1B onward) can opt in by adding `retrievalPrompt` strings to
+their `EntryLayerContent`; `listRetrievalPromptInstances()` picks them
+up automatically.
+
+### The structured JSON response contract
+
+The grader is instructed to emit:
+
+```json
+{
+  "grade":             "poor" | "partial" | "strong" | "excellent",
+  "conceptsHit":       [string, ...],
+  "conceptsMissed":    [string, ...],
+  "feedback":          "2-4 sentences",
+  "pointerToSection":  string | null
+}
+```
+
+`responseParser.parseGraderResponse(raw)` accepts:
+- clean JSON (happy path)
+- JSON wrapped in ```json fences
+- JSON with trailing commas
+- JSON preceded by leading prose (e.g. "Here is the grade: { … }")
+
+…and returns a typed `ParseResult`. On unrecoverable input it returns
+`{ ok: false, error: '…' }` so the caller can surface "system error,
+please try again" without blowing the panel up.
+
+`expectedConcepts` and `rubric` are derived heuristically from each
+entry's `thresholdConcept` and `misconceptionDefeated` rather than
+authored per-prompt — the grader uses them as guidance, not a hard
+checklist. Future curricula can override by adding explicit
+`expectedConcepts: string[]` and `rubric: string` fields to
+`EntryLayerContent` (currently optional and absent).
+
+### Lesson summary caching
+
+`useLessonSummary(entrySlug, layer)` caches the generated summary in
+`gradingStore.lessonSummaries` keyed `<entrySlug>:<layer>`. First load
+triggers a generate; subsequent loads hit the cache. The user can
+"Regenerate" to force a refresh. The cache survives reloads.
+
+### Recall queue priority logic
+
+`buildRecallQueue(prompts)` scores each prompt by:
+
+```
+priority = base(lastGrade) + daysSinceLastSeen × perDay
+```
+
+| Last grade | Base weight |
+| --- | --- |
+| `poor`       | 8 |
+| `partial`    | 4 |
+| `strong`     | 1 |
+| `excellent`  | 0 |
+| (never seen) | 6 (no per-day decay — fresh prompts enter early but below `poor`) |
+
+`perDay = 1`. So a `poor` prompt re-attempted yesterday scores 9, a
+`partial` prompt last seen 5 days ago scores 9 too — they tie. An
+`excellent` prompt last seen 30 days ago scores 30, surpassing both
+— the queue eventually rotates everything, but it weights mistakes
+more aggressively than time alone.
+
+The queue is built fresh on every `RecallSession` mount. Within a
+session the order is snapshotted so the user doesn't see prompts
+shuffle as they grade earlier ones.
+
+### Adding grading to future curriculum tiers (1B onward)
+
+Sub-tier 1B and beyond opt in automatically — `listRetrievalPromptInstances()`
+walks every entry registered in `entriesIndex.ts` and emits a
+`RetrievalPromptInstance` for every layer that carries a
+`retrievalPrompt` string. No additional ORACLE changes needed when
+SCRIBE ships new tiers.
+
+If a future tier wants explicit `expectedConcepts` / `rubric` per
+prompt, extend `EntryLayerContent` (SCRIBE's contract) to carry the
+new fields, and update `buildRetrievalPromptInstance` to read them
+when present.
+
+### Future work
+
+- **Per-student learning paths** — the recall queue is global today.
+  Future iterations can scope per-user when authentication lands.
+- **Spaced repetition schedule** — current priority is linear in
+  days. SM-2 / Anki-style scheduling would weight recently-promoted
+  cards differently from ones that have been "strong" for months.
+- **Instructor dashboard** — the gradedAnswers store has the data to
+  power a per-cohort dashboard (which prompts are systemically missed,
+  which entries need rework). No instructor surface yet.
+- **Backend persistence** — graded answers + summaries currently live
+  in `localStorage`. When the FastAPI backend adds user accounts they
+  should mirror server-side; the public hook surface (`useGradeAnswer`,
+  `useLessonSummary`) won't need to change.
+- **Real-time grading streaming** — Wave 3 grading is a one-shot POST.
+  When the proxy upgrades to SSE, the grader can stream the feedback
+  prose word-by-word for nicer UX.
+
+### What ORACLE owns (Wave 3 scope)
+
+- `src/lib/types/grading.ts`
+- `src/lib/prompts/gradingPrompts.ts`
+- `src/lib/prompts/lessonSummaryPrompts.ts`
+- `src/services/grading/*` (gradeAnswer, responseParser)
+- `src/services/lessonSummary/generateSummary.ts`
+- `src/stores/gradingStore.ts`
+- `src/hooks/useGradeAnswer.ts`
+- `src/hooks/useLessonSummary.ts`
+- `src/components/vault/GradeBadge.tsx`
+- `src/components/vault/FeedbackPanel.tsx`
+- `src/components/vault/RetrievalPromptGrader.tsx`
+- `src/components/vault/LessonSummaryPanel.tsx`
+- `src/components/vault/RecallSession.tsx`
+- `src/lib/curriculum/index.ts` (additive `buildRetrievalPromptInstance` + `listRetrievalPromptInstances`)
+- `src/components/vault/Entry.tsx` (additive integration only)
+- `src/components/vault/VaultIndex.tsx` (additive CTA only)
+- This section of CLAUDE.md
+
+### What ORACLE does not modify
+
+- SCRIBE's `RetrievalPrompt` — wrapped, never edited
+- SCRIBE's curriculum entry files (`src/lib/curriculum/entries/*`)
+- SCRIBE's `entriesIndex.ts` (read only)
+- SCRIBE's `progressStore` (read only)
+- Wave 1 / Wave 2 ORACLE files (those stay stable)
+- Any non-curriculum component, chart, or Nest

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
     ai,
+    ancillary,
     atlas,
     energy,
     fuel_mix,
@@ -52,6 +53,7 @@ app.include_router(spark_spread.router)  # /api/spark-spread/* (Wave 5)
 app.include_router(fuel_mix.router)  # /api/fuel-mix/* (Wave 5)
 app.include_router(reserve_margin.router)  # /api/reserve-margin/* (Wave 5)
 app.include_router(outages_v2.router)  # /api/outages/* (Wave 5)
+app.include_router(ancillary.router)  # /api/ancillary/* (Wave 5)
 
 
 @app.get("/health")

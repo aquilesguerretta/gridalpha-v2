@@ -57,14 +57,16 @@ export function EventReplayMenu({ onClose }: Props) {
         bottom:         'calc(100% + 8px)',
         left:           18,
         width:          420,
-        background:     'rgba(15,15,18,0.96)',
+        // CHROMA Wave 3 — bgOverlay (raised tier) + falcon-gold active
+        // edge top + low-alpha shadow only enough to lift off the map.
+        background:     C.bgOverlay,
         border:         `1px solid ${C.borderDefault}`,
-        borderTop:      `1px solid rgba(245,158,11,0.45)`,
-        borderRadius:   R.md,
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
+        borderTop:      `1px solid ${C.falconGold}`,
+        borderRadius:   R.lg,
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         padding:        S.sm,
-        boxShadow:      '0 20px 48px rgba(0,0,0,0.5)',
+        boxShadow:      '0 8px 24px rgba(0,0,0,0.20)',
         display:        'flex',
         flexDirection:  'column',
         gap:            6,
@@ -85,7 +87,7 @@ export function EventReplayMenu({ onClose }: Props) {
           fontWeight:    700,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
-          color:         '#FBBF24',
+          color:         C.falconGoldLight,
         }}>
           Event Replay
         </span>
@@ -128,17 +130,23 @@ export function EventReplayMenu({ onClose }: Props) {
               gap:            4,
               padding:        '8px 10px',
               borderRadius:   R.md,
-              border:         `1px solid ${isActive ? 'rgba(245,158,11,0.45)' : 'transparent'}`,
-              borderLeft:     `2px solid ${isActive ? '#FBBF24' : 'transparent'}`,
-              background:     isActive ? 'rgba(245,158,11,0.08)' : 'rgba(255,255,255,0.02)',
+              border:         `1px solid ${isActive ? C.falconGold : 'transparent'}`,
+              borderLeft:     `2px solid ${isActive ? C.falconGoldLight : 'transparent'}`,
+              background:     isActive ? C.falconGoldWash : C.bgSurface,
               cursor:         'pointer',
               transition:     'background 150ms cubic-bezier(0.4,0,0.2,1), border-color 150ms cubic-bezier(0.4,0,0.2,1)',
             }}
             onMouseEnter={(e) => {
-              if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              if (!isActive) {
+                e.currentTarget.style.background = C.bgElevated;
+                e.currentTarget.style.borderLeftColor = C.electricBlue;
+              }
             }}
             onMouseLeave={(e) => {
-              if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+              if (!isActive) {
+                e.currentTarget.style.background = C.bgSurface;
+                e.currentTarget.style.borderLeftColor = 'transparent';
+              }
             }}
           >
             <div style={{
@@ -148,11 +156,11 @@ export function EventReplayMenu({ onClose }: Props) {
               gap:            S.sm,
             }}>
               <span style={{
-                fontFamily:    F.mono,
-                fontSize:      12,
-                fontWeight:    700,
-                color:         isActive ? '#FBBF24' : C.textPrimary,
-                letterSpacing: '0.04em',
+                fontFamily:    F.sans,
+                fontSize:      15,
+                fontWeight:    600,
+                color:         isActive ? C.falconGoldLight : C.textPrimary,
+                letterSpacing: '0',
               }}>
                 {event.name}
               </span>
@@ -167,10 +175,10 @@ export function EventReplayMenu({ onClose }: Props) {
               </span>
             </div>
             <span style={{
-              fontFamily:    F.mono,
-              fontSize:      10,
+              fontFamily:    F.sans,
+              fontSize:      12,
               color:         C.textSecondary,
-              letterSpacing: '0.06em',
+              letterSpacing: '0',
               lineHeight:    1.5,
             }}>
               {event.description}
@@ -183,7 +191,7 @@ export function EventReplayMenu({ onClose }: Props) {
             }}>
               <span style={{
                 fontFamily:    F.mono,
-                fontSize:      9,
+                fontSize:      10,
                 color:         C.textMuted,
                 letterSpacing: '0.10em',
                 textTransform: 'uppercase',
@@ -196,13 +204,13 @@ export function EventReplayMenu({ onClose }: Props) {
                   handlePlay(event);
                 }}
                 style={{
-                  background:    'rgba(0,255,240,0.12)',
-                  border:        '1px solid rgba(0,255,240,0.45)',
+                  background:    C.electricBlueWash,
+                  border:        `1px solid ${C.borderActive}`,
                   borderRadius:  R.sm,
                   padding:       '3px 8px',
-                  color:         '#00FFF0',
+                  color:         C.electricBlue,
                   fontFamily:    F.mono,
-                  fontSize:      9,
+                  fontSize:      10,
                   fontWeight:    700,
                   letterSpacing: '0.16em',
                   textTransform: 'uppercase',
@@ -220,7 +228,7 @@ export function EventReplayMenu({ onClose }: Props) {
         marginTop:     6,
         padding:       '0 6px',
         fontFamily:    F.mono,
-        fontSize:      9,
+        fontSize:      10,
         color:         C.textMuted,
         letterSpacing: '0.10em',
         lineHeight:    1.5,

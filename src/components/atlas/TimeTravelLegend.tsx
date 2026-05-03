@@ -62,7 +62,7 @@ export function TimeTravelLegend() {
         fontSize:           11,
         fontWeight:         700,
         letterSpacing:      '0.10em',
-        color:              isLive ? '#10B981' : C.textPrimary,
+        color:              isLive ? C.alertNormal : C.textPrimary,
         fontVariantNumeric: 'tabular-nums',
         textTransform:      'uppercase',
       }}>
@@ -70,9 +70,9 @@ export function TimeTravelLegend() {
       </span>
       <span style={{
         fontFamily:    F.mono,
-        fontSize:      9,
+        fontSize:      10,
         letterSpacing: '0.14em',
-        color:         isLive ? '#10B981' : '#FBBF24',
+        color:         isLive ? C.alertNormal : C.falconGold,
         textTransform: 'uppercase',
       }}>
         {isLive

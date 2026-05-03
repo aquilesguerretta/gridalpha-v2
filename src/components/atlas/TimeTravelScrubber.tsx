@@ -18,10 +18,12 @@ import type { EventHighlight } from '@/lib/types/timeTravel';
 import { TimeTravelLegend } from './TimeTravelLegend';
 import { EventReplayMenu } from './EventReplayMenu';
 
+// CHROMA Wave 3 — significance markers reuse existing alert tokens so
+// the scrubber's vocabulary matches the rest of the platform.
 const SIGNIFICANCE_COLOR: Record<EventHighlight['significance'], string> = {
-  critical: '#EF4444',
-  notable:  '#FBBF24',
-  context:  '#3B82F6',
+  critical: C.alertCritical,
+  notable:  C.falconGoldLight,
+  context:  C.electricBlue,
 };
 
 export function TimeTravelScrubber() {
@@ -39,6 +41,7 @@ export function TimeTravelScrubber() {
   const setSpeed         = useTimeTravelStore((s) => s.setSpeed);
 
   const [eventsOpen, setEventsOpen] = useState(false);
+  const [returnHovered, setReturnHovered] = useState(false);
   const eventsBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const activeEvent = activeEventId ? getEvent(activeEventId) : null;
@@ -71,12 +74,16 @@ export function TimeTravelScrubber() {
       flexDirection:  'column',
       gap:            8,
       padding:        '12px 18px',
-      background:     'rgba(10,10,11,0.85)',
+      // CHROMA Wave 3 — bgOverlay (raised tier) at 0.85 alpha, R.xl max,
+      // 8px backdrop blur, low-alpha shadow only enough to lift the
+      // pill off the map. Borders carry the hierarchy.
+      background:     'rgba(39,39,47,0.85)',
       border:         `1px solid ${C.borderDefault}`,
-      borderRadius:   22,
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
-      boxShadow:      '0 12px 32px rgba(0,0,0,0.45)',
+      borderTop:      `1px solid ${C.borderStrong}`,
+      borderRadius:   R.xl,
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      boxShadow:      '0 8px 24px rgba(0,0,0,0.20)',
       pointerEvents:  'auto',
     }}>
       {/* Top row: controls + legend */}
@@ -90,11 +97,11 @@ export function TimeTravelScrubber() {
           ref={eventsBtnRef}
           onClick={() => setEventsOpen((o) => !o)}
           style={{
-            background:    eventsOpen ? 'rgba(245,158,11,0.16)' : 'transparent',
-            border:        `1px solid ${eventsOpen ? 'rgba(245,158,11,0.55)' : C.borderDefault}`,
+            background:    eventsOpen ? C.falconGoldWash : 'transparent',
+            border:        `1px solid ${eventsOpen ? C.falconGold : C.borderDefault}`,
             borderRadius:  R.md,
             padding:       '5px 10px',
-            color:         eventsOpen ? '#FBBF24' : C.textSecondary,
+            color:         eventsOpen ? C.falconGoldLight : C.textSecondary,
             fontFamily:    F.mono,
             fontSize:      10,
             fontWeight:    600,
@@ -106,21 +113,21 @@ export function TimeTravelScrubber() {
             gap:           6,
           }}
         >
-          ◇ EVENTS
+          EVENTS
           <span style={{ fontSize: 9, opacity: 0.7 }}>{eventsOpen ? '▴' : '▾'}</span>
         </button>
 
-        {/* Play/pause */}
+        {/* Play/pause — calm-blue chrome instead of neon cyan */}
         <button
           onClick={togglePlayback}
           disabled={mode === 'live'}
           aria-label={isPlaying ? 'Pause' : 'Play'}
           style={{
-            background:    'transparent',
-            border:        `1px solid ${mode === 'live' ? C.borderDefault : 'rgba(0,255,240,0.55)'}`,
+            background:    mode === 'live' ? 'transparent' : C.electricBlueWash,
+            border:        `1px solid ${mode === 'live' ? C.borderDefault : C.borderActive}`,
             borderRadius:  R.md,
             padding:       '5px 10px',
-            color:         mode === 'live' ? C.textMuted : '#00FFF0',
+            color:         mode === 'live' ? C.textMuted : C.electricBlue,
             fontFamily:    F.mono,
             fontSize:      11,
             cursor:        mode === 'live' ? 'not-allowed' : 'pointer',
@@ -147,16 +154,16 @@ export function TimeTravelScrubber() {
                 key={s}
                 onClick={() => setSpeed(s)}
                 style={{
-                  background:     active ? 'rgba(0,255,240,0.18)' : 'transparent',
+                  background:     active ? C.electricBlueWash : 'transparent',
                   border:         'none',
-                  color:          active ? '#00FFF0' : C.textMuted,
+                  color:          active ? C.electricBlue : C.textMuted,
                   fontFamily:     F.mono,
                   fontSize:       10,
                   fontWeight:     active ? 700 : 500,
                   letterSpacing:  '0.06em',
                   cursor:         'pointer',
                   padding:        '4px 8px',
-                  borderRadius:   4,
+                  borderRadius:   R.sm,
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -197,6 +204,14 @@ export function TimeTravelScrubber() {
                     cursor:       'pointer',
                     pointerEvents: 'auto',
                     padding:      0,
+                    opacity:      0.6,
+                    transition:   'opacity 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '1';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.6';
                   }}
                   aria-label={h.label}
                 >
@@ -204,7 +219,6 @@ export function TimeTravelScrubber() {
                     <path
                       d="M5 0 L10 9 L0 9 Z"
                       fill={SIGNIFICANCE_COLOR[h.significance]}
-                      opacity={0.85}
                       stroke="rgba(0,0,0,0.4)"
                       strokeWidth={0.5}
                     />
@@ -214,7 +228,9 @@ export function TimeTravelScrubber() {
             </div>
           )}
 
-          {/* Slider input */}
+          {/* Slider input — calm blue fill, no neon cyan. Track sits on
+              bgSurface luminance; fill goes from the deeper electricBlue
+              into the page-default border tint. */}
           <input
             type="range"
             min={0}
@@ -235,7 +251,7 @@ export function TimeTravelScrubber() {
               background:
                 mode === 'live'
                   ? 'rgba(255,255,255,0.10)'
-                  : `linear-gradient(to right, #00FFF0 0%, #3B82F6 ${scrubPosition * 100}%, rgba(255,255,255,0.12) ${scrubPosition * 100}%)`,
+                  : `linear-gradient(to right, ${C.electricBlue} 0%, ${C.electricBlueLight} ${scrubPosition * 100}%, rgba(255,255,255,0.12) ${scrubPosition * 100}%)`,
             }}
           />
 
@@ -255,7 +271,7 @@ export function TimeTravelScrubber() {
                 style={{
                   width:  1,
                   height: 4,
-                  background: t === 1 && mode === 'live' ? '#10B981' : C.textMuted,
+                  background: t === 1 && mode === 'live' ? C.alertNormal : C.textMuted,
                   opacity: 0.6,
                 }}
               />
@@ -263,24 +279,31 @@ export function TimeTravelScrubber() {
           </div>
         </div>
 
-        {/* Return to live */}
+        {/* Return to live — text-only treatment per CHROMA Wave 3:
+            falcon-gold text, underline on hover, no fill. Reads as
+            "return to the moment that matters" without competing with
+            the slider/control chrome. */}
         <button
           onClick={exitToLive}
           disabled={mode === 'live'}
+          onMouseEnter={() => setReturnHovered(true)}
+          onMouseLeave={() => setReturnHovered(false)}
           style={{
-            background:    mode === 'live' ? 'transparent' : 'rgba(16,185,129,0.12)',
-            border:        `1px solid ${mode === 'live' ? C.borderDefault : 'rgba(16,185,129,0.55)'}`,
-            borderRadius:  R.md,
-            padding:       '5px 10px',
-            color:         mode === 'live' ? C.textMuted : '#10B981',
-            fontFamily:    F.mono,
-            fontSize:      10,
-            fontWeight:    600,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            cursor:        mode === 'live' ? 'not-allowed' : 'pointer',
-            opacity:       mode === 'live' ? 0.5 : 1,
-            whiteSpace:    'nowrap',
+            background:     'transparent',
+            border:         'none',
+            padding:        '5px 4px',
+            color:          mode === 'live' ? C.textMuted : C.falconGold,
+            fontFamily:     F.mono,
+            fontSize:       10,
+            fontWeight:     600,
+            letterSpacing:  '0.14em',
+            textTransform:  'uppercase',
+            cursor:         mode === 'live' ? 'not-allowed' : 'pointer',
+            opacity:        mode === 'live' ? 0.5 : 1,
+            whiteSpace:     'nowrap',
+            textDecoration: mode !== 'live' && returnHovered ? 'underline' : 'none',
+            textUnderlineOffset: 4,
+            transition:     'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}
         >
           NOW ↻

@@ -65,7 +65,9 @@ export function CmdPSelectionIndicator({ onActivate }: Props) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 6,
-        background: hover ? C.bgOverlay : C.bgElevated,
+        // CHROMA Wave 3 — bgOverlay (raised tier) at 0.92 alpha,
+        // 4px border-radius, F.mono 10px caps, 80ms fade-in.
+        background: 'rgba(39,39,47,0.92)',
         border: `1px solid ${hover ? C.borderActive : C.borderDefault}`,
         borderRadius: R.sm,
         color: hover ? C.electricBlue : C.textSecondary,
@@ -76,10 +78,11 @@ export function CmdPSelectionIndicator({ onActivate }: Props) {
         textTransform: 'uppercase',
         cursor: 'pointer',
         zIndex: 9550,
-        opacity: visible ? 0.96 : 0,
+        opacity: visible ? 1 : 0,
         transition:
-          'opacity 80ms cubic-bezier(0.4, 0, 0.2, 1), background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.30)',
+          'opacity 80ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
+        // Borders carry the hierarchy; subtle lift only.
+        boxShadow: '0 4px 12px rgba(0,0,0,0.20)',
         whiteSpace: 'nowrap',
         userSelect: 'none',
       }}

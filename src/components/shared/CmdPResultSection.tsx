@@ -33,9 +33,13 @@ export function CmdPResultSection({
     <div style={{ marginBottom: S.lg }}>
       <div
         style={{
-          padding: `${S.xs} ${S.md}`,
+          padding: `${S.sm} ${S.md}`,
+          marginBottom: S.xs,
+          // CHROMA Wave 3 — section header is mono caps with a subtle
+          // 1px borderDefault below, per the drawer spec.
+          borderBottom: `1px solid ${C.borderDefault}`,
           fontFamily: F.mono,
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 600,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
@@ -49,9 +53,10 @@ export function CmdPResultSection({
         {!isLoading && results.length > 0 && (
           <span
             style={{
-              fontSize: 9,
+              fontSize: 10,
               color: C.textMuted,
               letterSpacing: '0.12em',
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             {results.length}

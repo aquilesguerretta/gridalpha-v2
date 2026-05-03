@@ -50,7 +50,8 @@ export function CmdPResultItem({ result, onActivated }: Props) {
       style={{
         padding: `${S.sm} ${S.md}`,
         borderRadius: R.sm,
-        background: hover ? 'rgba(59,130,246,0.08)' : 'transparent',
+        // CHROMA Wave 3 — bgSurface base, hover lifts to bgElevated.
+        background: hover ? C.bgElevated : C.bgSurface,
         cursor: isInteractive ? 'pointer' : 'default',
         transition:
           'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -204,7 +205,7 @@ function DataPointRow({ result }: { result: CmdPResult }) {
       {term && (
         <span style={{
           fontFamily: F.mono,
-          fontSize: 9,
+          fontSize: 10,
           color: C.textMuted,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
@@ -243,8 +244,11 @@ function SynthesisCard({ result }: { result: CmdPResult }) {
       style={{
         padding: `${S.md} ${S.md}`,
         borderRadius: R.md,
-        background: isError ? 'rgba(239,68,68,0.06)' : 'rgba(59,130,246,0.05)',
-        border: `1px solid ${isError ? 'rgba(239,68,68,0.30)' : 'rgba(59,130,246,0.18)'}`,
+        // CHROMA Wave 3 — slightly warmer tint via electricBlueWash for AI
+        // synthesis (the brief asks for a "warmer background tint" to set
+        // it apart from regular result rows).
+        background: isError ? 'rgba(239,68,68,0.06)' : C.electricBlueWash,
+        border: `1px solid ${isError ? C.borderAlert : C.borderAccent}`,
         display: 'flex',
         flexDirection: 'column',
         gap: S.sm,
@@ -253,7 +257,7 @@ function SynthesisCard({ result }: { result: CmdPResult }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: S.sm }}>
         <span style={{
           fontFamily: F.mono,
-          fontSize: 9,
+          fontSize: 10,
           fontWeight: 700,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
@@ -292,7 +296,7 @@ function SynthesisCard({ result }: { result: CmdPResult }) {
 function chipStyle(color: string): React.CSSProperties {
   return {
     fontFamily: F.mono,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 700,
     letterSpacing: '0.16em',
     textTransform: 'uppercase',

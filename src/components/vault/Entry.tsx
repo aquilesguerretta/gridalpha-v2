@@ -29,6 +29,8 @@ import { AudienceTag } from './AudienceTag';
 import { RetrievalPrompt } from './RetrievalPrompt';
 // ORACLE Wave 3 — wraps SCRIBE's RetrievalPrompt with the grading UI.
 import { RetrievalPromptGrader } from './RetrievalPromptGrader';
+// ORACLE Wave 3 — AI lesson summary panel below the header.
+import { LessonSummaryPanel } from './LessonSummaryPanel';
 import { WorkedExample } from './WorkedExample';
 import { PrimarySourceList } from './PrimarySourceList';
 import { ClosingAnchor } from './ClosingAnchor';
@@ -105,6 +107,9 @@ export function Entry({ entrySlug, layer }: EntryProps) {
 
         {/* Header */}
         <Header entry={entry} layer={layer} />
+
+        {/* ORACLE Wave 3 — AI lesson summary panel (collapsible). */}
+        <LessonSummaryPanel entrySlug={entry.id} layer={layer} />
 
         {/* Body content (layer-dependent) */}
         {layer === 'L1' && <LayerOneBody entry={entry} content={layerContent} />}

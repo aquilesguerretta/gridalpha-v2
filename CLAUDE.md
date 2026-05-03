@@ -2551,3 +2551,93 @@ in GridAtlasMap that still hardcode hex (which would need an
 - Tokens: `src/design/tokens.ts`
 - Wave 3 audit: `docs/wave-4-chroma-audit.md`
 - Wave 2 audit (still mostly open): `docs/wave-3-chroma-audit.md`
+
+## CURSOR WAVE 5 — V2 BACKEND LIVE DATA
+
+The V2 backend (`app/`) now exposes the full set of PJM-backed canonical
+endpoints frontend hooks need to swap mock-data.ts imports for live
+data. Contract is the source of truth — frontend hooks compile against
+it, agents flag any change before either side adjusts.
+
+### Source of truth
+
+- Contract doc: `docs/v2-backend-contract.md`
+- Service: `gridalpha-v2-production.up.railway.app`
+  (Railway service `gridalpha-v2`, deployed from
+  `feature/full-shell-buildout`)
+- Smoke test: `scripts/smoke-test.ts`
+  (`npx tsx scripts/smoke-test.ts` — exits non-zero on any envelope
+  failure; pass `API_BASE=http://localhost:8000` to target a local
+  uvicorn).
+
+### Canonical envelope
+
+Every Wave-5 endpoint returns:
+
+```ts
+{ meta: { timestamp, ... }, data: ..., summary: string }
+```
+
+Frontend hooks should treat `meta.timestamp` (ISO-8601 UTC) and the
+optional `meta.data_age_seconds` integer as the freshness contract for
+rendering live / stale / simulated affordances. `meta.degraded_mode =
+true` indicates a partial response (e.g. fuel-aggregated outage
+fallback or capacity from nameplate estimate).
+
+### Endpoints + cache TTLs
+
+| Endpoint | Path | TTL | Notes |
+| --- | --- | --- | --- |
+| 1 | `GET /api/lmp/current?zone=` | 60s | RT 5-min single-zone |
+| 2 | `GET /api/lmp/all-zones` | 60s | Fan-out, reuses Endpoint 1 cache |
+| 3 | `GET /api/lmp/24h?zone=` | 5m | Paginated (288 rows ~ 3 PJM pages) |
+| 4 | `GET /api/lmp/da-forecast?zone=&date=` | 1h | `date` defaults to tomorrow EPT |
+| 5 | `GET /api/lmp/history?zone=&start=&end=&interval=` | 30 days | Verified dataset; max range 168h |
+| 6 | `GET /api/spark-spread/current?zone=&heat_rate=` | 60s | LMP + Henry Hub; default 7,500 BTU/kWh |
+| 7 | `GET /api/fuel-mix/current` | 5m | Adds pct + carbon intensity overlay |
+| 8 | `GET /api/reserve-margin/current?zone=` | 60s | PJM-wide; zone-specific falls back |
+| 9 | `GET /api/outages/current` | 5m | Per-unit; degraded_mode falls back to fuel-aggregated |
+| 10 | `GET /api/ancillary/current?zone=` | 5m | Reg-A/D + spin + mileage MCPs |
+| 11 | `GET /api/lmp/da-forecast/all-zones?date=` | 1h | Fan-out, reuses Endpoint 4 cache |
+| 12 | `GET /api/stream` | live | SSE; events: `lmp-update`, `outage`, `heartbeat` |
+
+### Auth
+
+- PJM Data Miner 2 via `PJM_USERNAME` / `PJM_PASSWORD` (ForgeRock SSO,
+  cached `tokenId`) or `PJM_SUBSCRIPTION_KEY` (Azure APIM) — Railway
+  picks whichever env is set.
+- Henry Hub gas spot via `EIA_API_KEY` (existing).
+- Anthropic proxy still uses `ANTHROPIC_API_KEY` — `/api/ai/complete`
+  is unchanged from V1 and remains the canonical route for ORACLE.
+
+### SSE event reference
+
+```
+event: lmp-update
+data:  {"zone":"WEST_HUB","lmp_total":35.90,"delta_pct_5min":0.5,"timestamp":"...","data_age_seconds":3}
+
+event: outage
+data:  {"generator":"Salem 2","zone":"PSEG","capacity_mw":1170,"event":"start","timestamp":"..."}
+
+event: heartbeat
+data:  {"timestamp":"..."}
+```
+
+`heartbeat` fires every 30s (plus an initial frame on connect with
+`phase:"connected"`). Reconnect on connection drop — the hub is
+in-process, so each Railway replica owns its own subscriber set.
+
+### Legacy / canonical route map
+
+The pre-Wave-5 routes are **frozen**. Existing consumers can keep
+reading them; new wiring must use the canonical paths above. See
+`docs/v2-backend-contract.md` for the full table.
+
+| Frozen | Canonical replacement |
+| --- | --- |
+| `/api/atlas/generation-fuel` | `/api/fuel-mix/current` |
+| `/api/atlas/outages` | `/api/outages/current` |
+| `/api/energy/henry-hub` | composed into `/api/spark-spread/current` |
+| `/api/atlas/binding-constraints` | (no Wave-5 equivalent yet) |
+| `/api/atlas/interface-flows` | (no Wave-5 equivalent yet) |
+| `/api/weather/*`, `/api/news/*`, `/api/atlas/substations`, `/api/atlas/gas-pipelines` | unchanged — own contract |

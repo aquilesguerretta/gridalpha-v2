@@ -2282,3 +2282,190 @@ must not modify any chart, Nest, destination surface, or other
 agent's territory. The keyboard handler integrates only via the
 exported `dispatchCmdPTrigger` event — no direct coupling to the
 cmdp store or hook.
+
+## ATLAS WAVE 2 — TIME-TRAVEL SCRUBBER
+
+The Grid Atlas is now a time machine. Drag the scrubber back 24
+hours and the LMP heatmap animates through the historical state.
+Generator outages appear and disappear. Storm Elliott's December
+2022 cascade can be replayed on demand.
+
+### Architecture: data → store → hook → map
+
+```
+                 ┌─────────────────────────────────┐
+                 │  src/lib/types/timeTravel.ts    │
+                 │  AtlasSnapshot, NamedEvent,     │
+                 │  EventHighlight, TimeTravelMode │
+                 └────────────────┬────────────────┘
+                                  │
+        ┌─────────────────────────┴─────────────────────┐
+        │                                               │
+┌───────▼─────────────────────┐         ┌──────────────▼──────────────┐
+│ historicalSnapshots.ts      │         │ eventLibrary.ts             │
+│  • getCurrentSnapshot()     │         │  • NAMED_EVENTS (3 events)  │
+│  • getBracketingSnapshots() │         │  • getEvent(id)             │
+│  • Reads atlas-historical-  │         │  • getEventBracketing-      │
+│    mock.ts (rolling 72h)    │         │    Snapshots(event, ts)     │
+└───────────────┬─────────────┘         └─────────────────┬───────────┘
+                │                                         │
+                └────────────────┬────────────────────────┘
+                                 │
+                  ┌──────────────▼──────────────┐
+                  │   interpolation.ts          │
+                  │   interpolateSnapshots(     │
+                  │     before, after, t)       │
+                  └──────────────┬──────────────┘
+                                 │
+                  ┌──────────────▼──────────────┐
+                  │   timeTravelStore.ts        │
+                  │   {mode, currentTimestamp,  │
+                  │    activeEventId, …}        │
+                  └──────────────┬──────────────┘
+                                 │
+                  ┌──────────────▼──────────────┐
+                  │   useTimeTravelData() hook  │
+                  │   → AtlasSnapshot           │
+                  └──────────────┬──────────────┘
+                                 │
+       ┌─────────────────────────┴───────────────────────────┐
+       │                                                     │
+┌──────▼──────────────────┐                  ┌───────────────▼────────────┐
+│ TimeTravelScrubber +    │                  │ GridAtlasView →            │
+│ EventReplayMenu +       │                  │   GridAtlasMap             │
+│ TimeTravelLegend        │                  │   (hubGeoJson +            │
+│ (UI controls)           │                  │    outagesGeoJson driven   │
+└─────────────────────────┘                  │    by snapshot)            │
+                                             └────────────────────────────┘
+```
+
+### The three modes
+
+| Mode | Snapshot source | Scrubber range |
+| --- | --- | --- |
+| `live`         | `getCurrentSnapshot()` — last frame in the rolling 72h buffer | Slider disabled; `NOW ↻` button is the only affordance |
+| `scrubbed`     | bracket pair from `getBracketingSnapshots(timestamp)` + `interpolateSnapshots()` | Active range = `[getHistoricalRangeStart(), getHistoricalRangeEnd()]` (~72h window) |
+| `event-replay` | bracket pair from `getEventBracketingSnapshots(event, timestamp)` + `interpolateSnapshots()` | Active range = `[event.startTimestamp, event.endTimestamp]` |
+
+The store auto-enters `scrubbed` from `live` when the user first
+drags the slider — no extra click needed. `selectEvent(id)` enters
+`event-replay` and seeks to the event's start. `exitToLive()`
+resets to current real-time and stops playback.
+
+### The named event library
+
+Three curated events ship in V1, all hand-authored hour-by-hour:
+
+| id | Duration | Notable for |
+| --- | --- | --- |
+| `storm-elliott-2022`     | 96h | Arctic blast, 24 GW forced-outage cascade, $2,000+/MWh in PSEG/JCPL, Maximum Generation Emergency. The hero replay. |
+| `august-heatwave-2022`   | 96h | Sustained heat dome, evening peaks ramp daily, system holds — the "expensive but stable" counter-example. |
+| `march-2024-wind-spike`  | 48h | Cold-front winds push COMED/AEP LMPs negative; system wind share peaks at 42%. |
+
+Each has 7-9 `EventHighlight`s with `significance` ∈
+{`critical`, `notable`, `context`}. Highlights render as colored
+chevrons above the slider track and are clickable to jump.
+
+### Adding a new event
+
+In `src/lib/atlas/eventLibrary.ts`:
+
+```ts
+function buildMyEvent(): NamedEvent {
+  const start = '2025-07-15T00:00:00Z';
+  const startMs = Date.parse(start);
+  const snapshots: AtlasSnapshot[] = [];
+  for (let h = 0; h < 48; h++) {
+    snapshots.push(makeSnapshot(
+      new Date(startMs + h * 3_600_000).toISOString(),
+      { lmpMult: 1.4, loadMult: 1.1, /* …per-zone overrides… */ },
+    ));
+  }
+  return {
+    id: 'my-event-2025',
+    name: 'My Event',
+    description: 'One-sentence pitch shown in the EventReplayMenu.',
+    startTimestamp: snapshots[0].timestamp,
+    endTimestamp:   snapshots[snapshots.length - 1].timestamp,
+    snapshots,
+    highlights: [
+      { timestamp: '2025-07-15T08:00:00Z', label: 'Load ramp', significance: 'context' },
+      // …
+    ],
+  };
+}
+
+export const NAMED_EVENTS: NamedEvent[] = [
+  buildStormElliott(),
+  buildAugustHeatwave(),
+  buildWindSpike(),
+  buildMyEvent(),  // ← append here
+];
+```
+
+The `makeSnapshot` helper in the same file accepts global
+`lmpMult` / `loadMult` plus optional `perZone` overrides, an
+`outages` roster, and `transmissionIntensity` / `fuelMixOverrides`
+to shape the moment.
+
+### Interpolation rationale
+
+The scrubber moves continuously but the snapshot buffer is
+discrete (one frame per simulated hour). Without interpolation,
+dragging the slider at 60 fps would step frame-by-frame at
+arbitrary boundaries — visible "jumps" in zone color and outage
+appearance. `interpolateSnapshots(before, after, fraction)`:
+
+- **Numeric** — LMP, load, congestion, reservoir, loading, shadow
+  price, fuel-mix MW: linear blend.
+- **Categorical** — `marginalUnit`, `transmission.binding`: snap
+  to the nearer source frame at `fraction === 0.5`.
+- **Outages** — union both rosters; outages present in only one
+  source are kept as long as their interpolated presence ≥ 0.05.
+
+The result: a 10-second drag through 24 hours feels like
+continuous motion, not 24 discrete steps.
+
+### What ATLAS owns (Wave 2 scope)
+
+- `src/lib/types/timeTravel.ts` (NEW)
+- `src/lib/mock/atlas-historical-mock.ts` (NEW)
+- `src/lib/atlas/historicalSnapshots.ts` (NEW)
+- `src/lib/atlas/eventLibrary.ts` (NEW)
+- `src/lib/atlas/interpolation.ts` (NEW)
+- `src/stores/timeTravelStore.ts` (NEW)
+- `src/hooks/useTimeTravelData.ts` (NEW)
+- `src/components/atlas/TimeTravelScrubber.tsx` (NEW)
+- `src/components/atlas/TimeTravelLegend.tsx` (NEW)
+- `src/components/atlas/EventReplayMenu.tsx` (NEW)
+- `src/components/atlas/GridAtlasView.tsx` (modified — drops
+  `buildLMPFrames`, mounts `useTimeTravelData()`, drives
+  `hubGeoJson` + new `outagesGeoJson` from the snapshot, replaces
+  the legacy timeline pill with `<TimeTravelScrubber />`, adds
+  the TIME TRAVEL ACTIVE indicator pill)
+- `src/components/atlas/GridAtlasMap.tsx` (modified — adds
+  `outagesGeoJson` prop and three new layers: outage halo,
+  outage ring, outage label)
+- This section of `CLAUDE.md`
+
+### Future work
+
+- **Real PJM historical wire-up.** V1 ships hand-curated mocks.
+  When the FastAPI historical endpoint lands at
+  `gridalpha-v2-production.up.railway.app/api/atlas/historical`,
+  swap the buffer source in `historicalSnapshots.ts`. The
+  AtlasSnapshot shape stays unchanged — every consumer (store,
+  hook, scrubber, map) keeps working.
+- **Replay annotations linked to Vault case studies.** A future
+  highlight type could carry a `caseStudyId` so clicking the
+  marker also opens the matching CaseStudyView in a side drawer.
+- **Multi-day scrubbing ranges.** V1 caps the rolling buffer at
+  72h. The store's `rangeStart` / `rangeEnd` already accept
+  arbitrary spans — extending to 30d / 1y is a buffer-size
+  change in `atlas-historical-mock.ts` and a render optimization
+  in the scrubber tick density.
+- **Transmission flow lines.** The snapshot already carries
+  `transmissionStates[]` with `loadingPct` and `binding`. A
+  future map layer could render flow magnitude as line thickness
+  and bind highlights as pulsing accents — the data is ready;
+  the map render just needs the layer.

@@ -17,11 +17,13 @@ import type { DocumentProps } from '@react-pdf/renderer';
 import { createElement } from 'react';
 import type { ReactElement } from 'react';
 import { StrategyMemoTemplate } from './pdfTemplates/StrategyMemoTemplate';
+import { StorageBidPackTemplate } from './pdfTemplates/StorageBidPackTemplate';
 import type {
   FacilityProfile,
   ScenarioName,
   StrategyResult,
 } from '@/lib/types/simulator';
+import type { Fleet, FleetResult } from '@/lib/types/storage';
 import type {
   PDFDocumentMeta,
   PDFExportOptions,
@@ -185,6 +187,72 @@ export async function exportStrategyMemo(
   }
 }
 
+// ─── Storage bid pack ─────────────────────────────────────────────
+
+interface ExportStorageBidPackOptions extends PDFExportOptions {
+  /** Optional pre-rasterized SOC chart PNG data URLs by asset id. */
+  chartImages?: { socByAssetId?: Record<string, string> };
+}
+
+/**
+ * Export a storage operator's day-ahead bid pack as a PDF.
+ *
+ * The pack covers every asset in the fleet: hourly bid schedule,
+ * revenue attribution, optional SOC trajectory chart (if rasterized),
+ * sensitivity strip, methodology note, and review-before-submit
+ * disclaimer. Mirrors the strategy-memo error/return contract.
+ */
+export async function exportStorageBidPack(
+  fleet: Fleet,
+  result: FleetResult,
+  options?: ExportStorageBidPackOptions,
+): Promise<PDFExportResult> {
+  try {
+    if (!result || !result.perAssetRanking || result.perAssetRanking.length === 0) {
+      return {
+        success: false,
+        error: 'exportStorageBidPack requires a FleetResult with at least one asset.',
+      };
+    }
+
+    const meta: PDFDocumentMeta = {
+      documentType: 'DA BID PACK',
+      documentTitle: `${fleet.operatorName} · Day-Ahead Bid Pack`,
+      authorName: 'GridAlpha',
+      generatedDate: todayIso(),
+      facilityName: fleet.operatorName,
+      brandLine: 'GridAlpha · PJM Storage Optimizer',
+      ...options?.meta,
+    };
+
+    const element = createElement(StorageBidPackTemplate, {
+      fleet,
+      result,
+      meta,
+      chartImages: options?.chartImages,
+    });
+
+    const blob = await pdf(
+      element as unknown as ReactElement<DocumentProps>,
+    ).toBlob();
+    const filename =
+      options?.filename ??
+      `gridalpha-bid-pack-${slug(fleet.operatorName)}-${todayIso()}.pdf`;
+
+    downloadBlob(blob, filename);
+
+    return { success: true, blob, filename };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Unknown PDF export error';
+    if (typeof console !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.error('[FORGE Wave 3] Bid pack export failed:', err);
+    }
+    return { success: false, error: message };
+  }
+}
+
 // ─── Template registry ─────────────────────────────────────────────
 
 /**
@@ -194,6 +262,7 @@ export async function exportStrategyMemo(
  */
 export const PDF_TEMPLATES = {
   strategyMemo: exportStrategyMemo,
+  storageBidPack: exportStorageBidPack,
   // Future:
   //   analystReport: exportAnalystReport,
   //   traderBrief: exportTraderBrief,

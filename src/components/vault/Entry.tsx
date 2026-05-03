@@ -15,6 +15,7 @@ import {
   getNextEntry,
   getPrevEntry,
 } from '@/lib/curriculum/entriesIndex';
+import { buildRetrievalPromptInstance } from '@/lib/curriculum';
 import { useProgressStore } from '@/stores/progressStore';
 import type {
   CurriculumEntry,
@@ -26,6 +27,8 @@ import { PrerequisiteChain } from './PrerequisiteChain';
 import { EntryBreadcrumb } from './EntryBreadcrumb';
 import { AudienceTag } from './AudienceTag';
 import { RetrievalPrompt } from './RetrievalPrompt';
+// ORACLE Wave 3 — wraps SCRIBE's RetrievalPrompt with the grading UI.
+import { RetrievalPromptGrader } from './RetrievalPromptGrader';
 import { WorkedExample } from './WorkedExample';
 import { PrimarySourceList } from './PrimarySourceList';
 import { ClosingAnchor } from './ClosingAnchor';
@@ -274,7 +277,7 @@ function LayerOneBody({
       <Diagram entry={entry} layer="L1" />
       {content.closingAnchor && <ClosingAnchor text={content.closingAnchor} />}
       {content.retrievalPrompt && (
-        <RetrievalPrompt entryId={entry.id} layer="L1" prompt={content.retrievalPrompt} />
+        <GradedRetrievalPrompt entry={entry} layer="L1" prompt={content.retrievalPrompt} />
       )}
     </>
   );
@@ -295,9 +298,35 @@ function LayerTwoBody({
         <WorkedExample workedExample={content.workedExample} currentEntryId={entry.id} />
       )}
       {content.retrievalPrompt && (
-        <RetrievalPrompt entryId={entry.id} layer="L2" prompt={content.retrievalPrompt} />
+        <GradedRetrievalPrompt entry={entry} layer="L2" prompt={content.retrievalPrompt} />
       )}
     </>
+  );
+}
+
+/**
+ * ORACLE Wave 3 — wraps SCRIBE's RetrievalPrompt in a RetrievalPromptGrader.
+ * Falls back to the bare SCRIBE component if buildRetrievalPromptInstance
+ * returns null (defensive — should never happen for prompts that exist in
+ * the entry data).
+ */
+function GradedRetrievalPrompt({
+  entry,
+  layer,
+  prompt,
+}: {
+  entry: CurriculumEntry;
+  layer: LayerKey;
+  prompt: string;
+}) {
+  const instance = buildRetrievalPromptInstance(entry, layer);
+  if (!instance) {
+    return <RetrievalPrompt entryId={entry.id} layer={layer} prompt={prompt} />;
+  }
+  return (
+    <RetrievalPromptGrader instance={instance}>
+      <RetrievalPrompt entryId={entry.id} layer={layer} prompt={prompt} />
+    </RetrievalPromptGrader>
   );
 }
 

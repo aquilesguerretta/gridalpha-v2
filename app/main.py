@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
+    _debug_pjm,
     ai,
     ancillary,
     atlas,
@@ -70,6 +71,10 @@ app.include_router(reserve_margin.router)  # /api/reserve-margin/*
 app.include_router(outages_v2.router)  # /api/outages/*
 app.include_router(ancillary.router)  # /api/ancillary/*
 app.include_router(stream.router)  # /api/stream (SSE)
+
+# Temporary diagnostic - guard with DEBUG_PJM=1 env var. Remove after the
+# PJM 404 root cause is identified and the request shape is fixed.
+app.include_router(_debug_pjm.router)
 
 
 @app.get("/health")

@@ -1,27 +1,42 @@
 """TTL cache for intelligence endpoints + PJM DataMiner auth.
 
-Preferred: ``PJM_SUBSCRIPTION_KEY`` — Azure APIM header ``Ocp-Apim-Subscription-Key``
-for ``api.pjm.com`` (matches PJM's documented programmatic access).
+PJM Data Miner 2 has two distinct surfaces:
 
-Fallback: ForgeRock SSO — ``PJM_USERNAME`` / ``PJM_PASSWORD`` against ``sso.pjm.com``;
-``tokenId`` is sent as cookie ``iPlanetDirectoryPro`` (override via
-``PJM_SESSION_COOKIE_NAME``).
+  * ``dataminer2.pjm.com`` - browser SPA, accepts the ForgeRock SSO
+    cookie ``iPlanetDirectoryPro`` for HTML / front-end traffic.
+  * ``api.pjm.com``        - Azure APIM gateway used by V1 and V2 for
+    every dataset call. The gateway ONLY accepts the header
+    ``Ocp-Apim-Subscription-Key``; the SSO cookie is rejected with a
+    bare ``401`` (and intermittent ``404`` once Akamai bot scoring
+    escalates).
+
+This module therefore treats the subscription key as primary. The SSO
+flow is retained because the credentials were the only thing exposed
+in the original Wave-5 brief, but it is logged loudly as a misconfig
+and only used as a last resort - it will not authenticate
+``api.pjm.com``.
 
 Environment (Railway / server):
-  ``PJM_SUBSCRIPTION_KEY`` — optional; when set, SSO is not used.
-  ``PJM_USERNAME``, ``PJM_PASSWORD`` — required when subscription key is unset.
-  ``PJM_SSO_AUTH_URL`` — optional; default ``https://sso.pjm.com/access/authenticate``.
-  ``PJM_SESSION_COOKIE_NAME`` — optional; default ``iPlanetDirectoryPro``.
+  ``PJM_SUBSCRIPTION_KEY`` - REQUIRED for ``api.pjm.com``. Generate
+    one at ``dataminer2.pjm.com`` -> My Subscriptions and set it on
+    the Railway service.
+  ``PJM_USERNAME``, ``PJM_PASSWORD`` - SSO credentials (do NOT
+    authenticate ``api.pjm.com`` on their own).
+  ``PJM_SSO_AUTH_URL`` - optional; default ``https://sso.pjm.com/access/authenticate``.
+  ``PJM_SESSION_COOKIE_NAME`` - optional; default ``iPlanetDirectoryPro``.
 """
 
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import time
 from typing import Any, Awaitable, Callable, TypeVar
 
 import httpx
+
+LOG = logging.getLogger("gridalpha.pjm-auth")
 
 T = TypeVar("T")
 
@@ -118,13 +133,33 @@ async def _pjm_sso_login() -> str:
         )
 
 
+_SSO_FALLBACK_WARNED = False
+
+
 async def pjm_auth_headers(*, force_refresh: bool = False) -> dict[str, str]:
-    """Headers to authenticate DataMiner HTTP calls to ``api.pjm.com``."""
+    """Headers to authenticate DataMiner HTTP calls to ``api.pjm.com``.
+
+    Returns the Azure APIM subscription-key header when available
+    (the only auth ``api.pjm.com`` accepts). When the key is unset, we
+    fall back to the SSO cookie purely so the call shape stays
+    consistent for diagnostic tooling - in production this is
+    effectively unauthenticated and will surface 401 / 404 from PJM.
+    """
+    global _SSO_FALLBACK_WARNED, _pjm_token_id, _pjm_token_ts
+
     sub = _env("PJM_SUBSCRIPTION_KEY")
     if sub:
         return {"Ocp-Apim-Subscription-Key": sub}
 
-    global _pjm_token_id, _pjm_token_ts
+    if not _SSO_FALLBACK_WARNED:
+        LOG.warning(
+            "PJM_SUBSCRIPTION_KEY is not set; falling back to ForgeRock SSO cookie. "
+            "api.pjm.com does NOT accept SSO cookies and will return 401/404. "
+            "Generate a subscription key at dataminer2.pjm.com -> My Subscriptions "
+            "and set PJM_SUBSCRIPTION_KEY on the Railway service to fix.",
+        )
+        _SSO_FALLBACK_WARNED = True
+
     now = time.time()
     async with _PJM_LOCK:
         if (

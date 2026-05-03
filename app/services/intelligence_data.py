@@ -5,6 +5,7 @@ Uses httpx async + intelligence_cache.get_cached.
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timezone
 from typing import Any
@@ -76,13 +77,25 @@ def _fnum(x: Any) -> float:
         return 0.0
 
 
+_PJM_FETCH_LOG = logging.getLogger("gridalpha.pjm-fetch")
+
+
 async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
+    """Fetch one page from ``api.pjm.com/api/v1/<dataset>``.
+
+    On non-2xx, logs the full request URL, auth mode, status, and a
+    truncated response body. ``api.pjm.com`` returns 401 for missing /
+    bad auth and 404 for either a missing dataset path OR (intermittently)
+    a session it has scored as bot traffic - the body in the log makes
+    those two cases distinguishable.
+    """
     url = f"https://api.pjm.com/api/v1/{path}"
     for attempt in range(2):
         try:
             auth = await pjm_auth_headers(force_refresh=(attempt > 0))
         except PJMAuthenticationError as e:
             raise ConfigurationError(e.message) from e
+        auth_mode = "subscription_key" if "Ocp-Apim-Subscription-Key" in auth else "sso_cookie"
         async with httpx.AsyncClient(timeout=45.0) as client:
             r = await client.get(
                 url,
@@ -94,7 +107,22 @@ async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
                 },
             )
         if r.status_code == 401 and attempt == 0:
+            _PJM_FETCH_LOG.info(
+                "PJM 401 on %s (auth=%s, attempt=1); retrying with force_refresh",
+                path,
+                auth_mode,
+            )
             continue
+        if r.status_code >= 400:
+            body_preview = (r.text or "")[:500].replace("\n", " ")
+            _PJM_FETCH_LOG.warning(
+                "PJM %s on %s | auth=%s | url=%s | body=%s",
+                r.status_code,
+                path,
+                auth_mode,
+                str(r.request.url),
+                body_preview,
+            )
         r.raise_for_status()
         return _pjm_items(r.json())
     raise RuntimeError("PJM fetch: auth retry exhausted unexpectedly")

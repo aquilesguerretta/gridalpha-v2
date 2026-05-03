@@ -74,15 +74,16 @@ export function FeedbackPanel({ graded, onTryAgain, anchorBase }: Props) {
         </div>
       )}
 
-      {/* Feedback prose */}
+      {/* Feedback prose — body tier, not hero. Sits between the grade
+          badge (primary) and the pointer/actions (muted). */}
       <p
         style={{
           margin:     0,
           marginBottom: S.md,
           fontFamily: F.sans,
           fontSize:   14,
-          lineHeight: 1.55,
-          color:      C.textPrimary,
+          lineHeight: 1.6,
+          color:      C.textSecondary,
         }}
       >
         {graded.feedback}

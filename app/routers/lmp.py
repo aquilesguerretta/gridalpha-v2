@@ -15,6 +15,7 @@ from app.services.pjm_lmp import (
     get_lmp_all_zones,
     get_lmp_current,
     get_lmp_da_forecast,
+    get_lmp_history,
 )
 from app.services.pjm_zones import ZONE_IDS, is_valid_zone
 
@@ -83,6 +84,28 @@ async def lmp_da_forecast(
     _validate_zone(zone)
     try:
         return await get_lmp_da_forecast(zone, date)
+    except ValueError as e:
+        raise HTTPException(422, detail=str(e)) from e
+    except ConfigurationError as e:
+        raise HTTPException(503, detail=e.message) from e
+    except LookupError as e:
+        raise HTTPException(404, detail=str(e)) from e
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(502, detail=f"PJM HTTP {e.response.status_code}") from e
+    except httpx.RequestError as e:
+        raise HTTPException(502, detail=str(e)) from e
+
+
+@router.get("/history")
+async def lmp_history(
+    zone: str = Query(..., description="Contract zone id"),
+    start: str = Query(..., description="ISO start timestamp"),
+    end: str = Query(..., description="ISO end timestamp"),
+    interval: str = Query("5min", pattern="^(5min|hourly)$"),
+):
+    _validate_zone(zone)
+    try:
+        return await get_lmp_history(zone, start, end, interval)
     except ValueError as e:
         raise HTTPException(422, detail=str(e)) from e
     except ConfigurationError as e:

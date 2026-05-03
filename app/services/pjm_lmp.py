@@ -40,7 +40,11 @@ EPT = ZoneInfo("America/New_York")
 
 PJM_PAGE_SIZE = 100
 RT_DATASET = "rt_unverified_fivemin_lmps"
+RT_VERIFIED_DATASET = "rt_fivemin_hrl_lmps"
 DA_DATASET = "da_hrl_lmps"
+
+HISTORY_MAX_HOURS = 168  # 7 days
+HISTORY_CACHE_TTL = 30 * 24 * 3600.0  # historical data is immutable
 
 # Field selectors kept tight so PJM responses stay under the 100-row cap.
 _RT_FIELDS = (
@@ -490,5 +494,177 @@ async def get_lmp_da_forecast(
         "interval": "hourly",
         "row_count": len(series),
         "source": "pjm-da",
+    }
+    return build_envelope(meta=meta, data=series, summary=summary)
+
+
+# ── Endpoint 5: historical LMP, single zone, arbitrary range ────────────────
+
+
+def _parse_history_range(start_iso: str, end_iso: str) -> tuple[datetime, datetime]:
+    """Parse + validate a history range. Returns UTC datetimes."""
+    if not start_iso or not end_iso:
+        raise ValueError("'start' and 'end' are required ISO timestamps")
+    try:
+        s = dateparser.parse(start_iso)
+        e = dateparser.parse(end_iso)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"unparseable timestamp: {exc}") from exc
+    if s.tzinfo is None:
+        s = s.replace(tzinfo=timezone.utc)
+    if e.tzinfo is None:
+        e = e.replace(tzinfo=timezone.utc)
+    s = s.astimezone(timezone.utc)
+    e = e.astimezone(timezone.utc)
+    if e <= s:
+        raise ValueError("'end' must be after 'start'")
+    span_hours = (e - s).total_seconds() / 3600.0
+    if span_hours > HISTORY_MAX_HOURS:
+        raise ValueError(
+            f"range too wide: {span_hours:.1f}h exceeds max {HISTORY_MAX_HOURS}h"
+        )
+    return s, e
+
+
+def _aggregate_to_hourly(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Average 5-min total_lmp_rt values into hourly buckets (UTC)."""
+    buckets: dict[str, list[float]] = {}
+    for row in rows:
+        dt = _parse_utc(_row_dt_utc(row))
+        if dt is None:
+            continue
+        key = dt.replace(minute=0, second=0, microsecond=0)
+        key_iso = _to_iso_z(key)
+        buckets.setdefault(key_iso, []).append(_f(row.get("total_lmp_rt")))
+    out: list[dict[str, Any]] = []
+    for ts in sorted(buckets):
+        vals = buckets[ts]
+        if not vals:
+            continue
+        out.append(
+            {
+                "timestamp": ts,
+                "lmp_total": round(sum(vals) / len(vals), 2),
+            }
+        )
+    return out
+
+
+async def _load_lmp_history(
+    zone_id: str,
+    start_utc: datetime,
+    end_utc: datetime,
+    interval: str,
+) -> dict[str, Any]:
+    pname = pnode_name_for(zone_id)
+
+    rows = await _paginated_fetch(
+        RT_VERIFIED_DATASET,
+        {
+            "pnode_name": pname,
+            "fields": _RT_FIELDS,
+            "datetime_beginning_ept": _ept_filter(start_utc, end_utc),
+        },
+        max_rows=2_500,  # 7-day x 5-min = 2,016; cushion for re-runs and DST
+    )
+
+    five_min_series: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in _sort_by_dt_asc(rows):
+        dt = _parse_utc(_row_dt_utc(row))
+        if dt is None or dt < start_utc or dt > end_utc:
+            continue
+        ts = _to_iso_z(dt)
+        if ts in seen:
+            continue
+        seen.add(ts)
+        five_min_series.append(
+            {
+                "timestamp": ts,
+                "lmp_total": round(_f(row.get("total_lmp_rt")), 2),
+            }
+        )
+
+    if interval == "hourly":
+        # Hour aggregation walks the 5-min rows we just normalized.
+        hourly_rows = [
+            {
+                "datetime_beginning_utc": pt["timestamp"],
+                "total_lmp_rt": pt["lmp_total"],
+            }
+            for pt in five_min_series
+        ]
+        series = _aggregate_to_hourly(hourly_rows)
+        interval_minutes = 60
+    else:
+        series = five_min_series
+        interval_minutes = 5
+
+    return {
+        "zone": zone_id,
+        "start_utc": _to_iso_z(start_utc),
+        "end_utc": _to_iso_z(end_utc),
+        "interval_minutes": interval_minutes,
+        "series": series,
+    }
+
+
+async def get_lmp_history(
+    zone_id: str,
+    start_iso: str,
+    end_iso: str,
+    interval: str = "5min",
+) -> dict[str, Any]:
+    """Build the canonical envelope for ``/api/lmp/history``."""
+    if not is_valid_zone(zone_id):
+        raise ValueError(f"unknown zone id: {zone_id}")
+    interval = (interval or "5min").lower()
+    if interval not in {"5min", "hourly"}:
+        raise ValueError("interval must be '5min' or 'hourly'")
+
+    start_utc, end_utc = _parse_history_range(start_iso, end_iso)
+
+    cache_key = (
+        f"lmp:history:{zone_id}:{_to_iso_z(start_utc)}:"
+        f"{_to_iso_z(end_utc)}:{interval}"
+    )
+    payload = await get_cached(
+        cache_key,
+        HISTORY_CACHE_TTL,
+        lambda: _load_lmp_history(zone_id, start_utc, end_utc, interval),
+    )
+
+    series = payload["series"]
+    if not series:
+        raise LookupError(
+            f"PJM returned no rows for {zone_id} in "
+            f"{payload['start_utc']}..{payload['end_utc']}"
+        )
+
+    prices = [pt["lmp_total"] for pt in series]
+    lo = round(min(prices), 2)
+    hi = round(max(prices), 2)
+    avg = round(sum(prices) / len(prices), 2)
+    peak_pt = max(series, key=lambda p: p["lmp_total"])
+    peak_dt = _parse_utc(peak_pt["timestamp"])
+    peak_clock_ept = (
+        peak_dt.astimezone(EPT).strftime("%b %d %H:%M ET")
+        if peak_dt
+        else "?"
+    )
+    summary = (
+        f"{zone_id} {payload['start_utc'][:10]} to {payload['end_utc'][:10]}. "
+        f"Range ${lo}-${hi}, average ${avg}. Peak at {peak_clock_ept}."
+    )
+
+    meta = {
+        "zone": zone_id,
+        "start": payload["start_utc"],
+        "end": payload["end_utc"],
+        "interval_minutes": payload["interval_minutes"],
+        "row_count": len(series),
+        "source": "pjm-rt-verified",
     }
     return build_envelope(meta=meta, data=series, summary=summary)

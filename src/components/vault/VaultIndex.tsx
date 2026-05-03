@@ -9,6 +9,8 @@ import { FlowSection } from '@/components/terminal/FlowSection';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import { CASE_STUDIES } from '@/lib/mock/vault-mock';
 import type { CaseStudy, CaseCategory, CaseSeverity } from '@/lib/types/vault';
+// ORACLE Wave 3 — recall-session entry point.
+import { RecallSession } from './RecallSession';
 
 const CATEGORY_FILTERS: Array<{ id: CaseCategory; label: string }> = [
   { id: 'arbitrage',  label: 'Arbitrage'      },
@@ -69,6 +71,8 @@ export function VaultIndex() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategories, setActiveCategories] = useState<Set<CaseCategory>>(new Set());
   const [activeSeverities, setActiveSeverities] = useState<Set<CaseSeverity>>(new Set());
+  // ORACLE Wave 3 — recall-session overlay state. Local to VaultIndex.
+  const [recallOpen, setRecallOpen] = useState(false);
 
   const visible = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
@@ -148,26 +152,52 @@ export function VaultIndex() {
               Every major market event, reconstructed.
             </div>
           </div>
-          <Link
-            to="/vault/alexandria"
-            style={{
-              fontFamily:     F.mono,
-              fontSize:       12,
-              fontWeight:     600,
-              letterSpacing:  '0.10em',
-              textTransform:  'uppercase',
-              color:          C.electricBlue,
-              textDecoration: 'none',
-              display:        'inline-flex',
-              alignItems:     'center',
-              gap:            S.xs,
-              padding:        `${S.sm} ${S.md}`,
-              border:         `1px solid ${C.borderActive}`,
-              borderRadius:   R.md,
-            }}
-          >
-            Open Alexandria →
-          </Link>
+          <div style={{ display: 'flex', gap: S.sm, flexWrap: 'wrap' }}>
+            {/* ORACLE Wave 3 — recall session CTA. Falcon-gold accent. */}
+            <button
+              type="button"
+              onClick={() => setRecallOpen(true)}
+              style={{
+                fontFamily:     F.mono,
+                fontSize:       12,
+                fontWeight:     600,
+                letterSpacing:  '0.10em',
+                textTransform:  'uppercase',
+                color:          C.bgBase,
+                background:     C.falconGold,
+                border:         `1px solid ${C.falconGold}`,
+                borderRadius:   R.md,
+                padding:        `${S.sm} ${S.md}`,
+                display:        'inline-flex',
+                alignItems:     'center',
+                gap:            S.xs,
+                cursor:         'pointer',
+                transition:     'background-color 150ms cubic-bezier(0.4,0,0.2,1)',
+              }}
+            >
+              Recall Session →
+            </button>
+            <Link
+              to="/vault/alexandria"
+              style={{
+                fontFamily:     F.mono,
+                fontSize:       12,
+                fontWeight:     600,
+                letterSpacing:  '0.10em',
+                textTransform:  'uppercase',
+                color:          C.electricBlue,
+                textDecoration: 'none',
+                display:        'inline-flex',
+                alignItems:     'center',
+                gap:            S.xs,
+                padding:        `${S.sm} ${S.md}`,
+                border:         `1px solid ${C.borderActive}`,
+                borderRadius:   R.md,
+              }}
+            >
+              Open Alexandria →
+            </Link>
+          </div>
         </div>
 
         {/* Two-column layout */}
@@ -283,6 +313,12 @@ export function VaultIndex() {
           </div>
         </div>
       </div>
+
+      {/* ORACLE Wave 3 — recall-session overlay. Mounted at top level so
+          its fixed-position chrome covers the entire Vault destination. */}
+      {recallOpen && (
+        <RecallSession onClose={() => setRecallOpen(false)} />
+      )}
     </PageAtmosphere>
   );
 }

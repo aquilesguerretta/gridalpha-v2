@@ -281,6 +281,67 @@ export function viewFromPathname(pathname: string): ViewKey | string {
   return seg;
 }
 
+// ───────────────────── ORACLE Wave 4 — freshness ─────────────────────
+//
+// Providers populate `visibleData.freshness` by collecting per-source
+// rows and calling `summariseFreshness()`. The helper computes the
+// summary fields (isLive, oldestDataAgeSeconds, staleSourceCount)
+// deterministically from the row set.
+//
+// Until FORGE Wave 4's data hooks expose real `ageSeconds` / `isStale`,
+// providers pass synthetic rows with `ageSeconds: 0` — which is the
+// correct optimistic default for the mock-data era (mock data is
+// immutable, so "now" is always valid). When FORGE flips on, the rows
+// carry real values and the summary becomes accurate automatically.
+
+/** Threshold above which a source is considered "stale" when no hook
+ *  has supplied an explicit `isStale` flag. Mirrors Cursor backend's
+ *  60s cache TTL on RT LMP — anything older than 2× that gets flagged. */
+export const STALE_THRESHOLD_SECONDS = 120;
+
+export function summariseFreshness(
+  sources: FreshnessSource[],
+): FreshnessSummary {
+  if (sources.length === 0) {
+    return {
+      isLive: true,
+      oldestDataAgeSeconds: 0,
+      staleSourceCount: 0,
+      sources: [],
+    };
+  }
+  const oldest = sources.reduce(
+    (max, s) => (s.ageSeconds > max ? s.ageSeconds : max),
+    0,
+  );
+  const staleCount = sources.reduce(
+    (n, s) => n + (s.isStale ? 1 : 0),
+    0,
+  );
+  return {
+    isLive: staleCount === 0,
+    oldestDataAgeSeconds: oldest,
+    staleSourceCount: staleCount,
+    sources,
+  };
+}
+
+/**
+ * Convenience: derive `isStale` from `ageSeconds` against the default
+ * threshold when the calling hook hasn't supplied an explicit flag.
+ */
+export function makeFreshnessSource(
+  label: string,
+  ageSeconds: number,
+  isStale?: boolean,
+): FreshnessSource {
+  return {
+    label,
+    ageSeconds,
+    isStale: isStale ?? ageSeconds > STALE_THRESHOLD_SECONDS,
+  };
+}
+
 // ─────────────────────── Snapshot capture API ─────────────────────────
 // `captureContextSnapshot` is the entry point that consumers call to get
 // a complete AIContextSnapshot for the current view. It runs the matching

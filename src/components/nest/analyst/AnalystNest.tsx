@@ -18,6 +18,7 @@ import { FlowSection } from '@/components/terminal/FlowSection';
 import { HeroNumber } from '@/components/terminal/HeroNumber';
 import { PageAtmosphere } from '@/components/terminal/PageAtmosphere';
 import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
+import { useLMP } from '@/hooks/data/useLMP';
 import {
   COMPARISON_SERIES,
   SAVED_QUERIES,
@@ -37,6 +38,12 @@ const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'S
 function AnalystHeroBlock() {
   const [activeRange, setActiveRange] = useState<DateRange>('3M');
 
+  // Wave 4: live LMP for the comparison pair (WEST_HUB vs AEP).
+  const westHub = useLMP('WEST_HUB');
+  const aep = useLMP('AEP');
+  const westValue = westHub.data?.lmp_total ?? 33.80;
+  const aepValue = aep.data?.lmp_total ?? 31.22;
+
   const eyebrowStyle = {
     fontFamily: F.mono,
     fontSize: 11,
@@ -55,7 +62,7 @@ function AnalystHeroBlock() {
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: S.xl, marginTop: S.sm }}>
         {/* Zone A */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
-          <HeroNumber value="33.80" unit="$/MWh" size={80} />
+          <HeroNumber value={westValue.toFixed(2)} unit="$/MWh" size={80} />
           <div style={{
             fontFamily: F.mono,
             fontSize: 11,
@@ -63,13 +70,13 @@ function AnalystHeroBlock() {
             letterSpacing: '0.10em',
             textTransform: 'uppercase',
           }}>
-            WEST HUB · Q1 2025 AVG
+            WEST HUB · NOW
           </div>
         </div>
 
         {/* Zone B */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: S.xs }}>
-          <HeroNumber value="31.22" unit="$/MWh" size={80} />
+          <HeroNumber value={aepValue.toFixed(2)} unit="$/MWh" size={80} />
           <div style={{
             fontFamily: F.mono,
             fontSize: 11,
@@ -77,7 +84,7 @@ function AnalystHeroBlock() {
             letterSpacing: '0.10em',
             textTransform: 'uppercase',
           }}>
-            AEP · Q1 2025 AVG
+            AEP · NOW
           </div>
         </div>
 

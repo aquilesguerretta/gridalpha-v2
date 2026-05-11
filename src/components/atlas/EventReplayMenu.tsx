@@ -32,9 +32,12 @@ interface Props {
 }
 
 export function EventReplayMenu({ onClose }: Props) {
-  const selectEvent  = useTimeTravelStore((s) => s.selectEvent);
-  const activeEvent  = useTimeTravelStore((s) => s.activeEventId);
+  const selectEvent    = useTimeTravelStore((s) => s.selectEvent);
+  const activeEvent    = useTimeTravelStore((s) => s.activeEventId);
   const togglePlayback = useTimeTravelStore((s) => s.togglePlayback);
+  // Wave 3 — surface per-row loading state so the active event's PLAY
+  // chip swaps to LOADING… while /api/lmp/history is in flight.
+  const isLoadingEvent = useTimeTravelStore((s) => s.isLoadingEvent);
 
   const handleSelect = (event: NamedEvent) => {
     selectEvent(event.id);
@@ -44,6 +47,8 @@ export function EventReplayMenu({ onClose }: Props) {
   const handlePlay = (event: NamedEvent) => {
     selectEvent(event.id);
     // Kick playback on the next frame so the store transition lands first.
+    // Wave 3: playback only ticks once snapshots are populated — the
+    // data hook returns the live frame until then.
     requestAnimationFrame(() => togglePlayback());
     onClose();
   };
@@ -198,27 +203,53 @@ export function EventReplayMenu({ onClose }: Props) {
               }}>
                 {rangeLabel(event)}
               </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePlay(event);
-                }}
-                style={{
-                  background:    C.electricBlueWash,
-                  border:        `1px solid ${C.borderActive}`,
-                  borderRadius:  R.sm,
-                  padding:       '3px 8px',
-                  color:         C.electricBlue,
-                  fontFamily:    F.mono,
-                  fontSize:      10,
-                  fontWeight:    700,
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  cursor:        'pointer',
-                }}
-              >
-                ▶ PLAY
-              </button>
+              {/* Wave 3 — when this event is actively loading, the row's
+                  PLAY chip swaps to a non-interactive LOADING chip. Other
+                  rows stay disabled so the user can't queue a second
+                  fetch mid-flight. */}
+              {isLoadingEvent && isActive ? (
+                <span
+                  style={{
+                    background:    C.falconGoldWash,
+                    border:        `1px solid ${C.falconGold}`,
+                    borderRadius:  R.sm,
+                    padding:       '3px 8px',
+                    color:         C.falconGoldLight,
+                    fontFamily:    F.mono,
+                    fontSize:      10,
+                    fontWeight:    700,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    cursor:        'progress',
+                  }}
+                >
+                  LOADING…
+                </span>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlay(event);
+                  }}
+                  disabled={isLoadingEvent}
+                  style={{
+                    background:    C.electricBlueWash,
+                    border:        `1px solid ${C.borderActive}`,
+                    borderRadius:  R.sm,
+                    padding:       '3px 8px',
+                    color:         C.electricBlue,
+                    fontFamily:    F.mono,
+                    fontSize:      10,
+                    fontWeight:    700,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    cursor:        isLoadingEvent ? 'not-allowed' : 'pointer',
+                    opacity:       isLoadingEvent ? 0.5 : 1,
+                  }}
+                >
+                  ▶ PLAY
+                </button>
+              )}
             </div>
           </div>
         );

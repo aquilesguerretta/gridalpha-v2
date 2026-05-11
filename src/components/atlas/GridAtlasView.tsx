@@ -28,6 +28,10 @@ import { useWeatherData } from '../../hooks/data/useWeatherData';
 import { useTimeTravelData } from '@/hooks/useTimeTravelData';
 import { useTimeTravelStore } from '@/stores/timeTravelStore';
 import { TimeTravelScrubber } from './TimeTravelScrubber';
+// Wave 3 — fires the multi-zone /api/lmp/history fetch when an event is
+// selected and pushes assembled snapshots back into the time-travel
+// store. Side-effect-only; no return value.
+import { useAtlasHistorical } from '@/hooks/data/useAtlasHistorical';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
 
@@ -285,6 +289,11 @@ export default function GridAtlasView() {
   const snapshot   = useTimeTravelData();
   const ttMode     = useTimeTravelStore((s) => s.mode);
   const isLiveFrame = ttMode === 'live';
+
+  // Wave 3 — mount the event-load orchestrator. Watches activeEventId
+  // on the store and fires fetchHistoricalWindow when a named event
+  // is selected. Side-effect-only; no render contribution.
+  useAtlasHistorical();
 
   // Live data hooks (gracefully return empty when backend not ready)
   // Note: live useOutages() is replaced by snapshot.outages — the time-travel

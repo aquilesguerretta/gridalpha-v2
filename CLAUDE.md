@@ -3207,3 +3207,150 @@ ATLAS's time-travel store, ORACLE's freshness types. The primitives
 accept `isLoading`, `isStale`, `ageSeconds`, `connectionStatus` as
 inputs — FORGE/ATLAS/ORACLE own where those values come from.
 
+## ATLAS WAVE 3 — REAL HISTORICAL DATA
+
+Wave 2's curated event mocks are gone. Selecting Storm Elliott now
+fires a real multi-zone fetch against Cursor's
+`/api/lmp/history` and the scrubber drives off authentic PJM data.
+The narrative arc — name, description, start/end window, highlight
+markers — stays curated and locked. The data underneath is whatever
+PJM actually reported.
+
+### Data flow
+
+```
+[ EventReplayMenu ] ──click──▶ store.selectEvent(eventId)
+                                    │
+                          activeEventId changes
+                                    │
+                                    ▼
+                       ┌────────────────────────┐
+                       │ useAtlasHistorical hook │
+                       │ (mounted in GridAtlasView)
+                       └────────────┬───────────┘
+                                    │
+                       ┌────────────┴────────────────────┐
+                       │                                 │
+              MOCK_MODE = false              MOCK_MODE = true
+              (live PJM)                     (offline dev / VITE_MOCK_API)
+                       │                                 │
+                       ▼                                 ▼
+        services/api/atlasHistory.ts          lib/atlas/mockFallback.ts
+        fetchHistoricalWindow()                loadMockEventSnapshots(eventId)
+        — 20× /api/lmp/history in parallel    — synth from buffer generator
+        — onProgress(done, total)              — anchored to event window
+                       │                                 │
+                       ▼                                 │
+        lib/atlas/snapshotBuilder.ts                     │
+        buildSnapshotsFromWindow()                       │
+        — assembles AtlasSnapshot[] from raw LMP         │
+                       │                                 │
+                       └────────────┬────────────────────┘
+                                    │
+                                    ▼
+                  store.setEventSnapshots(snapshots)
+                                    │
+                  useTimeTravelData picks them up
+                                    │
+                                    ▼
+                  Map renders the real cascade
+```
+
+### Curated event metadata (locked, in `eventLibrary.ts`)
+
+| Event id | Window | Highlights |
+| --- | --- | --- |
+| `storm-elliott-2022`     | 2022-12-23 → 2022-12-26 (96h) | 9 markers — cold front, Mountaineer offline, MaxGen Emergency, $2,000+/MWh PSEG/JCPL peaks, recovery |
+| `august-heatwave-2022`   | 2022-08-04 → 2022-08-08 (96h) | 7 markers — daily peaks ramping, Limerick refueling outage, Possum Point trip, peak-demand record |
+| `march-2024-wind-spike`  | 2024-03-09 → 2024-03-10 (48h) | 7 markers — COMED LMP turns negative, system wind 35%/42%, MISO export bind, day-2 trough |
+
+Adding a new event = three things in `eventLibrary.ts`:
+1. `const FOO_HIGHLIGHTS: EventHighlight[] = [...]`
+2. A `NamedEvent` entry in `NAMED_EVENTS` with `startTimestamp`,
+   `endTimestamp`, `highlights: FOO_HIGHLIGHTS`
+3. (Optional) MOCK_MODE arc in `mockFallback.ts → EVENT_PROFILE`
+
+The data underneath is always real once the event lands in
+`NAMED_EVENTS`.
+
+### File ownership (Wave 3 scope)
+
+- `src/lib/types/timeTravel.ts` — `NamedEvent` lost its `snapshots`
+  field; `TimeTravelState` gained `isLoadingEvent`, `loadingProgress`,
+  `eventSnapshots`, `loadError`
+- `src/lib/atlas/eventLibrary.ts` — metadata-only events + bracket
+  helpers that take an explicit `snapshots[]` array
+- `src/lib/atlas/historicalSnapshots.ts` — buffer functions unchanged;
+  added `loadEvent(eventId)` and `getLoadedEventSnapshots()` sugar
+- `src/lib/atlas/snapshotBuilder.ts` (NEW) — assembles `AtlasSnapshot[]`
+  from a `MultiZoneHistorical` window
+- `src/lib/atlas/mockFallback.ts` (NEW) — MOCK_MODE event-snapshot
+  synthesizer
+- `src/services/api/atlasHistory.ts` (NEW) — multi-zone fan-out wrapper
+  over FORGE's `fetchLMPHistory` with `onProgress` + `AbortSignal`
+- `src/hooks/data/useAtlasHistorical.ts` (NEW) — orchestration hook
+  mounted once in `GridAtlasView`
+- `src/stores/timeTravelStore.ts` — extended (additive) with the four
+  Wave 3 fields + four matching action setters; `selectEvent` /
+  `exitToLive` now reset/clear the load state
+- `src/components/atlas/TimeTravelScrubber.tsx` — Wave 3 loading banner
+  (event name + zones-done + progress bar) above the controls; slider
+  disabled while loading; NOW button disabled while loading. CHROMA
+  Wave 4 polished the visual treatment.
+- `src/components/atlas/EventReplayMenu.tsx` — active row's PLAY chip
+  swaps to LOADING… while the active event is loading
+- `src/components/atlas/GridAtlasView.tsx` — single-line addition
+  `useAtlasHistorical()` to mount the orchestrator
+- This section of `CLAUDE.md`
+
+### Performance characteristics
+
+- **Storm Elliott (96h × 5-min × 20 zones)** — ~23k LMP rows total.
+  Cold cache: 2-5s for the parallel fan-out. Warm cache: near-instant
+  thanks to Cursor's indefinite-TTL cache on `/api/lmp/history`.
+- **Per-frame interpolation** — unchanged from Wave 2. Same 20-zone
+  loop in `interpolateSnapshots`.
+- **Mid-flight event switch** — `useAtlasHistorical` aborts the
+  in-flight fetch via `AbortController` and starts the new one.
+  Active-event guards on every store write prevent stale snapshots
+  from landing on the wrong event.
+
+### Known V1 limitations
+
+These are intentional V1 scope cuts — documented here so the next
+agent who reads this doesn't reinvent the architecture trying to
+fix them.
+
+- **Only `zoneStates.lmp` is real-history-driven.** The other
+  ZoneSnapshot fields (`loadMW`, `congestionComponent`,
+  `marginalUnit`, `reservoir`) are proxy approximations derived
+  from the LMP shape — the canonical contract doesn't yet expose
+  them at this cadence.
+- **`transmissionStates`** uses the same heuristic that Wave 2's
+  mocks used: loading scales with the stress of the underlying
+  zones. A future endpoint will replace this.
+- **`outages`** is `[]`. Real historical outage timeline arrives
+  in a future sprint via `/api/outages/history` (TBD).
+- **`fuelMix`** is a deterministic approximation pinned to the
+  LMP intensity at each timestamp. A future endpoint
+  (`/api/fuel-mix/history`) would unlock real per-frame mix.
+- **Per-zone fetch failures** are tolerated — failing zones are
+  filled with the median LMP across reporting zones. The user
+  doesn't see a per-zone failure unless every zone fails (which
+  surfaces as `LOAD FAILED · {message}` on the scrubber banner).
+- **No live PJM history for the rolling 72h scrubbed mode.**
+  Live mode reads `getCurrentSnapshot()` from the rolling buffer
+  mock; future work would also fetch the rolling 72h window.
+
+### Future work backlog
+
+- Real historical fuel mix via `/api/fuel-mix/history` (TBD endpoint)
+- Real transmission loadings via `/api/transmission/history` (TBD)
+- Real outage timeline via `/api/outages/history` (TBD)
+- Real-data `scrubbed` mode via `fetchHistoricalWindow(now-72h, now)`
+- Replay annotations linked to Vault case studies (highlight
+  markers carrying a `caseStudyId` that opens CaseStudyView in a
+  side drawer)
+- Multi-day scrubbing ranges (the store already accepts arbitrary
+  spans; just needs scrubber tick-density work)
+

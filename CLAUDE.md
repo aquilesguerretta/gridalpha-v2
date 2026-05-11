@@ -3080,3 +3080,130 @@ are unchanged. Only the input data sources change.
   continues at the same interval whether the tab is visible or
   background. Adding a `Page Visibility API` hook to pause polls
   while hidden would be a polite improvement.
+
+## CHROMA WAVE 4 — LOADING, STALE, ERROR STATES
+
+CHROMA Wave 4 is the wave that turns the lights on without making
+them flicker. Cursor's V2 backend, FORGE's Wave 4 hooks, ATLAS's
+Wave 3 historical fetch, and ORACLE's freshness types all introduce
+async data paths the platform didn't have before. This wave builds
+the four primitives those paths need and applies them across the
+surfaces that consume live data.
+
+### Four new primitives — `src/components/terminal/`
+
+| File | API | Purpose |
+| --- | --- | --- |
+| `Skeleton.tsx` | `<Skeleton.Line>` `<Skeleton.Block>` `<Skeleton.Circle>` `<Skeleton.Chart>` `<Skeleton.HeroNumber>` | First-fetch placeholders. bgSurface base + 8% alpha electricBlue band sweeping L→R at 1.6s. 2px radius (terminal aesthetic, no pills). |
+| `StaleBadge.tsx` | `<StaleBadge ageSeconds={n} position="absolute" />` | Small amber pill anchored top-right of any data container. Surfaces when a hook flips `isStale` — the hook owns the threshold; the badge visualizes the age. Text reads "STALE Nm" or "STALE 1h+". |
+| `ConnectionStatusDot.tsx` | `<ConnectionStatusDot status="connected" \| "reconnecting" \| "disconnected" />` | 8px circle next to the LIVE indicator in the global header. Green connected, amber pulsing reconnecting, red disconnected. |
+| `ErrorBoundaryFallback.tsx` | `<ErrorBoundaryFallback error onRetry label message mode="card"\|"inline" staleContent />` | Standard visual treatment when a wrapped component crashes. Now the default for `src/components/shared/ErrorBoundary`. |
+
+### Shimmer keyframes
+
+`@keyframes ga-skeleton-shimmer` lives at the bottom of `src/index.css`
+right after `@keyframes bounce`. 1.6s cycle, sweeps a 200%-wide
+linear-gradient track from `-100% 0` to `200% 0`. The band itself is
+`rgba(59,130,246,0.08)` — electric blue at 8% alpha.
+
+`@keyframes ga-connection-reconnect` lives directly below. 1.2s
+ease-in-out alpha pulse 0.4 → 1 → 0.4, used by the
+ConnectionStatusDot's "reconnecting" state and reused by the
+SimulatorView / OptimizerView / Atlas event-load banner pulse dots.
+
+### Stale-threshold convention
+
+Per the Wave 5 envelope contract (`meta.timestamp` +
+`meta.data_age_seconds`), FORGE's `useEnvelopeQuery` computes
+`ageSeconds` and compares against a per-endpoint `staleSeconds`
+threshold to flip `isStale`. CHROMA's job is only to render — the
+StaleBadge receives `ageSeconds` and formats it.
+
+| Age (s) | Label |
+| --- | --- |
+| < 60 | `STALE 1m` (badge only renders if the hook flipped isStale) |
+| 60–3600 | `STALE Nm` (e.g. `STALE 4m`, `STALE 23m`) |
+| ≥ 3600 | `STALE 1h+` |
+
+### Error-boundary pattern
+
+`ErrorBoundary` now defaults its fallback to `ErrorBoundaryFallback`,
+which renders the platform's data-card chrome with a red dot eyebrow,
+body message, optional inline error message, and a "Retry" text button.
+
+The fallback accepts a `staleContent` prop — passing the
+previously-successful render through dims it to 0.4 opacity and
+pointer-events:none, so the user still sees the last-good data while
+the error surfaces instead of getting a blank-out.
+
+### How to use the primitives on a new surface
+
+```tsx
+import { Skeleton } from '@/components/terminal/Skeleton';
+import { StaleBadge } from '@/components/terminal/StaleBadge';
+import { useSparkSpread } from '@/hooks/data/useSparkSpread';
+import { ContainedCard } from '@/components/terminal/ContainedCard';
+
+function SparkSpreadCard() {
+  const q = useSparkSpread('WEST_HUB');
+
+  if (q.isLoading && !q.data) {
+    return (
+      <ContainedCard padding={S.lg}>
+        <Skeleton.Line width="40%" height={20} />
+        <div style={{ height: S.md }} />
+        <Skeleton.HeroNumber size={56} digits={5} />
+      </ContainedCard>
+    );
+  }
+
+  return (
+    <ContainedCard padding={S.lg} style={{ position: 'relative' }}>
+      {q.isStale && <StaleBadge ageSeconds={q.ageSeconds} />}
+      {/* …real content using q.data… */}
+    </ContainedCard>
+  );
+}
+```
+
+Rules of thumb:
+- Always pass `position: relative` to the container holding a
+  `<StaleBadge position="absolute" />`.
+- Use `Skeleton.HeroNumber` for hero metrics; never for body prose.
+- Use `Skeleton.Chart` for chart slots — the grid-hint lines tell
+  the user "chart coming", not "generic block".
+- Always show real data when it exists, even if a refetch is in
+  flight. `isLoading && !data` is the only condition that hides
+  the data behind a skeleton.
+
+### Surfaces wired in Wave 4
+
+| Surface | Primitive applied |
+| --- | --- |
+| `HeroLMPBlock` (Trader) | `Skeleton.HeroNumber size=160 digits=5` swaps the inline placeholder. Existing LIVE/STALE pill in the eyebrow row is left alone. |
+| `LMP24HChart` (Trader) | `Skeleton.Chart height=280` when isLoading && !data; `StaleBadge` top-right when isStale; cardStyle gains `position: relative`. |
+| `SimulatorView` (Industrial) | Pulsing electric-blue dot + status copy + Skeleton.Line + Skeleton.Chart 180px during isRunning. |
+| `OptimizerView` (Storage) | Same pattern, in a 1fr/2fr grid that mirrors the FleetOverview / AssetDetail shape that's about to land. |
+| `TimeTravelScrubber` (Atlas) | Drops the static box-shadow glow on the loading-status dot in favor of `ga-connection-reconnect`; adds a 1px linear progress bar fed by `loadingProgress`. |
+| `GlobalShell TopBar` | `<ConnectionStatusDot>` mounts to the right of the existing StatusDot, wired to FORGE's `useLMPStream.connectionStatus`. The 5-state stream status maps down to the 3-state ConnectionStatusDot vocabulary (idle / connecting → reconnecting). |
+| `ErrorBoundary` (shared) | Default fallback is now `ErrorBoundaryFallback`. Existing inline rendering removed. |
+
+### What CHROMA owns (Wave 4 scope)
+
+- `src/components/terminal/Skeleton.tsx`
+- `src/components/terminal/StaleBadge.tsx`
+- `src/components/terminal/ConnectionStatusDot.tsx`
+- `src/components/terminal/ErrorBoundaryFallback.tsx`
+- `src/components/shared/ErrorBoundary.tsx` (default fallback wire-up only)
+- `src/index.css` (two new keyframes only)
+- The Wave 5-surface wrappers listed in the table above (visual treatment only — no business logic changes)
+- This section of CLAUDE.md
+
+### Read-only consumers
+
+CHROMA reads from but never modifies: every FORGE Wave 4 hook
+(`useEnvelopeQuery`, `useLMP`, `useLMP24h`, `useLMPStream`, etc.),
+ATLAS's time-travel store, ORACLE's freshness types. The primitives
+accept `isLoading`, `isStale`, `ageSeconds`, `connectionStatus` as
+inputs — FORGE/ATLAS/ORACLE own where those values come from.
+

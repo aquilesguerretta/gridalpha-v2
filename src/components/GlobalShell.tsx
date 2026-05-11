@@ -30,6 +30,8 @@ import { useShareableUrl } from '@/hooks/useShareableUrl';
 import { useHenryHub } from '../hooks/data/useEnergyPrices';
 import { useFuelMix } from '../hooks/data/useAtlasData';
 import { useLiveOpsData } from '../hooks/data/useLiveOpsData';
+import { useLMPStream } from '../hooks/data/useLMPStream';
+import { ConnectionStatusDot, type ConnectionStatus } from './terminal/ConnectionStatusDot';
 
 // ── EveryoneNest + shared chart primitives ───────────────────────
 // EveryoneNest is the fallback Nest used when selectedProfile is null
@@ -1502,6 +1504,18 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
   const liveOps = useLiveOpsData(null);
   const lmpValue = liveOps.rtoPrice || 31.85;
   const isLive = liveOps.live;
+
+  // CHROMA Wave 4 — surface the SSE stream's connection state in the
+  // header next to the LIVE indicator. The hook returns 5 states:
+  // map idle/connecting → reconnecting (amber pulse), and the rest
+  // through to the ConnectionStatusDot's 3-state vocabulary.
+  const stream = useLMPStream();
+  const dotStatus: ConnectionStatus =
+    stream.connectionStatus === 'connected'
+      ? 'connected'
+      : stream.connectionStatus === 'disconnected'
+        ? 'disconnected'
+        : 'reconnecting';
   // Peregrine is a top-level destination now, not a KPI sub-page —
   // omit it here so the TopBar shows the full 5-item nav, not the
   // back-to-Nest breadcrumb.
@@ -1669,6 +1683,10 @@ function TopBar({ activeNav, onNavChange }: { activeNav: string; onNavChange: (i
             <span style={{ fontSize: '15px', fontWeight: '700', color: C.falconGold }}>${lmpValue.toFixed(2)}</span>
             <StatusDot status={isLive ? 'live' : 'stale'} />
             <span style={{ color: isLive ? C.alertNormal : C.alertWarning }}>{isLive ? 'LIVE' : 'STALE'}</span>
+            {/* CHROMA Wave 4 — SSE stream connection state. Sits to the
+                right of LIVE/STALE so users can distinguish "data
+                fresh" from "stream connected" at a glance. */}
+            <ConnectionStatusDot status={dotStatus} />
           </div>
         </>
       )}

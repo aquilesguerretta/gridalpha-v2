@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/mcp.json",
+  "_": "CONDUIT Wave 4 — per-project MCP server registry. Read automatically by Claude Code when this repo is open. The Playwright MCP exposes playwright_screenshot, playwright_navigate, and other browser-automation tools that any agent can invoke for visual feedback. See .claude/commands/screenshot-loop.md.",
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}

@@ -1,6 +1,12 @@
-// ORACLE Wave 2 — Industrial Nest context provider.
+// ORACLE Wave 2 / Wave 4 — Industrial Nest context provider.
+//
+// Wave 4 addition: freshness on the LMP input to the strategy
+// simulator. The simulator's economics are tariff-driven, but the
+// "Energy cost" line item pulls from current zonal LMP — that's the
+// source whose age the AI needs to caveat when it gets stale.
 
 import type { ContextProvider } from '../aiContext';
+import { makeFreshnessSource, summariseFreshness } from '../aiContext';
 import { FACILITY_PROFILE, STRATEGIES } from '@/lib/mock/industrial-mock';
 
 export const industrialNestContextProvider: ContextProvider = (input) => {
@@ -15,6 +21,14 @@ export const industrialNestContextProvider: ContextProvider = (input) => {
     `shows current vs. alternative tariff structures. Demand-response ` +
     `opportunities and carbon-intensity tracker also visible.`;
 
+  // Simulator inputs that go stale with the live market:
+  //   - LMP feed for the facility's zone (drives the "energy cost" line)
+  //   - Tariff library (refreshed daily — effectively static within a session)
+  const freshness = summariseFreshness([
+    makeFreshnessSource('Zone LMP (simulator input)', 0, false),
+    makeFreshnessSource('Tariff library', 0, false),
+  ]);
+
   return {
     surfaceLabel: 'Industrial Nest',
     selectedZone: zone,
@@ -27,6 +41,7 @@ export const industrialNestContextProvider: ContextProvider = (input) => {
         strategiesShown: STRATEGIES.length,
         currentTariff: FACILITY_PROFILE.currentTariff,
       },
+      freshness,
     },
   };
 };

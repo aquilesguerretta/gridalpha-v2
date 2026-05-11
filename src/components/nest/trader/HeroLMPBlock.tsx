@@ -18,6 +18,7 @@ import {
 import { C, F, S } from '@/design/tokens';
 import type { CSSProperties } from 'react';
 import { HeroNumber } from '../../terminal/HeroNumber';
+import { Skeleton } from '../../terminal/Skeleton';
 import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import { useLMP } from '@/hooks/data/useLMP';
 import { useLMP24h } from '@/hooks/data/useLMP24h';
@@ -232,18 +233,12 @@ export function HeroLMPBlock() {
         )}
       </div>
 
-      {/* Section B — Hero number */}
+      {/* Section B — Hero number. CHROMA Wave 4 — uses the
+          Skeleton.HeroNumber primitive while the first response is
+          in-flight; once data lands the consumer renders the real
+          HeroNumber. */}
       {isLoading && !lmpQuery.data ? (
-        <div
-          style={{
-            height: 160,
-            width: 360,
-            background: C.bgSurface,
-            border: `1px solid ${C.borderDefault}`,
-            borderRadius: 8,
-          }}
-          aria-label="Loading LMP"
-        />
+        <Skeleton.HeroNumber size={160} digits={5} label="Loading LMP" />
       ) : (
         <HeroNumber value={livePrice.toFixed(2)} unit="$/MWh" size={160} />
       )}

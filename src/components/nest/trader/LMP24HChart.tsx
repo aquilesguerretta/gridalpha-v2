@@ -222,6 +222,7 @@ export function LMP24HChart() {
           </LineChart>
         </ResponsiveContainer>
         </AnnotatableChart>
+        )}
       </div>
     </div>
   );

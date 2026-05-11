@@ -93,6 +93,19 @@ def pnode_name_for(zone_id: str) -> str:
     return entry["pnode_name"]
 
 
+def subtype_for(zone_id: str) -> str:
+    """PJM ``type`` filter value for a contract zone id (``ZONE`` or ``HUB``).
+
+    The LMP feeds (``rt_unverified_hrl_lmps``, ``da_hrl_lmps``, ...) require
+    a ``type=ZONE|HUB`` filter when fetching aggregated pricing nodes; the
+    pnode_name field itself is not an accepted filter on those feeds.
+    """
+    entry = ZONES.get(zone_id)
+    if not entry:
+        raise KeyError(f"unknown zone id: {zone_id}")
+    return entry["subtype"]
+
+
 # Build a reverse lookup once at import time so per-row matching is O(1).
 # Both the canonical pnode_name and any aliases collapse to the same
 # contract zone id.

@@ -2,28 +2,30 @@
 
 PJM Data Miner 2 has two distinct surfaces:
 
-  * ``dataminer2.pjm.com`` - browser SPA, accepts the ForgeRock SSO
-    cookie ``iPlanetDirectoryPro`` for HTML / front-end traffic.
-  * ``api.pjm.com``        - Azure APIM gateway used by V1 and V2 for
-    every dataset call. The gateway ONLY accepts the header
-    ``Ocp-Apim-Subscription-Key``; the SSO cookie is rejected with a
-    bare ``401`` (and intermittent ``404`` once Akamai bot scoring
-    escalates).
+  * ``dataminer2.pjm.com`` - browser SPA. Hosts a public settings file
+    at ``/config/settings.json`` that exposes a shared 32-char Azure
+    APIM subscription key. This key authenticates all public PJM
+    feeds (Real-Time LMPs, DA LMPs, gen mix, load, outages summary,
+    ancillary services, ...) - no user account required.
+  * ``api.pjm.com``        - Azure APIM gateway every dataset call
+    actually hits. Accepts ONLY the header
+    ``Ocp-Apim-Subscription-Key`` - the SSO cookie is rejected.
 
-This module therefore treats the subscription key as primary. The SSO
-flow is retained because the credentials were the only thing exposed
-in the original Wave-5 brief, but it is logged loudly as a misconfig
-and only used as a last resort - it will not authenticate
-``api.pjm.com``.
+V1 (gridalpha-production) is the existence proof: it fetches the
+public key once on boot from settings.json and uses it as the bearer.
+V2 now does the same. The ForgeRock SSO flow this module used to do
+authenticated only the dataminer2 SPA, never api.pjm.com, which is
+why every V2 PJM call was failing with 401/404 before this change.
 
-Environment (Railway / server):
-  ``PJM_SUBSCRIPTION_KEY`` - REQUIRED for ``api.pjm.com``. Generate
-    one at ``dataminer2.pjm.com`` -> My Subscriptions and set it on
-    the Railway service.
-  ``PJM_USERNAME``, ``PJM_PASSWORD`` - SSO credentials (do NOT
-    authenticate ``api.pjm.com`` on their own).
-  ``PJM_SSO_AUTH_URL`` - optional; default ``https://sso.pjm.com/access/authenticate``.
-  ``PJM_SESSION_COOKIE_NAME`` - optional; default ``iPlanetDirectoryPro``.
+Environment (optional overrides):
+  ``PJM_SUBSCRIPTION_KEY`` - explicit override; bypasses the
+    settings.json bootstrap. Use only if you have a private key.
+  ``PJM_SETTINGS_URL`` - override the settings endpoint (default
+    ``http://dataminer2.pjm.com/config/settings.json``).
+
+The legacy ``PJM_USERNAME`` / ``PJM_PASSWORD`` / ``PJM_SSO_*`` vars
+are still read for backwards compatibility but no longer affect
+api.pjm.com auth.
 """
 
 from __future__ import annotations
@@ -42,12 +44,20 @@ T = TypeVar("T")
 
 _store: dict[str, tuple[float, Any]] = {}
 
-# ── PJM SSO session (cached tokenId) ─────────────────────────────────────────
+# ── PJM auth state ──────────────────────────────────────────────────────────
 
+# Public subscription key bootstrapped from dataminer2 settings.json.
+# Refreshed periodically; PJM has rotated the key in the past, so we
+# don't pin it permanently. The legacy SSO state below is retained for
+# diagnostic continuity but no longer drives api.pjm.com auth.
 _PJM_LOCK = asyncio.Lock()
+_pjm_public_key: str | None = None
+_pjm_public_key_ts: float = 0.0
+_PJM_PUBLIC_KEY_TTL_SEC = 6 * 3600.0  # 6h - PJM rotates rarely
+
 _pjm_token_id: str | None = None
 _pjm_token_ts: float = 0.0
-_PJM_TOKEN_TTL_SEC = 1200.0  # refresh before typical AM session skew
+_PJM_TOKEN_TTL_SEC = 1200.0
 
 
 class PJMAuthenticationError(Exception):
@@ -62,6 +72,13 @@ def _env(name: str) -> str:
     return os.environ.get(name, "").strip()
 
 
+def _pjm_settings_url() -> str:
+    return (
+        _env("PJM_SETTINGS_URL")
+        or "http://dataminer2.pjm.com/config/settings.json"
+    )
+
+
 def _pjm_sso_url() -> str:
     return _env("PJM_SSO_AUTH_URL") or "https://sso.pjm.com/access/authenticate"
 
@@ -73,6 +90,39 @@ def _pjm_session_cookie_name() -> str:
 def _pjm_cookie_header(token_id: str) -> dict[str, str]:
     name = _pjm_session_cookie_name()
     return {"Cookie": f"{name}={token_id}"}
+
+
+async def _fetch_pjm_public_key() -> str:
+    """Fetch the public APIM key PJM ships in its front-end settings.
+
+    PJM bakes a shared subscription key into the ``dataminer2.pjm.com``
+    SPA at ``/config/settings.json`` so the public LMP / fuel-mix /
+    load / outage / ancillary feeds can be reached without a user
+    account. This is the same mechanism V1 (gridalpha-production) uses.
+    """
+    url = _pjm_settings_url()
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        r = await client.get(
+            url,
+            headers={
+                "Accept": "application/json",
+                "User-Agent": (
+                    "Mozilla/5.0 (compatible; GridAlpha/2.0; "
+                    "+https://gridalpha.vercel.app)"
+                ),
+            },
+        )
+        r.raise_for_status()
+        body = r.json()
+    key = str(body.get("subscriptionKey") or "").strip()
+    if not key:
+        raise PJMAuthenticationError(
+            f"PJM settings.json at {url} returned no subscriptionKey"
+        )
+    LOG.info(
+        "PJM public key bootstrapped from settings.json (%d chars)", len(key)
+    )
+    return key
 
 
 async def _pjm_sso_login() -> str:
@@ -133,45 +183,40 @@ async def _pjm_sso_login() -> str:
         )
 
 
-_SSO_FALLBACK_WARNED = False
-
-
 async def pjm_auth_headers(*, force_refresh: bool = False) -> dict[str, str]:
     """Headers to authenticate DataMiner HTTP calls to ``api.pjm.com``.
 
-    Returns the Azure APIM subscription-key header when available
-    (the only auth ``api.pjm.com`` accepts). When the key is unset, we
-    fall back to the SSO cookie purely so the call shape stays
-    consistent for diagnostic tooling - in production this is
-    effectively unauthenticated and will surface 401 / 404 from PJM.
+    Resolution order:
+      1. ``PJM_SUBSCRIPTION_KEY`` env var if set (manual override)
+      2. Bootstrap from ``dataminer2.pjm.com/config/settings.json``
+         and cache for 6 hours (V1's pattern)
+
+    ``force_refresh`` re-fetches the public key. Used by ``_pjm_fetch``
+    after a 401 in case PJM rotated the key.
     """
-    global _SSO_FALLBACK_WARNED, _pjm_token_id, _pjm_token_ts
+    global _pjm_public_key, _pjm_public_key_ts
 
-    sub = _env("PJM_SUBSCRIPTION_KEY")
-    if sub:
-        return {"Ocp-Apim-Subscription-Key": sub}
-
-    if not _SSO_FALLBACK_WARNED:
-        LOG.warning(
-            "PJM_SUBSCRIPTION_KEY is not set; falling back to ForgeRock SSO cookie. "
-            "api.pjm.com does NOT accept SSO cookies and will return 401/404. "
-            "Generate a subscription key at dataminer2.pjm.com -> My Subscriptions "
-            "and set PJM_SUBSCRIPTION_KEY on the Railway service to fix.",
-        )
-        _SSO_FALLBACK_WARNED = True
+    explicit = _env("PJM_SUBSCRIPTION_KEY")
+    if explicit:
+        return {"Ocp-Apim-Subscription-Key": explicit}
 
     now = time.time()
     async with _PJM_LOCK:
         if (
             not force_refresh
-            and _pjm_token_id
-            and (now - _pjm_token_ts) < _PJM_TOKEN_TTL_SEC
+            and _pjm_public_key
+            and (now - _pjm_public_key_ts) < _PJM_PUBLIC_KEY_TTL_SEC
         ):
-            return _pjm_cookie_header(_pjm_token_id)
-        token = await _pjm_sso_login()
-        _pjm_token_id = token
-        _pjm_token_ts = now
-        return _pjm_cookie_header(token)
+            return {"Ocp-Apim-Subscription-Key": _pjm_public_key}
+        try:
+            key = await _fetch_pjm_public_key()
+        except (httpx.HTTPError, ValueError) as e:
+            raise PJMAuthenticationError(
+                f"could not bootstrap PJM public key from settings.json: {e}"
+            ) from e
+        _pjm_public_key = key
+        _pjm_public_key_ts = now
+        return {"Ocp-Apim-Subscription-Key": key}
 
 
 async def get_cached(

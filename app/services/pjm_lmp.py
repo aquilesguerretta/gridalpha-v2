@@ -1,4 +1,4 @@
-"""LMP fetchers for PJM Data Miner 2 (RT 5-min + DA hourly).
+"""LMP fetchers for PJM Data Miner 2 (V1-compatible request shape).
 
 This module hosts the helpers used by the canonical Wave-5 LMP endpoints
 (``/api/lmp/current``, ``/api/lmp/all-zones``, ``/api/lmp/24h``,
@@ -6,13 +6,28 @@ This module hosts the helpers used by the canonical Wave-5 LMP endpoints
 ``/api/lmp/history``).
 
 Datasets:
-  * ``rt_unverified_fivemin_lmps`` - real-time 5-minute LMP, fields
-    suffixed ``_rt`` (``total_lmp_rt``, ``congestion_price_rt``,
-    ``marginal_loss_price_rt``, ``system_energy_price_rt``).
+  * ``rt_unverified_hrl_lmps`` - real-time HOURLY unverified LMP, with
+    a row per pricing node per hour. The 5-minute feed
+    (``rt_unverified_fivemin_lmps``) refuses the ``type`` filter and
+    returns ~5,000 individual bus prices per page, so it is unusable
+    for zone-level pricing. V1 uses the hourly feed and so do we.
+    Fields: ``total_lmp_rt``, ``congestion_price_rt``,
+    ``marginal_loss_price_rt``. The energy component is derived as
+    ``total - congestion - loss`` (PJM omits the system energy column
+    on the unverified feeds).
   * ``da_hrl_lmps`` - day-ahead hourly LMP, fields suffixed ``_da``.
+  * ``rt_hrl_lmps`` - verified hourly archive, used for historical
+    queries. Archived data rejects the ``fields`` parameter, so we
+    do not pass it for queries older than ~30 days.
 
-PJM caps each response at 100 rows. ``_paginated_fetch`` loops with
-``startRow=1,101,201,...`` until the page comes back short. All
+Request shape (matches V1's ``data/lmp.py`` exactly):
+  * datetime filter: ``datetime_beginning_ept`` = ``YYYY-MM-DD HH:MM to YYYY-MM-DD HH:MM``
+  * subtype filter:  ``type`` = ``ZONE`` or ``HUB`` (NOT ``pnode_subtype``)
+  * pricing node:    filter client-side by ``pnode_name`` - the
+    field is not accepted as a server-side filter on these feeds.
+
+PJM caps each response at 100 rows. ``_paginated_fetch`` walks the
+``startRow=1,101,...`` window until the page comes back short. All
 fetchers are wrapped in the existing in-process TTL cache from
 ``app.services.intelligence_cache``.
 """
@@ -33,8 +48,10 @@ from app.services.intelligence_cache import get_cached
 from app.services.intelligence_data import _pjm_fetch
 from app.services.pjm_zones import (
     ZONE_IDS,
+    ZONES,
     is_valid_zone,
     pnode_name_for,
+    subtype_for,
     zone_id_for_pnode,
 )
 from app.services.v1_proxy import (
@@ -47,24 +64,45 @@ EPT = ZoneInfo("America/New_York")
 LOG = logging.getLogger("gridalpha.pjm-lmp")
 
 PJM_PAGE_SIZE = 100
-RT_DATASET = "rt_unverified_fivemin_lmps"
-RT_VERIFIED_DATASET = "rt_fivemin_hrl_lmps"
+
+# Dataset choice is load-bearing - read this before changing it.
+#
+# We tried the 5-minute unverified feed first (``rt_unverified_fivemin_lmps``)
+# because the contract spec promised 5-min cadence. PJM rejects the
+# ``type`` filter on that feed (``Filters: One or more filter field
+# name(s) are invalid. detail: ["type"]``) and there is no equivalent
+# zone-subtype filter - the feed returns every bus-level pricing node
+# (~5,000 rows per 5-min slot) and the only way to scope it to a zone is
+# to filter pnode_name client-side after pulling thousands of rows. The
+# 100-row page cap makes that impractical.
+#
+# V1's gridalpha production backend uses the HOURLY unverified feed
+# (``rt_unverified_hrl_lmps``) which accepts ``type=ZONE`` or
+# ``type=HUB`` and returns exactly 22 zones / 12 hubs per hour. We
+# adopted the same dataset. Frontend cadence is hourly as a result;
+# the meta.interval_minutes field on /api/lmp/24h reflects this.
+RT_DATASET = "rt_unverified_hrl_lmps"
+RT_HISTORY_DATASET = "rt_hrl_lmps"            # verified hourly archive
 DA_DATASET = "da_hrl_lmps"
 
 HISTORY_MAX_HOURS = 168  # 7 days
 HISTORY_CACHE_TTL = 30 * 24 * 3600.0  # historical data is immutable
 
-# Field selectors kept tight so PJM responses stay under the 100-row cap.
+# Field selectors. PJM's unverified feeds do NOT publish a
+# ``system_energy_price_*`` column, so we omit it and derive the energy
+# component as ``total - congestion - loss``. We keep ``type`` so we can
+# distinguish ZONE rows from HUB rows when we pull the all-zones snapshot
+# in one fetch.
 _RT_FIELDS = (
-    "datetime_beginning_utc,datetime_beginning_ept,pnode_name,"
-    "total_lmp_rt,system_energy_price_rt,congestion_price_rt,"
-    "marginal_loss_price_rt"
+    "datetime_beginning_utc,datetime_beginning_ept,pnode_name,type,"
+    "total_lmp_rt,congestion_price_rt,marginal_loss_price_rt"
 )
 _DA_FIELDS = (
-    "datetime_beginning_utc,datetime_beginning_ept,pnode_name,"
-    "total_lmp_da,system_energy_price_da,congestion_price_da,"
-    "marginal_loss_price_da"
+    "datetime_beginning_utc,datetime_beginning_ept,pnode_name,type,"
+    "total_lmp_da,congestion_price_da,marginal_loss_price_da"
 )
+# Archived data rejects the fields filter, so we strip it for history.
+_RT_HISTORY_FIELDS: str | None = None
 
 
 def _f(x: Any) -> float:
@@ -136,15 +174,23 @@ def _parse_utc(raw: str) -> datetime | None:
 def _ept_filter(start_utc: datetime, end_utc: datetime) -> str:
     """Format a PJM ``datetime_beginning_ept`` range filter.
 
-    PJM Data Miner 2 expects ``M/D/YYYY HH:MM`` (24-hour) with the
-    literal `` to `` separator and EPT (America/New_York) timestamps.
+    PJM Data Miner 2 expects ``YYYY-MM-DD HH:MM`` (24-hour, padded)
+    with the literal `` to `` separator and EPT (America/New_York)
+    timestamps. The older ``M/D/YYYY HH:MM`` shape is silently rejected
+    on some feeds; V1 uses the ISO-style format and so do we.
     """
     s = start_utc.astimezone(EPT)
     e = end_utc.astimezone(EPT)
-    fmt = "{m}/{d}/{y} {hh:02d}:{mm:02d}"
-    s_str = fmt.format(m=s.month, d=s.day, y=s.year, hh=s.hour, mm=s.minute)
-    e_str = fmt.format(m=e.month, d=e.day, y=e.year, hh=e.hour, mm=e.minute)
-    return f"{s_str} to {e_str}"
+    return f"{s.strftime('%Y-%m-%d %H:%M')} to {e.strftime('%Y-%m-%d %H:%M')}"
+
+
+def _ept_filter_ept(start_ept: datetime, end_ept: datetime) -> str:
+    """Same as ``_ept_filter`` but accepts EPT-naive / EPT-aware inputs."""
+    if start_ept.tzinfo is None:
+        start_ept = start_ept.replace(tzinfo=EPT)
+    if end_ept.tzinfo is None:
+        end_ept = end_ept.replace(tzinfo=EPT)
+    return _ept_filter(start_ept.astimezone(timezone.utc), end_ept.astimezone(timezone.utc))
 
 
 def _to_iso_z(dt_utc: datetime) -> str:
@@ -157,31 +203,84 @@ def _ept_clock(dt_utc: datetime) -> str:
     return f"{e.hour:02d}:{e.minute:02d} ET"
 
 
+# ── Shared snapshot helper ──────────────────────────────────────────────────
+
+
+async def _fetch_rt_snapshot(
+    *,
+    window_hours: int = 2,
+    subtypes: tuple[str, ...] = ("ZONE", "HUB"),
+) -> list[dict[str, Any]]:
+    """Single ``rt_unverified_hrl_lmps`` fetch covering the last
+    ``window_hours`` for the requested subtypes (``ZONE`` and/or ``HUB``).
+
+    Returns the raw PJM rows (one per pnode per hour). Callers filter
+    client-side by ``pnode_name``. We hit the feed once per subtype -
+    typically 22 zones x 2h = 44 rows for ZONE, 12 hubs x 2h = 24 rows
+    for HUB - both well under the 100-row page cap.
+    """
+    end_utc = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+    start_utc = end_utc - timedelta(hours=window_hours)
+    dt_filter = _ept_filter(start_utc, end_utc)
+
+    out: list[dict[str, Any]] = []
+    for subtype in subtypes:
+        page = await _paginated_fetch(
+            RT_DATASET,
+            {
+                "fields": _RT_FIELDS,
+                "datetime_beginning_ept": dt_filter,
+                "type": subtype,
+                "sort": "datetime_beginning_ept",
+                "order": "1",
+            },
+            max_rows=PJM_PAGE_SIZE * 6,
+        )
+        out.extend(page)
+    return out
+
+
+def _latest_two_rows(
+    rows: list[dict[str, Any]], pnode_name: str
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    matches = [r for r in rows if _row_pnode(r).upper() == pnode_name.upper()]
+    matches = _sort_by_dt_desc(matches)
+    latest = matches[0] if matches else None
+    prev = matches[1] if len(matches) > 1 else None
+    return latest, prev
+
+
+def _decompose_lmp_row(row: dict[str, Any]) -> tuple[float, float, float, float]:
+    """Return ``(total, energy, congestion, loss)`` from a PJM RT row.
+
+    The unverified feeds publish total + congestion + loss only. By
+    PJM's pricing identity the energy component is the residual:
+    ``energy = total - congestion - loss``. Returns rounded $/MWh.
+    """
+    total = _f(row.get("total_lmp_rt"))
+    cong = _f(row.get("congestion_price_rt"))
+    loss = _f(row.get("marginal_loss_price_rt"))
+    energy = total - cong - loss
+    return (round(total, 2), round(energy, 2), round(cong, 2), round(loss, 2))
+
+
 # ── Endpoint 1: current LMP, single zone ─────────────────────────────────────
 
 
 async def _fetch_lmp_current_pjm(zone_id: str) -> dict[str, Any]:
-    """Hit PJM directly for a single zone's RT 5-min LMP."""
+    """Hit PJM directly for a single zone's RT hourly LMP.
+
+    Pulls the last ~2h of rows for the zone's subtype, then filters
+    client-side to the requested pnode_name.
+    """
     pname = pnode_name_for(zone_id)
-    rows = await _pjm_fetch(
-        RT_DATASET,
-        {
-            "rowCount": "12",  # ~1 hour @ 5-min, plenty for delta calc
-            "fields": _RT_FIELDS,
-            "pnode_name": pname,
-        },
-    )
-    rows = _sort_by_dt_desc(rows)
-    if not rows:
+    subtype = subtype_for(zone_id)
+    rows = await _fetch_rt_snapshot(window_hours=2, subtypes=(subtype,))
+    latest, prev = _latest_two_rows(rows, pname)
+    if latest is None:
         raise LookupError(f"PJM returned no RT rows for {zone_id} ({pname})")
 
-    latest = rows[0]
-    prev = rows[1] if len(rows) > 1 else None
-
-    lmp_total = round(_f(latest.get("total_lmp_rt")), 2)
-    lmp_energy = round(_f(latest.get("system_energy_price_rt")), 2)
-    lmp_cong = round(_f(latest.get("congestion_price_rt")), 2)
-    lmp_loss = round(_f(latest.get("marginal_loss_price_rt")), 2)
+    lmp_total, lmp_energy, lmp_cong, lmp_loss = _decompose_lmp_row(latest)
 
     delta_pct = 0.0
     if prev is not None:
@@ -199,6 +298,8 @@ async def _fetch_lmp_current_pjm(zone_id: str) -> dict[str, Any]:
         "lmp_energy": lmp_energy,
         "lmp_congestion": lmp_cong,
         "lmp_loss": lmp_loss,
+        # Hourly cadence: this is hour-over-hour change, kept under the
+        # original contract field name for frontend stability.
         "delta_pct_5min": delta_pct,
         "_via_v1_proxy": False,
     }
@@ -252,7 +353,7 @@ async def get_lmp_current(zone_id: str) -> dict[str, Any]:
     direction = "+" if payload["delta_pct_5min"] >= 0 else ""
     summary = (
         f"{zone_id} LMP ${payload['lmp_total']:.2f}/MWh, "
-        f"{direction}{payload['delta_pct_5min']}% over last 5 min."
+        f"{direction}{payload['delta_pct_5min']}% vs prior hour."
     )
     via_v1 = bool(payload.get("_via_v1_proxy"))
     meta: dict[str, Any] = {
@@ -282,37 +383,50 @@ async def get_lmp_current(zone_id: str) -> dict[str, Any]:
 
 
 async def _load_lmp_all_zones() -> dict[str, Any]:
-    """Fan out across all 20 zones in parallel; reuse per-zone cache."""
-    results = await asyncio.gather(
-        *(get_cached(f"lmp:current:{z}", 60.0, lambda zid=z: _load_lmp_current(zid))
-          for z in ZONE_IDS),
-        return_exceptions=True,
-    )
+    """One PJM call per subtype, then split by pnode_name.
+
+    Replaces the original per-zone fan-out with a batch fetch:
+      * ``type=ZONE`` -> 22 PJM zones x 2h = ~44 rows
+      * ``type=HUB``  -> 12 PJM hubs  x 2h = ~24 rows
+
+    Each row carries the latest hourly LMP for its pnode; the latest
+    two rows per zone drive the hour-over-hour delta. The whole
+    snapshot is built from at most two PJM requests.
+    """
+    rows = await _fetch_rt_snapshot(window_hours=2, subtypes=("ZONE", "HUB"))
 
     zones: dict[str, dict[str, Any]] = {}
     failures: list[str] = []
-    via_v1: list[str] = []
     latest_observed: str = ""
     max_age = 0
-    for zone_id, res in zip(ZONE_IDS, results):
-        if isinstance(res, BaseException):
+
+    for zone_id in ZONE_IDS:
+        pname = pnode_name_for(zone_id)
+        latest, prev = _latest_two_rows(rows, pname)
+        if latest is None:
             failures.append(zone_id)
             continue
+        lmp_total, _energy, _cong, _loss = _decompose_lmp_row(latest)
+        delta_pct = 0.0
+        if prev is not None:
+            prev_total = _f(prev.get("total_lmp_rt"))
+            if prev_total:
+                delta_pct = round((lmp_total - prev_total) / prev_total * 100.0, 2)
         zones[zone_id] = {
-            "lmp_total": res["lmp_total"],
-            "delta_pct_5min": res["delta_pct_5min"],
+            "lmp_total": lmp_total,
+            "delta_pct_5min": delta_pct,
         }
-        if res.get("_via_v1_proxy"):
-            via_v1.append(zone_id)
-        if res["observed_at"] and res["observed_at"] > latest_observed:
-            latest_observed = res["observed_at"]
-        if res["data_age_seconds"] > max_age:
-            max_age = res["data_age_seconds"]
+        obs = _row_dt_utc(latest)
+        if obs and obs > latest_observed:
+            latest_observed = obs
+        age = data_age_seconds(obs)
+        if age > max_age:
+            max_age = age
 
     return {
         "zones": zones,
         "failures": failures,
-        "via_v1_proxy": via_v1,
+        "via_v1_proxy": [],  # canonical path, no fallback needed
         "observed_at": latest_observed,
         "data_age_seconds": max_age,
     }
@@ -364,21 +478,26 @@ async def get_lmp_all_zones() -> dict[str, Any]:
 
 async def _load_lmp_24h(zone_id: str) -> dict[str, Any]:
     pname = pnode_name_for(zone_id)
-    end_utc = datetime.now(timezone.utc).replace(second=0, microsecond=0)
-    # round end down to nearest 5-min boundary
-    end_utc = end_utc - timedelta(minutes=end_utc.minute % 5)
+    subtype = subtype_for(zone_id)
+    end_utc = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
     start_utc = end_utc - timedelta(hours=24)
 
     base_params = {
-        "pnode_name": pname,
         "fields": _RT_FIELDS,
         "datetime_beginning_ept": _ept_filter(start_utc, end_utc),
+        "type": subtype,
+        "sort": "datetime_beginning_ept",
+        "order": "1",
     }
-    rows = await _paginated_fetch(RT_DATASET, base_params, max_rows=400)
+    # 24h x 22 zones = 528 ZONE rows, 24h x 12 hubs = 288 HUB rows.
+    # Either case fits in ~6 paginated pages.
+    rows = await _paginated_fetch(RT_DATASET, base_params, max_rows=PJM_PAGE_SIZE * 7)
 
     series: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row in _sort_by_dt_asc(rows):
+        if _row_pnode(row).upper() != pname.upper():
+            continue
         dt = _parse_utc(_row_dt_utc(row))
         if dt is None:
             continue
@@ -433,14 +552,14 @@ async def get_lmp_24h(zone_id: str) -> dict[str, Any]:
 
     meta: dict[str, Any] = {
         "zone": zone_id,
-        "interval_minutes": 5,
+        "interval_minutes": 60,  # hourly cadence per PJM rt_unverified_hrl_lmps
         "row_count": row_count,
         "start": payload["start_utc"],
         "end": payload["end_utc"],
         "source": "pjm-rt",
     }
-    if row_count < 280:
-        # 288 expected; small gaps are normal but flag aggressive shortfalls
+    if row_count < 20:
+        # 24 expected; small gaps are normal but flag aggressive shortfalls
         meta["degraded_mode"] = True
 
     return build_envelope(meta=meta, data=series, summary=summary)
@@ -466,39 +585,47 @@ def _resolve_market_date(date_iso: str | None) -> datetime:
 
 def _ept_day_filter(market_day_ept: datetime) -> str:
     """PJM ``datetime_beginning_ept`` filter spanning a full EPT day."""
-    end = market_day_ept + timedelta(hours=23)
-    fmt = "{m}/{d}/{y} {hh:02d}:{mm:02d}"
-    s = fmt.format(
-        m=market_day_ept.month,
-        d=market_day_ept.day,
-        y=market_day_ept.year,
-        hh=0,
-        mm=0,
-    )
-    e = fmt.format(m=end.month, d=end.day, y=end.year, hh=23, mm=0)
-    return f"{s} to {e}"
+    end = market_day_ept + timedelta(hours=23, minutes=59)
+    return _ept_filter_ept(market_day_ept, end)
 
 
 def _fmt_iso_date(ept_dt: datetime) -> str:
     return f"{ept_dt.year:04d}-{ept_dt.month:02d}-{ept_dt.day:02d}"
 
 
-async def _load_lmp_da_forecast(zone_id: str, date_iso: str | None) -> dict[str, Any]:
-    pname = pnode_name_for(zone_id)
-    market_day = _resolve_market_date(date_iso)
+async def _fetch_da_snapshot(
+    market_day_ept: datetime, subtype: str
+) -> list[dict[str, Any]]:
+    """Single ``da_hrl_lmps`` fetch covering one EPT day for a subtype.
 
-    rows = await _paginated_fetch(
+    Returns the raw rows for every pnode matching the subtype filter
+    (~23 zones x 24 hours = 552 rows for ZONE, ~12 hubs x 24h = 288
+    for HUB). Both fit in 6 paginated pages.
+    """
+    return await _paginated_fetch(
         DA_DATASET,
         {
-            "pnode_name": pname,
             "fields": _DA_FIELDS,
-            "datetime_beginning_ept": _ept_day_filter(market_day),
+            "datetime_beginning_ept": _ept_day_filter(market_day_ept),
+            "type": subtype,
+            "sort": "datetime_beginning_ept",
+            "order": "1",
         },
-        max_rows=48,  # 24 hours expected; pad for DST spring-forward/fall-back
+        max_rows=PJM_PAGE_SIZE * 7,
     )
+
+
+async def _load_lmp_da_forecast(zone_id: str, date_iso: str | None) -> dict[str, Any]:
+    pname = pnode_name_for(zone_id)
+    subtype = subtype_for(zone_id)
+    market_day = _resolve_market_date(date_iso)
+
+    rows = await _fetch_da_snapshot(market_day, subtype)
 
     by_hour: dict[int, float] = {}
     for row in rows:
+        if _row_pnode(row).upper() != pname.upper():
+            continue
         dt = _parse_utc(_row_dt_utc(row))
         if dt is None:
             continue
@@ -564,31 +691,44 @@ async def get_lmp_da_forecast(
 
 
 async def _load_lmp_da_forecast_all(date_iso: str | None) -> dict[str, Any]:
-    """Fan out across all 20 zones in parallel; reuse per-zone cache."""
+    """One DA fetch per subtype, then split by pnode_name.
+
+    Replaces the per-zone fan-out (20 PJM round-trips) with at most two
+    batched fetches (``type=ZONE`` and ``type=HUB``).
+    """
     market_day = _resolve_market_date(date_iso)
     market_date_str = _fmt_iso_date(market_day)
 
-    async def one(zone_id: str) -> tuple[str, list[dict[str, Any]]]:
-        cache_key = f"lmp:da-forecast:{zone_id}:{market_date_str}"
-        try:
-            payload = await get_cached(
-                cache_key,
-                3600.0,
-                lambda: _load_lmp_da_forecast(zone_id, date_iso),
-            )
-            return zone_id, payload["series"]
-        except (LookupError, ValueError):
-            return zone_id, []
-
-    results = await asyncio.gather(*(one(z) for z in ZONE_IDS))
+    needed_subtypes = sorted({subtype_for(z) for z in ZONE_IDS})
+    rows: list[dict[str, Any]] = []
+    for subtype in needed_subtypes:
+        rows.extend(await _fetch_da_snapshot(market_day, subtype))
 
     by_zone: dict[str, list[dict[str, Any]]] = {}
     failures: list[str] = []
-    for zone_id, series in results:
-        if not series:
+    for zone_id in ZONE_IDS:
+        pname = pnode_name_for(zone_id)
+        by_hour: dict[int, float] = {}
+        for row in rows:
+            if _row_pnode(row).upper() != pname.upper():
+                continue
+            dt = _parse_utc(_row_dt_utc(row))
+            if dt is None:
+                continue
+            hour_ept = dt.astimezone(EPT)
+            if (hour_ept.year, hour_ept.month, hour_ept.day) != (
+                market_day.year,
+                market_day.month,
+                market_day.day,
+            ):
+                continue
+            by_hour[hour_ept.hour] = round(_f(row.get("total_lmp_da")), 2)
+        if not by_hour:
             failures.append(zone_id)
             continue
-        by_zone[zone_id] = series
+        by_zone[zone_id] = [
+            {"hour": h, "lmp": by_hour[h]} for h in sorted(by_hour.keys())
+        ]
 
     return {
         "market_date": market_date_str,
@@ -698,21 +838,36 @@ async def _load_lmp_history(
     end_utc: datetime,
     interval: str,
 ) -> dict[str, Any]:
+    """Fetch historical hourly LMP for a single zone.
+
+    Uses the verified hourly archive ``rt_hrl_lmps``. PJM rejects the
+    ``fields`` parameter on archived queries, so we omit it; the
+    response carries the full schema. We pull by subtype (ZONE/HUB)
+    and filter client-side to the requested pnode.
+
+    The ``interval`` field is preserved for backward compatibility but
+    the underlying data is always hourly - 5-min granularity is not
+    available in the verified archive on a multi-day window.
+    """
     pname = pnode_name_for(zone_id)
+    subtype = subtype_for(zone_id)
 
     rows = await _paginated_fetch(
-        RT_VERIFIED_DATASET,
+        RT_HISTORY_DATASET,
         {
-            "pnode_name": pname,
-            "fields": _RT_FIELDS,
             "datetime_beginning_ept": _ept_filter(start_utc, end_utc),
+            "type": subtype,
+            "sort": "datetime_beginning_ept",
+            "order": "1",
         },
-        max_rows=2_500,  # 7-day x 5-min = 2,016; cushion for re-runs and DST
+        max_rows=PJM_PAGE_SIZE * 10,
     )
 
-    five_min_series: list[dict[str, Any]] = []
+    series: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row in _sort_by_dt_asc(rows):
+        if _row_pnode(row).upper() != pname.upper():
+            continue
         dt = _parse_utc(_row_dt_utc(row))
         if dt is None or dt < start_utc or dt > end_utc:
             continue
@@ -720,33 +875,18 @@ async def _load_lmp_history(
         if ts in seen:
             continue
         seen.add(ts)
-        five_min_series.append(
+        series.append(
             {
                 "timestamp": ts,
                 "lmp_total": round(_f(row.get("total_lmp_rt")), 2),
             }
         )
 
-    if interval == "hourly":
-        # Hour aggregation walks the 5-min rows we just normalized.
-        hourly_rows = [
-            {
-                "datetime_beginning_utc": pt["timestamp"],
-                "total_lmp_rt": pt["lmp_total"],
-            }
-            for pt in five_min_series
-        ]
-        series = _aggregate_to_hourly(hourly_rows)
-        interval_minutes = 60
-    else:
-        series = five_min_series
-        interval_minutes = 5
-
     return {
         "zone": zone_id,
         "start_utc": _to_iso_z(start_utc),
         "end_utc": _to_iso_z(end_utc),
-        "interval_minutes": interval_minutes,
+        "interval_minutes": 60,
         "series": series,
     }
 

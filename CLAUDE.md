@@ -1,5 +1,14 @@
 # GridAlpha V2 — Design System Rules
 
+## ACTIVE SKILLS
+
+This project loads the `gridalpha-terminal` skill on every Claude
+Code session. The skill's design vocabulary supersedes any
+conflicting guidance in this file or in agent prompts. When
+generating UI, the skill's references are authoritative.
+
+Skill location: `.claude/skills/gridalpha-terminal/`
+
 ## IDENTITY
 This is a professional energy market intelligence terminal.
 Visual reference: Bloomberg Terminal × Palantir Gotham × Linear.app

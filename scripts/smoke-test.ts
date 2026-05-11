@@ -83,8 +83,17 @@ const CHECKS: Check[] = [
     path: "/api/lmp/24h?zone=WEST_HUB",
     extra: (env) => {
       if (!Array.isArray(env.data)) return "data is not an array";
-      if (env.data.length < 200)
-        return `expected ~288 rows, got ${env.data.length}`;
+      // PJM's public rt_unverified_hrl_lmps feed is hourly (V1 uses the
+      // same feed). 5-minute resolution requires the unverified-5min
+      // feed which refuses the zone/hub filter and returns ~5,000
+      // bus-level rows per slot - impractical under the 100-row page
+      // cap. /api/lmp/24h ships 24 hourly points; meta.interval_minutes
+      // reflects this.
+      const meta = (env.meta as Record<string, unknown>) || {};
+      if (meta.interval_minutes !== 60)
+        return `expected meta.interval_minutes=60 (hourly), got ${meta.interval_minutes}`;
+      if (env.data.length < 20)
+        return `expected ~24 hourly rows, got ${env.data.length}`;
       return null;
     },
   },

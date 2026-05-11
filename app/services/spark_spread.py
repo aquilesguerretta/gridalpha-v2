@@ -11,6 +11,14 @@ Regime classification (per Wave-5 contract):
     BURNING    > $5     - generators are profitable to run
     NORMAL     $0 - $5  - thin economics, marginal dispatch
     SUPPRESSED < $0     - LMP below fuel cost, generators losing money
+
+Gas price source cascade:
+    1. EIA Henry Hub spot price (v2 API, series N9HHNGSPOT) when the
+       call succeeds.
+    2. Static fallback $4.00/MMBtu (V1's value) when EIA returns 4xx /
+       network errors. V1 hardcodes this constant outright; we use it
+       as a soft fallback so a working EIA key takes precedence.
+       ``meta.degraded_mode = true`` is set in fallback mode.
 """
 
 from __future__ import annotations
@@ -20,14 +28,16 @@ from typing import Any
 
 import httpx
 
-from app.services.envelope import build_envelope, data_age_seconds, utc_now_iso
+from app.services.envelope import build_envelope, utc_now_iso
 from app.services.intelligence_cache import get_cached
 from app.services.intelligence_data import ConfigurationError, fetch_henry_hub
 from app.services.pjm_lmp import _load_lmp_current
 from app.services.pjm_zones import is_valid_zone
-from app.services.v1_proxy import build_v1_spark_spread_payload, has_v1_coverage
 
 DEFAULT_HEAT_RATE_BTU_PER_KWH = 7500
+# V1's value, sourced from EIA data as of Feb 2026 (post-Storm-Fern range).
+# Used when the live EIA call is unreachable.
+STATIC_GAS_PRICE_FALLBACK_MMBTU = 4.00
 LOG = logging.getLogger("gridalpha.spark-spread")
 
 
@@ -39,48 +49,23 @@ def _classify_regime(spark: float) -> str:
     return "NORMAL"
 
 
-async def _spark_via_v1(
-    zone_id: str, requested_heat_rate: int, reason: str
-) -> dict[str, Any]:
-    """Build a fully-V1-sourced spark-spread envelope.
+async def _resolve_gas_price() -> tuple[float, str, str | None]:
+    """Return (price, source_label, fallback_reason).
 
-    V1 publishes its own LMP, gas price, and heat rate together so this
-    is the only honest answer when EIA is unreachable. The requested
-    heat_rate is preserved in meta as ``requested_heat_rate`` so callers
-    know we did not honor it.
+    Tries EIA; on any HTTP / network / config failure, falls back to
+    the V1-style static constant. ``fallback_reason`` is None on the
+    success path and a human string on fallback.
     """
-    payload = await build_v1_spark_spread_payload(zone_id)
-    spark = payload["spark_spread"]
-    regime = _classify_regime(spark)
-
-    summary = (
-        f"{zone_id} spark spread ${spark:.2f}/MWh, {regime} regime. "
-        f"Gas ${payload['gas_price_mmbtu']:.2f}/MMBtu, heat rate "
-        f"{payload['heat_rate_btu_per_kwh']} (V1 proxy)."
-    )
-
-    meta: dict[str, Any] = {
-        "zone": zone_id,
-        "heat_rate": payload["heat_rate_btu_per_kwh"],
-        "requested_heat_rate": requested_heat_rate,
-        "gas_price_mmbtu": payload["gas_price_mmbtu"],
-        "timestamp": payload["observed_at"] or utc_now_iso(),
-        "data_age_seconds": (
-            data_age_seconds(payload["observed_at"])
-            if payload.get("observed_at")
-            else 0
-        ),
-        "source": "v1-proxy:spark-spread",
-        "degraded_mode": True,
-        "fallback_reason": reason,
-    }
-    data = {
-        "lmp_total": payload["lmp_total"],
-        "gas_equivalent_cost": payload["gas_equivalent_cost"],
-        "spark_spread": spark,
-        "regime": regime,
-    }
-    return build_envelope(meta=meta, data=data, summary=summary)
+    try:
+        gas_payload = await fetch_henry_hub()
+        price = float(gas_payload.get("current_price_mmbtu") or 0.0)
+        if price <= 0:
+            raise ValueError("EIA returned non-positive price")
+        return price, "eia-henry-hub", None
+    except (httpx.HTTPStatusError, httpx.RequestError, ConfigurationError, ValueError) as e:
+        reason = f"EIA Henry Hub unreachable ({type(e).__name__}); using static fallback"
+        LOG.warning("spark-spread gas price: %s", reason)
+        return STATIC_GAS_PRICE_FALLBACK_MMBTU, "static-fallback", reason
 
 
 async def get_spark_spread_current(
@@ -89,10 +74,8 @@ async def get_spark_spread_current(
 ) -> dict[str, Any]:
     """Build the canonical envelope for ``/api/spark-spread/current``.
 
-    Three-stage cascade:
-      1. PJM LMP + EIA Henry Hub gas (canonical)
-      2. V1 LMP + EIA Henry Hub gas (PJM auth rejected, EIA still ok)
-      3. V1 spark-spread row (both PJM and EIA unreachable)
+    LMP comes from the direct PJM hourly feed (see ``pjm_lmp``). Gas
+    price comes from EIA when reachable, static $4.00/MMBtu otherwise.
     """
     if not is_valid_zone(zone_id):
         raise ValueError(f"unknown zone id: {zone_id}")
@@ -105,17 +88,8 @@ async def get_spark_spread_current(
         lambda: _load_lmp_current(zone_id),
     )
 
-    try:
-        gas_payload = await fetch_henry_hub()
-    except (httpx.HTTPStatusError, httpx.RequestError, ConfigurationError) as e:
-        if not has_v1_coverage(zone_id):
-            raise
-        reason = f"EIA Henry Hub unreachable ({type(e).__name__}); using V1 spark-spread row"
-        LOG.warning("spark-spread %s: %s", zone_id, reason)
-        return await _spark_via_v1(zone_id, heat_rate, reason)
-
+    gas_price, gas_source, fallback_reason = await _resolve_gas_price()
     lmp_total = float(lmp_payload["lmp_total"])
-    gas_price = float(gas_payload.get("current_price_mmbtu") or 0.0)
     gas_eq_cost = round(heat_rate * gas_price / 1000.0, 2)
     spark = round(lmp_total - gas_eq_cost, 2)
     regime = _classify_regime(spark)
@@ -125,20 +99,19 @@ async def get_spark_spread_current(
         f"Gas ${gas_price:.2f}/MMBtu, heat rate {heat_rate}."
     )
 
-    via_v1 = bool(lmp_payload.get("_via_v1_proxy"))
     meta: dict[str, Any] = {
         "zone": zone_id,
         "heat_rate": heat_rate,
         "gas_price_mmbtu": round(gas_price, 4),
+        "gas_price_source": gas_source,
         "timestamp": lmp_payload["observed_at"] or utc_now_iso(),
         "data_age_seconds": lmp_payload["data_age_seconds"],
-        "source": (
-            "v1-proxy+eia-henry-hub" if via_v1 else "pjm-rt+eia-henry-hub"
-        ),
+        "source": f"pjm-rt+{gas_source}",
     }
-    if via_v1:
+    if fallback_reason:
         meta["degraded_mode"] = True
-        meta["fallback_reason"] = "lmp via V1 proxy (V2 PJM auth rejected)"
+        meta["fallback_reason"] = fallback_reason
+
     data = {
         "lmp_total": round(lmp_total, 2),
         "gas_equivalent_cost": gas_eq_cost,

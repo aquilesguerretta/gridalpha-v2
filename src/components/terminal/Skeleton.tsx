@@ -25,7 +25,7 @@
 //     lives elsewhere).
 
 import type { CSSProperties } from 'react';
-import { C, R } from '@/design/tokens';
+import { C } from '@/design/tokens';
 
 const SHIMMER_BG =
   // The skeleton itself is bgSurface; the shimmer is an electricBlue

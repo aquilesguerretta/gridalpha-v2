@@ -39,6 +39,10 @@ export function TimeTravelScrubber() {
   const exitToLive       = useTimeTravelStore((s) => s.exitToLive);
   const togglePlayback   = useTimeTravelStore((s) => s.togglePlayback);
   const setSpeed         = useTimeTravelStore((s) => s.setSpeed);
+  // Wave 3 — event loading state
+  const isLoadingEvent   = useTimeTravelStore((s) => s.isLoadingEvent);
+  const loadingProgress  = useTimeTravelStore((s) => s.loadingProgress);
+  const loadError        = useTimeTravelStore((s) => s.loadError);
 
   const [eventsOpen, setEventsOpen] = useState(false);
   const [returnHovered, setReturnHovered] = useState(false);
@@ -46,6 +50,10 @@ export function TimeTravelScrubber() {
 
   const activeEvent = activeEventId ? getEvent(activeEventId) : null;
   const highlights: EventHighlight[] = activeEvent?.highlights ?? [];
+
+  // Wave 3 — derived loading affordances
+  const zonesDone = Math.round(loadingProgress * 20);
+  const sliderDisabled = isLoadingEvent;
 
   // Convert a highlight timestamp to its 0..1 position along the active range.
   const highlightPositions = useMemo(() => {
@@ -86,6 +94,83 @@ export function TimeTravelScrubber() {
       boxShadow:      '0 8px 24px rgba(0,0,0,0.20)',
       pointerEvents:  'auto',
     }}>
+      {/* Wave 3 loading banner — only when an event is fetching. Sits
+          above the controls so the slider state is unambiguous.
+          CHROMA Wave 4 — dropped the static box-shadow glow on the
+          status dot in favor of the calm pulse keyframe, and added a
+          1px linear progress bar below the row that fills with
+          loadingProgress so the user sees the fetch advancing. */}
+      {(isLoadingEvent || loadError) && (
+        <div style={{
+          display:        'flex',
+          flexDirection:  'column',
+          gap:            6,
+          paddingBottom:  6,
+          borderBottom:   `1px solid ${C.borderDefault}`,
+        }}>
+          <div style={{
+            display:        'flex',
+            alignItems:     'center',
+            justifyContent: 'space-between',
+            gap:            S.md,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                display:      'inline-block',
+                width:        6,
+                height:       6,
+                borderRadius: '50%',
+                background:   loadError ? C.alertCritical : C.falconGold,
+                animation:    loadError
+                  ? 'none'
+                  : 'ga-connection-reconnect 1.2s ease-in-out infinite',
+              }} />
+              <span style={{
+                fontFamily:    F.mono,
+                fontSize:      10,
+                fontWeight:    700,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color:         loadError ? C.alertCritical : C.falconGoldLight,
+              }}>
+                {loadError
+                  ? `LOAD FAILED · ${loadError.slice(0, 60)}`
+                  : `LOADING ${activeEvent?.name?.toUpperCase() ?? 'EVENT'} — ${zonesDone} OF 20 ZONES`}
+              </span>
+            </div>
+            {isLoadingEvent && (
+              <span style={{
+                fontFamily:         F.mono,
+                fontSize:           11,
+                fontWeight:         600,
+                color:              C.falconGoldLight,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing:      '0.10em',
+              }}>
+                {Math.round(loadingProgress * 100)}%
+              </span>
+            )}
+          </div>
+          {/* Linear progress bar — fills with loadingProgress. */}
+          {isLoadingEvent && (
+            <div style={{
+              width:        '100%',
+              height:       2,
+              background:   'rgba(255,255,255,0.06)',
+              borderRadius: 1,
+              overflow:     'hidden',
+            }}>
+              <div style={{
+                width:        `${Math.round(loadingProgress * 100)}%`,
+                height:       '100%',
+                background:   C.falconGold,
+                transition:   'width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+              }} />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Top row: controls + legend */}
       <div style={{
         display:        'flex',
@@ -230,13 +315,17 @@ export function TimeTravelScrubber() {
 
           {/* Slider input — calm blue fill, no neon cyan. Track sits on
               bgSurface luminance; fill goes from the deeper electricBlue
-              into the page-default border tint. */}
+              into the page-default border tint.
+              Wave 3 — disabled and dimmed while an event is loading;
+              fill switches to a falcon-gold progress bar that mirrors
+              loadingProgress. */}
           <input
             type="range"
             min={0}
             max={1000}
             value={Math.round(scrubPosition * 1000)}
             onChange={(e) => scrubTo(Number(e.target.value) / 1000)}
+            disabled={sliderDisabled}
             style={{
               position:   'absolute',
               left:       0,
@@ -247,9 +336,11 @@ export function TimeTravelScrubber() {
               height:     4,
               borderRadius: 2,
               outline:    'none',
-              cursor:     'pointer',
-              background:
-                mode === 'live'
+              cursor:     sliderDisabled ? 'progress' : 'pointer',
+              opacity:    sliderDisabled ? 0.6 : 1,
+              background: sliderDisabled
+                ? `linear-gradient(to right, ${C.falconGold} 0%, ${C.falconGoldLight} ${loadingProgress * 100}%, rgba(255,255,255,0.10) ${loadingProgress * 100}%)`
+                : mode === 'live'
                   ? 'rgba(255,255,255,0.10)'
                   : `linear-gradient(to right, ${C.electricBlue} 0%, ${C.electricBlueLight} ${scrubPosition * 100}%, rgba(255,255,255,0.12) ${scrubPosition * 100}%)`,
             }}
@@ -285,23 +376,24 @@ export function TimeTravelScrubber() {
             the slider/control chrome. */}
         <button
           onClick={exitToLive}
-          disabled={mode === 'live'}
+          disabled={mode === 'live' || isLoadingEvent}
           onMouseEnter={() => setReturnHovered(true)}
           onMouseLeave={() => setReturnHovered(false)}
+          title={isLoadingEvent ? 'Wait for the event to finish loading' : undefined}
           style={{
             background:     'transparent',
             border:         'none',
             padding:        '5px 4px',
-            color:          mode === 'live' ? C.textMuted : C.falconGold,
+            color:          (mode === 'live' || isLoadingEvent) ? C.textMuted : C.falconGold,
             fontFamily:     F.mono,
             fontSize:       10,
             fontWeight:     600,
             letterSpacing:  '0.14em',
             textTransform:  'uppercase',
-            cursor:         mode === 'live' ? 'not-allowed' : 'pointer',
-            opacity:        mode === 'live' ? 0.5 : 1,
+            cursor:         (mode === 'live' || isLoadingEvent) ? 'not-allowed' : 'pointer',
+            opacity:        (mode === 'live' || isLoadingEvent) ? 0.5 : 1,
             whiteSpace:     'nowrap',
-            textDecoration: mode !== 'live' && returnHovered ? 'underline' : 'none',
+            textDecoration: mode !== 'live' && !isLoadingEvent && returnHovered ? 'underline' : 'none',
             textUnderlineOffset: 4,
             transition:     'color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
           }}

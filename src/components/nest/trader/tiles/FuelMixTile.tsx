@@ -1,17 +1,47 @@
+// FORGE Wave 4 — FuelMixTile wired to useFuelMix.
+// Renders the top fuels (top 6 by MW) as a stacked bar + legend grid.
+// The "now" capacity figure and the system carbon intensity come
+// straight from the live envelope.
+
 import { C, F, R, S } from '@/design/tokens';
 import { useHoverState } from '../../../terminal/useHoverState';
+import { useFuelMix } from '@/hooks/data/useFuelMix';
+import type { FuelKind } from '@/lib/types/api';
 
-const FUEL_MIX: { label: string; pct: number; color: string }[] = [
-  { label: 'GAS',   pct: 38, color: C.fuelGas },
-  { label: 'NUC',   pct: 22, color: C.fuelNuclear },
-  { label: 'WIND',  pct: 18, color: C.fuelWind },
-  { label: 'COAL',  pct: 14, color: C.fuelCoal },
-  { label: 'SOLAR', pct: 5,  color: C.fuelSolar },
-  { label: 'OTHER', pct: 3,  color: C.fuelOther },
-];
+const FUEL_LABEL: Record<FuelKind, string> = {
+  natural_gas: 'GAS',
+  nuclear: 'NUC',
+  coal: 'COAL',
+  wind: 'WIND',
+  solar: 'SOLAR',
+  hydro: 'HYDRO',
+  oil: 'OIL',
+  other: 'OTHER',
+  battery: 'BESS',
+};
+
+const FUEL_COLOR: Record<FuelKind, string> = {
+  natural_gas: C.fuelGas,
+  nuclear: C.fuelNuclear,
+  coal: C.fuelCoal,
+  wind: C.fuelWind,
+  solar: C.fuelSolar,
+  hydro: C.fuelHydro,
+  oil: C.fuelOther,
+  other: C.fuelOther,
+  battery: C.fuelBattery,
+};
 
 export function FuelMixTile() {
+  const mixQuery = useFuelMix();
   const hover = useHoverState();
+
+  const fuels = mixQuery.data?.fuels ?? [];
+  const top = fuels.slice(0, 6);
+  const totalMW = mixQuery.data?.total_mw ?? 0;
+  const carbon = mixQuery.data?.system_carbon_intensity_kg_per_mwh ?? 0;
+  const isStale = mixQuery.isStale;
+
   const cardStyle: React.CSSProperties = {
     background: C.bgElevated,
     border: `1px solid ${C.borderDefault}`,
@@ -48,6 +78,9 @@ export function FuelMixTile() {
           }}
         >
           PJM · FUEL MIX · NOW
+          {isStale && (
+            <span style={{ color: C.alertWarning, marginLeft: 6 }}> · STALE</span>
+          )}
         </span>
         <span
           style={{
@@ -58,7 +91,7 @@ export function FuelMixTile() {
             fontWeight: 600,
           }}
         >
-          38.2 GW
+          {(totalMW / 1000).toFixed(1)} GW
         </span>
       </div>
 
@@ -72,15 +105,18 @@ export function FuelMixTile() {
           overflow: 'hidden',
         }}
       >
-        {FUEL_MIX.map((f) => (
+        {top.map((f) => (
           <div
-            key={f.label}
-            style={{ width: `${f.pct}%`, background: f.color }}
+            key={f.fuel}
+            style={{
+              width: `${f.pct}%`,
+              background: FUEL_COLOR[f.fuel] ?? C.fuelOther,
+            }}
           />
         ))}
       </div>
 
-      {/* Legend — 3 per row, 2 rows */}
+      {/* Legend — 3 per row */}
       <div
         style={{
           display: 'grid',
@@ -88,9 +124,9 @@ export function FuelMixTile() {
           gap: S.sm,
         }}
       >
-        {FUEL_MIX.map((f) => (
+        {top.map((f) => (
           <div
-            key={f.label}
+            key={f.fuel}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -101,7 +137,7 @@ export function FuelMixTile() {
               style={{
                 width: '8px',
                 height: '8px',
-                background: f.color,
+                background: FUEL_COLOR[f.fuel] ?? C.fuelOther,
                 display: 'inline-block',
                 flexShrink: 0,
               }}
@@ -115,7 +151,7 @@ export function FuelMixTile() {
                 fontWeight: 400,
               }}
             >
-              {f.label}
+              {FUEL_LABEL[f.fuel] ?? f.fuel.toUpperCase()}
             </span>
             <span
               style={{
@@ -127,7 +163,7 @@ export function FuelMixTile() {
                 fontWeight: 600,
               }}
             >
-              {f.pct}%
+              {f.pct.toFixed(0)}%
             </span>
           </div>
         ))}
@@ -145,7 +181,7 @@ export function FuelMixTile() {
           fontWeight: 400,
         }}
       >
-        CARBON INTENSITY 412 kg/MWh
+        CARBON INTENSITY {carbon} kg/MWh
       </div>
     </div>
   );

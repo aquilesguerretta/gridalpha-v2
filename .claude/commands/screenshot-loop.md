@@ -101,20 +101,36 @@ agents (and CHROMA) can see what shipped.
 ### Dev server is not running
 
 `preview_start` returns "Server failed to start" or the navigate call
-404s. Run `npm run dev` via Bash (background mode) and wait 3 seconds
-before retrying.
+404s. Run `npm run dev` via Bash (`run_in_background: true`) and wait
+3 seconds before retrying. If the server is already running but on a
+different port, update `.claude/launch.json`'s `port` entry locally
+for this session only — do not commit a port change.
 
 ### Screenshot times out
 
 The Vite renderer is heavy (Mapbox + Spline + Recharts). A 30 s
-timeout on the first screenshot is normal — retry once. If it times
-out again, the page may be stuck on the splash. Dismiss with
-`document.body.click()` via `preview_eval`, then retry.
+timeout on the first screenshot is **normal at 1440×900 and very
+common at 1920+**. Procedure:
+
+1. Retry once. ~1/3 of the time the second attempt succeeds.
+2. If it times out again, the page may be stuck on the splash —
+   dismiss with `document.body.click()` via `preview_eval`, then retry.
+3. If it still times out, **fall back to DOM inspection**: use
+   `preview_eval` to read `getComputedStyle()` on the target element
+   and bounding-rect for layout. This produces the same defect
+   signal (font size wrong, color wrong, position off) without
+   requiring a captured pixel image. The Phase 4 and Phase 6 tests
+   in `tools/screenshot-loop/` both used this fallback path for the
+   1920+ viewports.
+
+You are NOT blocked by a screenshot timeout. Continue the loop using
+DOM inspection and visible-when-narrow screenshots.
 
 ### Port conflict
 
-Default port `5173` is taken by another Vite project. Pick the next
-free port (Vite auto-selects 5174). Update `.claude/launch.json`
+Default port `5173` is taken by another Vite project. Vite
+auto-selects the next free port (5174, 5175, …). Read the dev
+server's stdout to find the real port. Update `.claude/launch.json`
 locally for this session only — do not commit the port change.
 
 ### Playwright MCP not loaded
@@ -128,7 +144,8 @@ If `playwright_screenshot` is not in the tool list, either:
 
 In the meantime, the `mcp__Claude_Preview__*` tools provide
 `preview_screenshot` and `preview_resize` and are functionally
-equivalent for this loop.
+equivalent for this loop. Use them — the loop's value is in the
+feedback signal, not in any specific transport.
 
 ### Image attachments arrive but you cannot see them
 
@@ -138,9 +155,61 @@ path on the filesystem and you need to attach it explicitly. For the
 inline path, prefer the screenshot variant that streams the image
 straight into the message.
 
+### Wrong profile / wrong Nest rendering
+
+GlobalShell routes `/nest` to one of seven per-profile Nests based on
+`authStore.selectedProfile`. If your test target is e.g. the
+IndustrialNest, but the screenshot keeps showing TraderNest, the
+profile didn't switch. The authStore is **`sessionStorage`-backed**,
+not localStorage. Write to the right bucket:
+
+```js
+const key = 'gridalpha-auth-signup';
+const data = JSON.parse(sessionStorage.getItem(key) || '{"state":{},"version":0}');
+data.state.selectedProfile = 'industrial';
+sessionStorage.setItem(key, JSON.stringify(data));
+window.location.reload();
+```
+
+Then re-navigate to `/nest` after the reload + splash dismiss.
+
+### Splash overlay blocks the first capture
+
+The cinematic splash (`EntryOverlay` in `GlobalShell.tsx`) covers the
+first ~2 s of cold load. If your screenshot captures it instead of
+the surface under test, dismiss with `document.body.click()` via
+`preview_eval` and wait ~400 ms before retrying.
+
+### Target element exists but isn't in the captured frame
+
+The screenshot tool captures the visible viewport. If your target
+element's `getBoundingClientRect().top > window.innerHeight`, it's
+off-screen and won't appear in the capture. Scroll it into view
+first:
+
+```js
+const target = document.querySelector(/* ... */);
+target.scrollIntoView({ block: 'center' });
+// wait ~400 ms for layout to settle
+```
+
+Some surfaces have an inner scroller (not the document scroller).
+Walk up the tree to find the element with
+`overflow-y: auto | scroll` and call `scrollTo()` on it.
+
+### Element selector matches a parent container
+
+When you query for "the div containing `'PJM WEST · SPARK SPREAD'`",
+the selector matches every ancestor that contains that text — page
+root, column wrapper, the actual tile, etc. Filter by a stable visual
+signature of the actual tile (a computed style only the tile has,
+like the tile's `minHeight: 200px`, or a class only the tile owns).
+The Phase 4 test had to do this — see `tools/screenshot-loop/test-results.md`.
+
 ## When the loop terminates
 
 You are done when:
 - All three viewports look correct against every rule in step 4
-- You have posted the three final screenshots in the conversation
+- You have posted the final screenshots (or DOM-inspection findings,
+  where screenshot capture wasn't viable) in the conversation
 - You commit with the screenshots referenced in the commit message

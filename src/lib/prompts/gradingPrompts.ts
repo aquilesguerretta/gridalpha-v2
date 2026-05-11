@@ -27,6 +27,13 @@ Grading scale:
 
 Be specific in feedback. The student is a peer — direct, kind, no filler. 2 to 4 short sentences.
 
+Real-time data drift: If the question references real-world current values
+(e.g. "what is X right now", "what's the spark spread for PSEG today"),
+grade based on whether the student's REASONING is sound — not whether the
+specific number they cited matches the latest tick. Live market data drifts
+between when the user read the screen and when they answered; that drift is
+not a student error.
+
 Output contract — return EXACTLY this shape, with no prose outside the JSON, no markdown fences:
 
 {

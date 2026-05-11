@@ -29,17 +29,33 @@ export function printConsole(report: RunReport): void {
     return;
   }
 
-  // Group findings by severity, then by file. Within a file, sort by
-  // line number ascending.
-  const grouped = groupByFile(report.findings);
+  // ── Severity summary row ───────────────────────────────────────────
+  const summaryParts: string[] = [];
   for (const sev of SEVERITY_ORDER) {
     const count = report.bySeverity[sev] ?? 0;
     if (count === 0) continue;
     const color = SEVERITY_ANSI[sev];
-    lines.push(`  ${color}${ANSI_BOLD}${SEVERITY_LABEL[sev]}${ANSI_RESET}  ${ANSI_DIM}${count}${ANSI_RESET}`);
+    summaryParts.push(
+      `${color}${ANSI_BOLD}${SEVERITY_LABEL[sev]}${ANSI_RESET}${ANSI_DIM} × ${count}${ANSI_RESET}`,
+    );
+  }
+  lines.push(`  ${summaryParts.join('   ')}`);
+  lines.push('');
+
+  // ── Per-rule grouping (helps spot the noisy rule fast) ─────────────
+  const byRule = groupByRule(report.findings);
+  lines.push(`  ${ANSI_MUTED}by rule:${ANSI_RESET}`);
+  for (const [rule, count] of byRule) {
+    const f0 = report.findings.find((f) => f.rule === rule)!;
+    const color = SEVERITY_ANSI[f0.severity];
+    lines.push(
+      `    ${color}${SEVERITY_LABEL[f0.severity]}${ANSI_RESET}  ${rule.padEnd(28)}  ${ANSI_DIM}× ${count}${ANSI_RESET}`,
+    );
   }
   lines.push('');
 
+  // ── Per-file findings ──────────────────────────────────────────────
+  const grouped = groupByFile(report.findings);
   for (const [file, findings] of grouped) {
     lines.push(`  ${ANSI_HEADING}${file}${ANSI_RESET}`);
     for (const f of findings) {
@@ -54,6 +70,22 @@ export function printConsole(report: RunReport): void {
     }
     lines.push('');
   }
+
+  // ── Footer with exit-code hint ─────────────────────────────────────
+  const p0 = report.bySeverity.P0;
+  if (p0 > 0) {
+    lines.push(
+      `  ${SEVERITY_ANSI.P0}${ANSI_BOLD}${p0} P0 finding${p0 === 1 ? '' : 's'} — auditor exits 1.${ANSI_RESET}`,
+    );
+    lines.push(
+      `  ${ANSI_DIM}Fix the P0 violations or add a // gridalpha-detect-disable-next-line directive with rationale.${ANSI_RESET}`,
+    );
+  } else {
+    lines.push(
+      `  ${ANSI_DIM}No P0 findings — auditor exits 0. P1/P2 are reported for awareness.${ANSI_RESET}`,
+    );
+  }
+  lines.push('');
 
   process.stdout.write(lines.join('\n'));
 }
@@ -93,6 +125,17 @@ function groupByFile(findings: Finding[]): Map<string, Finding[]> {
     );
   }
   return map;
+}
+
+function groupByRule(findings: Finding[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const f of findings) {
+    map.set(f.rule, (map.get(f.rule) ?? 0) + 1);
+  }
+  // Sort descending by count so the noisiest rule is first.
+  return new Map(
+    [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])),
+  );
 }
 
 export function emptySeverityCounts(): Record<Severity, number> {

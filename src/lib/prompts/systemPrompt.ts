@@ -59,10 +59,23 @@ export const SYSTEM_PROMPT = BASE_SYSTEM_PROMPT;
  * Stable contract — Wave 2 callers (`useAIChat`) pass the snapshot they
  * captured via `useAIContextSnapshot()` and forward the result as the
  * `system` field of the Anthropic Messages payload.
+ *
+ * Wave 4 addition: prepends a TIME TRAVEL or DATA FRESHNESS block when
+ * the snapshot carries either signal. See `buildFreshnessBlock` below.
  */
 export function buildSystemPrompt(snapshot: AIContextSnapshot): string {
   const { surface, user } = snapshot;
   const lines: string[] = [];
+
+  // Time-travel / freshness blocks come FIRST so the model conditions
+  // on them before reading anything else. If the user is replaying
+  // Storm Elliott, the model needs to know that before parsing "what's
+  // the current LMP" — same for "data is X minutes old".
+  const freshnessBlock = buildFreshnessBlock(snapshot);
+  if (freshnessBlock) {
+    lines.push(freshnessBlock);
+    lines.push('');
+  }
 
   lines.push('## CURRENT CONTEXT');
   lines.push('');
@@ -128,4 +141,81 @@ export function buildSystemPrompt(snapshot: AIContextSnapshot): string {
   );
 
   return `${BASE_SYSTEM_PROMPT}\n\n${lines.join('\n')}`;
+}
+
+/**
+ * Wave 4 — build the temporal block that goes at the very top of the
+ * context. Three states:
+ *
+ *   1. Atlas in event-replay → "## TIME TRAVEL MODE — replaying X"
+ *   2. Any surface with stale sources → "## DATA FRESHNESS — N of M stale"
+ *   3. Everything fresh (or unmeasurable) → "## DATA FRESHNESS — all current"
+ *
+ * Returns the empty string when there's nothing to say (no freshness
+ * data on the snapshot, no time-travel mode set). The empty return
+ * means the prompt assembly inserts no block — Wave 1 / Wave 2
+ * surfaces compile and behave identically.
+ */
+export function buildFreshnessBlock(snapshot: AIContextSnapshot): string {
+  const { surface } = snapshot;
+  const fr = surface.visibleData?.freshness;
+
+  // 1. Atlas time-travel takes precedence over freshness — when the user
+  //    is replaying an event the "data is X seconds old" framing is wrong.
+  if (surface.timeTravelMode === 'event-replay' && surface.replayEvent) {
+    return [
+      '## TIME TRAVEL MODE',
+      '',
+      `The user is replaying "${surface.replayEvent.name}" (${surface.replayEvent.window}).`,
+      'Data shown is HISTORICAL, not current. When discussing prices,',
+      'outages, or grid state, reference the event window explicitly.',
+      'Do not say "current" or "now" for replayed data — say "during the',
+      `${surface.replayEvent.name} event" or use the event window.`,
+    ].join('\n');
+  }
+
+  // Scrubbed (but not pinned to a named event) — also historical.
+  if (surface.timeTravelMode === 'scrubbed') {
+    return [
+      '## TIME TRAVEL MODE',
+      '',
+      'The user has scrubbed to a historical snapshot. Data shown is',
+      'NOT current. Reference the scrub timestamp instead of "now" when',
+      'discussing values.',
+    ].join('\n');
+  }
+
+  // 2. No freshness signal at all — skip the block entirely.
+  if (!fr) return '';
+
+  // 3. Some sources are stale — call them out.
+  if (fr.staleSourceCount > 0) {
+    const oldestMin = Math.round(fr.oldestDataAgeSeconds / 60);
+    const oldestPhrase =
+      oldestMin >= 1
+        ? `~${oldestMin} minute${oldestMin === 1 ? '' : 's'} ago`
+        : `${fr.oldestDataAgeSeconds}s ago`;
+    const staleNames = fr.sources
+      .filter((s) => s.isStale)
+      .map((s) => s.label)
+      .slice(0, 3)
+      .join(', ');
+    return [
+      '## DATA FRESHNESS',
+      '',
+      `${fr.staleSourceCount} of ${fr.sources.length} data sources are stale ` +
+        `(oldest ${oldestPhrase}${staleNames ? `: ${staleNames}` : ''}).`,
+      'When citing specific values, mention "as of" with a timestamp or',
+      `"as of ~${Math.max(1, oldestMin)} min ago" when staleness is significant.`,
+      'If the user asks for the "current" state, note that the data may have',
+      'moved since last refresh.',
+    ].join('\n');
+  }
+
+  // 4. Everything fresh — short reassurance block, no caveats required.
+  return [
+    '## DATA FRESHNESS',
+    '',
+    `All data current (oldest source ${fr.oldestDataAgeSeconds}s old).`,
+  ].join('\n');
 }

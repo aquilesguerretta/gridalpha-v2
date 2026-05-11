@@ -14,7 +14,9 @@ export type ContextualPromptId =
   | 'what-does-this-mean-for-me'
   | 'related-concepts'
   | 'historical-context'
-  | 'next-action';
+  | 'next-action'
+  | 'how-fresh-is-this'
+  | 'latest-update';
 
 export const CONTEXTUAL_PROMPTS: Record<ContextualPromptId, string> = {
   'explain-this-chart':
@@ -29,6 +31,11 @@ export const CONTEXTUAL_PROMPTS: Record<ContextualPromptId, string> = {
     'How does what I see right now compare to historical patterns?',
   'next-action':
     'Based on what I see, what would be a reasonable next action?',
+  // Wave 4 — explicit freshness queries.
+  'how-fresh-is-this':
+    'How fresh is the data on this screen? Which sources are live and which are stale?',
+  'latest-update':
+    'When did each data source on this screen last update? Anything I should refresh before acting?',
 };
 
 /**
@@ -43,6 +50,8 @@ export const CONTEXTUAL_PROMPT_LABELS: Record<ContextualPromptId, string> = {
   'related-concepts':         'Related concepts',
   'historical-context':       'Historical context',
   'next-action':              'Next action',
+  'how-fresh-is-this':        'How fresh?',
+  'latest-update':            'Latest update?',
 };
 
 /**

@@ -2588,25 +2588,122 @@ fallback or capacity from nameplate estimate).
 
 | Endpoint | Path | TTL | Notes |
 | --- | --- | --- | --- |
-| 1 | `GET /api/lmp/current?zone=` | 60s | RT 5-min single-zone |
-| 2 | `GET /api/lmp/all-zones` | 60s | Fan-out, reuses Endpoint 1 cache |
-| 3 | `GET /api/lmp/24h?zone=` | 5m | Paginated (288 rows ~ 3 PJM pages) |
+| 1 | `GET /api/lmp/current?zone=` | 60s | Hourly RT LMP, single zone |
+| 2 | `GET /api/lmp/all-zones` | 60s | One batch call per subtype (ZONE/HUB) |
+| 3 | `GET /api/lmp/24h?zone=` | 5m | 24 hourly points (`interval_minutes=60`) |
 | 4 | `GET /api/lmp/da-forecast?zone=&date=` | 1h | `date` defaults to tomorrow EPT |
-| 5 | `GET /api/lmp/history?zone=&start=&end=&interval=` | 30 days | Verified dataset; max range 168h |
-| 6 | `GET /api/spark-spread/current?zone=&heat_rate=` | 60s | LMP + Henry Hub; default 7,500 BTU/kWh |
+| 5 | `GET /api/lmp/history?zone=&start=&end=&interval=` | 30 days | Verified hourly archive; max range 168h |
+| 6 | `GET /api/spark-spread/current?zone=&heat_rate=` | 60s | LMP + Henry Hub (EIA → static fallback) |
 | 7 | `GET /api/fuel-mix/current` | 5m | Adds pct + carbon intensity overlay |
-| 8 | `GET /api/reserve-margin/current?zone=` | 60s | PJM-wide; zone-specific falls back |
-| 9 | `GET /api/outages/current` | 5m | Per-unit; degraded_mode falls back to fuel-aggregated |
+| 8 | `GET /api/reserve-margin/current?zone=` | 60s | PJM-wide; capacity from static nameplate |
+| 9 | `GET /api/outages/current` | 5m | Aggregated by region × outage_type (degraded) |
 | 10 | `GET /api/ancillary/current?zone=` | 5m | Reg-A/D + spin + mileage MCPs |
-| 11 | `GET /api/lmp/da-forecast/all-zones?date=` | 1h | Fan-out, reuses Endpoint 4 cache |
+| 11 | `GET /api/lmp/da-forecast/all-zones?date=` | 1h | One batch call per subtype |
 | 12 | `GET /api/stream` | live | SSE; events: `lmp-update`, `outage`, `heartbeat` |
 
-### Auth
+### PJM Auth — the public-key bootstrap (THIS IS NOT THE OBVIOUS PATH)
 
-- PJM Data Miner 2 via `PJM_USERNAME` / `PJM_PASSWORD` (ForgeRock SSO,
-  cached `tokenId`) or `PJM_SUBSCRIPTION_KEY` (Azure APIM) — Railway
-  picks whichever env is set.
-- Henry Hub gas spot via `EIA_API_KEY` (existing).
+PJM Data Miner 2 has two surfaces and only one of them accepts SSO:
+
+* `dataminer2.pjm.com` — browser SPA. Accepts the ForgeRock SSO cookie
+  (`iPlanetDirectoryPro`). **Public:** ships its Azure APIM subscription
+  key at `http://dataminer2.pjm.com/config/settings.json` so the SPA
+  can call api.pjm.com without bundling a secret.
+* `api.pjm.com` — Azure APIM gateway every dataset feed lives behind.
+  **Rejects the SSO cookie.** Accepts only the
+  `Ocp-Apim-Subscription-Key` header.
+
+V1 (gridalpha-production) and V2 both bootstrap that public 32-char
+subscription key from `settings.json` once on boot and use it as the
+bearer for every api.pjm.com call. The key is cached for 6h and
+force-refreshed on the next 401. No `PJM_SUBSCRIPTION_KEY` env var
+is provisioned in normal operation.
+
+Why this isn't the obvious path:
+* PJM publishes a Developer Portal where users can request a private
+  Azure APIM key. Aquiles's account does not have one issued — and
+  doesn't need one because the public key from settings.json covers
+  every public dataset feed.
+* The PJM SSO username/password (`PJM_USERNAME`, `PJM_PASSWORD`)
+  authenticates only the dataminer2 SPA, not api.pjm.com. Earlier V2
+  iterations of `intelligence_cache.py` tried to use the SSO cookie
+  for api.pjm.com calls and uniformly got 401/404 in response. The
+  SSO machinery has been removed entirely; the env vars stay readable
+  for future private endpoints but no longer drive any code path.
+* V1 has worked the entire time precisely because it never went down
+  the SSO path — its `data/pjm_client.py` always scraped settings.json.
+  Five different V1 modules (`pjm_client`, `lmp`, `weather`,
+  `convergence`, `api`) use the same pattern.
+
+Auth implementation: `app/services/intelligence_cache.py`
+(`_fetch_pjm_public_key`, `pjm_auth_headers`). `PJM_SUBSCRIPTION_KEY`
+is honored as an optional override but is never set in practice.
+`PJM_SETTINGS_URL` overrides the settings endpoint for tests.
+
+### LMP dataset + request shape (load-bearing)
+
+The public PJM RT LMP feed comes in two flavors and only one of them
+is usable at scale:
+
+* `rt_unverified_fivemin_lmps` — 5-minute cadence, but PJM **refuses
+  the `type` filter on this feed** (`Filters: One or more filter field
+  name(s) are invalid. detail: ["type"]`). The only zone-scope is
+  client-side filtering of every bus-level pricing node — thousands of
+  rows per 5-minute slot, impractical under the 100-row page cap.
+* `rt_unverified_hrl_lmps` — **hourly cadence**, accepts `type=ZONE`
+  or `type=HUB`. Returns exactly 22 zones / 12 hubs per hour. V1 uses
+  this feed and so do we.
+
+Frontend cadence is therefore **hourly**. `meta.interval_minutes=60`
+on `/api/lmp/24h` reflects this. The `delta_pct_5min` field is
+preserved in the response for frontend stability but is now
+hour-over-hour.
+
+Other PJM-specific request-shape constraints:
+
+* Every request needs `startRow=1`. `app/services/intelligence_data.py::_pjm_fetch`
+  auto-injects this. Forgetting it returns
+  `{"field":"StartRow","message":"StartRow is missing."}`.
+* `datetime_beginning_ept` filter format is `YYYY-MM-DD HH:MM`
+  (not `M/D/YYYY HH:MM`).
+* `rt_hrl_lmps` (verified archive) is treated as archived data — PJM
+  rejects `sort`, `order`, and `fields` on archived calls.
+* `gen_by_fuel` requires a `datetime_beginning_ept` filter; the
+  response is long-format (one row per fuel-type × hour).
+* `gen_outages_by_type` is the **only** public outage feed available
+  on the APIM gateway. `gen_outages_by_unit` returns 404 - per-unit
+  outage data is not available without a private subscription. The
+  aggregated feed publishes one row per region (`PJM RTO`,
+  `Mid Atlantic - Dominion`, `Western`) per day with
+  total/planned/maintenance/forced columns; we synthesize aggregated
+  contract rows from that.
+* `ancillary_services` is **long-format**: one row per
+  `ancillary_service` × `unit` per hour. Wide-format columns
+  (`reg_market_clearing_price` etc.) do not exist. Contract mapping:
+  `RTO Regulation Capability` Price → `regulation_a_mcp`;
+  `RTO Synchronized Reserve` Price → `spinning_reserve_mcp`;
+  `RTO Regulation Mileage` Price → `regulation_mileage_payment`;
+  `regulation_d_mcp = capability + mileage`. The feed rejects `sort`
+  on `datetime_beginning_utc`, so we pick latest hour client-side.
+* `load_frcstd_7_day` PJM-wide aggregate is `forecast_area=RTO_COMBINED`
+  (not `PJM RTO`). The dataset accepts `forecast_area` as a server-side
+  filter. Fields are `forecast_datetime_beginning_ept` and
+  `forecast_load_mw` — not `datetime_beginning_utc` /
+  `forecasted_load_mw` as a quick scan of the dataset name might
+  suggest.
+* `forecasted_capacity_outlook` does **not** exist on api.pjm.com
+  under the public key (404). Reserve margin uses a static 200 GW
+  nameplate fallback with `meta.degraded_mode=true` and the disclaimer
+  in `meta.notes`.
+
+### Other auth
+
+- Henry Hub gas spot via `EIA_API_KEY` (existing). Production has been
+  returning HTTP 404 since the Wave-5 build started; spark-spread
+  falls back to a static `$4.00/MMBtu` (V1's hardcoded value, see
+  `STATIC_GAS_PRICE_FALLBACK_MMBTU`) when EIA is unreachable, with
+  `meta.gas_price_source=static-fallback` and
+  `meta.degraded_mode=true` set.
 - Anthropic proxy still uses `ANTHROPIC_API_KEY` — `/api/ai/complete`
   is unchanged from V1 and remains the canonical route for ORACLE.
 

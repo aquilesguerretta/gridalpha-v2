@@ -1,12 +1,23 @@
-// ATLAS Wave 2 — Historical snapshot API.
+// ATLAS Historical snapshot API.
 //
-// Thin lookup layer over the rolling 72-hour buffer. The store calls these
-// for every render cycle; they're cheap (O(log n) by binary search). When
-// the FastAPI backend ships the historical endpoint, swap the buffer
-// source for a streamed cache — the public surface stays the same.
+// Wave 2 — buffer-only lookups for the rolling 72-hour mock window.
+// Wave 3 — `loadEvent(eventId)` convenience that fires the real
+//          PJM /api/lmp/history fetch through the time-travel store.
+//
+// The buffer functions (getCurrentSnapshot / getBracketingSnapshots /
+// getHistoricalSnapshot / getHistoricalRange) drive `live` and
+// `scrubbed` modes. They return synthetic data from the rolling
+// 72h mock — that buffer is the canonical "what was happening
+// recently" surface, separate from the curated named events.
+//
+// `event-replay` mode reads from `useTimeTravelStore.eventSnapshots`
+// which is populated by `useAtlasHistorical`. The lookup helpers for
+// that path live in `eventLibrary.ts` (`getEventBracketingSnapshots`).
+// See useTimeTravelData for the mode-routing.
 
 import type { AtlasSnapshot } from '@/lib/types/timeTravel';
 import { getHistoricalBuffer } from '@/lib/mock/atlas-historical-mock';
+import { useTimeTravelStore } from '@/stores/timeTravelStore';
 
 /** The rolling buffer's earliest snapshot timestamp (~72h ago). */
 export function getHistoricalRangeStart(): string {
@@ -113,4 +124,31 @@ export function getHistoricalRange(start: string, end: string): AtlasSnapshot[] 
 export function getCurrentSnapshot(): AtlasSnapshot {
   const buf = getHistoricalBuffer();
   return buf[buf.length - 1];
+}
+
+// ── Wave 3 — event load convenience ────────────────────────────────────
+
+/**
+ * Kick off the real `/api/lmp/history` fetch for a named event.
+ * Delegates to the store's `selectEvent` action — `useAtlasHistorical`
+ * sees `activeEventId` change, fires the multi-zone fetch, and
+ * pushes the assembled snapshots back into the store.
+ *
+ * Callers outside React (e.g. routing handlers, deep links) can
+ * use this without mounting the hook directly. Inside React,
+ * `useTimeTravelStore((s) => s.selectEvent)` is equivalent.
+ */
+export function loadEvent(eventId: string): void {
+  useTimeTravelStore.getState().selectEvent(eventId);
+}
+
+/**
+ * Returns the currently loaded event snapshots (or null when not
+ * in event-replay mode / fetch hasn't completed). Read-only sugar
+ * over `useTimeTravelStore.getState().eventSnapshots`.
+ */
+export function getLoadedEventSnapshots(): AtlasSnapshot[] | null {
+  const state = useTimeTravelStore.getState();
+  if (state.mode !== 'event-replay') return null;
+  return state.eventSnapshots.length > 0 ? state.eventSnapshots : null;
 }

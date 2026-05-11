@@ -3363,3 +3363,77 @@ fix them.
 - Multi-day scrubbing ranges (the store already accepts arbitrary
   spans; just needs scrubber tick-density work)
 
+## FOUNDRY WAVE 2 — GRIDALPHA-TERMINAL SKILL
+
+Wave 2 consolidates GridAlpha's terminal design vocabulary into a
+single Claude Skill that loads automatically on every Claude Code
+session. The skill replaces ad-hoc design guidance in agent prompts
+and the older negative-constraint sections of this file.
+
+### Structure
+
+```
+.claude/skills/gridalpha-terminal/
+├── SKILL.md                              YAML frontmatter + intro
+├── EXAMPLES.md                           4 reference surfaces
+└── references/
+    ├── terminal-typography.md            font lock, sizes, tabular-nums
+    ├── terminal-color.md                 four-tier elevation, accents
+    ├── terminal-composition.md           HERO / FLOW / CONTAINED
+    ├── terminal-motion.md                state-change-only motion
+    ├── terminal-density.md               info density as feature
+    └── terminal-antipatterns.md          what NOT to do (most important)
+```
+
+### Activation pattern
+
+Claude Code reads the `SKILL.md` frontmatter (`name`,
+`description`) at session start and surfaces the description in the
+loaded-skills index. The model decides per task whether to load
+specific references via the Read tool — the "progressive disclosure"
+pattern keeps token cost low until a generation actually needs the
+vocabulary.
+
+For most UI generation tasks the relevant references are:
+- `terminal-antipatterns.md` — load first, every time, prevents the
+  most common failures
+- `terminal-typography.md` — any text rendering decision
+- `terminal-color.md` — any background, accent, alert color
+- `terminal-composition.md` — any layout decision
+
+### Override pattern
+
+Briefs and agent prompts can force-load a specific reference by
+naming it (e.g. "follow `references/terminal-density.md` strictly").
+This signals to the model that the reference is authoritative for
+the task and should be read in full before generation, not just
+sampled.
+
+The skill itself is authoritative over CLAUDE.md when they conflict.
+Tokens in `src/design/tokens.ts` remain the immutable source of
+truth for hex values; the references describe the philosophy that
+produced those tokens.
+
+### Future work
+
+- **Marketing-surface variant.** GridAlpha's landing / auth /
+  marketing pages follow a different composition vocabulary
+  (editorial-led, F.sans Inter primary, generous whitespace,
+  Instrument Serif hero copy). A sibling skill
+  `gridalpha-editorial` would encode that vocabulary so agents
+  working on those surfaces don't pull from the terminal skill's
+  density and Geist-Mono rules.
+- **Per-profile depth variants.** The Trader Nest's density target
+  is higher than the Industrial or Student Nest. A future revision
+  could carry per-profile density floors in
+  `terminal-density.md` rather than the platform-wide minimum.
+- **CHROMA Wave 5 enforcement layer.** This skill is reference-only.
+  A future CHROMA wave will build a linting / runtime-warning
+  layer that flags code violating the skill's rules (e.g.
+  missing tabular-nums on a numeric value, F.sans on a terminal
+  surface, drop-shadow on a data card).
+- **Slim CLAUDE.md (Wave 3 / Phase 6.3).** With the skill carrying
+  the design vocabulary, this CLAUDE.md can be trimmed to under
+  100 lines — keeping only repo-level facts (paths, ownership,
+  branch policy) and delegating design rules to the skill.
+

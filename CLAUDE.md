@@ -3437,3 +3437,30 @@ produced those tokens.
   100 lines — keeping only repo-level facts (paths, ownership,
   branch policy) and delegating design rules to the skill.
 
+## VISUAL FEEDBACK LOOP
+
+Every brief for any agent generating UI must include a phase invoking
+`/screenshot-loop`. After generating the component, before declaring
+the phase complete, the agent must:
+
+1. Run `/screenshot-loop`
+2. List the specific visual issues found in each of the three
+   viewports (1440×900, 1920×1080, 3440×1440)
+3. Revise the code until all three viewports look correct against
+   the gridalpha-terminal skill rules (antipatterns, composition,
+   density, typography, color, motion)
+4. Capture the final screenshots and post them in the commit context
+
+Without this loop, agents are flying blind on visual quality —
+text-only reading of design rules has been shown to underperform
+because the model never sees what its code actually renders to. With
+the loop, the agent catches its own slop before CHROMA's pass or
+review.
+
+The loop is implemented as `.claude/commands/screenshot-loop.md` (a
+project slash command) backed by the Playwright MCP server registered
+in `.mcp.json`. See **CONDUIT WAVE 4** at the bottom of this file for
+the configuration and integration details. The brief-template phase
+block at `tools/screenshot-loop/brief-template.md` is the canonical
+copy any future brief should embed.
+

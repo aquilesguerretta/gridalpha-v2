@@ -413,6 +413,24 @@ function ContextChip({ snapshot }: ContextChipProps) {
 
   const label = parts.join(' · ');
 
+  // Wave 4 — derive the freshness indicator state. Order of precedence:
+  //   1. Atlas time-travel replay → amber "replay" indicator
+  //   2. Any stale source → amber
+  //   3. All sources fresh → green (alertNormal)
+  //   4. No freshness data → grey (textMuted), no claim either way.
+  const freshness = surface.visibleData?.freshness;
+  const inReplay = surface.timeTravelMode === 'event-replay';
+  const inScrub = surface.timeTravelMode === 'scrubbed';
+  const dotState: FreshnessDotState =
+    inReplay || inScrub
+      ? 'replay'
+      : !freshness
+        ? 'unknown'
+        : freshness.staleSourceCount > 0
+          ? 'stale'
+          : 'live';
+  const dotTitle = freshnessDotTitle(dotState, snapshot);
+
   return (
     <div
       role="status"
@@ -439,13 +457,77 @@ function ContextChip({ snapshot }: ContextChipProps) {
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
+          flex: 1,
         }}
         title={label}
       >
         Analyzing&nbsp;·&nbsp;{label}
       </span>
+      <FreshnessDot state={dotState} title={dotTitle} />
     </div>
   );
+}
+
+// ─── Freshness dot ───────────────────────────────────────────────────
+// Wave 4. Sits at the right edge of the context chip. 8×8 dot, colour
+// keyed to state. The browser tooltip (`title`) names the sources or
+// the replayed event so the user can hover to learn what's behind the
+// state without expanding the chip.
+
+type FreshnessDotState = 'live' | 'stale' | 'replay' | 'unknown';
+
+const FRESHNESS_DOT_COLOR: Record<FreshnessDotState, string> = {
+  live:    C.alertNormal,
+  stale:   C.alertWarning,
+  replay:  C.falconGold,
+  unknown: C.textMuted,
+};
+
+function FreshnessDot({
+  state,
+  title,
+}: {
+  state: FreshnessDotState;
+  title: string;
+}) {
+  return (
+    <span
+      aria-label={`Data freshness: ${state}`}
+      title={title}
+      style={{
+        display:      'inline-block',
+        width:        8,
+        height:       8,
+        borderRadius: '50%',
+        background:   FRESHNESS_DOT_COLOR[state],
+        flexShrink:   0,
+      }}
+    />
+  );
+}
+
+function freshnessDotTitle(
+  state: FreshnessDotState,
+  snapshot: ReturnType<typeof useAIContextSnapshot>,
+): string {
+  const { surface } = snapshot;
+  if (state === 'replay' && surface.replayEvent) {
+    return `Replaying ${surface.replayEvent.name} (${surface.replayEvent.window}) — historical data.`;
+  }
+  if (state === 'replay') {
+    return 'Time-travel scrub mode — historical data.';
+  }
+  const fr = surface.visibleData?.freshness;
+  if (!fr) return 'Data freshness unmeasured on this surface.';
+  if (state === 'stale') {
+    const staleNames = fr.sources
+      .filter((s) => s.isStale)
+      .map((s) => s.label)
+      .join(', ');
+    const oldestMin = Math.round(fr.oldestDataAgeSeconds / 60);
+    return `${fr.staleSourceCount} of ${fr.sources.length} sources stale (oldest ~${oldestMin} min ago)${staleNames ? `: ${staleNames}` : ''}.`;
+  }
+  return `All ${fr.sources.length} sources live (oldest ${fr.oldestDataAgeSeconds}s old).`;
 }
 
 function ContextEyeIcon() {

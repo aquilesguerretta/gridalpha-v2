@@ -1,29 +1,59 @@
 """Ancillary services market clearing prices.
 
-PJM operates several ancillary markets; this service surfaces the four
-values the contract calls out:
+PJM publishes a single public feed (``ancillary_services``) that
+unifies regulation, synchronized reserve, secondary reserve, and
+non-synchronized reserve clearing prices. The per-market feeds
+``regulation_market_results`` and ``synchronized_reserve_market_results``
+return 404 under the public APIM subscription key.
 
-  * ``regulation_d_mcp``         - dynamic-response regulation clearing price
-  * ``regulation_a_mcp``         - traditional regulation clearing price
-  * ``spinning_reserve_mcp``     - synchronized reserve clearing price
-  * ``regulation_mileage_payment`` - per-MWh mileage payment for regulation
+Schema of ``ancillary_services`` (long format, one row per service x
+unit x hour)::
 
-PJM Data Miner 2 dataset names have shifted across releases. The
-implementation attempts a primary dataset (``ancillary_services``) and
-falls back to per-market datasets when the umbrella is unavailable.
-``meta.degraded_mode = true`` is set when one or more values could not be
-sourced and a default (``0.0``) is shown instead.
+    {
+      "datetime_beginning_ept":  "2026-05-10T15:00:00",
+      "datetime_beginning_utc":  "2026-05-10T19:00:00",
+      "ancillary_service":       "RTO Regulation Capability" | "RTO Regulation Mileage"
+                                 | "RTO Synchronized Reserve" | "RTO Mileage Ratio"
+                                 | "RTO Non-Synchronized Reserve" | "RTO Secondary Reserve"
+                                 | "MAD Synchronized Reserve" | ...,
+      "unit":                    "Price" | "Ratio",
+      "value":                   float,
+      "row_is_current":          true,
+      "version_nbr":             1
+    }
+
+Contract mapping:
+  * ``regulation_a_mcp``  = ``RTO Regulation Capability`` (Price)
+  * ``regulation_d_mcp``  = ``RTO Regulation Capability`` (Price)
+                          + ``RTO Regulation Mileage`` (Price)
+    Reg-D resources earn capability + mileage payments; the dataset
+    publishes them separately and we sum to a single headline number.
+  * ``spinning_reserve_mcp`` = ``RTO Synchronized Reserve`` (Price)
+  * ``regulation_mileage_payment`` = ``RTO Regulation Mileage`` (Price)
+
+The feed rejects ``sort`` on ``datetime_beginning_utc`` ("Sort field
+is not sortable"), so we filter to a 24-hour window and pick the
+latest hour client-side.
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 
 from app.services.envelope import build_envelope, utc_now_iso
 from app.services.intelligence_cache import get_cached
 from app.services.intelligence_data import _pjm_fetch
+
+EPT = ZoneInfo("America/New_York")
+
+# Canonical service-name labels from the ancillary_services feed.
+_REG_CAPABILITY = "RTO Regulation Capability"
+_REG_MILEAGE = "RTO Regulation Mileage"
+_SYNC_RESERVE = "RTO Synchronized Reserve"
 
 
 def _f(x: Any) -> float:
@@ -35,12 +65,6 @@ def _f(x: Any) -> float:
         return 0.0
 
 
-def _latest(rows: list[dict[str, Any]], ts_field: str) -> dict[str, Any] | None:
-    if not rows:
-        return None
-    return max(rows, key=lambda r: str(r.get(ts_field) or ""))
-
-
 async def _try_fetch(
     dataset: str, params: dict[str, str]
 ) -> list[dict[str, Any]]:
@@ -50,99 +74,67 @@ async def _try_fetch(
         return []
 
 
+def _latest_price(
+    rows: list[dict[str, Any]], service_name: str
+) -> tuple[float, str]:
+    """Return ``(price, observed_utc)`` for the most recent Price row
+    matching ``service_name``. Returns (0.0, "") when not found."""
+    matches = [
+        r
+        for r in rows
+        if str(r.get("ancillary_service") or "").strip() == service_name
+        and str(r.get("unit") or "").strip() == "Price"
+    ]
+    if not matches:
+        return 0.0, ""
+    latest = max(matches, key=lambda r: str(r.get("datetime_beginning_utc") or ""))
+    return _f(latest.get("value")), str(latest.get("datetime_beginning_utc") or "")
+
+
 async def _load_ancillary_current() -> dict[str, Any]:
     notes: list[str] = []
 
-    # ── regulation market (Reg-A, Reg-D, mileage) ───────────────────────────
-    reg_rows = await _try_fetch(
+    now = datetime.now(tz=EPT)
+    window = (
+        f"{(now - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M')} to "
+        f"{now.strftime('%Y-%m-%d %H:%M')}"
+    )
+    rows = await _try_fetch(
         "ancillary_services",
         {
-            "rowCount": "12",
+            "rowCount": "200",
+            "datetime_beginning_ept": window,
             "fields": (
-                "datetime_beginning_utc,reg_market_clearing_price,"
-                "reg_market_clearing_price_rmccp,"
-                "reg_market_clearing_price_rmpcp"
+                "datetime_beginning_ept,datetime_beginning_utc,"
+                "ancillary_service,unit,value,row_is_current"
             ),
         },
     )
-    if not reg_rows:
-        reg_rows = await _try_fetch(
-            "regulation_market_results",
-            {
-                "rowCount": "12",
-                "fields": (
-                    "datetime_beginning_utc,rmccp,rmpcp,total_mcp"
-                ),
-            },
-        )
-        if reg_rows:
-            notes.append("regulation via fallback dataset")
-    if not reg_rows:
-        notes.append("regulation market unavailable")
+    if not rows:
+        notes.append("ancillary_services feed unavailable")
 
-    reg_latest = _latest(reg_rows, "datetime_beginning_utc") or {}
+    rmccp, ts_rmccp = _latest_price(rows, _REG_CAPABILITY)
+    rmpcp, ts_rmpcp = _latest_price(rows, _REG_MILEAGE)
+    spinning, ts_spin = _latest_price(rows, _SYNC_RESERVE)
 
-    rmccp = _f(
-        reg_latest.get("reg_market_clearing_price_rmccp")
-        or reg_latest.get("rmccp")
-    )
-    rmpcp = _f(
-        reg_latest.get("reg_market_clearing_price_rmpcp")
-        or reg_latest.get("rmpcp")
-    )
-    total_reg = _f(
-        reg_latest.get("reg_market_clearing_price")
-        or reg_latest.get("total_mcp")
-    ) or (rmccp + rmpcp)
+    if not ts_rmccp:
+        notes.append("regulation capability price unavailable")
+    if not ts_rmpcp:
+        notes.append("regulation mileage price unavailable")
+    if not ts_spin:
+        notes.append("synchronized reserve price unavailable")
 
-    # PJM publishes the headline RMCCP for Reg-A and the dynamic add-on
-    # (RMPCP, performance) is the bulk of Reg-D's payment - we expose
-    # the canonical values plus the mileage component below.
     regulation_a = round(rmccp, 2)
     regulation_d = round(rmccp + rmpcp, 2)
     mileage_payment = round(rmpcp, 2)
+    total_reg = regulation_d
 
-    # ── synchronized reserve ────────────────────────────────────────────────
-    sr_rows = await _try_fetch(
-        "synchronized_reserve_market_results",
-        {
-            "rowCount": "12",
-            "fields": "datetime_beginning_utc,total_mcp,clearing_price",
-        },
-    )
-    if not sr_rows:
-        sr_rows = await _try_fetch(
-            "ancillary_services",
-            {
-                "rowCount": "12",
-                "fields": "datetime_beginning_utc,sr_market_clearing_price",
-            },
-        )
-        if sr_rows:
-            notes.append("sync-reserve via fallback dataset")
-    if not sr_rows:
-        notes.append("sync-reserve unavailable")
-
-    sr_latest = _latest(sr_rows, "datetime_beginning_utc") or {}
-    spinning = round(
-        _f(
-            sr_latest.get("clearing_price")
-            or sr_latest.get("total_mcp")
-            or sr_latest.get("sr_market_clearing_price")
-        ),
-        2,
-    )
-
-    observed = str(
-        reg_latest.get("datetime_beginning_utc")
-        or sr_latest.get("datetime_beginning_utc")
-        or ""
-    )
+    observed = max(filter(None, [ts_rmccp, ts_rmpcp, ts_spin]), default="")
 
     return {
         "regulation_a_mcp": regulation_a,
         "regulation_d_mcp": regulation_d,
-        "spinning_reserve_mcp": spinning,
+        "spinning_reserve_mcp": round(spinning, 2),
         "regulation_mileage_payment": mileage_payment,
         "total_regulation_mcp": round(total_reg, 2),
         "observed_at": observed,

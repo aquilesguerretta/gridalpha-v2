@@ -1,22 +1,29 @@
 """Reserve-margin computation - load actual + forecast + capacity.
 
-Data sources:
-  * ``inst_load`` - instantaneous load (filtered to PJM-RTO total).
-  * ``load_frcstd_7_day`` - 7-day load forecast (hourly, ``forecasted_load_mw``).
-  * ``forecasted_capacity_outlook`` - committed/forecasted capacity outlook.
+Data sources (all PJM Data Miner 2 public feeds):
+  * ``inst_load`` - instantaneous load by area. PJM-wide total comes
+    from the row where ``area`` = ``"PJM RTO"`` (with a space).
+  * ``load_frcstd_7_day`` - 7-day load forecast. PJM-wide total comes
+    from the row where ``forecast_area`` = ``"RTO_COMBINED"``. The
+    columns are ``forecast_datetime_beginning_ept`` and
+    ``forecast_load_mw`` - NOT ``datetime_beginning_utc`` /
+    ``forecasted_load_mw`` as our first cut assumed.
+  * Available capacity has no public dataset on api.pjm.com -
+    ``forecasted_capacity_outlook`` returns 404 under the public key.
+    We fall back to a static nameplate (PJM 2025 summer peak ~ 190 GW)
+    so the regime classification stays meaningful and surface the
+    estimate via ``capacity_estimated=true``.
 
 Each PJM call is wrapped in its own try/except so a single dataset
-outage does not break the endpoint - the response carries
-``meta.degraded_mode = true`` and the unavailable values fall back to
-an estimate (capacity defaults to 200 GW, the PJM 2025 summer peak
-nameplate, which keeps the regime classification useful even when
-``forecasted_capacity_outlook`` is unreachable).
+outage does not break the endpoint. ``meta.degraded_mode = true``
+marks any partial response.
 """
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 from dateutil import parser as dateparser
@@ -25,7 +32,9 @@ from app.services.envelope import build_envelope, utc_now_iso
 from app.services.intelligence_cache import get_cached
 from app.services.intelligence_data import _pjm_fetch
 
+EPT = ZoneInfo("America/New_York")
 DEFAULT_NAMEPLATE_CAPACITY_MW = 200_000.0  # PJM 2025 summer peak ~190 GW
+PJM_RTO_FORECAST_AREA = "RTO_COMBINED"     # confirmed via dataminer probe
 
 
 def _f(x: Any) -> float:
@@ -42,6 +51,8 @@ def _pick_pjm_rto_row(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     candidates: list[dict[str, Any]] = []
     for row in rows:
         area = str(row.get("area") or row.get("zone") or "").strip().upper()
+        # inst_load uses "PJM RTO" with a space. The other variants are
+        # defensive in case PJM changes capitalisation/punctuation.
         if area in {"PJM RTO", "PJM-RTO", "RTO", "PJM"}:
             candidates.append(row)
     pool = candidates or rows
@@ -70,76 +81,79 @@ async def _try_pjm_fetch(
         return []
 
 
+def _ept_window(hours_back: int, hours_forward: int) -> str:
+    now = datetime.now(tz=EPT)
+    start = now - timedelta(hours=hours_back)
+    end = now + timedelta(hours=hours_forward)
+    return f"{start.strftime('%Y-%m-%d %H:%M')} to {end.strftime('%Y-%m-%d %H:%M')}"
+
+
 async def _load_reserve_margin() -> dict[str, Any]:
     notes: list[str] = []
 
-    # ── load actual ─────────────────────────────────────────────────────────
+    # ── load actual (inst_load, latest "PJM RTO" row) ───────────────────────
     inst_rows = await _try_pjm_fetch(
         "inst_load",
         {
             "rowCount": "100",
-            "fields": "datetime_beginning_utc,area,instantaneous_load",
+            "datetime_beginning_ept": _ept_window(hours_back=1, hours_forward=0),
+            "fields": "datetime_beginning_utc,datetime_beginning_ept,area,instantaneous_load",
         },
     )
     actual_row = _pick_pjm_rto_row(inst_rows)
     load_actual_mw = round(_f((actual_row or {}).get("instantaneous_load")), 2)
-    if not actual_row:
-        notes.append("inst_load unavailable")
+    if not actual_row or load_actual_mw <= 0:
+        notes.append("inst_load PJM-RTO total unavailable")
 
-    # ── load forecast (next interval) ───────────────────────────────────────
-    forecast_rows = await _try_pjm_fetch(
+    # ── load forecast (load_frcstd_7_day, RTO_COMBINED) ─────────────────────
+    # PJM accepts ``forecast_area`` as a server-side filter on this feed,
+    # so we scope directly to the system-wide aggregate and get exactly
+    # the 168 hourly rows (7 days x 24h) we care about.
+    forecast_rto = await _try_pjm_fetch(
         "load_frcstd_7_day",
         {
-            "rowCount": "48",
-            "fields": "datetime_beginning_utc,forecasted_load_mw,area",
+            "rowCount": "200",
+            "forecast_area": PJM_RTO_FORECAST_AREA,
+            "fields": (
+                "evaluated_at_datetime_ept,forecast_datetime_beginning_ept,"
+                "forecast_area,forecast_load_mw"
+            ),
         },
     )
-    forecast_pjm = [
-        r
-        for r in forecast_rows
-        if str(r.get("area") or "").strip().upper() in {"PJM RTO", "RTO", "PJM"}
-    ] or forecast_rows
-    forecast_pjm.sort(key=lambda r: str(r.get("datetime_beginning_utc") or ""))
+
+    def _row_dt(r: dict[str, Any]) -> datetime | None:
+        raw = str(r.get("forecast_datetime_beginning_ept") or "")
+        if not raw:
+            return None
+        try:
+            dt = dateparser.parse(raw)
+        except (TypeError, ValueError):
+            return None
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=EPT)
+        return dt.astimezone(timezone.utc)
+
+    forecast_rto.sort(key=lambda r: str(r.get("forecast_datetime_beginning_ept") or ""))
     nowish = datetime.now(timezone.utc) - timedelta(minutes=5)
     next_forecast = None
-    for r in forecast_pjm:
-        try:
-            dt = dateparser.parse(str(r.get("datetime_beginning_utc") or ""))
-        except (TypeError, ValueError):
+    for r in forecast_rto:
+        dt = _row_dt(r)
+        if dt is None:
             continue
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
         if dt >= nowish:
             next_forecast = r
             break
-    load_forecast_mw = round(_f((next_forecast or {}).get("forecasted_load_mw")), 2)
+    load_forecast_mw = round(_f((next_forecast or {}).get("forecast_load_mw")), 2)
     if not next_forecast:
-        notes.append("load_frcstd_7_day unavailable")
+        notes.append("load_frcstd_7_day RTO_COMBINED forecast unavailable")
 
-    # ── available capacity ──────────────────────────────────────────────────
-    cap_rows = await _try_pjm_fetch(
-        "forecasted_capacity_outlook",
-        {
-            "rowCount": "5",
-            "fields": "datetime_beginning_utc,total_committed_capacity",
-        },
-    )
-    cap_rows.sort(
-        key=lambda r: str(r.get("datetime_beginning_utc") or ""), reverse=True
-    )
-    available_capacity_mw = round(
-        _f((cap_rows or [{}])[0].get("total_committed_capacity")), 2
-    )
-    capacity_estimated = False
-    if available_capacity_mw <= 0:
-        available_capacity_mw = DEFAULT_NAMEPLATE_CAPACITY_MW
-        capacity_estimated = True
-        notes.append("capacity from nameplate fallback")
+    # ── available capacity (no public dataset; static fallback) ─────────────
+    available_capacity_mw = DEFAULT_NAMEPLATE_CAPACITY_MW
+    capacity_estimated = True
+    notes.append("capacity from static nameplate fallback (no public PJM capacity feed)")
 
     # ── reserve margin ──────────────────────────────────────────────────────
     if load_actual_mw <= 0:
-        # If we have no live load reading, anchor regime calculation on the
-        # forecast so the response is still meaningful.
         denom = load_forecast_mw or 1.0
     else:
         denom = load_actual_mw
@@ -155,7 +169,7 @@ async def _load_reserve_margin() -> dict[str, Any]:
         "available_capacity_mw": available_capacity_mw,
         "reserve_margin_pct": reserve_margin_pct,
         "regime": regime,
-        "degraded_mode": bool(notes),
+        "degraded_mode": True,  # capacity is always estimated; always degraded
         "notes": notes,
         "capacity_estimated": capacity_estimated,
         "observed_at": str(

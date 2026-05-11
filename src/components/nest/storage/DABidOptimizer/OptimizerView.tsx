@@ -10,6 +10,7 @@ import { useMemo, useState } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
+import { Skeleton } from '@/components/terminal/Skeleton';
 import { useStorageOptimizer } from '@/hooks/useStorageOptimizer';
 import { AssetRegistrationForm } from './AssetRegistrationForm';
 import { FleetOverview } from './FleetOverview';
@@ -154,20 +155,59 @@ export function OptimizerView() {
         </ContainedCard>
       )}
 
-      {/* Running */}
+      {/* Running — CHROMA Wave 4: pulsing dot + status copy + result
+          panel skeleton stack matching the FleetOverview / AssetDetail
+          shape that's about to land. */}
       {isRunning && (
         <ContainedCard padding={S.xl}>
           <div
             style={{
-              fontFamily: F.mono,
-              fontSize: 13,
-              color: C.electricBlueLight,
-              letterSpacing: '0.10em',
-              textTransform: 'uppercase',
+              display:    'flex',
+              alignItems: 'center',
+              gap:        S.md,
+              marginBottom: S.lg,
             }}
           >
-            Generating bid curves across {fleet?.assets.length ?? 0} assets ×
-            3 scenarios…
+            <span
+              aria-hidden
+              style={{
+                width:        8,
+                height:       8,
+                borderRadius: '50%',
+                background:   C.electricBlue,
+                animation:    'ga-connection-reconnect 1.2s ease-in-out infinite',
+                flexShrink:   0,
+              }}
+            />
+            <div
+              style={{
+                fontFamily: F.mono,
+                fontSize: 13,
+                color: C.electricBlueLight,
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Generating bid curves across {fleet?.assets.length ?? 0} assets ×
+              3 scenarios…
+            </div>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 2fr',
+              gap: S.lg,
+              alignItems: 'start',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+              <Skeleton.Line width="80%" height={16} label="Loading fleet header" />
+              <Skeleton.Block height={120} label="Loading fleet ranking" />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: S.sm }}>
+              <Skeleton.Line width="50%" height={18} label="Loading asset header" />
+              <Skeleton.Chart height={220} gridLines={4} label="Loading bid curve" />
+            </div>
           </div>
         </ContainedCard>
       )}

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
+import { Skeleton } from '@/components/terminal/Skeleton';
 import { useSimulator } from '@/hooks/useSimulator';
 import { FacilityProfileForm } from './FacilityProfileForm';
 import { StrategyRanking } from './StrategyRanking';
@@ -164,20 +165,47 @@ export function SimulatorView() {
         </ContainedCard>
       )}
 
-      {/* Running */}
+      {/* Running — CHROMA Wave 4 loading affordance: status line + a
+          short stack of Skeleton.Block stand-ins for the result panel
+          that's about to land. Pulsing dot signals "active work". */}
       {isRunning && (
         <ContainedCard padding={S.xl}>
           <div
             style={{
-              fontFamily: F.mono,
-              fontSize: 13,
-              color: C.electricBlueLight,
-              letterSpacing: '0.10em',
-              textTransform: 'uppercase',
+              display:    'flex',
+              alignItems: 'center',
+              gap:        S.md,
+              marginBottom: S.lg,
             }}
           >
-            Running 8,760-hour dispatch simulation across 11 strategies × 3
-            scenarios…
+            <span
+              aria-hidden
+              style={{
+                width:        8,
+                height:       8,
+                borderRadius: '50%',
+                background:   C.electricBlue,
+                animation:    'ga-connection-reconnect 1.2s ease-in-out infinite',
+                flexShrink:   0,
+              }}
+            />
+            <div
+              style={{
+                fontFamily: F.mono,
+                fontSize: 13,
+                color: C.electricBlueLight,
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Running 8,760-hour dispatch simulation across 11 strategies × 3
+              scenarios…
+            </div>
+          </div>
+          {/* Result-panel scaffold: a hero line + a chart-shaped block */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: S.md }}>
+            <Skeleton.Line width="60%" height={20} label="Loading strategy ranking" />
+            <Skeleton.Chart height={180} gridLines={3} label="Loading dispatch chart" />
           </div>
         </ContainedCard>
       )}

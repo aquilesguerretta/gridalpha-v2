@@ -53,6 +53,35 @@ export interface VisibleDataSummary {
   metrics?: Record<string, string | number>;
   /** Optional: short alert lines — appended as a bullet list. */
   alerts?: string[];
+  /**
+   * ORACLE Wave 4 — data freshness across the sources visible on this
+   * surface. Populated when the surface aggregates live data; omitted on
+   * static / mock-only surfaces. Used to:
+   *   - drive the green / amber freshness dot on the AIAssistant context chip
+   *   - inject a "## DATA FRESHNESS" block into the system prompt
+   *   - tell the grader to be lenient about real-time number drift
+   */
+  freshness?: FreshnessSummary;
+}
+
+export interface FreshnessSource {
+  /** Human-readable label — e.g. "Hero LMP", "Spark spread tile". */
+  label: string;
+  /** Seconds since the source was last refreshed; 0 if just now. */
+  ageSeconds: number;
+  /** True when the source's hook has flagged the value as stale. */
+  isStale: boolean;
+}
+
+export interface FreshnessSummary {
+  /** True when every source is live (no stale flags). */
+  isLive: boolean;
+  /** The largest `ageSeconds` across `sources`. */
+  oldestDataAgeSeconds: number;
+  /** Count of sources with `isStale === true`. */
+  staleSourceCount: number;
+  /** Per-source breakdown — surfaced to the model so it can be specific. */
+  sources: FreshnessSource[];
 }
 
 export interface SurfaceContext {
@@ -72,6 +101,27 @@ export interface SurfaceContext {
   visibleData?: VisibleDataSummary;
   /** ISO timestamp when the snapshot was captured. */
   timestamp: string;
+  /**
+   * ORACLE Wave 4 — set by the Atlas provider when the time-travel
+   * surface is engaged. Drives the "## TIME TRAVEL MODE" block in the
+   * system prompt; instructs the model to reference the historical
+   * window instead of saying "current" or "now".
+   */
+  timeTravelMode?: 'live' | 'scrubbed' | 'event-replay';
+  /** Populated when `timeTravelMode === 'event-replay'`. */
+  replayEvent?: ReplayEventMeta;
+}
+
+export interface ReplayEventMeta {
+  /** Event id from `eventLibrary` — e.g. `storm-elliott-2022`. */
+  id: string;
+  /** Human-readable name — e.g. `Storm Elliott`. */
+  name: string;
+  /**
+   * Short human-readable window — e.g. `Dec 23-26, 2022`. The model
+   * references this string directly when discussing the replay.
+   */
+  window: string;
 }
 
 export interface UserContextSummary {

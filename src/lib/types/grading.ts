@@ -53,6 +53,14 @@ export interface GradedAnswer {
   gradedAt: string;
   /** 1-indexed attempt counter — increases on retry. */
   attemptNumber: number;
+  /**
+   * ORACLE Wave 4 — true when the surrounding surface's data was live
+   * at grading time (no stale sources, not in time-travel replay). When
+   * false, the grader was told to be lenient about real-time numerical
+   * drift. Optional so existing persisted GradedAnswers don't need
+   * rehydration migrations.
+   */
+  dataWasLive?: boolean;
 }
 
 /** Item in the spaced-recall queue. */

@@ -2914,3 +2914,169 @@ data render the grey/unknown variant, which is honest.
   to the type but not yet wired into the grading call. When FORGE
   hooks ship, `useGradeAnswer` can read freshness from the snapshot
   and pass it into the grader prompt as a per-call hint.
+
+## FORGE WAVE 4 — LIVE DATA WIRE-UP
+
+Wave 4 takes the depth-complete profiles (Trader Journal in Wave 2,
+Industrial Strategy Simulator in Wave 3, Storage DA Bid Optimizer in
+the same wave) and replaces their mock-data imports with typed hooks
+pointing at Cursor's V2 backend. The hook layer is mock-first: every
+hook has an internal `mockProducer` that produces a shape-matched
+envelope, and a `MOCK_MODE` flag in `services/api/client.ts` flips
+the whole app into mock mode without touching component code.
+
+### Architecture
+
+| Layer | Files | Purpose |
+| --- | --- | --- |
+| Types | `src/lib/types/api.ts` | Canonical envelope shape, all 11 endpoint payload types, `PjmZone` union, `STALE_THRESHOLDS` map, SSE event shapes. |
+| Fetch client | `src/services/api/client.ts` | `fetchEnvelope<T>()`, `qs()`, `envelopeAgeSeconds()`, `BASE_URL`, `MOCK_MODE`, `ApiError`. |
+| Endpoint wrappers | `src/services/api/{lmp,sparkSpread,fuelMix,reserveMargin,outages,ancillary}.ts` | One typed function per endpoint. |
+| SSE stream | `src/services/api/stream.ts` | Single shared `EventSource`. Per-zone / outage / heartbeat / status subscribe APIs. Exponential-backoff reconnect. |
+| Shared hook primitive | `src/hooks/data/useEnvelopeQuery.ts` | One pattern reused by 11 REST hooks: fetch → age → stale → poll → refresh. |
+| Mock producers | `src/hooks/data/mocks.ts` | Per-endpoint mock factories used when `MOCK_MODE` is `true`. Derived from `lib/pjm/mock-data.ts` so the app's mocked appearance stays consistent. |
+| Data hooks (12) | `src/hooks/data/use{LMP,LMPAllZones,LMP24h,DAForecast,DAForecastAllZones,LMPHistory,SparkSpread,FuelMix,ReserveMargin,Outages,Ancillary,LMPStream}.ts` | Each REST hook returns `{ data, isLoading, error, ageSeconds, isStale, summary, refresh }`. `useLMPStream` returns `{ connectionStatus, lastLMPUpdate, lastOutage, lastHeartbeatAt, subscribe, subscribeOutages }`. |
+
+### Standard hook return shape
+
+Every REST hook returns the same `EnvelopeQueryState<T>`:
+
+```ts
+{
+  data: T | null;
+  isLoading: boolean;
+  error: Error | null;
+  ageSeconds: number;     // climbs locally every second after the last fetch
+  isStale: boolean;        // ageSeconds > STALE_THRESHOLDS[<key>]
+  summary: string | null;
+  refresh: () => Promise<T | null>;
+}
+```
+
+The `ageSeconds` field ticks locally so stale badges appear even when
+the server hasn't shipped a new frame; on the next successful fetch
+it resets to whatever `meta.data_age_seconds` the envelope carried.
+
+### Stale thresholds
+
+Centralised in `src/lib/types/api.ts::STALE_THRESHOLDS` (seconds):
+
+| Endpoint | Threshold |
+| --- | --- |
+| `useLMP`, `useLMPAllZones`, `useSparkSpread` | 90 |
+| `useLMP24h` | 360 (6 min) |
+| `useDAForecast`, `useDAForecastAllZones` | 14400 (4 h) |
+| `useLMPHistory` | 86400 (historical never goes stale in practice) |
+| `useFuelMix`, `useReserveMargin`, `useOutages`, `useAncillary` | 480 (8 min) |
+
+### MOCK_MODE — the offline switch
+
+`src/services/api/client.ts` exports `MOCK_MODE: boolean`. Sourced
+from `import.meta.env.VITE_MOCK_API === 'true'`. Default is `false`
+(live mode). When `true`:
+
+- Every REST hook bypasses `fetch` and calls its mock producer.
+- The SSE stream holds connection-status at `'connected'` but emits no events.
+
+To flip offline, copy `.env.local.example` to `.env.local` and set
+`VITE_MOCK_API=true`, then restart the dev server.
+
+### SSE — `useLMPStream`
+
+Mount `useLMPStream()` once high in the tree (the Trader Nest's
+`ZoneWatchlist` mounts it in practice). Inside any descendant
+component, call:
+
+```tsx
+const stream = useLMPStream();
+useEffect(() => {
+  const unsub = stream.subscribe('WEST_HUB', (update) => {
+    // update.lmp_total / update.timestamp / update.data_age_seconds
+  });
+  return unsub;
+}, [stream]);
+```
+
+Subscriptions are reference-counted: the underlying `EventSource`
+connects when the first subscriber registers and tears down when the
+last subscriber unmounts. Reconnect uses exponential backoff capped at
+30 s.
+
+### Components wired to live data
+
+| Component | Hooks consumed |
+| --- | --- |
+| `HeroLMPBlock` | `useLMP('WEST_HUB')`, `useLMP24h('WEST_HUB')` |
+| `LMP24HChart` | `useLMP24h('WEST_HUB')` |
+| `AnomalyFeed` | `useOutages()`, `useReserveMargin('all')`, `useSparkSpread('WEST_HUB')` |
+| `ZoneWatchlist` | `useLMPAllZones()` + `useLMPStream()` for live ticks across 5 watched zones |
+| `SparkSpreadTile` | `useSparkSpread('WEST_HUB', 7500)` |
+| `BessTile` | `useLMP24h('WEST_HUB')` (for charge/discharge windows + arbitrage est), `useAncillary('all')` (for ancillary revenue stack) |
+| `FuelMixTile` | `useFuelMix()` |
+| `SimulatorView` (Industrial) | `useDAForecast(profile.zone)` — passed as `hourlyLMP` override into `runSimulation()` |
+| `OptimizerView` (Storage) | `useDAForecastAllZones()` + `useAncillary('all')` — composed into a `MarketContext` and passed into `runOptimization()` |
+| `AnalystNest` hero block | `useLMP('WEST_HUB')`, `useLMP('AEP')` |
+
+### Engine APIs — backward-compatible additions
+
+The Industrial Simulator and Storage Optimizer engines stayed pure:
+
+- `runSimulation(profile, { hourlyLMP? })` — when `hourlyLMP` is a
+  24-element array, the engine uses it for the energy component of
+  the grid bill (replacing `tariffRateForHour` for that hour).
+  Demand-charge adders still apply on top. When omitted, the engine
+  falls back to the tariff and is exactly equivalent to Wave-3
+  behavior.
+- `runOptimization(fleet, market)` — the `market` argument was
+  already a `MarketContext`; the change is that `useStorageOptimizer.run()`
+  now optionally accepts a live `MarketContext` and threads it
+  through. When absent, `defaultMarketContext()` (mock) is used.
+
+The NPV math, the dispatch heuristic, and the bid-curve algorithm
+are unchanged. Only the input data sources change.
+
+### What FORGE Wave 4 owns
+
+- `src/lib/types/api.ts`
+- `src/services/api/*` (8 files)
+- `src/hooks/data/*` (13 files — 12 hooks + the shared primitive + the mock producers)
+- `src/components/nest/trader/HeroLMPBlock.tsx`
+- `src/components/nest/trader/LMP24HChart.tsx`
+- `src/components/nest/trader/AnomalyFeed.tsx`
+- `src/components/nest/trader/ZoneWatchlist.tsx`
+- `src/components/nest/trader/tiles/SparkSpreadTile.tsx`
+- `src/components/nest/trader/tiles/BessTile.tsx`
+- `src/components/nest/trader/tiles/FuelMixTile.tsx`
+- `src/lib/simulator/runSimulation.ts` — added optional `hourlyLMP`
+- `src/hooks/useSimulator.ts` — added optional `hourlyLMP` argument to `run()`
+- `src/components/nest/industrial/StrategySimulator/SimulatorView.tsx` — feeds `useDAForecast` into `run()`
+- `src/hooks/useStorageOptimizer.ts` — added optional `MarketContext` argument to `run()`
+- `src/components/nest/storage/DABidOptimizer/OptimizerView.tsx` — composes `useDAForecastAllZones` + `useAncillary` into `MarketContext`
+- `src/components/nest/analyst/AnalystNest.tsx` — hero block wired
+- `.env.local.example` — documents `VITE_BACKEND_URL` and `VITE_MOCK_API`
+- This section of CLAUDE.md
+
+### Future work
+
+- **Retry policy** — `useEnvelopeQuery` has no built-in retry on
+  network errors yet. A wrapper exponential-backoff retry would
+  reduce false stale states on flaky networks. Today it shows the
+  error in the hook's `error` field and the consumer decides.
+- **Optimistic updates** — when a hook's `refresh()` is called from
+  user action (e.g. "I just submitted a bid; re-fetch"), the next
+  poll could merge with the optimistic value rather than overwriting
+  it. Not implemented; not blocking.
+- **Multi-zone subscription efficiency** — `useLMPStream` opens a
+  single EventSource and fans out per-zone callbacks in JS. The
+  backend doesn't yet filter the SSE stream per zone, so every
+  client receives every zone's tick. Future: backend supports
+  `/api/stream?zones=WEST_HUB,AEP` filter so we only get the frames
+  we care about.
+- **History deep-link** — `useLMPHistory` is implemented but no
+  component consumes it yet. The Atlas time-travel scrubber
+  (ATLAS-owned) is the obvious next consumer; coordinate when ATLAS
+  starts Wave 5.
+- **Background poll backoff on hidden tabs** — Today, polling
+  continues at the same interval whether the tab is visible or
+  background. Adding a `Page Visibility API` hook to pause polls
+  while hidden would be a polite improvement.

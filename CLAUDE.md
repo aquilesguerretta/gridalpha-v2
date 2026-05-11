@@ -2738,3 +2738,179 @@ reading them; new wiring must use the canonical paths above. See
 | `/api/atlas/binding-constraints` | (no Wave-5 equivalent yet) |
 | `/api/atlas/interface-flows` | (no Wave-5 equivalent yet) |
 | `/api/weather/*`, `/api/news/*`, `/api/atlas/substations`, `/api/atlas/gas-pipelines` | unchanged — own contract |
+
+## ORACLE WAVE 4 — STALE-DATA AWARENESS
+
+Owned by ORACLE. Wave 4 keeps the AI Assistant honest as the platform
+transitions from immutable mock data (where "now" is always valid) to
+live PJM feeds (where every value has an age). Additive to Wave 2's
+context provider system — no new infrastructure, just freshness
+metadata threading through the existing pipeline.
+
+### The freshness extension to SurfaceContext
+
+Two additive optional structures on the Wave 2 types
+(`src/services/aiContext.ts`):
+
+```ts
+interface VisibleDataSummary {
+  // ...existing fields
+  freshness?: FreshnessSummary;
+}
+
+interface FreshnessSummary {
+  isLive: boolean;
+  oldestDataAgeSeconds: number;
+  staleSourceCount: number;
+  sources: Array<{ label: string; ageSeconds: number; isStale: boolean }>;
+}
+
+interface SurfaceContext {
+  // ...existing fields
+  timeTravelMode?: 'live' | 'scrubbed' | 'event-replay';
+  replayEvent?: { id: string; name: string; window: string };
+}
+```
+
+Providers populate `visibleData.freshness` by collecting per-source rows
+and calling the two helpers in `aiContext.ts`:
+
+| Helper | Purpose |
+| --- | --- |
+| `makeFreshnessSource(label, ageSeconds, isStale?)` | Build a row. When `isStale` is omitted, it's derived from `ageSeconds > STALE_THRESHOLD_SECONDS` (default `120s`, 2× the backend's 60s RT LMP cache TTL). |
+| `summariseFreshness(sources)` | Roll the rows up into a `FreshnessSummary`. Deterministic from the row set — no React, no hooks. |
+
+The Atlas provider is the one exception to the pure-function rule:
+it calls `useTimeTravelStore.getState()` to read the time-travel
+state imperatively (providers can't use React hooks, but
+`store.getState()` is a synchronous read).
+
+### Synthetic-live default (mock-data era)
+
+FORGE Wave 4's hooks (which expose `ageSeconds` / `isStale` on every
+data return) have not shipped yet. Until they do, every provider passes
+synthetic `ageSeconds: 0` rows. That's the correct optimistic default
+because mock data is immutable — claiming "live" is true. When FORGE
+flips on, rows carry real values and the summary becomes accurate
+without provider refactors.
+
+### Per-surface freshness coverage
+
+| Surface | Source rows |
+| --- | --- |
+| Trader Nest | Hero LMP, 24h LMP chart, Spark spread tile, BESS tile, Fuel mix tile, Anomaly feed (6) |
+| Industrial Nest | Zone LMP (simulator input), Tariff library (2) |
+| Storage Nest | RT LMP feed, DA forecast, Ancillary MCPs, Asset health roll-up (4) |
+| Grid Atlas | Fuel mix layer, Outage feed, Zone LMP fill (3) — plus `timeTravelMode` and `replayEvent` |
+| Analytics | Tab-aware — switches on `selectedTab` (price, spread, battery, marginal, convergence, intelligence) |
+| Vault index / alexandria / lesson / entry / case-study | No freshness — the Vault destination is curriculum content, not market data |
+| Peregrine | No freshness — RSS feed has its own latency model (not stale data in the LMP sense) |
+
+### System prompt freshness / time-travel blocks
+
+`buildSystemPrompt(snapshot)` in `src/lib/prompts/systemPrompt.ts` calls
+`buildFreshnessBlock(snapshot)` first and prepends the result above the
+existing CURRENT CONTEXT block. Four states:
+
+1. **Atlas in event-replay** → `## TIME TRAVEL MODE — replaying X (window). Data is HISTORICAL. Do not say "current" or "now".`
+2. **Atlas scrubbed (no named event)** → `## TIME TRAVEL MODE — historical snapshot, not the live grid.`
+3. **Any surface with stale sources** → `## DATA FRESHNESS — N of M stale (oldest ~M min ago: source-A, source-B). Cite values with "as of" timestamps.`
+4. **Everything fresh** → `## DATA FRESHNESS — All data current (oldest source Ns old).`
+
+State 5 — no freshness signal at all (Wave 1/2 era surfaces, Vault,
+Peregrine) → the block is omitted entirely; the prompt is identical
+to its pre-Wave-4 shape.
+
+### Contextual prompts
+
+Two new `ContextualPromptId`s ship with Wave 4:
+
+| Id | Prompt | Chip label |
+| --- | --- | --- |
+| `how-fresh-is-this` | "How fresh is the data on this screen? Which sources are live and which are stale?" | `How fresh?` |
+| `latest-update` | "When did each data source on this screen last update? Anything I should refresh before acting?" | `Latest update?` |
+
+Not added to `QUICK_ACTION_CHIP_IDS` by default (the strip stays at 4
+chips). Surfaces that want explicit freshness queries surface them
+via InlineAITrigger.
+
+### Grading prompt drift instruction
+
+`GRADER_SYSTEM_PROMPT` gains a "Real-time data drift" paragraph: when
+the question references live values, grade reasoning quality — not
+whether the cited number matches the latest tick. The student isn't
+penalised when the market moves between when they read the screen
+and when they answered. This complements the
+`GradedAnswer.dataWasLive?: boolean` field (optional, additive).
+
+### The chip indicator
+
+`ContextChip` in `AIAssistant.tsx` renders an 8×8 freshness dot at the
+right edge. Four states + color encoding:
+
+| State | Trigger | Colour | Tooltip |
+| --- | --- | --- | --- |
+| `live` | All sources fresh | `C.alertNormal` (green) | `All N sources live (oldest Xs old).` |
+| `stale` | At least one source stale | `C.alertWarning` (amber) | `N of M sources stale (oldest ~M min ago): names.` |
+| `replay` | Atlas time-travel engaged | `C.falconGold` | `Replaying X (window) — historical data.` |
+| `unknown` | No freshness data on snapshot | `C.textMuted` (grey) | `Data freshness unmeasured on this surface.` |
+
+The chip header itself ("Analyzing · Trader Nest · WEST_HUB" etc.) is
+unchanged. The dot is purely additive — surfaces without freshness
+data render the grey/unknown variant, which is honest.
+
+### What ORACLE owns (Wave 4 scope)
+
+- `src/services/aiContext.ts` — extended with `FreshnessSource`,
+  `FreshnessSummary`, `ReplayEventMeta`, `STALE_THRESHOLD_SECONDS`,
+  `summariseFreshness`, `makeFreshnessSource`; `VisibleDataSummary`
+  and `SurfaceContext` extended with freshness + time-travel fields.
+- `src/services/contextProviders/traderNestContext.ts` — 6-source freshness.
+- `src/services/contextProviders/industrialNestContext.ts` — 2-source freshness.
+- `src/services/contextProviders/storageNestContext.ts` — 4-source freshness.
+- `src/services/contextProviders/atlasContext.ts` — reads time-travel
+  store, populates `timeTravelMode` + `replayEvent`, 3-source freshness.
+- `src/services/contextProviders/analyticsContext.ts` — tab-aware
+  freshness via `freshnessSourcesForTab`.
+- `src/lib/types/grading.ts` — `GradedAnswer.dataWasLive` added (optional).
+- `src/lib/prompts/systemPrompt.ts` — `buildFreshnessBlock` prepended
+  to the assembled prompt.
+- `src/lib/prompts/contextualPrompts.ts` — `how-fresh-is-this`,
+  `latest-update` ids added.
+- `src/lib/prompts/gradingPrompts.ts` — "Real-time data drift"
+  paragraph added.
+- `src/components/shared/AIAssistant.tsx` — `FreshnessDot` rendered
+  inside `ContextChip`.
+- This section of CLAUDE.md.
+
+### What ORACLE does not modify (Wave 4 scope)
+
+- Cursor's backend (`app/`)
+- FORGE's hooks (consume only — and the hooks aren't shipped yet)
+- ATLAS's `useTimeTravelStore` (read via `getState()`, never written)
+- Wave 1 / Wave 2 / Wave 3 ORACLE infrastructure (extended, not replaced)
+- The base AI Assistant chat flow
+- The Wave 3 grading structural components (only the grader prompt text changed)
+- The Wave 2 provider registry pattern (only specific providers extend)
+
+### Future work
+
+- **Token-level uncertainty in synthesis answers** — when the system
+  prompt's freshness block is "stale", future iterations can train
+  the assistant to emit calibrated uncertainty markers (e.g.
+  "~$36/MWh ±5") instead of single-point estimates.
+- **User-configurable freshness thresholds** — `STALE_THRESHOLD_SECONDS`
+  is a single global constant. A future preferences pane could let
+  power-users tighten it (e.g. day-ahead traders want 30s; long-horizon
+  developers are fine with 5min).
+- **Per-source freshness in the chip tooltip** — current tooltip lists
+  source names but not their ages. When FORGE ships real ages, the
+  tooltip can show "Hero LMP: 12s · 24h chart: 8s · …" inline.
+- **Freshness-aware Cmd+P** — the Cmd+P "live-data-point" resolver
+  (CONDUIT Wave 3) doesn't yet caveat its returned values with age.
+  Once FORGE hooks ship, the resolver can include the same
+  freshness summary in its return shape.
+- **Grader staleness signal** — `GradedAnswer.dataWasLive` is added
+  to the type but not yet wired into the grading call. When FORGE
+  hooks ship, `useGradeAnswer` can read freshness from the snapshot
+  and pass it into the grader prompt as a per-call hint.

@@ -1,36 +1,55 @@
 """Wave-5 outage feed.
 
-Tries the per-unit ``gen_outages_by_unit`` dataset first; if our PJM
-subscription tier does not expose it, falls back to the aggregated
-``gen_outages_by_type`` feed and surfaces ``meta.degraded_mode = true``
-so callers know the rows collapse to one entry per fuel family.
+PJM Data Miner 2 does not expose a public per-unit outage feed
+(``gen_outages_by_unit`` returns 404 from api.pjm.com under the public
+subscription key V1 and V2 use). The aggregated feed
+``gen_outages_by_type`` is the only public alternative, and despite its
+name it does NOT break outages down by fuel type - it publishes one row
+per region per day with separate columns for planned, maintenance and
+forced megawatts.
 
-The contract row shape is::
+Actual response shape from gen_outages_by_type::
 
     {
-      "generator":       "Salem 2",
-      "zone":            "PSEG",
-      "capacity_mw":     1170,
-      "outage_type":     "FORCED",
-      "start_timestamp": "2026-05-02T18:42:00Z",
-      "expected_return": null,
-      "fuel_type":       "nuclear"
+      "forecast_execution_date_ept": "2026-05-10T00:00:00",
+      "forecast_date":               "2026-05-10T00:00:00",
+      "region":                      "PJM RTO" | "Mid Atlantic - Dominion" | "Western",
+      "total_outages_mw":            66047,
+      "planned_outages_mw":          49208,
+      "maintenance_outages_mw":      7349,
+      "forced_outages_mw":           9490
     }
 
-In degraded mode ``generator`` is a fuel-family bucket label, ``zone``
-is ``"PJM"``, and ``start_timestamp`` is the PJM observation timestamp.
+Each contract row produced here therefore represents an *aggregate*
+outage bucket (one region x one outage_type). ``meta.degraded_mode`` is
+set true so the frontend renders the disclaimer that per-unit data is
+unavailable on the public feeds.
+
+The contract row shape stays the same as the per-unit version so the
+frontend table does not need to branch::
+
+    {
+      "generator":       "All Mid Atlantic - Dominion units (FORCED, aggregated)",
+      "zone":            "Mid Atlantic - Dominion",
+      "capacity_mw":     2620.0,
+      "outage_type":     "FORCED" | "PLANNED",
+      "start_timestamp": "2026-05-10T00:00:00",
+      "expected_return": null,
+      "fuel_type":       "various"
+    }
 """
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 from typing import Any
-
-import httpx
+from zoneinfo import ZoneInfo
 
 from app.services.envelope import build_envelope, utc_now_iso
 from app.services.intelligence_cache import get_cached
 from app.services.intelligence_data import _pjm_fetch
-from app.services.pjm_zones import normalize_fuel, zone_id_for_pnode
+
+EPT = ZoneInfo("America/New_York")
 
 
 def _f(x: Any) -> float:
@@ -42,126 +61,109 @@ def _f(x: Any) -> float:
         return 0.0
 
 
-def _norm_outage_type(raw: str) -> str:
-    raw = (raw or "").strip().upper()
-    if "FORCED" in raw or "UNPLAN" in raw:
-        return "FORCED"
-    if "PLANNED" in raw or "MAINT" in raw or "SCHED" in raw:
-        return "PLANNED"
-    return raw or "UNKNOWN"
+def _ept_window(days_back: int, days_forward: int) -> str:
+    """``forecast_execution_date_ept`` filter spanning the recent forecast.
+
+    The full archive has ~84k rows back to 2015, so we narrow to a
+    +/- few day window which keeps the response under the 100-row
+    page cap (3 regions x N days)."""
+    now = datetime.now(tz=EPT)
+    start = (now - timedelta(days=days_back)).replace(hour=0, minute=0)
+    end = (now + timedelta(days=days_forward)).replace(hour=23, minute=59)
+    return f"{start.strftime('%Y-%m-%d %H:%M')} to {end.strftime('%Y-%m-%d %H:%M')}"
 
 
-def _normalize_zone(raw: str) -> str:
-    if not raw:
-        return ""
-    z = zone_id_for_pnode(raw)
-    return z or raw.strip().upper()
+async def _fetch_outages_aggregated() -> list[dict[str, Any]]:
+    """Fetch the latest gen_outages_by_type snapshot and flatten it.
 
-
-async def _fetch_per_unit() -> list[dict[str, Any]] | None:
-    """Try the per-unit dataset. ``None`` signals a graceful fallback."""
-    try:
-        rows = await _pjm_fetch(
-            "gen_outages_by_unit",
-            {
-                "rowCount": "200",
-                "fields": (
-                    "generator_name,unit_name,zone,fuel_type,outage_mw,"
-                    "outage_type,outage_status,start_date,start_time,"
-                    "actual_return,expected_return,datetime_beginning_utc"
-                ),
-            },
-        )
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code in (400, 404):
-            return None
-        raise
-    return rows or []
-
-
-def _coerce_per_unit_row(row: dict[str, Any]) -> dict[str, Any] | None:
-    capacity = round(_f(row.get("outage_mw") or row.get("capacity_mw")), 2)
-    if capacity <= 0:
-        return None
-    name = (
-        str(row.get("generator_name") or row.get("unit_name") or "").strip()
-        or "Unknown unit"
-    )
-    zone = _normalize_zone(str(row.get("zone") or ""))
-    fuel = normalize_fuel(str(row.get("fuel_type") or ""))
-    start_ts = str(
-        row.get("start_date")
-        or row.get("datetime_beginning_utc")
-        or row.get("start_time")
-        or ""
-    )
-    expected = row.get("expected_return") or row.get("actual_return")
-    return {
-        "generator": name,
-        "zone": zone,
-        "capacity_mw": capacity,
-        "outage_type": _norm_outage_type(
-            str(row.get("outage_type") or row.get("outage_status") or "")
-        ),
-        "start_timestamp": start_ts or None,
-        "expected_return": expected if expected else None,
-        "fuel_type": fuel,
-    }
-
-
-async def _fetch_aggregated() -> list[dict[str, Any]]:
-    """Aggregated fallback feed (gen_outages_by_type)."""
+    PJM publishes a single forecast per execution date, with one row
+    per region (3 regions). We pull a +/- 2-day window, pick the most
+    recent execution date, and emit one contract row per (region x
+    outage_type=FORCED or PLANNED).
+    """
     rows = await _pjm_fetch(
         "gen_outages_by_type",
         {
-            "rowCount": "200",
-            "fields": "datetime_beginning_ept,fuel_type,outage_mw,reason",
+            "startRow": "1",
+            "rowCount": "100",
+            "forecast_execution_date_ept": _ept_window(days_back=3, days_forward=3),
+            "fields": (
+                "forecast_execution_date_ept,forecast_date,region,"
+                "total_outages_mw,planned_outages_mw,"
+                "maintenance_outages_mw,forced_outages_mw"
+            ),
         },
     )
-    by_fuel: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        family = normalize_fuel(str(row.get("fuel_type") or ""))
-        mw = _f(row.get("outage_mw"))
-        if mw <= 0:
-            continue
-        key = family
-        bucket = by_fuel.setdefault(
-            key,
-            {
-                "fuel_type": family,
-                "capacity_mw": 0.0,
-                "start_timestamp": str(row.get("datetime_beginning_ept") or ""),
-                "outage_type": _norm_outage_type(str(row.get("reason") or "")),
-            },
-        )
-        bucket["capacity_mw"] += mw
+    if not rows:
+        return []
 
-    return [
-        {
-            "generator": f"All {family} units (aggregated)",
-            "zone": "PJM",
-            "capacity_mw": round(b["capacity_mw"], 2),
-            "outage_type": b["outage_type"],
-            "start_timestamp": b["start_timestamp"] or None,
-            "expected_return": None,
-            "fuel_type": family,
-        }
-        for family, b in by_fuel.items()
+    # Use the latest execution date (most recently published forecast)
+    # for the closest forecast_date to today.
+    latest_exec = max(
+        str(r.get("forecast_execution_date_ept") or "") for r in rows
+    )
+    today_str = datetime.now(tz=EPT).strftime("%Y-%m-%d")
+
+    def _row_score(r: dict[str, Any]) -> tuple[str, str]:
+        # Sort by execution_date desc, then prefer forecast_date == today
+        fd = str(r.get("forecast_date") or "")
+        return (
+            "0" if fd.startswith(today_str) else "1",
+            str(r.get("forecast_execution_date_ept") or ""),
+        )
+
+    latest_rows = [
+        r
+        for r in rows
+        if str(r.get("forecast_execution_date_ept") or "") == latest_exec
     ]
+    # Within latest exec, prefer rows for today; if none, just take all.
+    today_rows = [
+        r for r in latest_rows if str(r.get("forecast_date") or "").startswith(today_str)
+    ]
+    pick = today_rows or latest_rows
+
+    observed = str((pick[0] if pick else {}).get("forecast_date") or "")
+
+    out: list[dict[str, Any]] = []
+    for r in pick:
+        region = str(r.get("region") or "PJM").strip() or "PJM"
+        forced_mw = round(_f(r.get("forced_outages_mw")), 2)
+        planned_mw = round(
+            _f(r.get("planned_outages_mw")) + _f(r.get("maintenance_outages_mw")),
+            2,
+        )
+        if forced_mw > 0:
+            out.append(
+                {
+                    "generator": f"All {region} units (FORCED, aggregated)",
+                    "zone": region,
+                    "capacity_mw": forced_mw,
+                    "outage_type": "FORCED",
+                    "start_timestamp": observed or None,
+                    "expected_return": None,
+                    "fuel_type": "various",
+                }
+            )
+        if planned_mw > 0:
+            out.append(
+                {
+                    "generator": f"All {region} units (PLANNED + maintenance, aggregated)",
+                    "zone": region,
+                    "capacity_mw": planned_mw,
+                    "outage_type": "PLANNED",
+                    "start_timestamp": observed or None,
+                    "expected_return": None,
+                    "fuel_type": "various",
+                }
+            )
+    out.sort(key=lambda r: r["capacity_mw"], reverse=True)
+    return out
 
 
 async def _load_outages_current() -> dict[str, Any]:
-    per_unit = await _fetch_per_unit()
-    if per_unit is None or not per_unit:
-        rows = await _fetch_aggregated()
-        return {"rows": rows, "degraded_mode": True}
-    rows = []
-    for raw in per_unit:
-        coerced = _coerce_per_unit_row(raw)
-        if coerced is not None:
-            rows.append(coerced)
-    rows.sort(key=lambda r: r["capacity_mw"], reverse=True)
-    return {"rows": rows, "degraded_mode": False}
+    rows = await _fetch_outages_aggregated()
+    return {"rows": rows, "degraded_mode": True}
 
 
 async def get_outages_current() -> dict[str, Any]:
@@ -178,9 +180,9 @@ async def get_outages_current() -> dict[str, Any]:
 
     if forced and largest:
         summary = (
-            f"{len(forced)} forced outages totaling {forced_total:,.0f} MW. "
-            f"Largest: {largest['generator']} "
-            f"({largest['capacity_mw']:.0f} MW, {largest['zone'] or 'PJM'})."
+            f"{len(forced)} forced-outage buckets totaling {forced_total:,.0f} MW. "
+            f"Largest: {largest['zone']} "
+            f"({largest['capacity_mw']:.0f} MW, {largest['outage_type']})."
         )
     elif rows:
         total = round(sum(r["capacity_mw"] for r in rows), 2)
@@ -191,10 +193,12 @@ async def get_outages_current() -> dict[str, Any]:
     meta: dict[str, Any] = {
         "timestamp": utc_now_iso(),
         "outage_count": len(rows),
-        "source": "pjm-gen-outages-by-unit",
+        "source": "pjm-gen-outages-by-type",
+        "degraded_mode": True,
+        "note": (
+            "PJM does not expose a public per-unit outage feed; rows are "
+            "aggregated region x outage-type buckets."
+        ),
     }
-    if payload["degraded_mode"]:
-        meta["degraded_mode"] = True
-        meta["source"] = "pjm-gen-outages-by-type (fallback)"
 
     return build_envelope(meta=meta, data=rows, summary=summary)

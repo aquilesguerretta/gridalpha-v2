@@ -83,13 +83,13 @@ _PJM_FETCH_LOG = logging.getLogger("gridalpha.pjm-fetch")
 async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
     """Fetch one page from ``api.pjm.com/api/v1/<dataset>``.
 
-    On non-2xx, logs the full request URL, auth mode, status, and a
-    truncated response body. ``api.pjm.com`` returns 401 for missing /
-    bad auth and 404 for either a missing dataset path OR (intermittently)
-    a session it has scored as bot traffic - the body in the log makes
-    those two cases distinguishable.
+    Auto-injects ``startRow=1`` when the caller forgets - PJM rejects
+    every call without it (``{"field":"StartRow","message":"StartRow is
+    missing."}``). The 401 retry path also force-refreshes the public
+    key in case PJM rotated it between calls.
     """
     url = f"https://api.pjm.com/api/v1/{path}"
+    params = {"startRow": "1", **params}  # caller can override; default 1
     for attempt in range(2):
         try:
             auth = await pjm_auth_headers(force_refresh=(attempt > 0))
@@ -202,12 +202,25 @@ def _latest_pjm_interval(rows: list[dict[str, Any]], ts_field: str) -> tuple[str
 
 async def fetch_generation_fuel() -> dict[str, Any]:
     async def load() -> dict[str, Any]:
+        # PJM requires a datetime filter on gen_by_fuel - without one
+        # the feed errors with "StartRow is missing" / no scope. V1
+        # uses a rolling 2h window which yields the most recent settled
+        # hour (~10 fuel-type rows). We mirror that.
+        from datetime import datetime as _dt, timedelta as _td  # local
+        from zoneinfo import ZoneInfo as _ZI
+        _ept = _ZI("America/New_York")
+        _now = _dt.now(tz=_ept)
+        _window = (
+            f"{(_now - _td(hours=3)).strftime('%Y-%m-%d %H:%M')} to "
+            f"{_now.strftime('%Y-%m-%d %H:%M')}"
+        )
         try:
             rows = await _pjm_fetch(
                 "gen_by_fuel",
                 {
-                    "rowCount": "500",
-                    "fields": "datetime_beginning_ept,fuel_type,mw",
+                    "rowCount": "100",
+                    "datetime_beginning_ept": _window,
+                    "fields": "datetime_beginning_ept,datetime_beginning_utc,fuel_type,mw",
                 },
             )
         except httpx.HTTPStatusError as e:

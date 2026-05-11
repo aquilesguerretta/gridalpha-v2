@@ -840,10 +840,15 @@ async def _load_lmp_history(
 ) -> dict[str, Any]:
     """Fetch historical hourly LMP for a single zone.
 
-    Uses the verified hourly archive ``rt_hrl_lmps``. PJM rejects the
-    ``fields`` parameter on archived queries, so we omit it; the
-    response carries the full schema. We pull by subtype (ZONE/HUB)
-    and filter client-side to the requested pnode.
+    Uses the verified hourly archive ``rt_hrl_lmps``. PJM treats this
+    feed as archived data and rejects three things on archived calls:
+
+      * ``fields`` filter   ("not an available filter for archived data")
+      * ``sort`` parameter  ("Custom Sort is not an available option")
+      * ``order`` parameter ("Custom Order is not an available option")
+
+    so we drop all three for history queries. The response carries the
+    full schema; we filter client-side to the requested pnode.
 
     The ``interval`` field is preserved for backward compatibility but
     the underlying data is always hourly - 5-min granularity is not
@@ -852,15 +857,15 @@ async def _load_lmp_history(
     pname = pnode_name_for(zone_id)
     subtype = subtype_for(zone_id)
 
+    # Worst case: 7 days x 24 hours x 22 ZONE pnodes (or 12 HUB) = ~3,700
+    # rows. We allow 4,000 (40 pages) to keep the safety margin reasonable.
     rows = await _paginated_fetch(
         RT_HISTORY_DATASET,
         {
             "datetime_beginning_ept": _ept_filter(start_utc, end_utc),
             "type": subtype,
-            "sort": "datetime_beginning_ept",
-            "order": "1",
         },
-        max_rows=PJM_PAGE_SIZE * 10,
+        max_rows=4_000,
     )
 
     series: list[dict[str, Any]] = []

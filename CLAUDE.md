@@ -3464,3 +3464,119 @@ the configuration and integration details. The brief-template phase
 block at `tools/screenshot-loop/brief-template.md` is the canonical
 copy any future brief should embed.
 
+## CONDUIT WAVE 4 — PLAYWRIGHT VISUAL LOOP
+
+Wave 4 wires the visual feedback loop into Claude Code itself. Any
+agent that generates UI now has a path to take its own screenshots
+at multiple viewports, see what the code rendered to, and iterate.
+
+### Files (CONDUIT Wave 4-owned)
+
+| Path | Purpose |
+| --- | --- |
+| `.mcp.json` | Per-project MCP server registry. Registers `@playwright/mcp@latest` via `npx`. Claude Code reads this on session start and exposes `playwright_screenshot`, `playwright_navigate`, etc., to every agent. |
+| `.claude/commands/screenshot-loop.md` | `/screenshot-loop` slash command. The end-to-end workflow with steps, design-rule checks, error handling, and termination criteria. |
+| `tools/screenshot-loop/brief-template.md` | Canonical phase block any future brief embeds when its phase produces UI. FOUNDRY Wave 3 brief template references this file. |
+| `tools/screenshot-loop/test-results.md` | Phase 4 test: introduced a deliberate defect in SparkSpreadTile, confirmed the loop catches it across all three viewports, reverted. |
+| `tools/screenshot-loop/multi-surface-test.md` | Phase 6 test: ran the loop on three surface types (hero / chart / expanded panel) at all three viewports. All pass. |
+
+### Three viewports, fixed by design
+
+| Viewport | Audience |
+| --- | --- |
+| 1440×900 | Primary terminal viewport (laptop, single external monitor) |
+| 1920×1080 | Large desktop monitor |
+| 3440×1440 | Ultrawide — real trader monitors |
+
+Mobile viewports are intentionally out of scope. GridAlpha is not
+mobile-first.
+
+### Why the loop matters
+
+Text-only feedback (the model reads markdown design rules and emits
+code) leaves the model blind to what its code actually renders to.
+Playwright closes the loop: code → screenshot → image input →
+critique. This is the highest-leverage single intervention for visual
+quality in agent-generated UI — recommended by the "Designing with
+Claude Code" guide and confirmed by Wave 4's tests.
+
+Without the loop:
+- An agent ships UI with subtle typography defects (wrong size, no
+  tabular figures), wrong spacing, broken hierarchy
+- CHROMA cleans up the defects on a later pass
+- The defects accumulate across waves until someone notices
+
+With the loop:
+- The agent catches its own defects in-session
+- CHROMA's pass focuses on cross-cutting cohesion, not nine separate
+  "missing tabular-nums" instances
+- Visual quality stays high across every wave automatically
+
+### MCP transport — Playwright is preferred, Preview is the fallback
+
+The slash command targets `playwright_screenshot` and friends. When
+the Playwright MCP isn't loaded (e.g., a session started before
+`.mcp.json` was added), `mcp__Claude_Preview__*` provides the same
+primitives: `preview_screenshot`, `preview_resize`, `preview_eval`,
+`preview_start`. Either transport produces the same defect signal.
+
+The DOM-inspection fallback (`preview_eval` reading
+`getComputedStyle()` on the target element) is a **first-class
+backup**, not a workaround. Phase 4 and Phase 6 used it heavily
+because the Vite + Mapbox + Spline renderer routinely times out the
+screenshot tool at 1920+ viewports. Reading the rendered
+`fontSize: 24px` is exactly the signal you'd extract from a
+screenshot — it just arrives as a number instead of a pixel image.
+The slash command's error-handling section documents this path.
+
+### Configuration deviation from the original brief
+
+The Wave 4 brief specified writing to `~/.claude.json`. CONDUIT used
+`.mcp.json` at the repo root instead, because:
+
+1. **Version-controlled** — the MCP config lives in the commit history
+   alongside the agent code that depends on it. Every collaborator
+   gets the same tools.
+2. **Project-scoped** — modifying the global config affects every
+   Claude Code session on the user's machine; the project file affects
+   only this repo.
+3. **Standard convention** — Claude Code reads `.mcp.json` at session
+   start specifically for this case.
+
+Anyone preferring global availability can copy the `mcpServers` block
+into their `~/.claude.json` manually.
+
+### Brief integration
+
+Future briefs that generate UI should embed the phase block from
+`tools/screenshot-loop/brief-template.md` verbatim. FOUNDRY Wave 3's
+brief template references this file. The block is short and
+prescriptive: run the loop, list issues per viewport, revise, repeat
+until clean, then commit with the final screenshots.
+
+### Future work
+
+- **Mobile viewports.** Deferred. GridAlpha isn't mobile-first today;
+  if the platform expands to a mobile dashboard surface, add
+  375×812 (iPhone), 768×1024 (iPad) to the viewport list.
+- **Screenshot diff tooling.** Capture per-PR before/after screenshots
+  and surface visual deltas in the PR description for regression
+  detection.
+- **CI screenshot capture.** Run the loop in CI on every PR so
+  reviewers see the rendered state without checking out the branch.
+  Requires Playwright running headless in CI, which is well-supported
+  but adds CI runtime; defer until visual regressions become a
+  measurable pain point.
+- **Real-PNG export.** The current loop produces JPEG screenshots
+  via the preview tool. Playwright MCP supports PNG natively; once
+  loaded, switch to PNG for less-compressed defect signals (visible
+  font weight changes, sub-pixel alignment, etc.).
+
+### What CONDUIT Wave 4 owns vs. does not own
+
+CONDUIT Wave 4 may create or modify any file listed in the table
+above. CONDUIT Wave 4 must not modify any component code (the
+Phase 4 SparkSpreadTile defect was reverted in the same commit
+chain), any other agent's territory, the backend, or any Nest /
+Vault / Atlas / Analytics / Peregrine surface.
+

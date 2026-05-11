@@ -9,6 +9,8 @@ import {
 } from 'recharts';
 import { C, F, R, S } from '@/design/tokens';
 import { useHoverState } from '../../terminal/useHoverState';
+import { Skeleton } from '../../terminal/Skeleton';
+import { StaleBadge } from '../../terminal/StaleBadge';
 import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
 import { useLMP24h } from '@/hooks/data/useLMP24h';
 
@@ -107,6 +109,7 @@ export function LMP24HChart() {
 
   const hover = useHoverState();
   const cardStyle: React.CSSProperties = {
+    position: 'relative',
     background: C.bgElevated,
     border: `1px solid ${C.borderDefault}`,
     borderTop: `1px solid ${
@@ -120,8 +123,14 @@ export function LMP24HChart() {
     transition: 'border-top-color 200ms cubic-bezier(0.4,0,0.2,1)',
   };
 
+  // CHROMA Wave 4 — first-fetch skeleton, top-right stale badge.
+  const showSkeleton = lmp24h.isLoading && !lmp24h.data;
+
   return (
     <div style={cardStyle} {...hover.bind}>
+      {lmp24h.isStale && !showSkeleton && (
+        <StaleBadge ageSeconds={lmp24h.ageSeconds} />
+      )}
       {/* Header */}
       <div
         style={{
@@ -158,6 +167,9 @@ export function LMP24HChart() {
 
       {/* Chart */}
       <div style={{ flex: 1, minHeight: 280 }}>
+        {showSkeleton ? (
+          <Skeleton.Chart height={280} label="Loading 24h LMP" />
+        ) : (
         <AnnotatableChart chartId="trader:lmp-24h:WEST_HUB">
         <ResponsiveContainer width="100%" height={280}>
           <LineChart

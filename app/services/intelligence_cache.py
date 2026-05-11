@@ -11,11 +11,11 @@ PJM Data Miner 2 has two distinct surfaces:
     actually hits. Accepts ONLY the header
     ``Ocp-Apim-Subscription-Key`` - the SSO cookie is rejected.
 
-V1 (gridalpha-production) is the existence proof: it fetches the
-public key once on boot from settings.json and uses it as the bearer.
-V2 now does the same. The ForgeRock SSO flow this module used to do
-authenticated only the dataminer2 SPA, never api.pjm.com, which is
-why every V2 PJM call was failing with 401/404 before this change.
+V1 (gridalpha-production) and now V2 both fetch this public key on
+boot from settings.json and use it as the bearer. The ForgeRock SSO
+flow that earlier V2 iterations attempted authenticated only the
+dataminer2 SPA, never api.pjm.com, which is why every V2 PJM call
+was failing with 401/404 before this implementation.
 
 Environment (optional overrides):
   ``PJM_SUBSCRIPTION_KEY`` - explicit override; bypasses the
@@ -23,9 +23,9 @@ Environment (optional overrides):
   ``PJM_SETTINGS_URL`` - override the settings endpoint (default
     ``http://dataminer2.pjm.com/config/settings.json``).
 
-The legacy ``PJM_USERNAME`` / ``PJM_PASSWORD`` / ``PJM_SSO_*`` vars
-are still read for backwards compatibility but no longer affect
-api.pjm.com auth.
+The legacy ``PJM_USERNAME`` / ``PJM_PASSWORD`` vars stay readable
+for backwards compatibility (other modules may still reference them)
+but they are no longer wired into api.pjm.com auth.
 """
 
 from __future__ import annotations
@@ -44,24 +44,17 @@ T = TypeVar("T")
 
 _store: dict[str, tuple[float, Any]] = {}
 
-# ── PJM auth state ──────────────────────────────────────────────────────────
-
 # Public subscription key bootstrapped from dataminer2 settings.json.
-# Refreshed periodically; PJM has rotated the key in the past, so we
-# don't pin it permanently. The legacy SSO state below is retained for
-# diagnostic continuity but no longer drives api.pjm.com auth.
+# PJM has rotated this key in the past, so we don't pin it permanently
+# - 6h cache + force-refresh on 401.
 _PJM_LOCK = asyncio.Lock()
 _pjm_public_key: str | None = None
 _pjm_public_key_ts: float = 0.0
-_PJM_PUBLIC_KEY_TTL_SEC = 6 * 3600.0  # 6h - PJM rotates rarely
-
-_pjm_token_id: str | None = None
-_pjm_token_ts: float = 0.0
-_PJM_TOKEN_TTL_SEC = 1200.0
+_PJM_PUBLIC_KEY_TTL_SEC = 6 * 3600.0
 
 
 class PJMAuthenticationError(Exception):
-    """Failed PJM SSO login or unexpected challenge stage."""
+    """Failed PJM public-key bootstrap."""
 
     def __init__(self, message: str) -> None:
         super().__init__(message)
@@ -77,19 +70,6 @@ def _pjm_settings_url() -> str:
         _env("PJM_SETTINGS_URL")
         or "http://dataminer2.pjm.com/config/settings.json"
     )
-
-
-def _pjm_sso_url() -> str:
-    return _env("PJM_SSO_AUTH_URL") or "https://sso.pjm.com/access/authenticate"
-
-
-def _pjm_session_cookie_name() -> str:
-    return _env("PJM_SESSION_COOKIE_NAME") or "iPlanetDirectoryPro"
-
-
-def _pjm_cookie_header(token_id: str) -> dict[str, str]:
-    name = _pjm_session_cookie_name()
-    return {"Cookie": f"{name}={token_id}"}
 
 
 async def _fetch_pjm_public_key() -> str:
@@ -123,64 +103,6 @@ async def _fetch_pjm_public_key() -> str:
         "PJM public key bootstrapped from settings.json (%d chars)", len(key)
     )
     return key
-
-
-async def _pjm_sso_login() -> str:
-    user = _env("PJM_USERNAME")
-    pwd = _env("PJM_PASSWORD")
-    if not user or not pwd:
-        raise PJMAuthenticationError(
-            "PJM_USERNAME and PJM_PASSWORD must be set for PJM DataMiner API access"
-        )
-
-    url = _pjm_sso_url()
-    async with httpx.AsyncClient(timeout=45.0) as client:
-        r1 = await client.post(url, json={})
-        r1.raise_for_status()
-        d1 = r1.json()
-        auth_id = d1.get("authId")
-        callbacks = d1.get("callbacks")
-        if not auth_id or not isinstance(callbacks, list):
-            raise PJMAuthenticationError("PJM SSO: unexpected first-step response")
-
-        for cb in callbacks:
-            if not isinstance(cb, dict):
-                continue
-            ctype = cb.get("type")
-            inputs = cb.get("input")
-            if not isinstance(inputs, list) or not inputs:
-                continue
-            if ctype == "NameCallback":
-                inputs[0]["value"] = user
-            elif ctype == "PasswordCallback":
-                inputs[0]["value"] = pwd
-
-        r2 = await client.post(
-            url,
-            json={"authId": auth_id, "callbacks": callbacks},
-        )
-
-        if r2.status_code == 401:
-            raise PJMAuthenticationError(
-                "PJM SSO: invalid username or password (or expired account)"
-            )
-
-        r2.raise_for_status()
-        d2 = r2.json()
-
-        token_id = d2.get("tokenId")
-        if token_id:
-            return str(token_id)
-
-        if d2.get("callbacks"):
-            raise PJMAuthenticationError(
-                "PJM SSO: extra authentication step required (e.g. MFA); "
-                "not supported in this client"
-            )
-
-        raise PJMAuthenticationError(
-            f"PJM SSO: login did not return tokenId (keys: {list(d2.keys())})"
-        )
 
 
 async def pjm_auth_headers(*, force_refresh: bool = False) -> dict[str, str]:

@@ -48,16 +48,10 @@ from app.services.intelligence_cache import get_cached
 from app.services.intelligence_data import _pjm_fetch
 from app.services.pjm_zones import (
     ZONE_IDS,
-    ZONES,
     is_valid_zone,
     pnode_name_for,
     subtype_for,
     zone_id_for_pnode,
-)
-from app.services.v1_proxy import (
-    NO_V1_COVERAGE,
-    build_v1_lmp_payload,
-    has_v1_coverage,
 )
 
 EPT = ZoneInfo("America/New_York")
@@ -301,42 +295,16 @@ async def _fetch_lmp_current_pjm(zone_id: str) -> dict[str, Any]:
         # Hourly cadence: this is hour-over-hour change, kept under the
         # original contract field name for frontend stability.
         "delta_pct_5min": delta_pct,
-        "_via_v1_proxy": False,
     }
 
 
 async def _load_lmp_current(zone_id: str) -> dict[str, Any]:
-    """RT LMP for one zone - PJM primary, V1 backend fallback on PJM auth failure.
-
-    The fallback only triggers on PJM ``HTTPStatusError`` (rate-limit /
-    auth blocks). Other errors (network, parse) propagate so callers can
-    distinguish "PJM is rejecting us" from "the world is broken".
-    """
-    try:
-        payload = await _fetch_lmp_current_pjm(zone_id)
-        # Recompute data_age_seconds against now so cache hits stay fresh.
-        if payload.get("observed_at"):
-            payload["data_age_seconds"] = data_age_seconds(payload["observed_at"])
-        return payload
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code not in (401, 403, 429):
-            raise
-        if not has_v1_coverage(zone_id):
-            LOG.warning(
-                "PJM %s and no V1 coverage for %s; surfacing upstream error",
-                e.response.status_code,
-                zone_id,
-            )
-            raise
-        LOG.warning(
-            "PJM %s for %s; falling back to V1 proxy",
-            e.response.status_code,
-            zone_id,
-        )
-        payload = await build_v1_lmp_payload(zone_id)
-        if payload.get("observed_at"):
-            payload["data_age_seconds"] = data_age_seconds(payload["observed_at"])
-        return payload
+    """RT LMP for one zone via the public PJM hourly feed."""
+    payload = await _fetch_lmp_current_pjm(zone_id)
+    # Recompute data_age_seconds against now so cache hits stay fresh.
+    if payload.get("observed_at"):
+        payload["data_age_seconds"] = data_age_seconds(payload["observed_at"])
+    return payload
 
 
 async def get_lmp_current(zone_id: str) -> dict[str, Any]:
@@ -355,16 +323,12 @@ async def get_lmp_current(zone_id: str) -> dict[str, Any]:
         f"{zone_id} LMP ${payload['lmp_total']:.2f}/MWh, "
         f"{direction}{payload['delta_pct_5min']}% vs prior hour."
     )
-    via_v1 = bool(payload.get("_via_v1_proxy"))
     meta: dict[str, Any] = {
         "zone": zone_id,
         "timestamp": payload["observed_at"] or utc_now_iso(),
         "data_age_seconds": payload["data_age_seconds"],
-        "source": "v1-proxy" if via_v1 else "pjm-rt",
+        "source": "pjm-rt",
     }
-    if via_v1:
-        meta["degraded_mode"] = True
-        meta["fallback_reason"] = "v2 PJM auth rejected; reading via V1 backend"
 
     return build_envelope(
         meta=meta,
@@ -426,7 +390,6 @@ async def _load_lmp_all_zones() -> dict[str, Any]:
     return {
         "zones": zones,
         "failures": failures,
-        "via_v1_proxy": [],  # canonical path, no fallback needed
         "observed_at": latest_observed,
         "data_age_seconds": max_age,
     }
@@ -452,23 +415,15 @@ async def get_lmp_all_zones() -> dict[str, Any]:
         f"{len(zones)} zones reporting. Average ${avg}, range ${lo}-${hi}."
     )
 
-    via_v1 = payload.get("via_v1_proxy") or []
-    all_via_v1 = bool(via_v1) and len(via_v1) == len(zones)
-
     meta: dict[str, Any] = {
         "timestamp": payload["observed_at"] or utc_now_iso(),
         "data_age_seconds": payload["data_age_seconds"],
         "zone_count": len(zones),
-        "source": "v1-proxy" if all_via_v1 else "pjm-rt",
+        "source": "pjm-rt",
     }
     if payload["failures"]:
         meta["zones_unavailable"] = payload["failures"]
         meta["degraded_mode"] = True
-    if via_v1:
-        meta["zones_via_v1_proxy"] = via_v1
-        if not all_via_v1:
-            meta["source"] = "mixed"
-            meta["degraded_mode"] = True
 
     return build_envelope(meta=meta, data=zones, summary=summary)
 

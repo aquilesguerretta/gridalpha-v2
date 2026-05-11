@@ -1,14 +1,14 @@
 // FORGE Wave 3 — Storage optimizer orchestration hook.
-// Thin wrapper over the storage store + runOptimization. Exposes the
-// active fleet, results, isRunning, run() trigger, and selection
-// setters that AssetDetail / FleetOverview consume.
+// Wave 4 update: run() can accept a live `MarketContext` built from
+// useDAForecastAllZones + useAncillary. When omitted, falls back to
+// `defaultMarketContext()` so the optimizer never breaks on a missing
+// live feed. The optional context is held in a ref so the most-recent
+// live data survives across run() calls.
 //
 // run() defers the synchronous engine work by one tick so the UI can
 // paint the running state before the optimizer blocks the main thread.
-// For an 8-asset fleet × 3 scenarios, the engine completes in well
-// under 100ms.
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   useStorageStore,
   selectActiveFleet,
@@ -18,6 +18,7 @@ import { defaultMarketContext } from '@/lib/mock/storage-optimizer-mock';
 import type {
   Fleet,
   FleetResult,
+  MarketContext,
   ScenarioName,
 } from '@/lib/types/storage';
 
@@ -28,7 +29,10 @@ export interface UseStorageOptimizer {
   selectedAssetId: string | null;
   selectedScenario: ScenarioName;
 
-  run: () => void;
+  /** Trigger optimization. Optional live market context overrides the
+   *  built-in mock defaults; when absent, the engine falls back to
+   *  `defaultMarketContext()`. */
+  run: (liveMarket?: MarketContext) => void;
   setFleet: (fleet: Fleet) => void;
   selectFleet: (id: string) => void;
   selectAsset: (id: string | null) => void;
@@ -51,20 +55,28 @@ export function useStorageOptimizer(): UseStorageOptimizer {
   const setIsRunning = useStorageStore((s) => s.setIsRunning);
   const clearResults = useStorageStore((s) => s.clearResults);
 
-  const run = useCallback(() => {
-    const current = selectActiveFleet(useStorageStore.getState());
-    if (!current) return;
-    setIsRunning(true);
-    setTimeout(() => {
-      try {
-        const market = defaultMarketContext();
-        const next = runOptimization(current, market);
-        setResults(next);
-      } finally {
-        setIsRunning(false);
-      }
-    }, 50);
-  }, [setIsRunning, setResults]);
+  // Stash the most-recent live market context so background hook polls
+  // can feed run() without re-passing the same context on every call.
+  const liveMarketRef = useRef<MarketContext | undefined>(undefined);
+
+  const run = useCallback(
+    (liveMarket?: MarketContext) => {
+      const current = selectActiveFleet(useStorageStore.getState());
+      if (!current) return;
+      if (liveMarket) liveMarketRef.current = liveMarket;
+      const market = liveMarket ?? liveMarketRef.current ?? defaultMarketContext();
+      setIsRunning(true);
+      setTimeout(() => {
+        try {
+          const next = runOptimization(current, market);
+          setResults(next);
+        } finally {
+          setIsRunning(false);
+        }
+      }, 50);
+    },
+    [setIsRunning, setResults],
+  );
 
   return {
     fleet,

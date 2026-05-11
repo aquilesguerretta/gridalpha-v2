@@ -12,10 +12,16 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { Skeleton } from '@/components/terminal/Skeleton';
 import { useStorageOptimizer } from '@/hooks/useStorageOptimizer';
+import { useDAForecastAllZones } from '@/hooks/data/useDAForecastAllZones';
+import { useAncillary } from '@/hooks/data/useAncillary';
 import { AssetRegistrationForm } from './AssetRegistrationForm';
 import { FleetOverview } from './FleetOverview';
 import { AssetDetail } from './AssetDetail';
-import type { Fleet } from '@/lib/types/storage';
+import type {
+  AncillaryService,
+  Fleet,
+  MarketContext,
+} from '@/lib/types/storage';
 
 export function OptimizerView() {
   const {
@@ -29,12 +35,41 @@ export function OptimizerView() {
     clear,
   } = useStorageOptimizer();
 
+  // Live market data — DA forecast across all zones + ancillary MCPs.
+  // Composed into a MarketContext on each render; passed to run().
+  const daAll = useDAForecastAllZones();
+  const anc = useAncillary('all');
+
+  const liveMarket: MarketContext | undefined = useMemo(() => {
+    if (!daAll.data || !anc.data) return undefined;
+    const daHourlyLMPByZone: Record<string, number[]> = {};
+    for (const [zone, series] of Object.entries(daAll.data)) {
+      // Expect 24 hourly entries; coerce defensively.
+      const hours = new Array<number>(24).fill(0);
+      for (const p of series) {
+        if (p.hour >= 0 && p.hour < 24) hours[p.hour] = p.lmp;
+      }
+      daHourlyLMPByZone[zone] = hours;
+    }
+    const ancillaryHourlyMCP: Record<AncillaryService, number[]> = {
+      'reg-d': new Array<number>(24).fill(anc.data.regulation_d_mcp),
+      'reg-a': new Array<number>(24).fill(anc.data.regulation_a_mcp),
+      spin: new Array<number>(24).fill(anc.data.spinning_reserve_mcp),
+    };
+    return {
+      daHourlyLMPByZone,
+      ancillaryHourlyMCP,
+      regulationMileagePayment: anc.data.regulation_mileage_payment,
+      asOfDate: new Date().toISOString().slice(0, 10),
+    };
+  }, [daAll.data, anc.data]);
+
   const [editing, setEditing] = useState(false);
 
   function handleFleetSubmit(f: Fleet) {
     setFleet(f);
     setEditing(false);
-    setTimeout(() => run(), 0);
+    setTimeout(() => run(liveMarket), 0);
   }
 
   const selectedResult = useMemo(() => {
@@ -133,7 +168,7 @@ export function OptimizerView() {
             </div>
             <button
               type="button"
-              onClick={run}
+              onClick={() => run(liveMarket)}
               style={{
                 background: C.electricBlue,
                 border: 'none',
@@ -258,7 +293,7 @@ export function OptimizerView() {
               </button>
               <button
                 type="button"
-                onClick={run}
+                onClick={() => run(liveMarket)}
                 style={toolbarBtnStyle()}
               >
                 RE-RUN

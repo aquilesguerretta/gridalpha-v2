@@ -33,39 +33,22 @@ This installs `fastmcp` and `watchdog` (for Phase 6 cache invalidation).
 
 ## Configure Claude Code (one-time)
 
-Add an entry to `~/.claude.json` under `mcpServers`:
+See [CONFIGURATION.md](./CONFIGURATION.md) for the full setup,
+including the `~/.claude.json` snippet, sample queries, and a
+troubleshooting table. Short version:
 
 ```json
 {
   "mcpServers": {
     "gridalpha-tokens": {
-      "command": "fastmcp",
-      "args": [
-        "run",
-        "/absolute/path/to/gridalpha-v2/tools/gridalpha-tokens-mcp/server.py"
-      ]
+      "command": "/abs/path/to/.venv/bin/python",
+      "args": ["/abs/path/to/tools/gridalpha-tokens-mcp/server.py"]
     }
   }
 }
 ```
 
-If `fastmcp` is on `PATH` from your venv, this is enough. If not,
-point `command` at the venv's Python:
-
-```json
-{
-  "mcpServers": {
-    "gridalpha-tokens": {
-      "command": "/absolute/path/to/gridalpha-v2/tools/gridalpha-tokens-mcp/.venv/bin/python",
-      "args": [
-        "/absolute/path/to/gridalpha-v2/tools/gridalpha-tokens-mcp/server.py"
-      ]
-    }
-  }
-}
-```
-
-Restart Claude Code. The three tools appear in the MCP tool list.
+Then restart Claude Code. The three tools appear in `/mcp`.
 
 ## Run standalone (for debugging)
 

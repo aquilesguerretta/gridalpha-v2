@@ -119,7 +119,12 @@ export interface EventHighlight {
 }
 
 /**
- * A curated historical event with hand-authored hour-by-hour snapshots.
+ * A curated historical event. Wave 3 — metadata only. The hour-by-hour
+ * `AtlasSnapshot` data is fetched on demand from the canonical
+ * `/api/lmp/history` endpoint and stored in the time-travel store
+ * (`eventSnapshots`). The narrative arc — start/end timestamps and the
+ * curated highlight markers — stays here.
+ *
  * V1 ships with three: Storm Elliott (Dec 2022), August 2022 heatwave,
  * March 2024 wind spike. Add more via `eventLibrary.ts`.
  */
@@ -134,8 +139,6 @@ export interface NamedEvent {
   startTimestamp: string;
   /** ISO timestamp of the last snapshot */
   endTimestamp: string;
-  /** Hour-by-hour snapshots — first sorted by timestamp ascending */
-  snapshots: AtlasSnapshot[];
   /** Notable moments to mark on the scrubber timeline */
   highlights: EventHighlight[];
 }

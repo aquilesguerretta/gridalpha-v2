@@ -23,7 +23,7 @@
 //  drift between tabs.)
 
 import { create } from 'zustand';
-import type { PlaybackSpeed, TimeTravelMode } from '@/lib/types/timeTravel';
+import type { AtlasSnapshot, PlaybackSpeed, TimeTravelMode } from '@/lib/types/timeTravel';
 import {
   getCurrentSnapshot,
   getHistoricalRangeEnd,
@@ -51,6 +51,16 @@ export interface TimeTravelState {
   isPlaying: boolean;
   playbackSpeed: PlaybackSpeed;
 
+  // ── Wave 3 — event-replay loading state ──────────────────────
+  /** True while `/api/lmp/history` is being fetched for the active event. */
+  isLoadingEvent: boolean;
+  /** Per-zone fetch progress, 0..1. Drives "Loading 14 of 20 zones…". */
+  loadingProgress: number;
+  /** Snapshots assembled from real PJM history for the active event. */
+  eventSnapshots: AtlasSnapshot[];
+  /** Optional fetch error message; null on success or in-flight. */
+  loadError: string | null;
+
   // ── Actions ───────────────────────────────────────────────────
   enterScrubMode: () => void;
   scrubTo: (position: number) => void;
@@ -59,6 +69,11 @@ export interface TimeTravelState {
   exitToLive: () => void;
   togglePlayback: () => void;
   setSpeed: (speed: PlaybackSpeed) => void;
+  // Wave 3 — event loading actions (called by useAtlasHistorical)
+  setLoadingEvent: (loading: boolean) => void;
+  setLoadingProgress: (progress: number) => void;
+  setEventSnapshots: (snapshots: AtlasSnapshot[]) => void;
+  setLoadError: (error: string | null) => void;
 }
 
 function clamp01(n: number): number {
@@ -92,6 +107,10 @@ export const useTimeTravelStore = create<TimeTravelState>()((set, get) => ({
   activeEventId: null,
   isPlaying: false,
   playbackSpeed: 1,
+  isLoadingEvent: false,
+  loadingProgress: 0,
+  eventSnapshots: [],
+  loadError: null,
 
   enterScrubMode: () => {
     const rangeStart = getHistoricalRangeStart();
@@ -147,6 +166,12 @@ export const useTimeTravelStore = create<TimeTravelState>()((set, get) => ({
       scrubPosition: 0,
       currentTimestamp: event.startTimestamp,
       isPlaying: false,
+      // Reset Wave 3 load state — useAtlasHistorical sees the new
+      // activeEventId and kicks off a fresh fetch.
+      isLoadingEvent: true,
+      loadingProgress: 0,
+      eventSnapshots: [],
+      loadError: null,
     });
   },
 
@@ -160,10 +185,23 @@ export const useTimeTravelStore = create<TimeTravelState>()((set, get) => ({
       scrubPosition: 1,
       currentTimestamp: live.timestamp,
       isPlaying: false,
+      // Clear any in-flight or completed event load.
+      isLoadingEvent: false,
+      loadingProgress: 0,
+      eventSnapshots: [],
+      loadError: null,
     });
   },
 
   togglePlayback: () => set((s) => ({ isPlaying: !s.isPlaying && s.mode !== 'live' })),
 
   setSpeed: (speed) => set({ playbackSpeed: speed }),
+
+  // Wave 3 — event-loading actions. `useAtlasHistorical` calls these as
+  // the multi-zone fetch progresses. Selecting a new event resets these
+  // via `selectEvent` above.
+  setLoadingEvent:    (loading)   => set({ isLoadingEvent: loading }),
+  setLoadingProgress: (progress)  => set({ loadingProgress: Math.max(0, Math.min(1, progress)) }),
+  setEventSnapshots:  (snapshots) => set({ eventSnapshots: snapshots }),
+  setLoadError:       (error)     => set({ loadError: error }),
 }));

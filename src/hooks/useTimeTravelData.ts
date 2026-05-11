@@ -19,10 +19,7 @@ import {
   getCurrentSnapshot,
   getBracketingSnapshots,
 } from '@/lib/atlas/historicalSnapshots';
-import {
-  getEvent,
-  getEventBracketingSnapshots,
-} from '@/lib/atlas/eventLibrary';
+import { getEventBracketingSnapshots } from '@/lib/atlas/eventLibrary';
 import { interpolateSnapshots } from '@/lib/atlas/interpolation';
 import type { AtlasSnapshot } from '@/lib/types/timeTravel';
 
@@ -91,14 +88,25 @@ export function useTimeTravelData(): AtlasSnapshot {
     };
   }, [isPlaying, playbackSpeed, mode]);
 
+  // Snapshots loaded from /api/lmp/history when an event is selected.
+  // Empty until the fetch completes. Read non-reactively here — the hook
+  // only re-runs when the three primary fields above change, and we
+  // re-pull this on every recompute via getState().
   return useMemo<AtlasSnapshot>(() => {
     if (mode === 'live') {
       return getCurrentSnapshot();
     }
     if (mode === 'event-replay' && activeEventId) {
-      const event = getEvent(activeEventId);
-      if (!event) return getCurrentSnapshot();
-      const { before, after, fraction } = getEventBracketingSnapshots(event, currentTimestamp);
+      const eventSnapshots = useTimeTravelStore.getState().eventSnapshots;
+      if (eventSnapshots.length === 0) {
+        // No snapshots loaded yet — keep showing the current live frame
+        // while the fetch is in flight. The scrubber overlays a loading
+        // state on top.
+        return getCurrentSnapshot();
+      }
+      const bracket = getEventBracketingSnapshots(eventSnapshots, currentTimestamp);
+      if (!bracket) return getCurrentSnapshot();
+      const { before, after, fraction } = bracket;
       if (before === after || fraction === 0) return before;
       return interpolateSnapshots(before, after, fraction);
     }

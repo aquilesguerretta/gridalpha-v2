@@ -1,4 +1,4 @@
-// ORACLE Wave 2 — Analytics workbench context provider.
+// ORACLE Wave 2 / Wave 4 — Analytics workbench context provider.
 //
 // Analytics is a multi-tab destination. The current tab lives as React-local
 // state inside AnalyticsPage, so the AI provider has no direct read access
@@ -6,8 +6,16 @@
 // store / search param). Until then, the provider describes the workbench
 // generally and allows callers (e.g. InlineAITrigger) to inject the active
 // tab via subContext.
+//
+// Wave 4 addition: tab-aware freshness summary. Each tab has its own
+// hero chart and its own dominant data source — Price Intelligence
+// reads RT LMP, Spark Spread reads LMP + gas, Battery Arbitrage reads
+// DA forecast, Marginal Fuel reads fuel-mix, Convergence reads DA/RT
+// reconciliation. Until FORGE Wave 4 hooks ship, all rows pass
+// synthetic ageSeconds: 0.
 
-import type { ContextProvider } from '../aiContext';
+import type { ContextProvider, FreshnessSource } from '../aiContext';
+import { makeFreshnessSource, summariseFreshness } from '../aiContext';
 import {
   PRICE_INTELLIGENCE_KPIS,
   SPARK_SPREAD_PLANTS,
@@ -48,6 +56,12 @@ export const analyticsContextProvider: ContextProvider = (input) => {
       ? `Active tab: ${tabLabels[tab]}.`
       : `Active tab unknown to the AI provider — the user is on one of the six tabs above.`);
 
+  // Per-tab freshness. When `tab` is known, surface the dominant
+  // source for that tab as the hero source so the model can be
+  // specific ("the RT LMP feeding Price Intelligence is ~12s old").
+  // When `tab` is unknown, fall back to the system-wide set.
+  const freshness = summariseFreshness(freshnessSourcesForTab(tab));
+
   return {
     surfaceLabel: 'Analytics',
     selectedZone: zone,
@@ -60,6 +74,48 @@ export const analyticsContextProvider: ContextProvider = (input) => {
         minLmp: PRICE_INTELLIGENCE_KPIS.minLmp,
         mostCongestedZone: PRICE_INTELLIGENCE_KPIS.mostCongestedZone,
       },
+      freshness,
     },
   };
 };
+
+function freshnessSourcesForTab(tab: string | undefined): FreshnessSource[] {
+  switch (tab) {
+    case 'price':
+      return [
+        makeFreshnessSource('Price overlay (RT LMP)', 0, false),
+        makeFreshnessSource('Component breakdown', 0, false),
+      ];
+    case 'spread':
+      return [
+        makeFreshnessSource('Plant spark spreads', 0, false),
+        makeFreshnessSource('Henry Hub gas', 0, false),
+        makeFreshnessSource('Dispatch frontier', 0, false),
+      ];
+    case 'battery':
+      return [
+        makeFreshnessSource('DA forecast', 0, false),
+        makeFreshnessSource('Optimal schedule', 0, false),
+      ];
+    case 'marginal':
+      return [
+        makeFreshnessSource('Marginal-fuel gantt', 0, false),
+        makeFreshnessSource('Reserve margin', 0, false),
+      ];
+    case 'convergence':
+      return [
+        makeFreshnessSource('DA-RT reconciliation', 0, false),
+        makeFreshnessSource('Opportunity feed', 0, false),
+      ];
+    case 'intelligence':
+      return [
+        makeFreshnessSource('Peregrine RSS', 0, false),
+      ];
+    default:
+      // No tab known to the provider — surface a system-wide set.
+      return [
+        makeFreshnessSource('System LMP', 0, false),
+        makeFreshnessSource('Reliability rail', 0, false),
+      ];
+  }
+}

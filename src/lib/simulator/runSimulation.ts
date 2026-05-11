@@ -124,6 +124,11 @@ function simulateAnnual(
   profile: FacilityProfile,
   params: EffectiveParams,
   scenario: SensitivityScenario,
+  /** Optional override for hourly grid energy rate ($/MWh). When supplied
+   *  (24-element array), it replaces `tariffRateForHour` for the energy
+   *  component of the grid bill. The demand-charge adder still applies
+   *  on top, so this only changes the volumetric energy cost. */
+  hourlyLMP?: number[],
 ): AnnualSimResult {
   let totalCost = 0;
   let totalSolar = 0;
@@ -175,8 +180,14 @@ function simulateAnnual(
           scenario.solarOutputMultiplier;
         const solarMW = solarKWh / 1000;
 
-        // Tariff rate, scaled by scenario grid-price multiplier.
-        const baseRate = tariffRateForHour(params.tariff, h, dow);
+        // Tariff rate, scaled by scenario grid-price multiplier. When a
+        // live `hourlyLMP` override is supplied, use it for the energy
+        // component instead of the tariff's hourly rate (the LMP IS the
+        // energy price for any consumer paying real-time or LMP-pegged).
+        const baseRate =
+          hourlyLMP && hourlyLMP[h] !== undefined
+            ? hourlyLMP[h]
+            : tariffRateForHour(params.tariff, h, dow);
         const gridEnergyRate = baseRate * scenario.gridPriceMultiplier;
 
         // Demand-charge adder: convert $/MW-month to $/MWh during peak hours.
@@ -302,9 +313,10 @@ function runScenario(
   strategy: Strategy,
   baselineAnnualCost: number,
   scenario: SensitivityScenario,
+  hourlyLMP?: number[],
 ): { result: ScenarioResult; annual: AnnualSimResult } {
   const params = effectiveParams(profile, strategy, scenario);
-  const annual = simulateAnnual(profile, params, scenario);
+  const annual = simulateAnnual(profile, params, scenario, hourlyLMP);
 
   const annualSavings = baselineAnnualCost - annual.totalCostUSD;
   // Project savings linearly over 10 years (V1; future: model degradation).
@@ -328,7 +340,23 @@ function runScenario(
 
 // ─── Entry point ──────────────────────────────────────────────────
 
-export function runSimulation(profile: FacilityProfile): StrategyResult[] {
+export interface RunSimulationOptions {
+  /**
+   * Optional 24-element array of hourly LMP forecasts ($/MWh) for the
+   * facility's zone. When supplied, the engine uses these values for
+   * the energy component of grid cost instead of the static tariff
+   * rate. The demand-charge adder still applies on top. When omitted
+   * or short, the engine falls back to `tariffRateForHour` so the
+   * simulator never breaks on a missing live feed.
+   */
+  hourlyLMP?: number[];
+}
+
+export function runSimulation(
+  profile: FacilityProfile,
+  options: RunSimulationOptions = {},
+): StrategyResult[] {
+  const { hourlyLMP } = options;
   const strategies = generateStrategies(profile);
   const baselineStrategy = strategies.find((s) => s.id === 'baseline')!;
   const baseScenario = SCENARIOS[0]; // 'base'
@@ -343,24 +371,33 @@ export function runSimulation(profile: FacilityProfile): StrategyResult[] {
     profile,
     baselineParams,
     baseScenario,
+    hourlyLMP,
   );
   const baselineCost = baselineAnnual.totalCostUSD;
   const baselineCarbon = annualCarbonTons(profile, baselineAnnual);
 
   const results: StrategyResult[] = strategies.map((strategy) => {
-    // Run all three scenarios.
-    const baseRun = runScenario(profile, strategy, baselineCost, SCENARIOS[0]);
+    // Run all three scenarios, threading the live LMP override through.
+    const baseRun = runScenario(
+      profile,
+      strategy,
+      baselineCost,
+      SCENARIOS[0],
+      hourlyLMP,
+    );
     const optimisticRun = runScenario(
       profile,
       strategy,
       baselineCost,
       SCENARIOS[1],
+      hourlyLMP,
     );
     const pessimisticRun = runScenario(
       profile,
       strategy,
       baselineCost,
       SCENARIOS[2],
+      hourlyLMP,
     );
 
     const annualSavingsBase = baselineCost - baseRun.annual.totalCostUSD;

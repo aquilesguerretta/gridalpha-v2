@@ -10,6 +10,7 @@ import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
 import { Skeleton } from '@/components/terminal/Skeleton';
 import { useSimulator } from '@/hooks/useSimulator';
+import { useDAForecast } from '@/hooks/data/useDAForecast';
 import { FacilityProfileForm } from './FacilityProfileForm';
 import { StrategyRanking } from './StrategyRanking';
 import { StrategyDetail } from './StrategyDetail';
@@ -29,14 +30,23 @@ export function SimulatorView() {
     clear,
   } = useSimulator();
 
+  // Pull the DA hourly forecast for the active facility's zone. When
+  // the response lands, run() picks up the 24-hour array via the
+  // `hourlyLMP` override. Engine falls back to tariff when absent.
+  const daForecast = useDAForecast(profile?.zone ?? null);
+  const liveHourlyLMP: number[] | undefined =
+    daForecast.data && daForecast.data.length === 24
+      ? daForecast.data.map((p) => p.lmp)
+      : undefined;
+
   const [editing, setEditing] = useState(false);
 
-  // After the user submits the form, immediately run the simulation.
+  // After the user submits the form, immediately run the simulation
+  // with whatever live LMP we have on hand (or fall back).
   function handleProfileSubmit(p: FacilityProfile) {
     setProfile(p);
     setEditing(false);
-    // Defer run to after store update lands.
-    setTimeout(() => run(), 0);
+    setTimeout(() => run(liveHourlyLMP), 0);
   }
 
   // Auto-select top result when results land.
@@ -143,7 +153,7 @@ export function SimulatorView() {
             </div>
             <button
               type="button"
-              onClick={run}
+              onClick={() => run(liveHourlyLMP)}
               style={{
                 background: C.electricBlue,
                 border: 'none',
@@ -255,7 +265,7 @@ export function SimulatorView() {
               </button>
               <button
                 type="button"
-                onClick={run}
+                onClick={() => run(liveHourlyLMP)}
                 style={toolbarBtnStyle()}
               >
                 RE-RUN

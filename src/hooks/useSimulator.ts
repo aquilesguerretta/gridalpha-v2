@@ -8,7 +8,7 @@
 // thread. The engine completes well under 2s for default facilities
 // (~25k strategy-scenario hours).
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
   useSimulatorStore,
   selectActiveProfile,
@@ -27,7 +27,10 @@ export interface UseSimulator {
   selectedStrategyId: string | null;
   selectedScenario: ScenarioName;
 
-  run: () => void;
+  /** Trigger a simulation. Pass an optional 24-hour LMP override to use
+   *  live DA forecast values for the energy component of grid cost.
+   *  When omitted, the engine falls back to the facility's tariff. */
+  run: (hourlyLMP?: number[]) => void;
   setProfile: (profile: FacilityProfile) => void;
   selectFacility: (id: string) => void;
   selectStrategy: (id: string | null) => void;
@@ -50,21 +53,30 @@ export function useSimulator(): UseSimulator {
   const setIsRunning = useSimulatorStore((s) => s.setIsRunning);
   const clearResults = useSimulatorStore((s) => s.clearResults);
 
-  const run = useCallback(() => {
-    const current = selectActiveProfile(useSimulatorStore.getState());
-    if (!current) return;
-    setIsRunning(true);
-    // Defer to next tick so the UI can render the running state before
-    // the synchronous engine work runs.
-    setTimeout(() => {
-      try {
-        const next = runSimulation(current);
-        setResults(next);
-      } finally {
-        setIsRunning(false);
+  // Stash the most-recent live LMP override so background polls of the
+  // DA forecast hook can feed run() without re-passing the array.
+  const liveHourlyLMPRef = useRef<number[] | undefined>(undefined);
+
+  const run = useCallback(
+    (hourlyLMP?: number[]) => {
+      const current = selectActiveProfile(useSimulatorStore.getState());
+      if (!current) return;
+      if (hourlyLMP && hourlyLMP.length === 24) {
+        liveHourlyLMPRef.current = hourlyLMP;
       }
-    }, 50);
-  }, [setIsRunning, setResults]);
+      const effectiveLMP = hourlyLMP ?? liveHourlyLMPRef.current;
+      setIsRunning(true);
+      setTimeout(() => {
+        try {
+          const next = runSimulation(current, { hourlyLMP: effectiveLMP });
+          setResults(next);
+        } finally {
+          setIsRunning(false);
+        }
+      }, 50);
+    },
+    [setIsRunning, setResults],
+  );
 
   return {
     profile,

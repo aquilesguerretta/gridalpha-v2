@@ -1,3 +1,10 @@
+// FORGE Wave 4 — HeroLMPBlock wired to live data.
+// Pulls current LMP + delta from useLMP(zone) and the 24-hour history
+// from useLMP24h(zone). When data is loading, renders a skeleton in
+// place of the hero number. When the response is stale (older than the
+// per-endpoint threshold), renders an inline STALE badge on the LIVE
+// indicator. The visual layout is unchanged from the locked design.
+
 import {
   LineChart,
   Line,
@@ -10,9 +17,10 @@ import {
 } from 'recharts';
 import { C, F, S } from '@/design/tokens';
 import type { CSSProperties } from 'react';
-import { ZONE_LMP_DETAIL, ZONE_24H_PRICES } from '../../../lib/pjm/mock-data';
 import { HeroNumber } from '../../terminal/HeroNumber';
 import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
+import { useLMP } from '@/hooks/data/useLMP';
+import { useLMP24h } from '@/hooks/data/useLMP24h';
 
 const ZONE_OPTIONS: { key: string; label: string }[] = [
   { key: 'WEST_HUB', label: 'WEST HUB' },
@@ -29,7 +37,6 @@ function regimeFor(price: number): { label: string; color: string } {
   return { label: 'NORMAL', color: C.alertNormal };
 }
 
-// Editorial identity line — GridAlpha voice on the hero block.
 const IDENTITY_LINE_HERO: CSSProperties = {
   fontFamily: F.display,
   fontSize: 26,
@@ -43,6 +50,7 @@ const IDENTITY_LINE_HERO: CSSProperties = {
 };
 
 function stdDev(values: number[]): number {
+  if (values.length === 0) return 0;
   const n = values.length;
   const mean = values.reduce((a, b) => a + b, 0) / n;
   const variance = values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / n;
@@ -135,22 +143,44 @@ function HeroTooltip({
 export function HeroLMPBlock() {
   const zoneKey = 'WEST_HUB';
   const zoneLabel = 'WEST HUB';
-  const data = ZONE_LMP_DETAIL[zoneKey] ?? ZONE_LMP_DETAIL['DEFAULT'];
-  const series = ZONE_24H_PRICES[zoneKey] ?? ZONE_24H_PRICES['DEFAULT'];
 
-  const deltaColor = data.delta >= 0 ? C.falconGold : C.electricBlue;
-  const daPrice = data.avg24h;
-  const daRtSpread = data.price - daPrice;
-  const regime = regimeFor(data.price);
+  const lmpQuery = useLMP(zoneKey);
+  const lmp24hQuery = useLMP24h(zoneKey);
 
-  const maxIdx = series.indexOf(Math.max(...series));
-  const minIdx = series.indexOf(Math.min(...series));
-  const dayHigh = series[maxIdx];
-  const dayLow = series[minIdx];
-  const meanPrice = series.reduce((a, b) => a + b, 0) / series.length;
-  const volatilityPct = (stdDev(series) / meanPrice) * 100;
+  const series24h: number[] =
+    lmp24hQuery.data?.map((p) => p.lmp_total) ?? [];
+  const hasSeries = series24h.length > 0;
+  const meanPrice = hasSeries
+    ? series24h.reduce((a, b) => a + b, 0) / series24h.length
+    : 0;
 
-  const chartData = series.map((price, hour) => ({ hour, price }));
+  const livePrice = lmpQuery.data?.lmp_total ?? meanPrice;
+  // delta_pct_5min comes back as percent; convert to absolute $/MWh
+  // change so the on-screen "Δ vs −1H" label keeps showing dollars.
+  const deltaPct = lmpQuery.data?.delta_pct_5min ?? 0;
+  const deltaAbs = Number(((livePrice * deltaPct) / 100).toFixed(2));
+  const deltaColor = deltaAbs >= 0 ? C.falconGold : C.electricBlue;
+
+  const daPrice = meanPrice;
+  const daRtSpread = livePrice - daPrice;
+  const regime = regimeFor(livePrice);
+
+  const maxIdx = hasSeries
+    ? series24h.indexOf(Math.max(...series24h))
+    : 0;
+  const minIdx = hasSeries
+    ? series24h.indexOf(Math.min(...series24h))
+    : 0;
+  const dayHigh = hasSeries ? series24h[maxIdx] : 0;
+  const dayLow = hasSeries ? series24h[minIdx] : 0;
+  const volatilityPct = hasSeries
+    ? (stdDev(series24h) / Math.max(1e-6, meanPrice)) * 100
+    : 0;
+
+  const chartData = series24h.map((price, hour) => ({ hour, price }));
+
+  const isLoading = lmpQuery.isLoading || lmp24hQuery.isLoading;
+  const isStale = lmpQuery.isStale || lmp24hQuery.isStale;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: S.lg }}>
@@ -169,14 +199,19 @@ export function HeroLMPBlock() {
       >
         <span style={{ color: C.electricBlue }}>{zoneLabel}</span>
         <span style={{ color: C.textMuted, fontWeight: 400 }}>·</span>
-        <span style={{ color: C.textMuted, fontWeight: 400 }}>14:22 ET</span>
+        <span style={{ color: C.textMuted, fontWeight: 400 }}>
+          {lmpQuery.data
+            ? new Date(lmpQuery.data ? Date.now() : 0).toUTCString().slice(17, 22) +
+              ' ET'
+            : '— · —'}
+        </span>
         <span style={{ color: C.textMuted, fontWeight: 400 }}>·</span>
         <span
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            color: C.alertNormal,
+            color: isStale ? C.alertWarning : C.alertNormal,
           }}
         >
           <span
@@ -184,18 +219,35 @@ export function HeroLMPBlock() {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: C.alertNormal,
+              background: isStale ? C.alertWarning : C.alertNormal,
               display: 'inline-block',
             }}
           />
-          LIVE
+          {isStale ? 'STALE' : 'LIVE'}
         </span>
+        {isLoading && (
+          <span style={{ color: C.textMuted, fontWeight: 400 }}>
+            · LOADING
+          </span>
+        )}
       </div>
 
-      {/* Section B — Hero number (unit superscript falls back to Falcon Gold @ 0.65) */}
-      <HeroNumber value={data.price.toFixed(2)} unit="$/MWh" size={160} />
+      {/* Section B — Hero number */}
+      {isLoading && !lmpQuery.data ? (
+        <div
+          style={{
+            height: 160,
+            width: 360,
+            background: C.bgSurface,
+            border: `1px solid ${C.borderDefault}`,
+            borderRadius: 8,
+          }}
+          aria-label="Loading LMP"
+        />
+      ) : (
+        <HeroNumber value={livePrice.toFixed(2)} unit="$/MWh" size={160} />
+      )}
 
-      {/* Section B′ — editorial identity line (GridAlpha voice) */}
       <div style={IDENTITY_LINE_HERO}>The settle.</div>
 
       {/* Section C — Context strip */}
@@ -211,10 +263,10 @@ export function HeroLMPBlock() {
       >
         <ContextPair
           label="Δ vs −1H"
-          value={`${data.delta >= 0 ? '+' : ''}${data.delta.toFixed(2)}`}
+          value={`${deltaAbs >= 0 ? '+' : ''}${deltaAbs.toFixed(2)}`}
           valueColor={deltaColor}
         />
-        <ContextPair label="24H AVG" value={data.avg24h.toFixed(2)} />
+        <ContextPair label="24H AVG" value={meanPrice.toFixed(2)} />
         <ContextPair label="DA" value={daPrice.toFixed(2)} />
         <ContextPair
           label="DA/RT SPREAD"
@@ -250,7 +302,6 @@ export function HeroLMPBlock() {
         </div>
       </div>
 
-      {/* Section D — divider */}
       <div style={{ borderTop: `1px solid ${C.borderDefault}` }} />
 
       {/* Section E — Recharts sparkline */}
@@ -281,7 +332,7 @@ export function HeroLMPBlock() {
             <YAxis hide domain={['auto', 'auto']} />
             <Tooltip
               cursor={{ stroke: C.borderDefault, strokeDasharray: '2 4' }}
-              content={<HeroTooltip avg24h={data.avg24h} />}
+              content={<HeroTooltip avg24h={meanPrice} />}
             />
             <Line
               type="monotone"
@@ -298,40 +349,44 @@ export function HeroLMPBlock() {
               isAnimationActive
               animationDuration={600}
             />
-            <ReferenceDot
-              x={maxIdx}
-              y={dayHigh}
-              r={4}
-              fill={C.falconGold}
-              stroke={C.bgBase}
-              strokeWidth={1}
-              ifOverflow="visible"
-              label={{
-                value: `H ${dayHigh.toFixed(2)} ${formatHourLabel(maxIdx)}`,
-                position: 'top',
-                fill: C.textMuted,
-                fontFamily: F.mono,
-                fontSize: 9,
-                offset: 6,
-              }}
-            />
-            <ReferenceDot
-              x={minIdx}
-              y={dayLow}
-              r={4}
-              fill={C.electricBlue}
-              stroke={C.bgBase}
-              strokeWidth={1}
-              ifOverflow="visible"
-              label={{
-                value: `L ${dayLow.toFixed(2)} ${formatHourLabel(minIdx)}`,
-                position: 'bottom',
-                fill: C.textMuted,
-                fontFamily: F.mono,
-                fontSize: 9,
-                offset: 6,
-              }}
-            />
+            {hasSeries && (
+              <ReferenceDot
+                x={maxIdx}
+                y={dayHigh}
+                r={4}
+                fill={C.falconGold}
+                stroke={C.bgBase}
+                strokeWidth={1}
+                ifOverflow="visible"
+                label={{
+                  value: `H ${dayHigh.toFixed(2)} ${formatHourLabel(maxIdx)}`,
+                  position: 'top',
+                  fill: C.textMuted,
+                  fontFamily: F.mono,
+                  fontSize: 9,
+                  offset: 6,
+                }}
+              />
+            )}
+            {hasSeries && (
+              <ReferenceDot
+                x={minIdx}
+                y={dayLow}
+                r={4}
+                fill={C.electricBlue}
+                stroke={C.bgBase}
+                strokeWidth={1}
+                ifOverflow="visible"
+                label={{
+                  value: `L ${dayLow.toFixed(2)} ${formatHourLabel(minIdx)}`,
+                  position: 'bottom',
+                  fill: C.textMuted,
+                  fontFamily: F.mono,
+                  fontSize: 9,
+                  offset: 6,
+                }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
         </AnnotatableChart>
@@ -345,9 +400,21 @@ export function HeroLMPBlock() {
           gap: S.lg,
         }}
       >
-        <DayStat label="DAY HIGH" value={dayHigh.toFixed(2)} sub={formatHourLabel(maxIdx)} />
-        <DayStat label="DAY LOW" value={dayLow.toFixed(2)} sub={formatHourLabel(minIdx)} />
-        <DayStat label="VOLATILITY" value={`${volatilityPct.toFixed(1)}%`} sub="24H σ" />
+        <DayStat
+          label="DAY HIGH"
+          value={hasSeries ? dayHigh.toFixed(2) : '—'}
+          sub={hasSeries ? formatHourLabel(maxIdx) : '—'}
+        />
+        <DayStat
+          label="DAY LOW"
+          value={hasSeries ? dayLow.toFixed(2) : '—'}
+          sub={hasSeries ? formatHourLabel(minIdx) : '—'}
+        />
+        <DayStat
+          label="VOLATILITY"
+          value={hasSeries ? `${volatilityPct.toFixed(1)}%` : '—'}
+          sub="24H σ"
+        />
       </div>
 
       {/* Section G — inline zone selector */}

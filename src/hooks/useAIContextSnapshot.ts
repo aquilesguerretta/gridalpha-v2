@@ -12,6 +12,7 @@
 import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { useTimeTravelStore } from '@/stores/timeTravelStore';
 import {
   captureContextSnapshot,
   surfaceFromPathname,
@@ -47,6 +48,12 @@ export function useAIContextSnapshot(
   const location = useLocation();
   const profile = useAuthStore((s) => s.selectedProfile);
   const profileDetails = useAuthStore((s) => s.profileDetails);
+  // Wave 4 — subscribe to the time-travel store's mode + active event so
+  // the snapshot recomputes when ATLAS enters / exits a replay. The
+  // atlas provider reads `useTimeTravelStore.getState()` imperatively;
+  // these selectors are purely for memo invalidation.
+  const ttMode = useTimeTravelStore((s) => s.mode);
+  const ttActiveEventId = useTimeTravelStore((s) => s.activeEventId);
 
   const { zone = null, subContext, surface: surfaceOverride } = options;
 
@@ -88,6 +95,9 @@ export function useAIContextSnapshot(
     zone,
     subContext,
     surfaceOverride,
+    // Wave 4 — recompute when the Atlas time-travel state changes.
+    ttMode,
+    ttActiveEventId,
   ]);
 }
 

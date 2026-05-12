@@ -42,17 +42,26 @@ const LONG_RUN_BLEND = 0.6; // 60% weight on long-run by year 25
 
 /**
  * Implied year-0 base LMP for the zone, derived from the 24-month
- * cumulative revenue series (assumes a notional 50 MW × 4-hr battery
- * dispatching ~1.5 cycles/day = ~110 GWh/yr). Falls back to $42/MWh.
+ * cumulative revenue series.
+ *
+ * `ZONE_REVENUE_HISTORY_24M` is tuned for a 50 MW × 4-hr battery
+ * dispatching ~1.5 cycles/day. A battery's revenue per cycled-MWh
+ * is roughly the peak-to-trough spread divided by 2 (symmetric
+ * arbitrage), and the average grid LMP is roughly half of the
+ * peak-to-trough spread. Net: average LMP ≈ (revenue / cycled_MWh)
+ * × ~0.45 (the 0.45 compensates for tax + RTE leakage).
+ *
+ * Clamped to a defensible PJM band so a tuning misstep in the mock
+ * doesn't blow up the entire calculator.
  */
 function impliedBaseLMP(_zone: string): number {
   const total = ZONE_REVENUE_HISTORY_24M.length;
   if (total === 0) return 42;
-  const lastTwo = ZONE_REVENUE_HISTORY_24M[total - 1].cumulativeRevenue;
-  // 24 months ≈ 220 GWh of dispatch. Revenue ÷ MWh = $/MWh implied.
-  const implied = lastTwo / 220_000;
+  const cumulative = ZONE_REVENUE_HISTORY_24M[total - 1].cumulativeRevenue;
+  const implied = (cumulative / 220_000) * 0.45;
   if (!Number.isFinite(implied) || implied <= 0) return 42;
-  return implied;
+  // PJM defensible band: $30/MWh floor, $80/MWh ceiling.
+  return Math.max(30, Math.min(80, implied));
 }
 
 // ─── Annual curve ────────────────────────────────────────────────

@@ -9,7 +9,7 @@
 // modal, persists to the analyst store, and selects the new query in
 // the library.
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { EditorialIdentity } from '@/components/terminal/EditorialIdentity';
@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/terminal/Skeleton';
 import { useAnalystStore } from '@/stores/analystStore';
 import { emptyAST } from '@/lib/analyst/queryAST';
 import { executeQuery } from '@/lib/analyst/queryExecutor';
+import { setAnalystQueryState } from '@/services/contextProviders/analystNestContext';
 import type {
   QueryAST,
   QueryResult,
@@ -33,6 +34,7 @@ import { ScheduledQueryRunner } from './ScheduledQueryRunner';
 export function QueryBuilderView() {
   const addSavedQuery = useAnalystStore((s) => s.addSavedQuery);
   const recordQueryRun = useAnalystStore((s) => s.recordQueryRun);
+  const savedQueries = useAnalystStore((s) => s.savedQueries);
 
   const [ast, setAST] = useState<QueryAST>(() => emptyAST());
   const [result, setResult] = useState<QueryResult | null>(null);
@@ -41,6 +43,28 @@ export function QueryBuilderView() {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [selectedSavedId, setSelectedSavedId] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+
+  // Publish state into ORACLE context. Cleared on unmount so the
+  // provider falls back to the overview narrative.
+  useEffect(() => {
+    const savedName = selectedSavedId
+      ? savedQueries.find((q) => q.id === selectedSavedId)?.name ?? null
+      : null;
+    setAnalystQueryState({
+      ast,
+      lastResult: result,
+      savedQueryId: selectedSavedId,
+      savedQueryName: savedName,
+    });
+    return () => {
+      setAnalystQueryState({
+        ast: null,
+        lastResult: null,
+        savedQueryId: null,
+        savedQueryName: null,
+      });
+    };
+  }, [ast, result, selectedSavedId, savedQueries]);
 
   const handleRun = useCallback(async () => {
     setLastError(null);

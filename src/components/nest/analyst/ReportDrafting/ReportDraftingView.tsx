@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { C, F, R, S } from '@/design/tokens';
 import { ContainedCard } from '@/components/terminal/ContainedCard';
 import { useAnalystStore } from '@/stores/analystStore';
+import { setAnalystReportState } from '@/services/contextProviders/analystNestContext';
 import type { Report } from '@/lib/analyst/types';
 import { ReportEditor } from './ReportEditor';
 import { ReportPreview } from './ReportPreview';
@@ -29,6 +30,12 @@ export function ReportDraftingView() {
   }, [activeId, reports]);
 
   const active: Report | undefined = reports.find((r) => r.id === activeId);
+
+  // Publish active report state into ORACLE context.
+  useEffect(() => {
+    setAnalystReportState({ report: active ?? null });
+    return () => setAnalystReportState({ report: null });
+  }, [active]);
 
   if (!active) {
     return (

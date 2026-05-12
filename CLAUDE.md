@@ -86,16 +86,10 @@ implementation notes live in tool READMEs and source. Full audit trail:
 
 ## FOUNDRY WAVE 3 — INFRASTRUCTURE COMPLETE
 
-Wave 6 closes with four pieces of infrastructure plus this file trim.
-
-- **Skill** — `.claude/skills/gridalpha-terminal/`
-- **MCP server** — `tools/gridalpha-tokens-mcp/`
-- **Auditor** — `tools/gridalpha-detect/`
-- **Playwright loop** — `/screenshot-loop` via `.mcp.json`
-- **Brief template** — `docs/brief-template.md`
-- **CLAUDE.md trim** — this file, under 100 lines, from 3,907
-
-Future hooks: skill variants for marketing surfaces, auditor auto-fix
-for mechanical P0 fixes, screenshot-diff for visual regression, a
-"design review" agent that runs the full loop. Wave 7+ briefs follow
-`docs/brief-template.md`.
+Wave 6 closes with four tooling pieces plus this trim (3,907 → ~99 lines):
+skill at `.claude/skills/gridalpha-terminal/`, MCP server at
+`tools/gridalpha-tokens-mcp/`, auditor at `tools/gridalpha-detect/`,
+Playwright loop via `/screenshot-loop` + `.mcp.json`. Wave 7+ briefs
+follow `docs/brief-template.md`. Future hooks: marketing-surface skill
+variant, auditor auto-fix for mechanical P0, screenshot-diff for visual
+regression, a "design review" agent that runs the loop end-to-end.

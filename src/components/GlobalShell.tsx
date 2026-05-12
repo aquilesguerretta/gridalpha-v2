@@ -191,7 +191,7 @@ function EntryOverlay({ onDismiss }: { onDismiss: () => void }) {
         fontFamily: F.mono,
         fontSize: '36px',
         fontWeight: 700,
-        color: '#FFFFFF',
+        color: C.textPrimary,
         letterSpacing: '0.15em',
       }}>
         GRIDALPHA

@@ -424,7 +424,7 @@ function SandboxSection() {
           style={{
             height: 36,
             background: hovered ? C.electricBlueMuted : C.electricBlue,
-            color: '#FFFFFF',
+            color: C.textPrimary,
             border: 'none',
             borderRadius: R.md,
             fontFamily: F.mono,

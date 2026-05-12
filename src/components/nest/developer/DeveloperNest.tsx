@@ -27,6 +27,7 @@ import {
   UNDERWRITING_DEFAULTS,
 } from '@/lib/mock/developer-mock';
 import { CalculatorView } from './UnderwritingCalculator/CalculatorView';
+import { setUnderwritingState } from '@/services/contextProviders/developerNestContext';
 import type { ProjectSpec } from '@/lib/underwriting/types';
 
 type DeveloperTab = 'overview' | 'underwriting';
@@ -743,7 +744,16 @@ export function DeveloperNest() {
 
       {tab === 'underwriting' && (
         <div style={{ padding: S.xl }}>
-          <CalculatorView initial={underwritingSeed} />
+          <CalculatorView
+            initial={underwritingSeed}
+            onResultsChange={(s) =>
+              setUnderwritingState({
+                spec: s.spec,
+                results: s.results,
+                scenario: s.scenario,
+              })
+            }
+          />
         </div>
       )}
     </PageAtmosphere>

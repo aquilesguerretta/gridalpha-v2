@@ -247,3 +247,89 @@ query.").
 - `src/services/contextProviders/analystNestContext.ts` (extended)
 - `src/components/nest/analyst/AnalystNest.tsx` (tab strip)
 - This section of CLAUDE.md
+
+## FORGE WAVE 7 — STUDENT SANDBOX TRADING
+
+Strategy C closes here. The Student Nest gets paper-trading and a
+lightweight hypothetical-project sandbox — a pedagogical mirror of the
+Trader Journal and Developer Underwriting Calculator that lets a
+student make decisions without capital at risk. Sixth and final
+profile depth-shipped.
+
+### Architecture
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/sandbox/types.ts` | `Position`, `PositionAnnotation`, `PositionPnL`, `HypotheticalProject`, `ProjectPerformanceSnapshot`, `PortfolioSummary`. |
+| `src/lib/sandbox/positionState.ts` | `buildPosition`, `computeSettleAt`, `isPositionDueToSettle`, `applyClosePosition`. Zustand+persist `useSandboxStore` with positions + projects, attach-annotation, link-journal-entry, record-performance bridges. |
+| `src/lib/sandbox/markToMarket.ts` | `computePositionPnL`, `computeClosedPositionPnL`, `fetchRealizedLMP` (Wave 5 useLMPHistory under the hood), `markPosition`, `summarizePortfolio`, `cumulativePnLSeries`. |
+| `src/components/nest/student/SandboxTrading/*` | 8 files — entry form, library, mark-to-market display, portfolio overview, performance history, annotations panel, journal promoter, orchestrator view. |
+| `src/components/nest/student/ProjectSandbox/*` | 4 files — lightweight underwriting form, library, performance tracker, orchestrator view. Reuses FORGE Wave 6 `runUnderwriting` with default-fill assumptions. |
+| `src/services/contextProviders/studentNestContext.ts` | Extended with `setSandboxState` / `setProjectPortfolioState` module-level bridges. ORACLE references the active portfolio + selected position/project on every synthesis. |
+| `src/components/nest/student/StudentNest.tsx` | Surgical tab-strip addition: OVERVIEW / SANDBOX TRADING / PROJECT SANDBOX. `SandboxSection` "Continue trading" CTA wired to switch tabs. |
+
+### Calibration smoke test
+
+Seeded 4 mixed positions across COMED / PSEG / RECO / WEST_HUB:
+
+| Zone | Side | Size | Entry | Exit | Hold | PnL |
+| --- | --- | --- | --- | --- | --- | --- |
+| COMED | LONG | 50 MW | $32.50 | $38.20 | 4 h | **+$1,140** |
+| PSEG | SHORT | 30 MW | $62.10 | $58.40 | 2 h | **+$222** |
+| RECO | LONG | 75 MW | $48.00 | $41.80 | 3 h | **−$1,395** |
+| WEST_HUB | LONG | 100 MW | $35.40 | open | 1 h | mark-to-market |
+
+Cumulative realized PnL: **−$33**. Win rate **67%** (2/3). Best
+trade +$1,140, worst −$1,395, average hold 3.0 h. The RECO loss
+crosses the ±$1,000 significance threshold so the Performance
+History chart renders a Falcon Gold reference dot the student can
+click to inspect.
+
+### V1 limitations (acknowledged future work)
+
+- **Auto-settle is opportunistic**, not a background ticker. The
+  MarkToMarketEngine on each card fires the realized-LMP fetch on
+  mount and closes the position if the hold has elapsed. A user who
+  never returns to the tab keeps positions in `open` status
+  indefinitely — fine for a pedagogical sandbox.
+- **Single-user, single-portfolio.** No leaderboard, no cohort
+  benchmarking. The cohort progress data already rendered in the
+  Overview tab is unrelated.
+- **Project performance uses a 7-day trailing LMP proxy** instead of
+  a full-year backfill. The upstream `/api/lmp/history` endpoint
+  caps at 168 h. A future wave can chunk a year's worth of bars and
+  swap the proxy.
+- **IRR delta in ProjectPerformanceTracker is first-order** —
+  (realized − projected revenue) / equity / life. Not exact but
+  pedagogically correct (positive realized → IRR up).
+- **No real PJM forward market data.** Hypothetical-project forward
+  curve inherits the FORGE Wave 6 limitation; same upgrade path
+  (when Cursor/V2 ships `liveAnnualLMP`, `runUnderwriting` threads
+  it automatically).
+- **Persistence is localStorage**, not a backend. Mirrors every
+  other FORGE store; same swap path when Cursor ships
+  `/api/sandbox/{positions,projects}`.
+
+### What FORGE Wave 7 owns
+
+- `src/lib/sandbox/*` (3 files)
+- `src/components/nest/student/SandboxTrading/*` (8 files)
+- `src/components/nest/student/ProjectSandbox/*` (4 files)
+- `src/services/contextProviders/studentNestContext.ts` (extended)
+- `src/components/nest/student/StudentNest.tsx` (tab strip + CTA wiring)
+- This section of CLAUDE.md
+
+### Strategy C status — closed
+
+Every profile has a depth tab beside its overview. Every recruiter
+demo walks through six distinct analytical workflows running on the
+same live PJM data feed.
+
+| Profile | Depth feature | Wave |
+| --- | --- | --- |
+| Trader | Journal (P&L, attachments, weekly review) | 2 |
+| Industrial | Strategy Simulator (8,760-hr dispatch + NPV) | 3 |
+| Storage | DA Bid Optimizer (bid algorithm + risk grid) | 4 |
+| Developer | Underwriting Calculator (IRR / NPV / tornado) | 5 |
+| Analyst | Saved Queries + Report Drafting | 6 |
+| Student | Sandbox Trading + Project Sandbox | 7 ← this wave |

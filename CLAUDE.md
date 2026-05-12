@@ -3580,3 +3580,147 @@ Phase 4 SparkSpreadTile defect was reverted in the same commit
 chain), any other agent's territory, the backend, or any Nest /
 Vault / Atlas / Analytics / Peregrine surface.
 
+## ARCHITECT WAVE 3 — TOKENS/PRIMITIVES MCP
+
+A local FastMCP server at `tools/gridalpha-tokens-mcp/` that exposes
+GridAlpha's design tokens, FOUNDRY primitives, and figma-reference
+files as MCP tools queryable from any Claude Code session.
+
+The pattern is the same one the "Designing with Claude Code" guide
+describes for ui-ux-pro-max's shadcn/ui MCP: ground generation in
+real API shapes rather than statistical guesses. When a brief says
+"use Falcon Gold" or "render a Skeleton.Chart", the agent queries
+the server first and gets the exact token / API back, instead of
+approximating from memory.
+
+### Server location and start command
+
+| | |
+| --- | --- |
+| Source | `tools/gridalpha-tokens-mcp/server.py` |
+| Setup | `pip install -e tools/gridalpha-tokens-mcp` (in a venv) |
+| Standalone | `python tools/gridalpha-tokens-mcp/server.py` (stdio) |
+| FastMCP CLI | `fastmcp run tools/gridalpha-tokens-mcp/server.py` |
+| Config | `~/.claude.json` → see `tools/gridalpha-tokens-mcp/CONFIGURATION.md` |
+
+After registration in `~/.claude.json` and a Claude Code restart, the
+three tools appear under `/mcp` as `gridalpha-tokens`.
+
+### The three tools
+
+| Tool | Input | Returns |
+| --- | --- | --- |
+| `tokens_search` | `query: string, limit?: number = 20` | Tokens from `src/design/tokens.ts` ranked best-first. Exact qualified name (`C.electricBlue`) → 100; exact key (`falconGold`) → 95; hex value (`#F59E0B`) → 90; key prefix (`bg`) → 75; key substring → 60; category keyword (`alert`) → 45; value substring → 30. Each match carries name, namespace, key, resolved value, raw source, category, inline comment, score, reason, and a TypeScript import hint. |
+| `primitive_lookup` | `component?: string` | A FOUNDRY primitive from `src/components/terminal/`: description, every `interface Foo` block (with per-prop name, type, required/optional, JSDoc description), variants (sub-components in namespaced exports like Skeleton.Line / Skeleton.Chart), JSX usage examples extracted from the leading comment block, and an import hint. Empty `component` lists every primitive. |
+| `figma_reference_lookup` | `query: string, limit?: number = 20` | Reference files under `src/design/figma-reference/v1/` and `v2/`. Matches by exact filename → 100, prefix → 80, version filter (`v1`/`v2`) → 75, path component → 70, substring → 60, path-substring → 50, description keyword → 40. Images < 64 KB ship a `thumbnail_data_url` (base64); larger files are returned path-only. |
+
+### Cache invalidation pattern
+
+Every tool maintains an in-memory cache keyed by source-file mtime,
+plus an eager watchdog observer (`tools/watcher.py`) that pops the
+matching cache entry on filesystem events under:
+
+- `src/design/tokens.ts` (→ `tokens_search`)
+- `src/components/terminal/` (→ `primitive_lookup`)
+- `src/design/figma-reference/` (→ `figma_reference_lookup`)
+
+Either path keeps responses correct after an edit; the eager path
+just moves the parse cost out of the foreground tool call. If
+`watchdog` isn't installed the server logs a fallback notice and
+relies on the mtime path alone.
+
+### Brief integration pattern — query before generate
+
+Briefs for any agent that touches design-system surface area MUST
+instruct the agent to query the MCP server before writing code that
+uses tokens or primitives. The point is not to gate progress —
+agents already know `falconGold` is gold — the point is to surface
+the exact hex, the semantic role from JSDoc, the import hint, and
+the canonical primitive API in a single round-trip. That eliminates
+the silent-drift class of bugs where an agent ships
+`color: '#F5A30A'` (close to Falcon Gold but wrong) or invokes
+`<Skeleton variant="line" />` (close to the API but wrong — it's
+`<Skeleton.Line />`).
+
+**Sample brief snippet** — drop this into any phase that touches
+design-system code:
+
+> **Before writing code, query the design tokens MCP server for the
+> tokens and primitives you'll use.** Use `tokens_search` to
+> resolve any color, spacing, or typography value; use
+> `primitive_lookup` for any component from `terminal/`. If your
+> phase references a Figma reference file, query
+> `figma_reference_lookup` first.
+>
+> Token-grounding requirement: every hardcoded color, px value, or
+> font value in your diff must trace back to a token returned by
+> `tokens_search`. Same for any FOUNDRY-primitive usage —
+> the prop names and types must match the `primitive_lookup`
+> response.
+
+**Phase-text examples** that already demonstrate the pattern:
+
+> *PHASE N — Implement the SparkSpreadTile.*
+> Before writing code, query `tokens_search` for the spread regime
+> colors (positive = `falconGold`, negative = `alertCritical`).
+> Query `primitive_lookup("ContainedCard")` for the card chrome.
+> The tile inherits the active-edge border treatment described in
+> the ContainedCard response.
+
+> *PHASE N — Add a stale indicator to the Hero LMP block.*
+> Query `primitive_lookup("StaleBadge")` first. The component
+> requires `ageSeconds: number` and accepts an optional
+> `position: 'absolute' | 'inline'`. Render with `position="absolute"`
+> top-right of the hero container.
+
+When an agent generates a hardcoded value that's not in
+`tokens.ts`, the convention is: that's a token gap, not a license
+to hardcode. Either FOUNDRY adds the token (and the agent re-queries)
+or the agent picks the closest existing token and notes the
+deviation in their commit message.
+
+### What ARCHITECT WAVE 3 owns
+
+- `tools/gridalpha-tokens-mcp/server.py`
+- `tools/gridalpha-tokens-mcp/tools/tokens_search.py`
+- `tools/gridalpha-tokens-mcp/tools/primitive_lookup.py`
+- `tools/gridalpha-tokens-mcp/tools/figma_reference.py`
+- `tools/gridalpha-tokens-mcp/tools/watcher.py`
+- `tools/gridalpha-tokens-mcp/tools/__init__.py`
+- `tools/gridalpha-tokens-mcp/pyproject.toml`
+- `tools/gridalpha-tokens-mcp/README.md`
+- `tools/gridalpha-tokens-mcp/CONFIGURATION.md`
+- `tools/gridalpha-tokens-mcp/.gitignore`
+- `tools/gridalpha-tokens-mcp/test_tokens.py`
+- `tools/gridalpha-tokens-mcp/test_primitives.py`
+- `tools/gridalpha-tokens-mcp/test_figma.py`
+- `tools/gridalpha-tokens-mcp/test_watcher.py`
+- `tools/gridalpha-tokens-mcp/test_multi_agent.py`
+- This section of CLAUDE.md.
+
+### Future work
+
+- **Theme variants.** Add a `theme_lookup` tool when the platform
+  introduces light-theme or high-contrast variants — same registry
+  pattern, separate registry file.
+- **ATLAS component registry.** Atlas-specific surface components
+  (GridAtlasMap layers, layer-style snippets) aren't FOUNDRY
+  primitives but are still grounded design contracts. A
+  `atlas_layer_lookup` tool could expose them with the same shape.
+- **Curriculum tokens.** Alexandria-style curriculum entries
+  (`src/lib/curriculum/`) have their own shape conventions —
+  difficulty, layer (L1/L2/L3), retrieval prompts. A
+  `curriculum_lookup` tool would let curriculum-touching agents
+  resolve canonical concept ids and the cross-link map without
+  reading every entry file.
+- **Live preview thumbnails.** If FOUNDRY ships rendered screenshots
+  of every primitive (e.g. a Storybook-style image pipeline) into
+  `tools/gridalpha-tokens-mcp/thumbnails/`, the `primitive_lookup`
+  response could include a `thumbnail_data_url` field the same way
+  `figma_reference_lookup` does for image references today.
+- **PR-bot integration.** A CI job could pre-warm the server,
+  diff a PR's used-tokens against `tokens.ts`, and fail when an
+  untokenized color, px, or font family slips into a tracked
+  component. The MCP server's cache + watcher make this fast to
+  run on every commit.
+

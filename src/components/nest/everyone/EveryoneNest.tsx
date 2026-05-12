@@ -25,16 +25,16 @@ import { useLiveOpsData } from '../../../hooks/data/useLiveOpsData';
 export function StatusDot({ status }: { status: 'live' | 'stale' | 'fallback' }) {
   const colors = { live: C.alertNormal, stale: C.alertWarning, fallback: C.alertCritical };
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       {status === 'live' && (
         <div
-          className="absolute inset-0 rounded-full animate-live-ping"
-          style={{ backgroundColor: colors[status] }}
+          className="rounded-full animate-live-ping"
+          style={{ position: 'absolute', inset: 0, backgroundColor: colors[status] }}
         />
       )}
       <div
-        className={`w-2 h-2 rounded-full relative ${status === 'live' ? 'animate-status-pulse' : ''}`}
-        style={{ backgroundColor: colors[status], color: colors[status] }}
+        className={`rounded-full ${status === 'live' ? 'animate-status-pulse' : ''}`}
+        style={{ position: 'relative', width: 8, height: 8, backgroundColor: colors[status], color: colors[status] }}
       />
     </div>
   );

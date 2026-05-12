@@ -83,3 +83,19 @@ Pre-Wave-6 design content moved to the skill references. Per-wave
 implementation notes live in tool READMEs and source. Full audit trail:
 `docs/claude-md-audit.md`. Wave 6 close summary:
 `docs/wave-6-close.md`.
+
+## FOUNDRY WAVE 3 — INFRASTRUCTURE COMPLETE
+
+Wave 6 closes with four pieces of infrastructure plus this file trim.
+
+- **Skill** — `.claude/skills/gridalpha-terminal/`
+- **MCP server** — `tools/gridalpha-tokens-mcp/`
+- **Auditor** — `tools/gridalpha-detect/`
+- **Playwright loop** — `/screenshot-loop` via `.mcp.json`
+- **Brief template** — `docs/brief-template.md`
+- **CLAUDE.md trim** — this file, under 100 lines, from 3,907
+
+Future hooks: skill variants for marketing surfaces, auditor
+auto-fix mode for mechanical P0 fixes, screenshot-diff tooling for
+visual regression detection, and a "design review" agent that runs
+the full loop automatically. Wave 7+ briefs follow `docs/brief-template.md`.

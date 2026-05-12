@@ -109,3 +109,41 @@ Wave 2 — the skill covers typography, color, composition, motion,
 density, antipatterns). CONDENSE items get one-line stubs.
 DELETE items vanish but their substance lives in commit history
 and the agent-owned audit docs in `docs/wave-*-audit.md`.
+
+## Phase 3 — side-by-side verification
+
+After Phase 2 landed (commit `8b4afe5`), the new CLAUDE.md was
+verified against the brief's five criteria:
+
+| Criterion | Status | Notes |
+| --- | --- | --- |
+| Every KEEP item present | ✓ | Title, project overview, mandatory tokens (via brand-tokens table), layout-critical Tailwind rule (in quirks), branch convention, agent roster, wave status — all in. |
+| No design-principle content remains | ✓ | Typography / color / shape / spacing / border / motion / anti-pattern rules all moved to the skill. Brand-tokens table is project-specific facts (which token = which hex), not design rules. |
+| Under 100 lines | ✓ | 85 lines after Phase 2, leaving ~10–15 for Phase 6's Wave 3 docs section. |
+| Every Wave 6 section condensed to one-line ref | ✓ | FOUNDRY skill (Active skill), Tokens MCP (Active tooling), Playwright loop (Active tooling), `gridalpha-detect` (Active tooling). |
+| Reads as starting-point context | ✓ | A new agent reads: what the product is, where design vocabulary lives, what tooling to invoke, brand tokens cheat sheet, branch conventions, agent roster, project quirks, wave history. Under 60-second read. |
+
+### Cross-reference scan
+
+`grep -l 'CLAUDE\.md'` returns 13 files outside CLAUDE.md itself.
+The references are documentation comments ("see CLAUDE.md") in source
+and skill files, plus the audit doc itself. None depend on a specific
+section being present — they rely on the chain CLAUDE.md → skill /
+tokens / tool README, which is preserved.
+
+### Decisions made during Phase 2
+
+- Renamed title from "Design System Rules" to "Project Context"
+  because the file no longer contains the design rules — the skill
+  does. The new title accurately reflects what's in the file.
+- Kept the brand-tokens table inline rather than pushing to the skill
+  because new agents need the hex values at-a-glance before they
+  open the skill's color reference, and the table doubles as the
+  visual identity summary.
+- `F.display` lock kept in CLAUDE.md (in quirks) rather than only in
+  the skill because it's a hard project-specific rule about which
+  two components are permitted; "borderline design rule" but the
+  enforcement is project-scoped.
+- "Where the old design content went" wrap paragraph kept short (3
+  lines) — points to the audit + the wave-6-close doc as the
+  archaeological record.

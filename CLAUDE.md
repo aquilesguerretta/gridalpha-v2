@@ -95,7 +95,7 @@ Wave 6 closes with four pieces of infrastructure plus this file trim.
 - **Brief template** — `docs/brief-template.md`
 - **CLAUDE.md trim** — this file, under 100 lines, from 3,907
 
-Future hooks: skill variants for marketing surfaces, auditor
-auto-fix mode for mechanical P0 fixes, screenshot-diff tooling for
-visual regression detection, and a "design review" agent that runs
-the full loop automatically. Wave 7+ briefs follow `docs/brief-template.md`.
+Future hooks: skill variants for marketing surfaces, auditor auto-fix
+for mechanical P0 fixes, screenshot-diff for visual regression, a
+"design review" agent that runs the full loop. Wave 7+ briefs follow
+`docs/brief-template.md`.

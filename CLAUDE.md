@@ -3731,3 +3731,177 @@ deviation in their commit message.
   component. The MCP server's cache + watcher make this fast to
   run on every commit.
 
+## CHROMA WAVE 5 — GRIDALPHA-DETECT CLI
+
+The static auditor at `tools/gridalpha-detect/` that converts
+subjective design judgment into objective gating. Encodes the
+detectable subset of FOUNDRY's `terminal-*.md` references into
+10 rules with severity classification, file walker, JSON reporter,
+husky pre-commit hook, and a documented (not-yet-deployed) GitHub
+Actions workflow.
+
+GridAlpha's analog to impeccable's `detect` CLI (per the "Designing
+with Claude Code" guide) — same enforcement pattern, different rule
+set because the platform's aesthetic register is institutional
+terminal, not Western minimalism.
+
+### Tool location + run command
+
+```sh
+node tools/gridalpha-detect/bin/gridalpha-detect.mjs src
+node tools/gridalpha-detect/bin/gridalpha-detect.mjs src --json
+node tools/gridalpha-detect/bin/gridalpha-detect.mjs --list-rules
+node tools/gridalpha-detect/bin/gridalpha-detect.mjs src --only no-tailwind-on-layout
+```
+
+Exit codes: `0` clean / sub-P0 findings · `1` ≥1 P0 finding · `2`
+invocation error.
+
+### The 10 rules
+
+| Rule id | Severity | What it catches |
+| --- | --- | --- |
+| `no-tailwind-on-layout` | P0 | Tailwind layout utilities (h-/w-/p-/gap/grid-cols/flex-row/absolute/etc.) on terminal-layer elements. |
+| `no-decorative-svg` | P0 | Inline `<path d>` with sine-wave signature masquerading as data. |
+| `no-inter-no-system` | P0 | `fontFamily` declaring Inter / system-ui / SF Pro / Roboto / bare `monospace` without Geist Mono primary. |
+| `no-pure-black-white` | P0 | `#000` / `#000000` / `#FFF` / `#FFFFFF` / `rgb(0,0,0)` / `rgb(255,255,255)` on terminal-layer files. |
+| `no-gradient-text` | P0 | `background-clip: text` + gradient fill (inline or Tailwind `bg-clip-text` + `bg-gradient-to-*`). |
+| `no-easeOutBounce` | P0 | bounce / spring / elastic easings (GSAP, Framer Motion, raw keyword). |
+| `require-tabular-nums` | P1 | Elements marked `data-numeric` / `data-display="metric"` / className "numeric" without `fontVariantNumeric: tabular-nums`. |
+| `no-pill-chip-default` | P1 | Pill-shape (`rounded-full` / `9999px` / `50%` / `100%`) on `data-role="metadata" | "chip" | "tag"` elements. `role="status"` intentionally excluded (canonical dot pattern). |
+| `no-box-shadow-on-cards` | P1 | `box-shadow` (non-`none`, non-`inset`) on card primitives. Suppress with `data-elevation-override` on legitimate raised overlays. |
+| `equal-weight-grid` | P2 | Grid container (`display: grid` or `grid-cols-N`) with 3+ children and no dominant focal marker (`data-hero` / `data-focal` / className "hero|primary|dominant|focal"). |
+
+Each rule respects:
+
+- **Path exemptions** for `/components/editorial/`, `/components/landing/`,
+  `/components/ui/` (shadcn primitives), `/components/figma-reference/`,
+  `/design/figma-reference/`, and `/pages/auth/`. Some rules add
+  one-off file or directory exemptions (e.g. `no-pure-black-white`
+  exempts `/components/atlas/layers/` for Mapbox + `/services/pdfTemplates/`
+  for printed paper).
+- **Per-line disable directive** `// gridalpha-detect-disable-next-line <rule-id>`
+  (omit the rule id to suppress all rules on the next line).
+- **Per-file disable directive** `// gridalpha-detect-disable file` at
+  the top of the file (rare; usually means the rule's path-config
+  should be updated instead).
+
+### Severity policy
+
+| Severity | Pre-commit hook | CI | Console |
+| --- | --- | --- | --- |
+| P0 | **blocks** | **fails check** | red, sorted first |
+| P1 | warns, allows commit | success + comment | amber, surfaced in summary + per-file |
+| P2 | warns, allows commit | success + comment | cyan, surfaced in summary + per-file |
+| P3 | not yet used | — | gray, suppressed by default in console |
+
+### Pre-commit hook
+
+`.husky/pre-commit` runs the auditor on staged TSX/TS/CSS files.
+Blocks on P0, surfaces P1+ as stderr warnings, allows the commit.
+
+Install once per machine:
+
+```sh
+npm install -D husky && npx husky init
+# OR manually:
+cp .husky/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+```
+
+Bypass (rare):
+
+```sh
+git commit --no-verify -m "…"
+```
+
+Legitimate bypass cases: merge conflict resolution, mass refactor
+with follow-up cleanup commit, CI hot-fix. Everything else either
+fixes the violation or uses a line-level disable directive.
+
+### CI integration
+
+Documented at `tools/gridalpha-detect/ci-integration.md` — a complete
+GitHub Actions workflow ready to copy to
+`.github/workflows/gridalpha-detect.yml`. Not deployed today because
+`gh auth login` isn't configured in the agent harness; Aquiles
+activates by copying the YAML and pushing.
+
+When active:
+- Triggers on PR open/sync/reopen + push to
+  `feature/full-shell-buildout`.
+- Audits the diff against the merge base (PR) or prior push.
+- Posts/updates a PR comment with severity counts + first 10
+  findings inline; uploads the full JSON report as a workflow
+  artifact.
+- Fails the check on P0; warnings only otherwise.
+
+### Adding a new rule
+
+When a new anti-pattern emerges, wire it as a rule:
+
+1. Decide severity (see the table above).
+2. Create `tools/gridalpha-detect/src/rules/<rule-id>.ts` exporting
+   a default `Rule`. The README's "Adding a new rule" section has a
+   complete template.
+3. Register in `tools/gridalpha-detect/src/rules/index.ts`.
+4. Verify: `npm run typecheck`, the rule fires on a synthetic
+   violation, and the rule produces zero false-positives on the
+   existing `src/` (or every false-positive is documented in
+   exemptions).
+5. Add to the README's rule catalogue.
+
+### What the auditor owns vs reads
+
+- **CHROMA owns** `tools/gridalpha-detect/` end-to-end — package.json,
+  every rule file, the walker, the reporter, the bin script.
+- **Reads from but never modifies:** FOUNDRY's
+  `.claude/skills/gridalpha-terminal/references/*.md` (the rules
+  encode the detectable subset of the references), `src/design/tokens.ts`
+  (the rules reference token names in their messages).
+- **Touches `.husky/pre-commit`** as the integration point — that's
+  the only non-tooling file CHROMA Wave 5 modifies.
+
+### Final audit baseline
+
+Running `node tools/gridalpha-detect/bin/gridalpha-detect.mjs src`
+at the close of Wave 5:
+
+- **Scanned:** 477 files in ~293ms.
+- **Total findings:** 62 (P0: 40, P1: 0, P2: 22).
+- **By rule:**
+  - `no-pure-black-white` × 37 — `#FFFFFF` inline colors on
+    legacy LMPCard.tsx (8), trader/storage/industrial form helpers (7),
+    PDF helpers and shared overlays (11), Mapbox view props (6),
+    misc one-offs (5).
+  - `equal-weight-grid` × 22 — Trader / Analyst / Storage / Industrial /
+    Student / Developer Nests, Analytics tabs (4 of 5), Vault
+    Alexandria + CaseStudyView, Trader Journal sub-views, Atlas
+    EventReplayMenu.
+  - `no-tailwind-on-layout` × 3 — all in `EveryoneNest.tsx`'s
+    inline `StatusDot` (Tailwind `w-2 h-2 rounded-full`,
+    `absolute inset-0`, `relative`).
+
+The 40 P0 findings are real historical debt CHROMA wave passes have
+been catching by hand and won't catch in future automatically. The
+22 P2 grid findings are conversation-starters: each is a surface
+that should either mark its dominant focal element (one-line attribute
+fix) or, if legitimately equal-weight, suppress with the disable
+directive.
+
+### Future work
+
+- **Runtime rules** via Playwright (post-CONDUIT Wave 4 stabilization):
+  atmospheric vignette intensity, focus-ring contrast, animation
+  timing.
+- **Auto-fix mode** (`--auto-fix`) for mechanical P0 violations
+  (`'#fff'` → `C.textPrimary`, etc.).
+- **Skill-sourced rule descriptions.** Parse FOUNDRY's
+  `terminal-*.md` at rule-build time so changes flow through
+  automatically.
+- **TypeScript AST mode** for the rules that currently use regex —
+  trades a small perf hit for false-positive reduction on complex
+  JSX.
+- **Severity policy escalation.** Currently no rule emits P3. When
+  P3 rules ship, they'll surface in `--json` for trend tracking but
+  remain suppressed by default in console output.
+

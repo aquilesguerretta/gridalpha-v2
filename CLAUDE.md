@@ -93,3 +93,80 @@ Playwright loop via `/screenshot-loop` + `.mcp.json`. Wave 7+ briefs
 follow `docs/brief-template.md`. Future hooks: marketing-surface skill
 variant, auditor auto-fix for mechanical P0, screenshot-diff for visual
 regression, a "design review" agent that runs the loop end-to-end.
+
+## FORGE WAVE 5 — DEVELOPER UNDERWRITING CALCULATOR
+
+The fourth profile signature feature. Elevates the Developer/IPP Nest
+from "scaffolded but light" to "depth-complete" — Form → Run →
+ranked IRR/NPV/Breakeven/PPA-verdict + sensitivity tornado + PDF memo,
+matching the analytical seriousness of Trader Journal, Industrial
+Strategy Simulator, and Storage DA Bid Optimizer.
+
+### Architecture
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/underwriting/types.ts` | `ProjectSpec`, `ScenarioSet`, `ScenarioResult`, `CashflowYear`, `UnderwritingResults`, `PPABenchmarkBand`, `SensitivityEntry`. |
+| `src/lib/underwriting/finance.ts` | `computeIRR` (Newton's + bisection fallback), `computeNPV`, `computePayback`, `computeAnnualDebtService`, `computeBreakevenLMP`. |
+| `src/lib/underwriting/capacityFactor.ts` | Year-1 base CF, monthly seasonality, linear lifetime degradation. |
+| `src/lib/underwriting/forwardCurve.ts` | Synthesized LMP curve derived from `ZONE_REVENUE_HISTORY_24M` with 2.5%/yr escalation and long-run blend to $55/MWh. Clamped to $30-80/MWh. |
+| `src/lib/underwriting/policyResolver.ts` | IRA-era ITC/PTC schedules + PJM capacity payment × ELCC. |
+| `src/lib/underwriting/runUnderwriting.ts` | Main entry. Runs base/upside/downside; builds year-by-year cashflows, IRR/NPV/payback/breakeven, policy attribution, sensitivity tornado. |
+| `src/components/nest/developer/UnderwritingCalculator/CalculatorView.tsx` | Orchestrator. Form ↔ Skeleton ↔ Results state machine. |
+| `src/components/nest/developer/UnderwritingCalculator/ProjectInputForm.tsx` | Preset picker + 11 input fields. |
+| `src/components/nest/developer/UnderwritingCalculator/ScenarioToggles.tsx` | BASE / UPSIDE / DOWNSIDE toggle. |
+| `src/components/nest/developer/UnderwritingCalculator/ResultsHero.tsx` | IRR / NPV / Breakeven hero. |
+| `src/components/nest/developer/UnderwritingCalculator/CashflowWaterfall.tsx` | Annual stacked-sign bar chart. |
+| `src/components/nest/developer/UnderwritingCalculator/RevenueProjectionChart.tsx` | 3-scenario revenue lines. |
+| `src/components/nest/developer/UnderwritingCalculator/CapacityFactorChart.tsx` | Monthly bars + lifetime line. |
+| `src/components/nest/developer/UnderwritingCalculator/ScenarioComparison.tsx` | 5-row × 3-col scenario table. |
+| `src/components/nest/developer/UnderwritingCalculator/PolicyAttribution.tsx` | Base / ITC / PTC / capacity NPV waterfall. |
+| `src/components/nest/developer/UnderwritingCalculator/PPABenchmarkOverlay.tsx` | Breakeven vs PPA band gauge. |
+| `src/components/nest/developer/UnderwritingCalculator/SensitivityTornado.tsx` | Tornado chart, sorted by absolute IRR impact. |
+| `src/components/nest/developer/UnderwritingCalculator/ExportUnderwritingMemoButton.tsx` | Static-import PDF export. |
+| `src/services/pdfTemplates/DeveloperSiteReportTemplate.tsx` | 6-page memo (summary, assumptions, cashflows, scenarios, PPA + tornado, methodology). |
+| `src/components/nest/developer/DeveloperNest.tsx` | OVERVIEW / UNDERWRITING CALCULATOR tab strip. |
+| `src/services/contextProviders/developerNestContext.ts` | ORACLE bridge — references the active project / scenario when the calculator has been run. |
+
+### Calibration smoke test
+
+100 MW Solar / COMED / 2028 COD (ITC-eligible, default capex/debt):
+  Base IRR 8.9%, NPV $3.8M, payback 12.2 yr, breakeven $53/MWh.
+  Upside 18%, downside −0.1%. In the 8-12% range expected for
+  current PJM solar economics — calibration confirmed.
+
+### V1 limitations (acknowledged future work)
+
+- **MACRS 5-yr SL depreciation** — V1 simplification; real MACRS has
+  half-year + accelerated convention.
+- **Linear CF degradation** — real-world solar/wind CF drops faster
+  in years 1-5 then stabilizes.
+- **No real PJM forward market data** — when the forward-market hook
+  ships (after Cursor/V2 backend phase), `runUnderwriting(spec, { liveAnnualLMP })`
+  threads it through automatically.
+- **No partial transmission line loss adjustment** for projects
+  located far from load centers.
+- **No zero-emission credit pricing** for nuclear projects — Hybrid
+  with nuclear baseload isn't modeled.
+- **Capacity payment auction integration** — V1 uses static
+  $/MW-yr per zone; live PJM RPM auction results are the obvious
+  upgrade path.
+
+### What FORGE Wave 5 owns
+
+- `src/lib/underwriting/*` (6 files)
+- `src/components/nest/developer/UnderwritingCalculator/*` (12 components)
+- `src/services/pdfTemplates/DeveloperSiteReportTemplate.tsx` (full
+  implementation; was a 14-line stub)
+- `src/services/pdfExport.ts` — added `exportUnderwritingMemo` +
+  `underwritingMemo` registry entry. Existing exporters unchanged.
+- `src/components/nest/developer/DeveloperNest.tsx` — surgical tab-
+  strip addition above the existing OVERVIEW layout.
+- `src/lib/mock/developer-mock.ts` — added `TECH_BASE_CAPACITY_FACTOR`,
+  `ZONE_CF_MULTIPLIER`, `TECH_MONTHLY_CF_SHAPE`, `TECH_CF_DEGRADATION`,
+  `UNDERWRITING_DEFAULTS`, `CAPACITY_PAYMENT_PER_MW_YEAR`. Existing
+  exports unchanged.
+- `src/services/contextProviders/developerNestContext.ts` — extended
+  with module-level `setUnderwritingState()` bridge; CalculatorView
+  writes its state in, the provider reads it on each AI synthesis.
+- This section of CLAUDE.md

@@ -34,7 +34,7 @@ function LMPExpandedSystem() {
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', overflow: 'auto' }}>
       {/* West Hub dominant price */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
-        <span style={{ fontFamily: F.mono, fontSize: '72px', fontWeight: 'bold', color: '#FFFFFF', lineHeight: 1 }}>
+        <span style={{ fontFamily: F.mono, fontSize: '72px', fontWeight: 'bold', color: C.textPrimary, lineHeight: 1 }}>
           {hubData.price.toFixed(2)}
         </span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -78,7 +78,7 @@ function LMPExpandedSystem() {
         {/* Weather */}
         <div style={{ flex: 1, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>WEATHER</div>
-          <div style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>
+          <div style={{ fontFamily: F.mono, fontSize: '28px', color: C.textPrimary, fontWeight: 'bold' }}>
             {(liveOps.temperatureF || 41).toFixed(0)}F
           </div>
           <div style={{ fontFamily: F.sans, fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>
@@ -89,7 +89,7 @@ function LMPExpandedSystem() {
         <div style={{ flex: 1, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>LOAD VS FORECAST</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontFamily: F.mono, fontSize: '28px', color: '#FFFFFF', fontWeight: 'bold' }}>
+            <span style={{ fontFamily: F.mono, fontSize: '28px', color: C.textPrimary, fontWeight: 'bold' }}>
               {loadForecastGw > 0 ? loadForecastGw.toFixed(1) : '128.4'}
             </span>
             <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>GW</span>
@@ -154,7 +154,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
           <div style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.2em', marginBottom: '4px' }}>
             {zone}
           </div>
-          <div style={{ fontFamily: F.mono, fontSize: '64px', fontWeight: 'bold', color: '#FFFFFF', lineHeight: 1 }}>
+          <div style={{ fontFamily: F.mono, fontSize: '64px', fontWeight: 'bold', color: C.textPrimary, lineHeight: 1 }}>
             {data.price.toFixed(2)}
           </div>
           <div style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>
@@ -235,7 +235,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             label: '24H AVERAGE',
             value: data.avg24h.toFixed(2),
             sub: '$/MWh',
-            color: '#FFFFFF',
+            color: C.textPrimary,
           },
           {
             label: '24H PEAK',
@@ -343,7 +343,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
             return (
               <div style={{ background: C.bgOverlay, border: `1px solid ${C.borderAccent}`, borderRadius: '6px', padding: '8px 12px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
                 <div style={{ fontFamily: F.sans, fontSize: '11px', color: 'rgba(229,231,235,0.55)', marginBottom: '5px', letterSpacing: '0.06em' }}>{label}:00</div>
-                <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: '600', color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>${zonePrice.toFixed(2)}/MWh</div>
+                <div style={{ fontFamily: F.mono, fontSize: '15px', fontWeight: '600', color: C.textPrimary, fontVariantNumeric: 'tabular-nums' }}>${zonePrice.toFixed(2)}/MWh</div>
                 {spread != null && (
                   <div style={{ fontFamily: F.mono, fontSize: '11px', color: spread > 0 ? 'rgba(255,183,0,0.9)' : 'rgba(6,182,212,0.9)', marginTop: '3px', fontVariantNumeric: 'tabular-nums' }}>
                     {spread >= 0 ? '+' : ''}{spread.toFixed(2)} vs Hub
@@ -492,7 +492,7 @@ function LMPExpandedZone({ zone }: { zone: string }) {
                 <div key={hour} className="lmp-forecast-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontFamily: F.mono, fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>{hour}</span>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 'bold', color: '#FFFFFF' }}>
+                    <span style={{ fontFamily: F.mono, fontSize: '13px', fontWeight: 'bold', color: C.textPrimary }}>
                       {price.toFixed(2)}
                     </span>
                     <span style={{ fontFamily: F.mono, fontSize: '9px', color: delta >= 0 ? '#FFB800' : C.electricBlue }}>
@@ -596,7 +596,7 @@ export function LMPCard({ selectedZone, onExpand }: { selectedZone: string | nul
             fontFamily: F.mono,
             fontSize: '42px',
             fontWeight: 'bold',
-            color: '#FFFFFF',
+            color: C.textPrimary,
             lineHeight: 1,
             letterSpacing: '-0.02em',
           }}>

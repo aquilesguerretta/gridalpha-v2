@@ -26,6 +26,7 @@ import {
   earthquakeLabelLayer,
 } from './layers/intelligenceLayers';
 import { buildPipelineTermini } from './utils/buildPipelineTermini';
+import { C } from '@/design/tokens';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -96,8 +97,8 @@ function pickInitialView(): CameraState {
 const voltageColor: any = [
   'match',
   ['get', 'VOLTAGE'],
-  '735',  '#FFFFFF',
-  '765',  '#FFFFFF',
+  '735',  C.textPrimary,
+  '765',  C.textPrimary,
   '500',  '#00FFF0',
   '345',  '#00A3FF',
   '230',  '#6B7FD4',
@@ -191,7 +192,7 @@ const plantClusterCountLayer: LayerProps = {
     'text-font':   ['Open Sans Bold', 'Arial Unicode MS Bold'],
   },
   paint: {
-    'text-color':      '#ffffff',
+    'text-color':      C.textPrimary,
     'text-halo-color': 'rgba(0,0,0,0.8)',
     'text-halo-width': 1,
   },
@@ -459,7 +460,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           color:            '#0A0A0B',
           'high-color':     '#0D1520',
           'horizon-blend':   0.04,
-          'space-color':    '#000005',
+          'space-color':    C.bgBase,
           'star-intensity':  0.7,
         } as any);
       } catch { /* ignore */ }

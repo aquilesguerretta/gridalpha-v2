@@ -329,7 +329,7 @@ export default function GridAtlasView() {
                    : p.wind_speed_ms < 8 ? '#FFB800'
                    : '#FF3B3B',
         temp_color:  p.temperature_c < 5  ? '#00A3FF'
-                   : p.temperature_c < 20 ? '#FFFFFF'
+                   : p.temperature_c < 20 ? C.textPrimary
                    : '#FF3B3B',
         display_label: `${p.label}\n${Math.round(p.temperature_c * 9/5 + 32)}°F · ${Math.round(p.wind_speed_ms * 2.237)}mph`,
       },
@@ -650,7 +650,7 @@ export default function GridAtlasView() {
           <Toggle label="POWER PLANTS"    active={showPlants}         color={C.electricBlueLight}         onToggle={() => setShowPlants(p => !p)} />
           <Toggle label="HUB NODES"       active={showNodes}          color="#FFB800"        onToggle={() => setShowNodes(p => !p)} />
           <Toggle label="GAS PIPELINES"   active={showGasPipelines}   color="#F97316"        onToggle={() => setShowGasPipelines(p => !p)} />
-          <Toggle label="SUBSTATIONS"     active={showSubstations}    color="#FFFFFF"        onToggle={() => setShowSubstations(p => !p)} />
+          <Toggle label="SUBSTATIONS"     active={showSubstations}    color={C.textPrimary}  onToggle={() => setShowSubstations(p => !p)} />
           <Toggle label="SEISMIC ALERTS"  active={showEarthquakes}    color="#FF3B3B"        onToggle={() => setShowEarthquakes(p => !p)} />
           <Toggle label="WEATHER"         active={showWeather}        color="#00FFF0"        onToggle={() => setShowWeather(p => !p)} />
         </Panel>

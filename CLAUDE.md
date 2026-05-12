@@ -3437,6 +3437,13 @@ produced those tokens.
   100 lines — keeping only repo-level facts (paths, ownership,
   branch policy) and delegating design rules to the skill.
 
+### Known state-of-the-branch note
+
+Note: Wave 6 Phase 6.1 commits 2f58eff and 61e0e98 contain minor
+cross-attribution due to concurrent agent workspace sharing.
+Artifacts are correct; history is permanent. Future waves enforce
+path-scoped git staging to prevent recurrence.
+
 ## VISUAL FEEDBACK LOOP
 
 Every brief for any agent generating UI must include a phase invoking

@@ -18,12 +18,17 @@ import { createElement } from 'react';
 import type { ReactElement } from 'react';
 import { StrategyMemoTemplate } from './pdfTemplates/StrategyMemoTemplate';
 import { StorageBidPackTemplate } from './pdfTemplates/StorageBidPackTemplate';
+import { DeveloperSiteReportTemplate } from './pdfTemplates/DeveloperSiteReportTemplate';
 import type {
   FacilityProfile,
   ScenarioName,
   StrategyResult,
 } from '@/lib/types/simulator';
 import type { Fleet, FleetResult } from '@/lib/types/storage';
+import type {
+  ProjectSpec,
+  UnderwritingResults,
+} from '@/lib/underwriting/types';
 import type {
   PDFDocumentMeta,
   PDFExportOptions,
@@ -253,6 +258,66 @@ export async function exportStorageBidPack(
   }
 }
 
+// ─── Developer underwriting memo ──────────────────────────────────
+
+/**
+ * Export a Developer/IPP Underwriting Memo as a PDF.
+ *
+ * Six-page memo: project summary + hero, forward-LMP / CF assumptions,
+ * year-by-year cashflows, scenario comparison, PPA + sensitivity
+ * tornado, policy + methodology appendix.
+ */
+export async function exportUnderwritingMemo(
+  spec: ProjectSpec,
+  results: UnderwritingResults,
+  options?: PDFExportOptions,
+): Promise<PDFExportResult> {
+  try {
+    if (!spec || !results) {
+      return {
+        success: false,
+        error: 'exportUnderwritingMemo requires both spec and results.',
+      };
+    }
+
+    const meta: PDFDocumentMeta = {
+      documentType: 'UNDERWRITING MEMO',
+      documentTitle: `${spec.name} · Underwriting`,
+      authorName: 'GridAlpha',
+      generatedDate: todayIso(),
+      facilityName: spec.name,
+      zone: spec.zone,
+      brandLine: 'GridAlpha · Developer/IPP Underwriting',
+      ...options?.meta,
+    };
+
+    const element = createElement(DeveloperSiteReportTemplate, {
+      spec,
+      results,
+      meta,
+    });
+
+    const blob = await pdf(
+      element as unknown as ReactElement<DocumentProps>,
+    ).toBlob();
+    const filename =
+      options?.filename ??
+      `gridalpha-underwriting-memo-${slug(spec.name)}-${todayIso()}.pdf`;
+
+    downloadBlob(blob, filename);
+
+    return { success: true, blob, filename };
+  } catch (err) {
+    const message =
+      err instanceof Error ? err.message : 'Unknown PDF export error';
+    if (typeof console !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.error('[FORGE Wave 5] Underwriting memo export failed:', err);
+    }
+    return { success: false, error: message };
+  }
+}
+
 // ─── Template registry ─────────────────────────────────────────────
 
 /**
@@ -263,10 +328,10 @@ export async function exportStorageBidPack(
 export const PDF_TEMPLATES = {
   strategyMemo: exportStrategyMemo,
   storageBidPack: exportStorageBidPack,
+  underwritingMemo: exportUnderwritingMemo,
   // Future:
   //   analystReport: exportAnalystReport,
   //   traderBrief: exportTraderBrief,
-  //   developerSiteReport: exportDeveloperSiteReport,
 } as const;
 
 export type PDFTemplateKey = keyof typeof PDF_TEMPLATES;

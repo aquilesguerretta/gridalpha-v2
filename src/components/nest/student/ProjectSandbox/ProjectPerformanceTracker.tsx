@@ -259,10 +259,12 @@ function SnapshotBlock({
           sub={`PROJECTED $${(snapshot.projectedRevenueUSD / 1_000_000).toFixed(2)}M`}
         />
         <Stat
+          data-hero
           label="IRR DELTA"
           value={`${snapshot.irrDelta >= 0 ? '+' : ''}${(snapshot.irrDelta * 100).toFixed(2)}pp`}
           color={irrColor}
           sub="VS UNDERWRITING"
+          isHero
         />
       </div>
 
@@ -359,18 +361,21 @@ function Stat({
   unit,
   sub,
   color = C.textPrimary,
+  isHero = false,
 }: {
   label: string;
   value: string;
   unit?: string;
   sub?: string;
   color?: string;
+  isHero?: boolean;
 }) {
   return (
     <div
+      data-hero={isHero ? 'true' : undefined}
       style={{
         background: C.bgSurface,
-        border: `1px solid ${C.borderDefault}`,
+        border: `1px solid ${isHero ? C.electricBlue : C.borderDefault}`,
         borderRadius: R.md,
         padding: S.md,
       }}

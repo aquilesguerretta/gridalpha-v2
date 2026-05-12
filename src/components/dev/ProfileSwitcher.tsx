@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import type { ProfileType } from '@/stores/authStore';
 import { C, F, R, S } from '@/design/tokens';
@@ -13,15 +14,44 @@ const PROFILES: ProfileType[] = [
   'developer',
 ];
 
+type ViewKey = 'nest' | 'atlas' | 'peregrine' | 'analytics' | 'vault';
+
+const VIEWS: Array<{ id: ViewKey; label: string; path: string }> = [
+  { id: 'nest',      label: 'THE NEST',   path: '/nest'      },
+  { id: 'atlas',     label: 'GRID ATLAS', path: '/atlas'     },
+  { id: 'peregrine', label: 'PEREGRINE',  path: '/peregrine' },
+  { id: 'analytics', label: 'ANALYTICS',  path: '/analytics' },
+  { id: 'vault',     label: 'VAULT',      path: '/vault'     },
+];
+
 /**
- * Floating dev-only profile switcher. Mounted at the very end of GlobalShell
- * inside an `import.meta.env.DEV` guard so production builds tree-shake the
- * import out entirely.
+ * Floating dev-only profile + view switcher. Mounted at the very end
+ * of GlobalShell inside an `import.meta.env.DEV` guard so production
+ * builds tree-shake the import out entirely.
+ *
+ * Dropdown has two sections:
+ *  • PROFILE — click writes selectedProfile to authStore; the active
+ *    /nest route re-renders into the matching per-profile Nest.
+ *  • VIEW — click navigates to the corresponding destination route.
  */
 export function ProfileSwitcher() {
   const [open, setOpen] = useState(false);
   const selectedProfile = useAuthStore((s) => s.selectedProfile);
   const setProfile = useAuthStore((s) => s.setProfile);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Derive the active view from the current pathname so the VIEW
+  // section can highlight the row the user is already looking at.
+  const activeView: ViewKey | null = (() => {
+    const p = location.pathname;
+    if (p.startsWith('/peregrine')) return 'peregrine';
+    if (p.startsWith('/analytics')) return 'analytics';
+    if (p.startsWith('/atlas'))     return 'atlas';
+    if (p.startsWith('/vault'))     return 'vault';
+    if (p.startsWith('/nest'))      return 'nest';
+    return null;
+  })();
 
   const containerStyle: React.CSSProperties = {
     position: 'fixed',
@@ -58,7 +88,19 @@ export function ProfileSwitcher() {
     border: `1px solid ${C.borderDefault}`,
     borderRadius: R.md,
     overflow: 'hidden',
-    minWidth: 160,
+    minWidth: 180,
+  };
+
+  const sectionLabelStyle: React.CSSProperties = {
+    padding: `${S.xs} ${S.md}`,
+    fontFamily: F.mono,
+    fontSize: 9,
+    fontWeight: 600,
+    color: C.textMuted,
+    letterSpacing: '0.16em',
+    textTransform: 'uppercase',
+    background: 'rgba(255,255,255,0.02)',
+    borderBottom: `1px solid ${C.borderDefault}`,
   };
 
   const optionStyle = (isActive: boolean): React.CSSProperties => ({
@@ -73,13 +115,21 @@ export function ProfileSwitcher() {
     fontSize: 11,
   });
 
+  const dividerStyle: React.CSSProperties = {
+    height: 1,
+    background: C.borderDefault,
+    margin: `${S.sm} 0`,
+  };
+
   return (
     <div style={containerStyle}>
       {open && (
         <div style={dropdownStyle}>
+          {/* ─── PROFILE section ─── */}
+          <div style={sectionLabelStyle}>PROFILE</div>
           {PROFILES.map((p) => (
             <div
-              key={p}
+              key={`profile-${p}`}
               style={optionStyle(p === selectedProfile)}
               onClick={() => {
                 setProfile(p);
@@ -99,6 +149,37 @@ export function ProfileSwitcher() {
               {p}
             </div>
           ))}
+
+          {/* ─── divider ─── */}
+          <div style={dividerStyle} />
+
+          {/* ─── VIEW section ─── */}
+          <div style={sectionLabelStyle}>VIEW</div>
+          {VIEWS.map((v) => {
+            const isActive = v.id === activeView;
+            return (
+              <div
+                key={`view-${v.id}`}
+                style={optionStyle(isActive)}
+                onClick={() => {
+                  navigate(v.path);
+                  setOpen(false);
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                {v.label}
+              </div>
+            );
+          })}
         </div>
       )}
       <button

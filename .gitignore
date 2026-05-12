@@ -35,3 +35,6 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+
+# Claude Code (local-only settings)
+.claude/settings.local.json

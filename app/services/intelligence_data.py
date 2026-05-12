@@ -5,6 +5,7 @@ Uses httpx async + intelligence_cache.get_cached.
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timezone
 from typing import Any
@@ -51,10 +52,6 @@ def _tomorrow_key() -> str:
     return k
 
 
-def _v1_backend_base() -> str:
-    return (_env("V1_BACKEND_URL") or "https://gridalpha-production.up.railway.app").rstrip("/")
-
-
 def _pjm_items(data: Any) -> list[dict[str, Any]]:
     if isinstance(data, list):
         return data
@@ -76,13 +73,25 @@ def _fnum(x: Any) -> float:
         return 0.0
 
 
+_PJM_FETCH_LOG = logging.getLogger("gridalpha.pjm-fetch")
+
+
 async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
+    """Fetch one page from ``api.pjm.com/api/v1/<dataset>``.
+
+    Auto-injects ``startRow=1`` when the caller forgets - PJM rejects
+    every call without it (``{"field":"StartRow","message":"StartRow is
+    missing."}``). The 401 retry path also force-refreshes the public
+    key in case PJM rotated it between calls.
+    """
     url = f"https://api.pjm.com/api/v1/{path}"
+    params = {"startRow": "1", **params}  # caller can override; default 1
     for attempt in range(2):
         try:
             auth = await pjm_auth_headers(force_refresh=(attempt > 0))
         except PJMAuthenticationError as e:
             raise ConfigurationError(e.message) from e
+        auth_mode = "subscription_key" if "Ocp-Apim-Subscription-Key" in auth else "sso_cookie"
         async with httpx.AsyncClient(timeout=45.0) as client:
             r = await client.get(
                 url,
@@ -94,48 +103,25 @@ async def _pjm_fetch(path: str, params: dict[str, str]) -> list[dict[str, Any]]:
                 },
             )
         if r.status_code == 401 and attempt == 0:
+            _PJM_FETCH_LOG.info(
+                "PJM 401 on %s (auth=%s, attempt=1); retrying with force_refresh",
+                path,
+                auth_mode,
+            )
             continue
+        if r.status_code >= 400:
+            body_preview = (r.text or "")[:500].replace("\n", " ")
+            _PJM_FETCH_LOG.warning(
+                "PJM %s on %s | auth=%s | url=%s | body=%s",
+                r.status_code,
+                path,
+                auth_mode,
+                str(r.request.url),
+                body_preview,
+            )
         r.raise_for_status()
         return _pjm_items(r.json())
     raise RuntimeError("PJM fetch: auth retry exhausted unexpectedly")
-
-
-async def _fetch_generation_fuel_from_v1() -> dict[str, Any]:
-    """Fallback feed from V1 service when direct PJM auth is rejected."""
-    url = f"{_v1_backend_base()}/generation"
-    async with httpx.AsyncClient(timeout=45.0) as client:
-        r = await client.get(
-            url,
-            headers={
-                "Accept": "application/json",
-                "User-Agent": USER_AGENT,
-            },
-        )
-    r.raise_for_status()
-    body = r.json()
-    rows: list[dict[str, Any]] = []
-    if isinstance(body, dict) and isinstance(body.get("data"), list):
-        rows = [x for x in body["data"] if isinstance(x, dict)]
-    if not rows:
-        return {"timestamp": "", "fuels": []}
-
-    latest_str, latest_dt = _latest_pjm_interval(rows, "datetime_beginning_ept")
-    by_fuel: dict[str, float] = {}
-    for r in rows:
-        row_dt = _parse_pjm_ts(str(r.get("datetime_beginning_ept") or ""))
-        if latest_dt is not None and row_dt is not None:
-            if abs((row_dt - latest_dt).total_seconds()) > 120:
-                continue
-        elif latest_str:
-            if str(r.get("datetime_beginning_ept") or "").strip() != latest_str:
-                continue
-        else:
-            continue
-        ft = str(r.get("fuel_type") or "Other").strip() or "Other"
-        by_fuel[ft] = by_fuel.get(ft, 0.0) + _fnum(r.get("mw"))
-
-    fuels = [{"type": k, "mw": round(v, 2)} for k, v in sorted(by_fuel.items())]
-    return {"timestamp": latest_str, "fuels": fuels}
 
 
 # ── PJM atlas ────────────────────────────────────────────────────────────────
@@ -174,20 +160,26 @@ def _latest_pjm_interval(rows: list[dict[str, Any]], ts_field: str) -> tuple[str
 
 async def fetch_generation_fuel() -> dict[str, Any]:
     async def load() -> dict[str, Any]:
-        try:
-            rows = await _pjm_fetch(
-                "gen_by_fuel",
-                {
-                    "rowCount": "500",
-                    "fields": "datetime_beginning_ept,fuel_type,mw",
-                },
-            )
-        except httpx.HTTPStatusError as e:
-            # V1 live endpoint remains a reliable source for generation mix.
-            # Use it only when PJM rejects auth in V2.
-            if e.response.status_code in (401, 403):
-                return await _fetch_generation_fuel_from_v1()
-            raise
+        # PJM requires a datetime filter on gen_by_fuel - without one
+        # the feed errors with "StartRow is missing" / no scope. V1
+        # uses a rolling 2h window which yields the most recent settled
+        # hour (~10 fuel-type rows). We mirror that.
+        from datetime import datetime as _dt, timedelta as _td  # local
+        from zoneinfo import ZoneInfo as _ZI
+        _ept = _ZI("America/New_York")
+        _now = _dt.now(tz=_ept)
+        _window = (
+            f"{(_now - _td(hours=3)).strftime('%Y-%m-%d %H:%M')} to "
+            f"{_now.strftime('%Y-%m-%d %H:%M')}"
+        )
+        rows = await _pjm_fetch(
+            "gen_by_fuel",
+            {
+                "rowCount": "100",
+                "datetime_beginning_ept": _window,
+                "fields": "datetime_beginning_ept,datetime_beginning_utc,fuel_type,mw",
+            },
+        )
         if not rows:
             return {"timestamp": "", "fuels": []}
         latest_str, latest_dt = _latest_pjm_interval(rows, "datetime_beginning_ept")

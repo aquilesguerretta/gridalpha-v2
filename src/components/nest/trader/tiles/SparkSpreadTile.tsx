@@ -1,15 +1,70 @@
+// FORGE Wave 4 — SparkSpreadTile wired to useSparkSpread.
+// Hero value is the live spark spread for WEST_HUB at heat-rate 7500.
+// The 40px sparkline keeps a rolling 24-tick buffer locally so the
+// visual is informative even on the first frame.
+
+import { useEffect, useRef, useState } from 'react';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { C, F, R, S } from '@/design/tokens';
 import { useHoverState } from '../../../terminal/useHoverState';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
+import { useSparkSpread } from '@/hooks/data/useSparkSpread';
+import type { SparkSpreadRegime } from '@/lib/types/api';
 
-const SPARK_SERIES = [
-  12.4, 12.2, 12.6, 13.1, 13.0, 13.4, 13.9, 14.2, 14.0, 14.6,
-  14.9, 15.2, 15.6, 16.0, 16.3, 16.8, 17.1, 17.4, 17.6, 17.9,
-  18.0, 18.2, 18.3, 18.4,
-].map((value, i) => ({ i, value }));
+const SPARK_BUFFER_LEN = 24;
+const HEAT_RATE = 7500;
+const ZONE = 'WEST_HUB';
+
+const REGIME_LABEL: Record<SparkSpreadRegime, string> = {
+  BURNING: 'BURNING',
+  NORMAL: 'NORMAL',
+  SUPPRESSED: 'SUPPRESSED',
+};
+
+const REGIME_COLOR: Record<SparkSpreadRegime, string> = {
+  BURNING: C.falconGold,
+  NORMAL: C.alertNormal,
+  SUPPRESSED: C.alertCritical,
+};
 
 export function SparkSpreadTile() {
+  const spark = useSparkSpread(ZONE, HEAT_RATE);
   const hover = useHoverState();
+
+  // Rolling 24-tick buffer for the sparkline.
+  const bufferRef = useRef<number[]>([]);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    if (!spark.data) return;
+    bufferRef.current = [...bufferRef.current, spark.data.spark_spread].slice(
+      -SPARK_BUFFER_LEN,
+    );
+    setTick((t) => t + 1);
+  }, [spark.data]);
+
+  const data = (
+    bufferRef.current.length > 1
+      ? bufferRef.current
+      : [spark.data?.spark_spread ?? 0]
+  ).map((value, i) => ({ i, value }));
+  void tick; // force re-render on each ingestion
+
+  const regime: SparkSpreadRegime = spark.data?.regime ?? 'NORMAL';
+  const regimeColor = REGIME_COLOR[regime];
+  const value = spark.data?.spark_spread ?? 0;
+  const gasPrice = spark.data ? spark.data.gas_equivalent_cost : 0;
+  const lmp = spark.data?.lmp_total ?? 0;
+
+  // Read gas $/MMBtu from the meta block when present.
+  const gasMMBtu =
+    (spark as { data: unknown }).data && spark.summary
+      ? // Pull from envelope meta — exposed in `summary` is fine to parse.
+        // `useSparkSpread` doesn't surface meta; we rely on the gas-equivalent
+        // cost / heat-rate to back-derive: gas $/MMBtu = gas-cost × 1000 / HR.
+        (spark.data ? (spark.data.gas_equivalent_cost * 1000) / HEAT_RATE : 0)
+      : 0;
+
   const cardStyle: React.CSSProperties = {
     background: C.bgElevated,
     border: `1px solid ${C.borderDefault}`,
@@ -46,6 +101,9 @@ export function SparkSpreadTile() {
           }}
         >
           PJM WEST · SPARK SPREAD
+          {spark.isStale && (
+            <span style={{ color: C.alertWarning, marginLeft: 6 }}> · STALE</span>
+          )}
         </span>
         <span
           style={{
@@ -55,7 +113,7 @@ export function SparkSpreadTile() {
             fontFamily: F.mono,
             fontSize: '11px',
             letterSpacing: '0.18em',
-            color: C.falconGold,
+            color: regimeColor,
             fontWeight: 600,
           }}
         >
@@ -64,11 +122,11 @@ export function SparkSpreadTile() {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: C.falconGold,
+              background: regimeColor,
               display: 'inline-block',
             }}
           />
-          BURNING
+          {REGIME_LABEL[regime]}
         </span>
       </div>
 
@@ -84,7 +142,8 @@ export function SparkSpreadTile() {
             lineHeight: 1,
           }}
         >
-          +18.42
+          {value >= 0 ? '+' : ''}
+          {value.toFixed(2)}
         </span>
         <span
           style={{
@@ -95,27 +154,33 @@ export function SparkSpreadTile() {
             fontWeight: 400,
           }}
         >
-          $/MWh · HR 7,500 · GAS $3.82
+          $/MWh · HR {HEAT_RATE.toLocaleString()} · GAS $
+          {gasMMBtu.toFixed(2)}
         </span>
       </div>
 
-      {/* Sparkline (Recharts) */}
+      {/* Sparkline */}
       <div style={{ width: '100%', height: 40 }}>
-        <ResponsiveContainer width="100%" height={40}>
-          <LineChart
-            data={SPARK_SERIES}
-            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-          >
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke={C.falconGold}
-              strokeWidth={1.5}
-              dot={false}
-              isAnimationActive={false}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        <AnnotatableChart
+          chartId="trader:spark-spread:WEST_HUB"
+          hideToolbar
+        >
+          <ResponsiveContainer width="100%" height={40}>
+            <LineChart
+              data={data}
+              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+            >
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={regimeColor}
+                strokeWidth={1.5}
+                dot={false}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </AnnotatableChart>
       </div>
 
       {/* Footer */}
@@ -132,8 +197,8 @@ export function SparkSpreadTile() {
           fontWeight: 400,
         }}
       >
-        <span>GAS COST $28.65</span>
-        <span>POWER $47.07</span>
+        <span>GAS COST ${gasPrice.toFixed(2)}</span>
+        <span>POWER ${lmp.toFixed(2)}</span>
       </div>
     </div>
   );

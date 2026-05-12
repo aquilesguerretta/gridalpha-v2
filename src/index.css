@@ -655,6 +655,22 @@ button, a, input, select, textarea, [role="button"], .cursor-pointer {
   50%      { transform: translateY(-4px); opacity: 1; }
 }
 
+/* CHROMA Wave 4 — Skeleton shimmer. Single L→R sweep of an electric-blue
+   band at 8% alpha; 1.6s cycle. Consumed by every Skeleton variant in
+   src/components/terminal/Skeleton.tsx. */
+@keyframes ga-skeleton-shimmer {
+  0%   { background-position: -100% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* CHROMA Wave 4 — Connection-status reconnecting pulse. Amber dot
+   gently breathes 0.4 → 1.0 alpha at 1.2s, signaling the SSE stream
+   is mid-reconnect. */
+@keyframes ga-connection-reconnect {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1;   }
+}
+
 /* FORCE FULLSCREEN OVERRIDE */
 html, body, #root, [data-reactroot] {
   height: 100vh !important;

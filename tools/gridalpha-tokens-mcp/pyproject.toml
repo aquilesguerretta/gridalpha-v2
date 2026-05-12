@@ -1,0 +1,30 @@
+[project]
+name = "gridalpha-tokens-mcp"
+version = "0.1.0"
+description = "FastMCP server exposing GridAlpha design tokens, FOUNDRY primitives, and figma-reference files as MCP tools."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "ARCHITECT (GridAlpha)" },
+]
+license = { text = "Proprietary" }
+dependencies = [
+  # FastMCP runtime — Anthropic's recommended Python MCP server framework.
+  "fastmcp>=0.4.0",
+  # File-watching for cache invalidation in Phase 6.
+  "watchdog>=4.0.0",
+]
+
+[project.scripts]
+gridalpha-tokens-mcp = "server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["server"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tools*"]

@@ -6,6 +6,11 @@ import { useState } from 'react';
 import { C, F, S } from '@/design/tokens';
 import PeregrineFullPage from './peregrine/PeregrineFullPage';
 import { PeregrineFeedMarketAlerts } from './GlobalShell';
+import PriceIntelligence from './analytics/tabs/PriceIntelligence';
+import SparkSpread from './analytics/tabs/SparkSpread';
+import BatteryArb from './analytics/tabs/BatteryArb';
+import MarginalFuel from './analytics/tabs/MarginalFuel';
+import Convergence from './analytics/tabs/Convergence';
 
 type AnalyticsTabId =
   | 'intelligence'
@@ -23,35 +28,6 @@ const ANALYTICS_TABS: Array<{ id: AnalyticsTabId; label: string }> = [
   { id: 'marginal',     label: 'MARGINAL FUEL'         },
   { id: 'convergence',  label: 'CONVERGENCE'           },
 ];
-
-function AnalyticsPlaceholder({ label }: { label: string }) {
-  return (
-    <div style={{
-      display:        'flex',
-      flexDirection:  'column',
-      alignItems:     'center',
-      justifyContent: 'center',
-      height:         '100%',
-      gap:            S.lg,
-    }}>
-      <div style={{
-        fontFamily:    F.mono,
-        fontSize:      '13px',
-        color:         C.textMuted,
-        letterSpacing: '0.12em',
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontFamily: F.sans,
-        fontSize:   '13px',
-        color:      C.textMuted,
-      }}>
-        Coming in Sprint 4
-      </div>
-    </div>
-  );
-}
 
 interface AnalyticsPageProps {
   selectedZone: string | null;
@@ -153,11 +129,11 @@ export default function AnalyticsPage({ selectedZone, onZoneClick }: AnalyticsPa
             marketAlerts={<PeregrineFeedMarketAlerts onZoneClick={onZoneClick} />}
           />
         )}
-        {analyticsTab === 'price'       && <AnalyticsPlaceholder label="PRICE INTELLIGENCE" />}
-        {analyticsTab === 'spread'      && <AnalyticsPlaceholder label="SPARK SPREAD ANALYSIS" />}
-        {analyticsTab === 'battery'     && <AnalyticsPlaceholder label="BATTERY ARBITRAGE" />}
-        {analyticsTab === 'marginal'    && <AnalyticsPlaceholder label="MARGINAL FUEL" />}
-        {analyticsTab === 'convergence' && <AnalyticsPlaceholder label="CONVERGENCE" />}
+        {analyticsTab === 'price'       && <PriceIntelligence />}
+        {analyticsTab === 'spread'      && <SparkSpread />}
+        {analyticsTab === 'battery'     && <BatteryArb />}
+        {analyticsTab === 'marginal'    && <MarginalFuel />}
+        {analyticsTab === 'convergence' && <Convergence />}
       </div>
     </div>
   );

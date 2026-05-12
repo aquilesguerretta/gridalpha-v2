@@ -1,0 +1,66 @@
+#!/usr/bin/env sh
+# CHROMA Wave 5 — gridalpha-detect pre-commit hook.
+#
+# Audits the files staged for commit using the gridalpha-detect CLI.
+# Blocks the commit on any P0 finding; surfaces P1+ as warnings on
+# stderr but allows the commit to proceed.
+#
+# To activate (one-time, per machine):
+#   1. Install husky into the repo:
+#        npm install -D husky && npx husky init
+#      (this writes a `prepare` script into package.json that auto-
+#       installs the hook on `npm install`)
+#   2. Or, without husky, copy this file directly:
+#        cp .husky/pre-commit .git/hooks/pre-commit
+#        chmod +x .git/hooks/pre-commit
+#
+# To bypass (legitimate emergencies only):
+#   git commit --no-verify -m "…"
+#
+# Bypassing P0 is reserved for merge conflicts and CI hot-fixes.
+# Routine bypass is a code-smell — fix the violation or add a
+# line-level disable directive instead:
+#   // gridalpha-detect-disable-next-line <rule-id>
+
+# Husky v9 doesn't auto-source its helper anymore; the script just
+# runs from the .husky/ directory. We keep this guard for portability.
+if [ -f "$(dirname -- "$0")/_/husky.sh" ]; then
+  . "$(dirname -- "$0")/_/husky.sh"
+fi
+
+# Collect staged TSX/TS/CSS files. Filter to existing files (handles
+# deletions and renames cleanly).
+STAGED="$(git diff --cached --name-only --diff-filter=ACMR \
+  | grep -E '\.(tsx|ts|css)$' \
+  | grep -v '^node_modules/' \
+  | grep -v '^dist/' \
+  | grep -v '^tools/gridalpha-detect/' \
+  || true)"
+
+if [ -z "$STAGED" ]; then
+  # No relevant files staged; let the commit through.
+  exit 0
+fi
+
+# Run the auditor on each staged file. We feed paths individually
+# rather than passing the whole src/ root so the audit is scoped to
+# what's actually changing. The CLI itself walks each path and
+# applies the right rules.
+AUDIT_OUTPUT="$(echo "$STAGED" | xargs node ./tools/gridalpha-detect/bin/gridalpha-detect.mjs 2>&1)"
+AUDIT_EXIT=$?
+
+# Always print the auditor output so the author sees what was found.
+echo "$AUDIT_OUTPUT"
+
+if [ $AUDIT_EXIT -ne 0 ]; then
+  echo ""
+  echo "✗ gridalpha-detect blocked the commit (P0 findings above)."
+  echo "  Fix the violations or add // gridalpha-detect-disable-next-line"
+  echo "  to suppress a specific line. To bypass in an emergency:"
+  echo "    git commit --no-verify"
+  exit $AUDIT_EXIT
+fi
+
+# AUDIT_EXIT == 0 means no P0 findings. The output may still have
+# surfaced P1+ — those are warnings only, no block.
+exit 0

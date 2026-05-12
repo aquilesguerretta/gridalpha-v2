@@ -360,24 +360,43 @@ export default function PeregrineFullPage({
                 </div>
               )}
 
-              {!loading && filtered.map((item, idx) => (
+              {!loading && filtered.map((item, idx) => {
+                // Editorial hierarchy — first item is hero, the next stretch
+                // is standard, the tail is compact. Critical/high priority
+                // items can also be promoted to standard from compact.
+                const isHero    = idx === 0;
+                const isCompact = idx > 6 && item.priority !== 'CRITICAL' && item.priority !== 'HIGH';
+                return (
                 <div key={`${item.id}-${idx}`}
                   onClick={() => {
                     if (item.videoId && String(item.videoId).length > 0) setVideoItem(item);
                     else setReaderItem(item);
                   }}
                   style={{
-                    display: 'flex', gap: S.xl,
-                    padding: `${S.lg} ${S.xl}`,
+                    display: 'flex', gap: isCompact ? S.lg : S.xl,
+                    padding: isHero
+                      ? `${S.xl} ${S.xl} ${S.xxl}`
+                      : isCompact
+                        ? `${S.sm} ${S.xl}`
+                        : `${S.lg} ${S.xl}`,
                     borderBottom: `1px solid ${C.borderDefault}`,
                     cursor: 'pointer',
                     transition: 'background 120ms ease',
+                    // Hero gets a subtle atmospheric glow over its row only
+                    ...(isHero ? {
+                      background:
+                        'radial-gradient(ellipse 70% 100% at 30% 50%, rgba(255,255,255,0.025) 0%, transparent 70%)',
+                    } : {}),
                   }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.025)'; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = isHero
+                    ? 'radial-gradient(ellipse 70% 100% at 30% 50%, rgba(255,255,255,0.04) 0%, transparent 70%)'
+                    : 'rgba(255,255,255,0.025)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = isHero
+                    ? 'radial-gradient(ellipse 70% 100% at 30% 50%, rgba(255,255,255,0.025) 0%, transparent 70%)'
+                    : 'transparent'; }}
                 >
                   {/* Timestamp + source */}
-                  <div style={{ width: '80px', flexShrink: 0 }}>
+                  <div style={{ width: isCompact ? '64px' : '80px', flexShrink: 0 }}>
                     <div style={{ fontFamily: F.mono, fontSize: '11px',
                       color: C.textMuted, marginBottom: S.xs,
                       fontVariantNumeric: 'tabular-nums' }}>
@@ -404,16 +423,24 @@ export default function PeregrineFullPage({
 
                   {/* Headline + summary + category */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: F.sans,
-                      fontSize: '15px', fontWeight: '500',
-                      color: C.textPrimary, lineHeight: 1.4,
-                      marginBottom: S.sm }}>
+                    <div style={{
+                      fontFamily: isHero ? F.display : F.sans,
+                      fontSize: isHero ? '32px' : isCompact ? '13px' : '15px',
+                      fontWeight: isHero ? '400' : '500',
+                      letterSpacing: isHero ? '-0.01em' : 'normal',
+                      color: isCompact ? C.textSecondary : C.textPrimary,
+                      lineHeight: isHero ? 1.15 : 1.4,
+                      marginBottom: isCompact ? 0 : S.sm,
+                    }}>
                       {item.title}
                     </div>
-                    {item.summary && (
+                    {item.summary && !isCompact && (
                       <div style={{ fontFamily: F.sans,
-                        fontSize: '13px', color: C.textSecondary,
-                        lineHeight: 1.65, marginBottom: S.sm }}>
+                        fontSize: isHero ? '16px' : '13px',
+                        color: C.textSecondary,
+                        lineHeight: isHero ? 1.6 : 1.65,
+                        marginBottom: S.sm,
+                        maxWidth: isHero ? 720 : 'none' }}>
                         {item.summary}
                       </div>
                     )}
@@ -493,7 +520,8 @@ export default function PeregrineFullPage({
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               <div style={{ padding: `${S.sm} ${S.xl}`, opacity: 0.4 }}>
                 <span style={{ fontFamily: F.sans, fontSize: '10px', color: C.textMuted }}>

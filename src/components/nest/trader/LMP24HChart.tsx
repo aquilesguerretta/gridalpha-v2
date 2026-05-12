@@ -8,8 +8,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { C, F, R, S } from '@/design/tokens';
-import { ZONE_24H_PRICES, ZONE_LMP_DETAIL } from '../../../lib/pjm/mock-data';
 import { useHoverState } from '../../terminal/useHoverState';
+import { Skeleton } from '../../terminal/Skeleton';
+import { StaleBadge } from '../../terminal/StaleBadge';
+import { AnnotatableChart } from '@/components/shared/AnnotatableChart';
+import { useLMP24h } from '@/hooks/data/useLMP24h';
 
 // Hour labels: -24H, -23H, ..., -1H, NOW (24-point series)
 function formatHour(idx: number): string {
@@ -92,12 +95,21 @@ function ChartTooltip({
 }
 
 export function LMP24HChart() {
-  const series = ZONE_24H_PRICES['WEST_HUB'] ?? ZONE_24H_PRICES['DEFAULT'];
-  const detail = ZONE_LMP_DETAIL['WEST_HUB'] ?? ZONE_LMP_DETAIL['DEFAULT'];
+  const zone = 'WEST_HUB';
+  const lmp24h = useLMP24h(zone);
+  const series: number[] = lmp24h.data?.map((p) => p.lmp_total) ?? [];
+  // Re-index by hour-ordinal so the chart keeps its -24/-18/-12/-6/NOW
+  // X-axis labels. The 24-element response is already in chronological
+  // order (oldest → newest), so the ordinal IS the hour-position label.
   const data = series.map((price, hour) => ({ hour, price }));
+  const avg24h =
+    series.length > 0
+      ? series.reduce((a, b) => a + b, 0) / series.length
+      : 0;
 
   const hover = useHoverState();
   const cardStyle: React.CSSProperties = {
+    position: 'relative',
     background: C.bgElevated,
     border: `1px solid ${C.borderDefault}`,
     borderTop: `1px solid ${
@@ -111,8 +123,14 @@ export function LMP24HChart() {
     transition: 'border-top-color 200ms cubic-bezier(0.4,0,0.2,1)',
   };
 
+  // CHROMA Wave 4 — first-fetch skeleton, top-right stale badge.
+  const showSkeleton = lmp24h.isLoading && !lmp24h.data;
+
   return (
     <div style={cardStyle} {...hover.bind}>
+      {lmp24h.isStale && !showSkeleton && (
+        <StaleBadge ageSeconds={lmp24h.ageSeconds} />
+      )}
       {/* Header */}
       <div
         style={{
@@ -149,6 +167,10 @@ export function LMP24HChart() {
 
       {/* Chart */}
       <div style={{ flex: 1, minHeight: 280 }}>
+        {showSkeleton ? (
+          <Skeleton.Chart height={280} label="Loading 24h LMP" />
+        ) : (
+        <AnnotatableChart chartId="trader:lmp-24h:WEST_HUB">
         <ResponsiveContainer width="100%" height={280}>
           <LineChart
             data={data}
@@ -180,7 +202,7 @@ export function LMP24HChart() {
             />
             <Tooltip
               cursor={{ stroke: C.borderDefault, strokeDasharray: '2 4' }}
-              content={<ChartTooltip avg24h={detail.avg24h} />}
+              content={<ChartTooltip avg24h={avg24h} />}
             />
             <Line
               type="monotone"
@@ -199,6 +221,8 @@ export function LMP24HChart() {
             />
           </LineChart>
         </ResponsiveContainer>
+        </AnnotatableChart>
+        )}
       </div>
     </div>
   );

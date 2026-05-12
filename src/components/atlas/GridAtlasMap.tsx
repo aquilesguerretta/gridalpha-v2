@@ -237,6 +237,79 @@ const hubLabelLayer: LayerProps = {
   },
 };
 
+// ── Outage markers (Wave 2 — driven by AtlasSnapshot.outages) ─────────────
+// Outage rings appear / disappear as the scrubber moves through each
+// outage's active window. Color encodes fuel; halo encodes severity.
+
+const fuelOutageColor: any = [
+  'match', ['upcase', ['coalesce', ['get', 'fuel'], '']],
+  'NG',    '#E67E22',
+  'NUC',   '#9B59B6',
+  'COAL',  '#636E72',
+  'WIND',  '#00A3FF',
+  'SOLAR', '#F1C40F',
+  'HYDRO', '#3498DB',
+  'BAT',   '#00E676',
+  'OIL',   '#A0522D',
+  '#FF3B3B',
+];
+
+const outageHaloLayer: LayerProps = {
+  id:   'outages-halo',
+  type: 'circle',
+  paint: {
+    'circle-radius': [
+      'interpolate', ['linear'],
+      ['coalesce', ['get', 'mw'], 500],
+      300,  16,
+      1000, 24,
+      2500, 36,
+    ] as any,
+    'circle-color':         '#FF3B3B',
+    'circle-opacity':       0.18,
+    'circle-blur':          0.55,
+    'circle-stroke-width':  0,
+  },
+};
+
+const outageRingLayer: LayerProps = {
+  id:   'outages-ring',
+  type: 'circle',
+  paint: {
+    'circle-radius': [
+      'interpolate', ['linear'],
+      ['coalesce', ['get', 'mw'], 500],
+      300,  10,
+      1000, 14,
+      2500, 20,
+    ] as any,
+    'circle-color':        'rgba(0,0,0,0)',
+    'circle-stroke-color': fuelOutageColor,
+    'circle-stroke-width': 2,
+    'circle-opacity':      1,
+  },
+};
+
+const outageLabelLayer: LayerProps = {
+  id:     'outage-labels',
+  type:   'symbol',
+  minzoom: 6,
+  layout: {
+    'text-field':       ['concat', ['get', 'name'], ' · -', ['to-string', ['get', 'mw']], ' MW'] as any,
+    'text-font':        ['Open Sans Bold', 'Arial Unicode MS Bold'],
+    'text-size':        10,
+    'text-offset':      [0, 1.6],
+    'text-anchor':      'top',
+    'text-allow-overlap': false,
+    'text-optional':    true,
+  },
+  paint: {
+    'text-color':      '#FF3B3B',
+    'text-halo-color': 'rgba(0,0,0,0.85)',
+    'text-halo-width': 1.5,
+  },
+};
+
 // ── Plant fallback circle layer (renders immediately, before SVG icons load) ─
 
 const plantCircleFallback: LayerProps = {
@@ -270,6 +343,11 @@ export interface GridAtlasMapProps {
   txGeoJson:          GeoJSON.FeatureCollection | null;
   plantGeoJson:       GeoJSON.FeatureCollection | null;
   hubGeoJson:         GeoJSON.FeatureCollection | null;
+  /**
+   * ATLAS Wave 2 — outage markers driven by the AtlasSnapshot. Markers
+   * appear/disappear as the scrubber moves through outages' active windows.
+   */
+  outagesGeoJson?:    GeoJSON.FeatureCollection | null;
   substationGeoJson:  GeoJSON.FeatureCollection | null;
   pipelineGeoJson:    GeoJSON.FeatureCollection | null;
   earthquakeGeoJson:  GeoJSON.FeatureCollection | null;
@@ -290,7 +368,7 @@ export interface GridAtlasMapProps {
 const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
   function GridAtlasMap(
     {
-      mapStyle, txGeoJson, plantGeoJson, hubGeoJson,
+      mapStyle, txGeoJson, plantGeoJson, hubGeoJson, outagesGeoJson,
       substationGeoJson, pipelineGeoJson, earthquakeGeoJson,
       weatherGeoJson,
       showTx, showPlants, showNodes,
@@ -519,6 +597,17 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           <Source id="earthquakes" type="geojson" data={earthquakeGeoJson}>
             <Layer {...earthquakeLayer} />
             <Layer {...earthquakeLabelLayer} />
+          </Source>
+        )}
+
+        {/* Outages — Wave 2 time-travel-driven generator outage rings.
+            Source is keyed on `outages` so re-mounting the source on
+            every snapshot change triggers a smooth Mapbox repaint. */}
+        {styleLoaded && outagesGeoJson && outagesGeoJson.features.length > 0 && (
+          <Source id="outages" type="geojson" data={outagesGeoJson}>
+            <Layer {...outageHaloLayer} />
+            <Layer {...outageRingLayer} />
+            <Layer {...outageLabelLayer} />
           </Source>
         )}
 

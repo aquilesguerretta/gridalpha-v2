@@ -1,10 +1,11 @@
 // src/components/shared/ErrorBoundary.tsx
 // Wraps any component that could throw (3D cards, data cards).
-// A crash inside the boundary shows CardErrorState, not a blank page.
+// A crash inside the boundary shows the platform's ErrorBoundaryFallback
+// (CHROMA Wave 4), not a blank page.
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { captureError } from "../../lib/shared/error-tracking";
-import { C, F } from '@/design/tokens';
+import { ErrorBoundaryFallback } from "../terminal/ErrorBoundaryFallback";
 
 interface Props {
   children:  ReactNode;
@@ -49,41 +50,16 @@ export class ErrorBoundary extends Component<Props, State> {
         : this.props.fallback;
     }
 
+    // CHROMA Wave 4 default — token-driven card fallback. The legacy
+    // inline rendering was scoped to mono caps text + minimal chrome;
+    // ErrorBoundaryFallback gives the same affordance with the
+    // platform's card hierarchy.
     return (
-      <div style={{
-        display:         "flex",
-        flexDirection:   "column",
-        alignItems:      "center",
-        justifyContent:  "center",
-        height:          "100%",
-        padding:         24,
-        gap:             12,
-        fontFamily:      F.mono,
-      }}>
-        <span style={{ fontSize: "0.6rem", letterSpacing: "0.15em", color: C.alertCritical, textTransform: "uppercase" }}>
-          {this.props.label ?? "COMPONENT"} ERROR
-        </span>
-        <span style={{ fontSize: "0.55rem", color: C.textMuted, textAlign: "center", maxWidth: 200 }}>
-          {this.state.error.message}
-        </span>
-        <button
-          onClick={this.handleReset}
-          style={{
-            marginTop:    8,
-            padding:      "4px 12px",
-            background:   "transparent",
-            border:       `1px solid ${C.electricBlue}`,
-            borderRadius: 4,
-            color:        C.electricBlue,
-            fontFamily:   F.mono,
-            fontSize:     "0.55rem",
-            letterSpacing:"0.1em",
-            cursor:       "pointer",
-          }}
-        >
-          RETRY
-        </button>
-      </div>
+      <ErrorBoundaryFallback
+        error={this.state.error}
+        onRetry={this.handleReset}
+        label={this.props.label ? `${this.props.label.toUpperCase()} UNAVAILABLE` : undefined}
+      />
     );
   }
 }

@@ -1,0 +1,10 @@
+# Python build / venv artifacts — ignored across the MCP server tree.
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/

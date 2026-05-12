@@ -170,3 +170,80 @@ Strategy Simulator, and Storage DA Bid Optimizer.
   with module-level `setUnderwritingState()` bridge; CalculatorView
   writes its state in, the provider reads it on each AI synthesis.
 - This section of CLAUDE.md
+
+## FORGE WAVE 6 — ANALYST QUERY BUILDER + REPORT DRAFTING
+
+The fifth profile signature feature. Elevates the Analyst Nest from
+"comparison view + saved-query rail" to a depth-complete query
+authoring and research-publishing surface. Structurally different
+from the prior four waves: Query Builder → Saved Library →
+Report Drafting → Publish, not Form → Run → Results → Export.
+
+### Architecture
+
+| Path | Purpose |
+| --- | --- |
+| `src/lib/analyst/types.ts` | `QueryAST`, `SavedQuery`, `QueryResult`, `Report`, `ReportSection`, `ReportTemplate`, `ScheduleKind`. |
+| `src/lib/analyst/queryAST.ts` | `buildAST`, `emptyAST`, `serializeAST` / `deserializeAST`, `describeAST` (one-line plan preview). |
+| `src/lib/analyst/queryExecutor.ts` | Pure function from AST → result. V1 runs against shape-matched synthetic data; future Cursor backend wave swaps `runLiveQuery`. |
+| `src/lib/analyst/queryScheduler.ts` | `isDue`, `dueQueries`, `nextRunIn` — cron-style schedules (hourly / daily-8am / weekly-monday / monthly-1st). |
+| `src/lib/analyst/reportRenderer.ts` | Thin façade over CONDUIT-2's `exportAnalystReport`. Returns `{ filename, shareUrl }`. |
+| `src/stores/analystStore.ts` | Zustand + `persist` (localStorage). Owns `savedQueries[]` and `reports[]`. |
+| `src/components/nest/analyst/QueryBuilder/*` | 7 components — composer, dimension/aggregation/filter pickers, results table + chart, saved-library, save modal, scheduled-runner, top-level `QueryBuilderView`. |
+| `src/components/nest/analyst/ReportDrafting/*` | 7 components — editor, section block dispatcher, commentary/query-result/heading variants, preview, publish button, template library, top-level `ReportDraftingView`. |
+| `src/services/pdfTemplates/AnalystReportTemplate.tsx` | Built from a 17-line stub. Renders Report (title, subtitle, sections) as a newspaper-style PDF. |
+| `src/services/pdfExport.ts` | Added `exportAnalystReport` + `analystReport` registry entry. Existing exporters untouched. |
+| `src/lib/mock/analyst-mock.ts` | Added `REPORT_TEMPLATES` — three seed templates (Weekly PJM Review, Storm Postmortem, Monthly Capacity Outlook). |
+| `src/services/contextProviders/analystNestContext.ts` | Extended with `setAnalystQueryState` / `setAnalystReportState` module-level bridges so ORACLE references the active query or report. |
+| `src/components/nest/analyst/AnalystNest.tsx` | Surgical addition: OVERVIEW / QUERY BUILDER / REPORT DRAFTING tab strip above the existing layout. |
+
+### Calibration smoke test
+
+```
+PLAN  : top 5 of LMP for COMED, grouped by hour-of-day, over last 30 days
+ROWS  : 5
+RANGE : min $32.11, mean $35.34, max $40.37
+SOURCE: mock
+```
+
+Scheduler verdict on a fresh `daily-8am` saved query (`lastRunAt: null`):
+- DUE NOW: true
+- NEXT RUN: in 15h (tomorrow 8 AM local)
+
+Filter-zero edge: query "top 5 negative-LMP hours" correctly returns
+zero rows against the synthetic data (the seeded LMP series doesn't
+go negative — surfaces in the summary line as "No rows match the
+query.").
+
+### V1 limitations (acknowledged future work)
+
+- **Query language is composer-only**, not SQL. A future revision
+  can layer a SQL-like expression mini-language on top of the AST
+  for power users; the AST itself is the single source of truth.
+- **Persistence is localStorage**, not a backend. A future Cursor
+  wave can swap the `persist` adapter for `/api/analyst/queries` /
+  `/api/analyst/reports` endpoints without touching consumers.
+- **Query result caching is per-saved-query** (`lastResult`) — no
+  fleet-wide LRU yet. Hot queries re-fetch on every schedule tick.
+- **Report charts embed as tables in PDF** because we don't yet
+  rasterize SVG → PNG inside the pdf pipeline. Editor + preview
+  show real charts.
+- **Single-user, single-client reports.** No collaboration model;
+  no real-time co-editing. The shareable URL is a
+  `localstorage://` placeholder rather than an actual upload.
+- **Live data path uses the mock executor** because Cursor hasn't
+  shipped `/api/analyst/query` yet. When it does, swap the body of
+  `runLiveQuery` and the rest of the surface picks it up.
+
+### What FORGE Wave 6 owns
+
+- `src/lib/analyst/*` (5 files)
+- `src/stores/analystStore.ts`
+- `src/components/nest/analyst/QueryBuilder/*` (8 files)
+- `src/components/nest/analyst/ReportDrafting/*` (7 files)
+- `src/services/pdfTemplates/AnalystReportTemplate.tsx` (built from stub)
+- `src/services/pdfExport.ts` (added `exportAnalystReport`)
+- `src/lib/mock/analyst-mock.ts` (added `REPORT_TEMPLATES`)
+- `src/services/contextProviders/analystNestContext.ts` (extended)
+- `src/components/nest/analyst/AnalystNest.tsx` (tab strip)
+- This section of CLAUDE.md

@@ -76,3 +76,25 @@ export interface TransmissionSegment {
   geometry: LineStringGeometry; // Pre-simplified to the LodLevel requested
   segmentLengthKm: number;
 }
+
+// Note: this is the geospatial / national-fleet BatteryAsset contract,
+// distinct from the PJM-optimizer BatteryAsset in
+// `src/lib/types/storage.ts` (which has powerKW/RTE/SOC bounds). Import
+// from the module that matches the consumer's domain.
+export interface BatteryAsset {
+  id: string;
+  eiaPlantId: number | null;
+  eiaGeneratorId: string | null;
+  name: string;
+  owner: string | null;
+  iso: IsoMarket;
+  state: string;
+  lat: number;
+  lon: number;
+  capacityMw: number;           // Power capacity (nameplate)
+  capacityMwh: number | null;   // Energy capacity (may be null in older 860M)
+  durationHours: number | null; // Derived: capacityMwh / capacityMw
+  status: AssetStatus;
+  codDate: string | null;
+  retirementDate: string | null;
+}

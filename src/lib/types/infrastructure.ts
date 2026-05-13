@@ -62,3 +62,17 @@ export interface GenerationUnit {
   codDate: string | null;       // ISO YYYY-MM-DD
   retirementDate: string | null;
 }
+
+// LineString geometry as [lon, lat] pairs (Mapbox convention).
+// Backend serves three precisions; the frontend selects via LodLevel.
+export type LineStringGeometry = [number, number][];
+
+export interface TransmissionSegment {
+  id: string;
+  voltageKv: number;            // Discrete values: 115, 138, 161, 230, 345, 500, 735, 765
+  name: string | null;
+  owner: string | null;
+  iso: IsoMarket;               // Inferred via spatial join; may be 'OTHER'
+  geometry: LineStringGeometry; // Pre-simplified to the LodLevel requested
+  segmentLengthKm: number;
+}

@@ -38,7 +38,15 @@ import { useAtlasHistorical } from '@/hooks/data/useAtlasHistorical';
 import { useGenerationUnits } from '@/hooks/data/useGenerationUnits';
 import { useTransmissionSegments } from '@/hooks/data/useTransmissionSegments';
 import { useBatteryAssets } from '@/hooks/data/useBatteryAssets';
-import type { LodLevel } from '@/lib/types/infrastructure';
+import type {
+  AssetStatus,
+  BatteryAsset,
+  FuelType,
+  GenerationUnit,
+  IsoMarket,
+  LodLevel,
+} from '@/lib/types/infrastructure';
+import { AssetDetailPanel, type SelectedAsset } from './panels/AssetDetailPanel';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
 
@@ -273,6 +281,10 @@ export default function GridAtlasView() {
   const [showAllUsGeneration,   setShowAllUsGeneration]   = useState(false);
   const [showAllUsTransmission, setShowAllUsTransmission] = useState(false);
   const [showBatteries,         setShowBatteries]         = useState(false);
+
+  // Wave 5 — selected asset for the top-right detail panel. Cleared on
+  // close (✕ click, ESC key, or click outside any asset dot).
+  const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null);
 
   // Map style
   const [activeStyle, setActiveStyle] = useState<MapStyleId>('terminal');
@@ -607,6 +619,52 @@ export default function GridAtlasView() {
             onPlantHover={handlePlantHover}
             onZoneHover={setHoveredZone}
             onViewportChange={setViewport}
+            onGeneratorClick={(props) => {
+              // Reconstruct the typed shape from the unwrapped Mapbox
+              // properties bag. Mapbox returns a flat object; we cast
+              // back to the FOUNDRY contract (lat/lon are absent on
+              // the props since they live on the geometry — the panel
+              // doesn't render them).
+              const p = props as Record<string, unknown>;
+              setSelectedAsset({
+                kind:           'generation',
+                id:             String(p.id ?? ''),
+                eiaPlantId:     (p.eiaPlantId as number | null) ?? null,
+                eiaGeneratorId: (p.eiaGeneratorId as string | null) ?? null,
+                name:           String(p.name ?? 'Unknown'),
+                owner:          (p.owner as string | null) ?? null,
+                iso:            (p.iso as IsoMarket) ?? 'OTHER',
+                state:          String(p.state ?? '—'),
+                lat:            0,
+                lon:            0,
+                fuel:           (p.fuel as FuelType) ?? 'other',
+                capacityMw:     Number(p.capacityMw ?? 0),
+                status:         (p.status as AssetStatus) ?? 'operating',
+                codDate:        (p.codDate as string | null) ?? null,
+                retirementDate: (p.retirementDate as string | null) ?? null,
+              } satisfies { kind: 'generation' } & GenerationUnit);
+            }}
+            onBatteryClick={(props) => {
+              const p = props as Record<string, unknown>;
+              setSelectedAsset({
+                kind:           'battery',
+                id:             String(p.id ?? ''),
+                eiaPlantId:     (p.eiaPlantId as number | null) ?? null,
+                eiaGeneratorId: (p.eiaGeneratorId as string | null) ?? null,
+                name:           String(p.name ?? 'Unknown'),
+                owner:          (p.owner as string | null) ?? null,
+                iso:            (p.iso as IsoMarket) ?? 'OTHER',
+                state:          String(p.state ?? '—'),
+                lat:            0,
+                lon:            0,
+                capacityMw:     Number(p.capacityMw ?? 0),
+                capacityMwh:    (p.capacityMwh as number | null) ?? null,
+                durationHours:  (p.durationHours as number | null) ?? null,
+                status:         (p.status as AssetStatus) ?? 'operating',
+                codDate:        (p.codDate as string | null) ?? null,
+                retirementDate: (p.retirementDate as string | null) ?? null,
+              } satisfies { kind: 'battery' } & BatteryAsset);
+            }}
           />
         </Suspense>
       </ErrorBoundary>
@@ -1051,6 +1109,12 @@ export default function GridAtlasView() {
 
       {/* ── Wave 2 time-travel scrubber ────────────────────────── */}
       <TimeTravelScrubber />
+
+      {/* ── Wave 5 asset detail panel (top-right) ─────────────── */}
+      <AssetDetailPanel
+        asset={selectedAsset}
+        onClose={() => setSelectedAsset(null)}
+      />
     </div>
   );
 }

@@ -398,6 +398,32 @@ export default function GridAtlasView() {
     showBatteries ? { bbox: viewport.bbox, limit: 5000 } : null,
   );
 
+  // Wave 5 — national readouts derived from the viewport-resident
+  // datasets. Computed in the view (not the hook) so the intel panel
+  // can mix server-side aggregates (batteries.totalMw / totalMwh)
+  // with client-side rollups (top fuels, transmission km) under one
+  // memo umbrella.
+  const nationalTopFuels = useMemo<Array<{ fuel: FuelType; mw: number }>>(() => {
+    if (generation.data.length === 0) return [];
+    const byFuel = new Map<FuelType, number>();
+    for (const g of generation.data) {
+      byFuel.set(g.fuel, (byFuel.get(g.fuel) ?? 0) + g.capacityMw);
+    }
+    return Array.from(byFuel.entries())
+      .map(([fuel, mw]) => ({ fuel, mw }))
+      .sort((a, b) => b.mw - a.mw)
+      .slice(0, 5);
+  }, [generation.data]);
+
+  const nationalTxKm = useMemo<number>(
+    () => transmission.data.reduce((sum, t) => sum + t.segmentLengthKm, 0),
+    [transmission.data],
+  );
+
+  // True if any all-US layer is active — gates the "NATIONAL · VIEWPORT"
+  // section in the intel panel.
+  const hasAllUsLayerOn = showAllUsGeneration || showAllUsTransmission || showBatteries;
+
   const allUsBatteriesGeoJson = useMemo<GeoJSON.FeatureCollection>(() => ({
     type: 'FeatureCollection',
     features: batteries.data.map((b) => ({
@@ -988,6 +1014,113 @@ export default function GridAtlasView() {
                   </>
                 );
               })()}
+            </div>
+          )}
+
+          {/* Wave 5 — National readouts. Visible whenever any all-US
+              layer is on. Pulls from the same hooks the layers consume,
+              so what the user sees on the map matches what the panel
+              counts. */}
+          {hasAllUsLayerOn && (
+            <div style={{ borderTop: `1px solid ${C.borderDefault}`, paddingTop: 8, marginTop: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontFamily: F.mono, fontSize: '0.55rem', color: C.electricBlueLight, letterSpacing: '0.1em' }}>
+                  NATIONAL · VIEWPORT
+                </span>
+                <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted, letterSpacing: '0.08em' }}>
+                  LOD {viewport.lod.toUpperCase()}
+                </span>
+              </div>
+
+              {/* Top 5 fuels by capacity — only when generation toggle is on */}
+              {showAllUsGeneration && nationalTopFuels.length > 0 && (() => {
+                const total = nationalTopFuels.reduce((s, f) => s + f.mw, 0);
+                return (
+                  <div style={{ marginBottom: 6 }}>
+                    <span style={{
+                      fontFamily: F.mono, fontSize: '0.5rem',
+                      color: C.textMuted, letterSpacing: '0.1em',
+                    }}>
+                      TOP FUELS · {generation.count.toLocaleString()} UNITS
+                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4 }}>
+                      {nationalTopFuels.map((f) => {
+                        const pct = total > 0 ? (f.mw / total) * 100 : 0;
+                        return (
+                          <div key={f.fuel} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{
+                              width:        `${Math.max(4, pct)}%`,
+                              maxWidth:     '60%',
+                              height:       4,
+                              borderRadius: 2,
+                              background:   fuelMixBarColor(f.fuel),
+                              flexShrink:   0,
+                            }} />
+                            <span style={{
+                              fontFamily:         F.mono,
+                              fontSize:           '0.55rem',
+                              color:              C.textSecondary,
+                              fontVariantNumeric: 'tabular-nums',
+                            }}>
+                              {f.fuel} {(f.mw / 1000).toFixed(1)}GW
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Battery aggregate (server-side from useBatteryAssets) */}
+              {showBatteries && batteries.count > 0 && (
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted, letterSpacing: '0.1em' }}>
+                      BATTERY · {batteries.count.toLocaleString()}
+                    </span>
+                    <span style={{
+                      fontFamily:         F.mono,
+                      fontSize:           '0.55rem',
+                      color:              C.fuelBattery,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}>
+                      {(batteries.totalMw / 1000).toFixed(2)}GW · {(batteries.totalMwh / 1000).toFixed(1)}GWh
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Transmission km — sum of segmentLengthKm in viewport */}
+              {showAllUsTransmission && transmission.count > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: F.mono, fontSize: '0.5rem', color: C.textMuted, letterSpacing: '0.1em' }}>
+                    TX · {transmission.count.toLocaleString()} SEG
+                  </span>
+                  <span style={{
+                    fontFamily:         F.mono,
+                    fontSize:           '0.55rem',
+                    color:              '#00A3FF',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {nationalTxKm.toLocaleString()} km
+                  </span>
+                </div>
+              )}
+
+              {/* Truncation hint when any layer's response was capped */}
+              {(generation.truncated || transmission.truncated || batteries.truncated) && (
+                <div style={{
+                  marginTop:     6,
+                  fontFamily:    F.mono,
+                  fontSize:      '0.45rem',
+                  color:         '#FFB800',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                }}>
+                  ⚠ result truncated · zoom in for full set
+                </div>
+              )}
             </div>
           )}
         </Panel>

@@ -18,6 +18,7 @@ from app.routers import (
     stream,
     weather,
 )
+from app.routers.infra import router as infra_router
 from app.services.pjm_stream import HUB
 
 
@@ -70,6 +71,7 @@ app.include_router(reserve_margin.router)  # /api/reserve-margin/*
 app.include_router(outages_v2.router)  # /api/outages/*
 app.include_router(ancillary.router)  # /api/ancillary/*
 app.include_router(stream.router)  # /api/stream (SSE)
+app.include_router(infra_router)  # /api/infra/* (Wave 7 static infrastructure)
 
 
 @app.get("/health")

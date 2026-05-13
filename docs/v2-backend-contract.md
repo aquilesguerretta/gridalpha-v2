@@ -367,6 +367,184 @@ Heartbeat every 30 seconds. Reconnect on connection drop.
 
 Used by FORGE Wave 5's `useLMPStream` hook.
 
+### ENDPOINT 13 — Generation units by viewport (EIA 860 + PostGIS)
+
+`GET /api/infra/generation-units`
+
+Static, annually refreshed EIA Form 860 generator fleet (battery technologies
+excluded — those are Endpoint 15). Returns `GenerationUnit[]` in **camelCase**
+matching `src/lib/types/infrastructure.ts`.
+
+Query params:
+
+- `bbox` (required): `min_lon,min_lat,max_lon,max_lat` (WGS84).
+- `iso` (optional, repeatable): one or more of `PJM`, `MISO`, `NYISO`,
+  `ISO-NE`, `CAISO`, `SPP`, `ERCOT`, `WECC`, `AK`, `QC`, `OTHER`.
+- `fuel` (optional, repeatable): `gas`, `coal`, `nuclear`, `wind`, `solar`,
+  `hydro`, `pumped`, `biomass`, `geothermal`, `oil`, `other`.
+- `min_capacity_mw` (optional, default `0`).
+- `status` (optional, default `operating`): `operating` | `planned` |
+  `under-construction` | `standby` | `retired` | `cancelled`.
+- `limit` (optional, default `5000`, max `10000`).
+
+Response (200) — canonical envelope; `data` is an array:
+
+```json
+{
+  "meta": {
+    "timestamp": "2026-05-13T01:23:45Z",
+    "data_age_seconds": 0,
+    "source": "eia-860+postgis",
+    "count": 3,
+    "truncated": false,
+    "bbox": "-125,24,-66,49",
+    "iso_filter": ["PJM"],
+    "fuel_filter": null,
+    "min_capacity_mw": 0,
+    "status": "operating",
+    "limit": 5000
+  },
+  "data": [
+    {
+      "id": "eia-3-1",
+      "eiaPlantId": 3,
+      "eiaGeneratorId": "1",
+      "name": "Barry Steam Plant",
+      "owner": "Alabama Power Co",
+      "iso": "OTHER",
+      "state": "AL",
+      "lat": 31.0098,
+      "lon": -88.0103,
+      "fuel": "coal",
+      "capacityMw": 250.0,
+      "status": "operating",
+      "codDate": "1954-06-01",
+      "retirementDate": null
+    }
+  ],
+  "summary": "3 generation units in viewport (PJM, operating)."
+}
+```
+
+`truncated` is `true` when the server applied `limit` and additional rows
+would have matched the filter. On filter/bbox errors the API returns **422**
+with a plain `detail` string.
+
+Cache TTL: long (static dataset). Rate limit: none beyond Railway defaults.
+
+### ENDPOINT 14 — Transmission segments by viewport + LOD (HIFLD + PostGIS)
+
+`GET /api/infra/transmission`
+
+High-voltage transmission (≥115 kV) from HIFLD-sourced geometries stored with
+three simplification tiers. `data` is `TransmissionSegment[]`; `geometry` is
+`[[lon,lat], ...]` (**not** a GeoJSON Feature wrapper).
+
+Query params:
+
+- `bbox` (required): `min_lon,min_lat,max_lon,max_lat`.
+- `lod` (required): `low` | `mid` | `high` — selects `geom_low`, `geom_mid`, or
+  full `geom` respectively.
+- `voltage_min_kv` (optional): defaults by LOD — `low=345`, `mid=230`, `high=115`.
+- `voltage_max_kv` (optional): upper bound in kV; must be ≥ `voltage_min_kv`.
+- `iso` (optional, repeatable): same ISO codes as Endpoint 13.
+- `limit` (optional, default `10000`, max `10000`).
+
+Response (200):
+
+```json
+{
+  "meta": {
+    "timestamp": "2026-05-13T01:23:45Z",
+    "data_age_seconds": 0,
+    "source": "hifld+postgis",
+    "count": 1,
+    "truncated": false,
+    "bbox": "-125,24,-66,49",
+    "lod": "low",
+    "voltage_min_kv": 345,
+    "voltage_max_kv": null,
+    "iso_filter": null,
+    "limit": 10000
+  },
+  "data": [
+    {
+      "id": "100005",
+      "voltageKv": 345,
+      "name": "SUB A – SUB B",
+      "owner": "EXAMPLE OWNER",
+      "iso": "PJM",
+      "geometry": [[-77.02, 38.9], [-77.01, 38.91]],
+      "segmentLengthKm": 1.25
+    }
+  ],
+  "summary": "1 transmission segments in viewport (all ISOs, lod=low, ≥345 kV)."
+}
+```
+
+Performance expectation: for a continental US `bbox`, `lod=low` should produce a
+payload an order of magnitude smaller than `lod=high` with the same filters
+(coarser geometry + higher default voltage floor).
+
+422 on invalid `bbox`, `lod`, ISO codes, or voltage range. Cache TTL: long.
+
+### ENDPOINT 15 — Battery storage assets by viewport (EIA 860M + PostGIS)
+
+`GET /api/infra/batteries`
+
+Monthly EIA Form 860M battery/energy-storage rows. `data` is `BatteryAsset[]`
+(camelCase).
+
+Query params:
+
+- `bbox` (required).
+- `iso` (optional, repeatable).
+- `min_capacity_mw` (optional, default `0`).
+- `status` (optional, default `operating`).
+- `limit` (optional, default `2000`, max `50000` on the server; prefer ≤10k for UI).
+
+Response (200):
+
+```json
+{
+  "meta": {
+    "timestamp": "2026-05-13T01:23:45Z",
+    "data_age_seconds": 0,
+    "source": "eia-860m+postgis",
+    "count": 1,
+    "truncated": false,
+    "bbox": "-125,24,-66,49",
+    "iso_filter": ["CAISO"],
+    "min_capacity_mw": 0,
+    "status": "operating",
+    "limit": 2000
+  },
+  "data": [
+    {
+      "id": "eia-123-1",
+      "eiaPlantId": 123,
+      "eiaGeneratorId": "1",
+      "name": "Example Battery",
+      "owner": null,
+      "iso": "CAISO",
+      "state": "CA",
+      "lat": 34.05,
+      "lon": -118.25,
+      "capacityMw": 100.0,
+      "capacityMwh": 400.0,
+      "durationHours": 4.0,
+      "status": "operating",
+      "codDate": "2024-01-01",
+      "retirementDate": null
+    }
+  ],
+  "summary": "1 battery assets in viewport (CAISO, operating)."
+}
+```
+
+500/503 may occur if `DATABASE_URL` / PostGIS is misconfigured. 422 on invalid
+parameters.
+
 ---
 
 ## Operational Notes
@@ -393,7 +571,8 @@ Used by FORGE Wave 5's `useLMPStream` hook.
 
 ## Versioning
 
-This contract is version `1.0` (Wave 5). Additive changes (new fields
-in `meta` or `data`) are non-breaking and ship under the same version.
+This contract is version `1.0` (Wave 5). Wave 7 adds Endpoints 13–15
+(infrastructure viewport APIs) additively under the same version.
+Additive changes (new fields in `meta` or `data`) remain non-breaking.
 Field renames or removals require a new version doc and coordinated
 frontend update.

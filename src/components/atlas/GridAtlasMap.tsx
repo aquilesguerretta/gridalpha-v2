@@ -48,6 +48,9 @@ import {
   allUsTxGlowLayer,
   allUsTxCoreLayer,
 } from './layers/transmissionLayers';
+import {
+  allUsBatteryCircleLayer,
+} from './layers/batteryLayers';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -318,6 +321,12 @@ export interface GridAtlasMapProps {
    * the frontend just renders what came back.
    */
   allUsTransmissionGeoJson?: GeoJSON.FeatureCollection | null;
+  /**
+   * ATLAS Wave 5 — all-US battery storage FeatureCollection. Point
+   * features. No clustering — fleet size is small enough that
+   * individual dots scale to a national render.
+   */
+  allUsBatteriesGeoJson?: GeoJSON.FeatureCollection | null;
   showTx:             boolean;
   showPlants:         boolean;
   showNodes:          boolean;
@@ -328,6 +337,8 @@ export interface GridAtlasMapProps {
   showAllUsGeneration?: boolean;
   /** Wave 5 toggle — controls visibility of the all-US transmission layer. */
   showAllUsTransmission?: boolean;
+  /** Wave 5 toggle — controls visibility of the battery storage layer. */
+  showBatteries?: boolean;
   onZoneClick:        (zoneId: string | null) => void;
   onPlantHover:       (props: Record<string, unknown> | null, x: number, y: number) => void;
   onZoneHover:        (name: string | null) => void;
@@ -336,6 +347,11 @@ export interface GridAtlasMapProps {
    * dot. Properties are the unwrapped GenerationUnit shape.
    */
   onGeneratorClick?:  (props: Record<string, unknown>) => void;
+  /**
+   * Wave 5 — fired when the user clicks a battery dot. Properties
+   * are the unwrapped BatteryAsset shape.
+   */
+  onBatteryClick?:    (props: Record<string, unknown>) => void;
   /**
    * Wave 5 — fired on every map moveend (debounced upstream by
    * GridAtlasView before it fires the bbox-driven hooks). Carries
@@ -356,12 +372,12 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       mapStyle, txGeoJson, plantGeoJson, hubGeoJson, outagesGeoJson,
       substationGeoJson, pipelineGeoJson, earthquakeGeoJson,
       weatherGeoJson,
-      allUsGenerationGeoJson, allUsTransmissionGeoJson,
+      allUsGenerationGeoJson, allUsTransmissionGeoJson, allUsBatteriesGeoJson,
       showTx, showPlants, showNodes,
       showSubstations, showGasPipelines, showEarthquakes,
-      showAllUsGeneration, showAllUsTransmission,
+      showAllUsGeneration, showAllUsTransmission, showBatteries,
       onZoneClick, onPlantHover, onZoneHover,
-      onGeneratorClick, onViewportChange,
+      onGeneratorClick, onBatteryClick, onViewportChange,
     },
     ref,
   ) {
@@ -395,13 +411,17 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         onGeneratorClick(f.properties as Record<string, unknown>);
         return;
       }
+      if (f.layer?.id === 'all-us-batteries-circle' && onBatteryClick) {
+        onBatteryClick(f.properties as Record<string, unknown>);
+        return;
+      }
       const zoneId =
         f?.properties?.zone_id ??
         f?.properties?.ZONE ??
         f?.properties?.name ??
         null;
       onZoneClick(zoneId);
-    }, [onZoneClick, onGeneratorClick]);
+    }, [onZoneClick, onGeneratorClick, onBatteryClick]);
 
     const onMouseMove = useCallback((e: any) => {
       const features = e.features as any[];
@@ -520,6 +540,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       // detail panel via onGeneratorClick. Cluster bubbles aren't
       // interactive (would need a fly-into-cluster handler — future).
       ...(showAllUsGeneration ? ['all-us-gen-circle'] : []),
+      ...(showBatteries       ? ['all-us-batteries-circle'] : []),
     ];
 
     return (
@@ -580,6 +601,15 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
             <Layer {...allUsGenClusterLayer} />
             <Layer {...allUsGenClusterCountLayer} />
             <Layer {...allUsGenCircleLayer} />
+          </Source>
+        )}
+
+        {/* Battery storage — Wave 5. ~3-4k national fleet, no
+            clustering. Status-coded stroke discriminates operating /
+            under-construction / retired without an extra layer. */}
+        {styleLoaded && showBatteries && allUsBatteriesGeoJson && (
+          <Source id="all-us-batteries" type="geojson" data={allUsBatteriesGeoJson}>
+            <Layer {...allUsBatteryCircleLayer} />
           </Source>
         )}
 

@@ -37,6 +37,7 @@ import { useAtlasHistorical } from '@/hooks/data/useAtlasHistorical';
 // under MOCK_MODE).
 import { useGenerationUnits } from '@/hooks/data/useGenerationUnits';
 import { useTransmissionSegments } from '@/hooks/data/useTransmissionSegments';
+import { useBatteryAssets } from '@/hooks/data/useBatteryAssets';
 import type { LodLevel } from '@/lib/types/infrastructure';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
@@ -378,6 +379,37 @@ export default function GridAtlasView() {
     })),
   }), [transmission.data]);
 
+  // Wave 5 — battery storage. No clustering; the layer renders every
+  // result. Server returns totalMw / totalMwh aggregates which the
+  // intel panel consumes directly (Phase 8).
+  const batteries = useBatteryAssets(
+    showBatteries ? { bbox: viewport.bbox, limit: 5000 } : null,
+  );
+
+  const allUsBatteriesGeoJson = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: batteries.data.map((b) => ({
+      type: 'Feature' as const,
+      properties: {
+        id:             b.id,
+        name:           b.name,
+        owner:          b.owner,
+        iso:            b.iso,
+        state:          b.state,
+        capacityMw:     b.capacityMw,
+        capacityMwh:    b.capacityMwh,
+        durationHours:  b.durationHours,
+        status:         b.status,
+        codDate:        b.codDate,
+        retirementDate: b.retirementDate,
+        eiaPlantId:     b.eiaPlantId,
+        eiaGeneratorId: b.eiaGeneratorId,
+        kind:           'battery' as const,
+      },
+      geometry: { type: 'Point' as const, coordinates: [b.lon, b.lat] },
+    })),
+  }), [batteries.data]);
+
   // Live data hooks (gracefully return empty when backend not ready)
   // Note: live useOutages() is replaced by snapshot.outages — the time-travel
   // pipeline is the single source of truth for outage state on the map.
@@ -560,6 +592,7 @@ export default function GridAtlasView() {
             earthquakeGeoJson={earthquakeGeoJson}
             allUsGenerationGeoJson={allUsGenerationGeoJson}
             allUsTransmissionGeoJson={allUsTransmissionGeoJson}
+            allUsBatteriesGeoJson={allUsBatteriesGeoJson}
             showTx={showTx}
             showPlants={showPlants}
             showNodes={showNodes}
@@ -568,6 +601,7 @@ export default function GridAtlasView() {
             showEarthquakes={showEarthquakes}
             showAllUsGeneration={showAllUsGeneration}
             showAllUsTransmission={showAllUsTransmission}
+            showBatteries={showBatteries}
             weatherGeoJson={showWeather ? weatherGeoJson : null}
             onZoneClick={setSelectedZone}
             onPlantHover={handlePlantHover}

@@ -27,6 +27,16 @@ import {
 } from './layers/intelligenceLayers';
 import { buildPipelineTermini } from './utils/buildPipelineTermini';
 import { C } from '@/design/tokens';
+// ATLAS Wave 5 — color ramps lifted out of this file. See
+// `layers/colorRamps.ts` header for the new-vs-legacy split rationale.
+import {
+  lmpHeatExpression,
+  legacyClusterColorExpression,
+  legacyFuelColorExpression,
+  legacyFuelOutageColorExpression,
+  legacyVoltageColorExpression,
+  legacyVoltageWidthExpression,
+} from './layers/colorRamps';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -92,51 +102,6 @@ function pickInitialView(): CameraState {
   return introPlayed ? PJM_OVERVIEW : GLOBE_START;
 }
 
-// ── Voltage colour mapping ────────────────────────────────────────────────
-
-const voltageColor: any = [
-  'match',
-  ['get', 'VOLTAGE'],
-  '735',  C.textPrimary,
-  '765',  C.textPrimary,
-  '500',  '#00FFF0',
-  '345',  '#00A3FF',
-  '230',  '#6B7FD4',
-  '161',  '#8B5CF6',
-  '138',  '#7C3AED',
-  '115',  '#6D28D9',
-  '#4B3D8F',
-];
-
-const voltageWidth: any = [
-  'interpolate', ['linear'], ['zoom'],
-  4,  ['match', ['get', 'VOLTAGE'], '500', 1.5, '345', 1.2, '230', 0.8, 0.4],
-  8,  ['match', ['get', 'VOLTAGE'], '500', 3.0, '345', 2.5, '230', 1.8, 1.0],
-  12, ['match', ['get', 'VOLTAGE'], '500', 5.0, '345', 4.0, '230', 3.0, 1.8],
-];
-
-// ── Fuel colour mapping ───────────────────────────────────────────────────
-
-const fuelColor: any = [
-  'match', ['upcase', ['coalesce', ['get', 'PRIM_FUEL'], ['get', 'fuel_type'], '']],
-  'NG',    '#E67E22',
-  'GAS',   '#E67E22',
-  'NUC',   '#9B59B6',
-  'NUCLEAR','#9B59B6',
-  'WIND',  '#00A3FF',
-  'WND',   '#00A3FF',
-  'SUN',   '#F1C40F',
-  'SOLAR', '#F1C40F',
-  'COAL',  '#636E72',
-  'COL',   '#636E72',
-  'WAT',   '#3498DB',
-  'HYDRO', '#3498DB',
-  'BAT',   '#00E676',
-  'GEO',   '#FF6B35',
-  'OIL',   '#A0522D',
-  '#BDC3C7',
-];
-
 // ── Layer style definitions ───────────────────────────────────────────────
 
 // All overlay layers use `slot: 'top'` so Mapbox Standard (Terminal) style
@@ -147,8 +112,8 @@ const txGlowLayer: LayerProps = {
   id:   'tx-glow',
   type: 'line',
   paint: {
-    'line-color':   voltageColor,
-    'line-width':   voltageWidth,
+    'line-color':   legacyVoltageColorExpression,
+    'line-width':   legacyVoltageWidthExpression,
     'line-blur':    6,
     'line-opacity': 0.35,
   },
@@ -158,8 +123,8 @@ const txCoreLayer: LayerProps = {
   id:   'tx-core',
   type: 'line',
   paint: {
-    'line-color':   voltageColor,
-    'line-width':   voltageWidth,
+    'line-color':   legacyVoltageColorExpression,
+    'line-width':   legacyVoltageWidthExpression,
     'line-opacity': 0.9,
   },
 };
@@ -169,14 +134,9 @@ const plantClusterLayer: LayerProps = {
   type:   'circle',
   filter: ['has', 'point_count'],
   paint:  {
-    'circle-color': [
-      'step', ['get', 'point_count'],
-      '#00A3FF', 10,
-      '#FFB800', 30,
-      '#FF3B3B',
-    ] as any,
-    'circle-radius':  ['step', ['get', 'point_count'], 14, 10, 20, 30, 26] as any,
-    'circle-opacity': 0.95,
+    'circle-color':        legacyClusterColorExpression,
+    'circle-radius':       ['step', ['get', 'point_count'], 14, 10, 20, 30, 26] as any,
+    'circle-opacity':      0.95,
     'circle-stroke-width': 1.5,
     'circle-stroke-color': 'rgba(255,255,255,0.55)',
   },
@@ -208,12 +168,7 @@ const hubDotLayer: LayerProps = {
       'interpolate', ['linear'], ['zoom'],
       4, 6,  8, 12,  12, 18,
     ] as any,
-    'circle-color':        [
-      'interpolate', ['linear'], ['get', 'lmp'],
-      30, '#00A3FF',
-      34, '#FFB800',
-      37, '#FF3B3B',
-    ] as any,
+    'circle-color':        lmpHeatExpression,
     'circle-opacity':      1.0,
     'circle-stroke-width': 2,
     'circle-stroke-color': 'rgba(255,255,255,0.75)',
@@ -241,19 +196,6 @@ const hubLabelLayer: LayerProps = {
 // ── Outage markers (Wave 2 — driven by AtlasSnapshot.outages) ─────────────
 // Outage rings appear / disappear as the scrubber moves through each
 // outage's active window. Color encodes fuel; halo encodes severity.
-
-const fuelOutageColor: any = [
-  'match', ['upcase', ['coalesce', ['get', 'fuel'], '']],
-  'NG',    '#E67E22',
-  'NUC',   '#9B59B6',
-  'COAL',  '#636E72',
-  'WIND',  '#00A3FF',
-  'SOLAR', '#F1C40F',
-  'HYDRO', '#3498DB',
-  'BAT',   '#00E676',
-  'OIL',   '#A0522D',
-  '#FF3B3B',
-];
 
 const outageHaloLayer: LayerProps = {
   id:   'outages-halo',
@@ -285,7 +227,7 @@ const outageRingLayer: LayerProps = {
       2500, 20,
     ] as any,
     'circle-color':        'rgba(0,0,0,0)',
-    'circle-stroke-color': fuelOutageColor,
+    'circle-stroke-color': legacyFuelOutageColorExpression,
     'circle-stroke-width': 2,
     'circle-opacity':      1,
   },
@@ -323,7 +265,7 @@ const plantCircleFallback: LayerProps = {
       ['coalesce', ['get', 'INSTALL_MW'], ['get', 'capacity_mw'], 100],
       50, 4, 500, 7, 2000, 12, 5000, 18,
     ] as any,
-    'circle-color':        fuelColor,
+    'circle-color':        legacyFuelColorExpression,
     'circle-opacity':      1.0,
     'circle-stroke-width': 1,
     'circle-stroke-color': 'rgba(255,255,255,0.55)',

@@ -333,3 +333,15 @@ same live PJM data feed.
 | Developer | Underwriting Calculator (IRR / NPV / tornado) | 5 |
 | Analyst | Saved Queries + Report Drafting | 6 |
 | Student | Sandbox Trading + Project Sandbox | 7 ← this wave |
+
+## FOUNDRY WAVE 10A — INFRASTRUCTURE TYPE CONTRACTS
+
+**Status:** closed.
+
+**File paths:**
+- `src/lib/types/infrastructure.ts` — `IsoMarket`, `LodLevel`, `AssetStatus`, `FuelType`, `GenerationUnit`, `TransmissionSegment`, `BatteryAsset`, `LineStringGeometry`.
+- `src/lib/mock/infrastructure-mock.ts` — `MOCK_GENERATION_UNITS` (12), `MOCK_TRANSMISSION_SEGMENTS` (15), `MOCK_BATTERY_ASSETS` (8).
+
+**Consumer waves:** Wave 10 (ATLAS), Wave 7 (CURSOR), Wave 11 (CURSOR multi-ISO), Wave 12 (FORGE ISO selector), Wave 13 (FORGE simulates).
+
+**Boundary:** `GenerationUnit` excludes batteries — `BatteryAsset` is the separate contract. The Wave 10A `BatteryAsset` is also distinct from the PJM-optimizer `BatteryAsset` in `src/lib/types/storage.ts` (geospatial fleet vs. power/SOC optimizer domain). `ZoneSnapshot` in `market.ts` is NOT modified; the `iso` field is a Wave 12 change.

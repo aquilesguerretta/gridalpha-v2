@@ -44,6 +44,10 @@ import {
   allUsGenClusterCountLayer,
   allUsGenCircleLayer,
 } from './layers/generationLayers';
+import {
+  allUsTxGlowLayer,
+  allUsTxCoreLayer,
+} from './layers/transmissionLayers';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -308,6 +312,12 @@ export interface GridAtlasMapProps {
    * only viewport-resident features hit the GPU.
    */
   allUsGenerationGeoJson?: GeoJSON.FeatureCollection | null;
+  /**
+   * ATLAS Wave 5 — all-US transmission FeatureCollection. LineString
+   * features. Backend pre-simplifies geometry to the requested LOD;
+   * the frontend just renders what came back.
+   */
+  allUsTransmissionGeoJson?: GeoJSON.FeatureCollection | null;
   showTx:             boolean;
   showPlants:         boolean;
   showNodes:          boolean;
@@ -316,6 +326,8 @@ export interface GridAtlasMapProps {
   showEarthquakes:    boolean;
   /** Wave 5 toggle — controls visibility of the all-US generation layer. */
   showAllUsGeneration?: boolean;
+  /** Wave 5 toggle — controls visibility of the all-US transmission layer. */
+  showAllUsTransmission?: boolean;
   onZoneClick:        (zoneId: string | null) => void;
   onPlantHover:       (props: Record<string, unknown> | null, x: number, y: number) => void;
   onZoneHover:        (name: string | null) => void;
@@ -344,10 +356,10 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       mapStyle, txGeoJson, plantGeoJson, hubGeoJson, outagesGeoJson,
       substationGeoJson, pipelineGeoJson, earthquakeGeoJson,
       weatherGeoJson,
-      allUsGenerationGeoJson,
+      allUsGenerationGeoJson, allUsTransmissionGeoJson,
       showTx, showPlants, showNodes,
       showSubstations, showGasPipelines, showEarthquakes,
-      showAllUsGeneration,
+      showAllUsGeneration, showAllUsTransmission,
       onZoneClick, onPlantHover, onZoneHover,
       onGeneratorClick, onViewportChange,
     },
@@ -531,6 +543,16 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           <Source id="transmission" type="geojson" data={txGeoJson}>
             <Layer {...txGlowLayer} />
             <Layer {...txCoreLayer} />
+          </Source>
+        )}
+
+        {/* All-US Transmission — Wave 5. Renders above the PJM-focused
+            `transmission` source. LineString features pre-simplified
+            backend-side to the requested LOD. ~50K segments at high LOD. */}
+        {styleLoaded && showAllUsTransmission && allUsTransmissionGeoJson && (
+          <Source id="all-us-transmission" type="geojson" data={allUsTransmissionGeoJson}>
+            <Layer {...allUsTxGlowLayer} />
+            <Layer {...allUsTxCoreLayer} />
           </Source>
         )}
 

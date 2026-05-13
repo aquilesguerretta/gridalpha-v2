@@ -36,6 +36,7 @@ import { useAtlasHistorical } from '@/hooks/data/useAtlasHistorical';
 // against CURSOR's /api/infra/* endpoints (or FOUNDRY mock fixtures
 // under MOCK_MODE).
 import { useGenerationUnits } from '@/hooks/data/useGenerationUnits';
+import { useTransmissionSegments } from '@/hooks/data/useTransmissionSegments';
 import type { LodLevel } from '@/lib/types/infrastructure';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
@@ -353,6 +354,30 @@ export default function GridAtlasView() {
     })),
   }), [generation.data]);
 
+  // Wave 5 — transmission. LOD passes through to the backend so the
+  // returned geometry is already simplified to the requested precision.
+  const transmission = useTransmissionSegments(
+    showAllUsTransmission ? { bbox: viewport.bbox, lod: viewport.lod, limit: 10000 } : null,
+  );
+
+  const allUsTransmissionGeoJson = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: transmission.data.map((t) => ({
+      type: 'Feature' as const,
+      properties: {
+        id:              t.id,
+        name:            t.name,
+        owner:           t.owner,
+        iso:             t.iso,
+        // The new schema uses numeric voltage_kv — colorRamps reads this.
+        voltage_kv:      t.voltageKv,
+        segmentLengthKm: t.segmentLengthKm,
+        kind:            'transmission' as const,
+      },
+      geometry: { type: 'LineString' as const, coordinates: t.geometry },
+    })),
+  }), [transmission.data]);
+
   // Live data hooks (gracefully return empty when backend not ready)
   // Note: live useOutages() is replaced by snapshot.outages — the time-travel
   // pipeline is the single source of truth for outage state on the map.
@@ -534,6 +559,7 @@ export default function GridAtlasView() {
             pipelineGeoJson={pipelineGeoJson}
             earthquakeGeoJson={earthquakeGeoJson}
             allUsGenerationGeoJson={allUsGenerationGeoJson}
+            allUsTransmissionGeoJson={allUsTransmissionGeoJson}
             showTx={showTx}
             showPlants={showPlants}
             showNodes={showNodes}
@@ -541,6 +567,7 @@ export default function GridAtlasView() {
             showGasPipelines={showGasPipelines}
             showEarthquakes={showEarthquakes}
             showAllUsGeneration={showAllUsGeneration}
+            showAllUsTransmission={showAllUsTransmission}
             weatherGeoJson={showWeather ? weatherGeoJson : null}
             onZoneClick={setSelectedZone}
             onPlantHover={handlePlantHover}

@@ -31,3 +31,34 @@ export type AssetStatus =
   | 'standby'
   | 'retired'
   | 'cancelled';
+
+export type FuelType =
+  | 'gas'        // Natural gas (combined cycle, combustion turbine, steam)
+  | 'coal'       // All coal subtypes (bituminous, subbituminous, lignite)
+  | 'nuclear'
+  | 'wind'       // Onshore + offshore
+  | 'solar'      // PV + thermal
+  | 'hydro'      // Conventional hydro
+  | 'pumped'     // Pumped hydro storage
+  | 'biomass'    // Biomass + waste
+  | 'geothermal'
+  | 'oil'        // Petroleum
+  | 'other';
+// Note: battery storage is NOT a FuelType. Batteries live in BatteryAsset.
+
+export interface GenerationUnit {
+  id: string;                   // Stable id: `eia-{plantId}-{generatorId}`
+  eiaPlantId: number | null;
+  eiaGeneratorId: string | null;
+  name: string;
+  owner: string | null;
+  iso: IsoMarket;
+  state: string;                // Two-letter US state code
+  lat: number;
+  lon: number;
+  fuel: FuelType;
+  capacityMw: number;           // Nameplate
+  status: AssetStatus;
+  codDate: string | null;       // ISO YYYY-MM-DD
+  retirementDate: string | null;
+}

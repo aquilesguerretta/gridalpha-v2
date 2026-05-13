@@ -487,6 +487,22 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       applyStyleSetup();
       setStyleLoaded(true);
 
+      // Wave 5 — fire an initial onViewportChange so the bbox-driven
+      // hooks in GridAtlasView can refresh from the resolved camera
+      // (which may differ from the GridAtlasView seed, e.g. when a
+      // returning user lands at a saved camera position).
+      const b = map.getBounds();
+      if (b && onViewportChange) {
+        const zoom = map.getZoom();
+        const lod: 'low' | 'mid' | 'high' =
+          zoom <= 4 ? 'low' : zoom <= 7 ? 'mid' : 'high';
+        onViewportChange({
+          bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
+          lod,
+          zoom,
+        });
+      }
+
       // Cinematic intro — only once per session.
       let introPlayed = false;
       try { introPlayed = sessionStorage.getItem(SS_INTRO_PLAYED) === '1'; } catch { /* ignore */ }
@@ -505,7 +521,7 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
           try { sessionStorage.setItem(SS_INTRO_PLAYED, '1'); } catch { /* ignore */ }
         }, 350);
       }
-    }, [applyStyleSetup]);
+    }, [applyStyleSetup, onViewportChange]);
 
     // Re-apply terrain/config whenever a new style loads (style swap).
     useEffect(() => {
@@ -520,6 +536,10 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
     }, [applyStyleSetup]);
 
     // Persist camera to sessionStorage so nav-away / nav-back restores position.
+    // Wave 5 — same handler also fires onViewportChange (debounced 250ms via
+    // a ref-held timer) so the bbox-driven hooks in GridAtlasView refetch
+    // for the new viewport without spamming the network during a pan.
+    const bboxFetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const onMoveEnd = useCallback(() => {
       const map = mapRef.current?.getMap();
       if (!map) return;
@@ -531,6 +551,33 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
         pitch:     map.getPitch(),
         bearing:   map.getBearing(),
       });
+
+      // Debounced viewport fan-out — coalesce a flurry of moveends
+      // (e.g. inertial pan) into a single fetch for the resting frame.
+      if (bboxFetchTimer.current) clearTimeout(bboxFetchTimer.current);
+      bboxFetchTimer.current = setTimeout(() => {
+        const m = mapRef.current?.getMap();
+        if (!m || !onViewportChange) return;
+        const b = m.getBounds();
+        if (!b) return;
+        const zoom = m.getZoom();
+        // LOD ladder — must match the backend's LodLevel ranges.
+        const lod: 'low' | 'mid' | 'high' =
+          zoom <= 4 ? 'low' : zoom <= 7 ? 'mid' : 'high';
+        onViewportChange({
+          bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()],
+          lod,
+          zoom,
+        });
+      }, 250);
+    }, [onViewportChange]);
+
+    // Tear down the pending fetch timer on unmount so a stale callback
+    // doesn't fire after the map is gone.
+    useEffect(() => {
+      return () => {
+        if (bboxFetchTimer.current) clearTimeout(bboxFetchTimer.current);
+      };
     }, []);
 
     const interactiveLayerIds = [

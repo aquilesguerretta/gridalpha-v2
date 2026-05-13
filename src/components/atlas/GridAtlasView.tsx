@@ -606,6 +606,7 @@ export default function GridAtlasView() {
             onZoneClick={setSelectedZone}
             onPlantHover={handlePlantHover}
             onZoneHover={setHoveredZone}
+            onViewportChange={setViewport}
           />
         </Suspense>
       </ErrorBoundary>

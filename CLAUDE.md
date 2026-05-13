@@ -345,3 +345,173 @@ same live PJM data feed.
 **Consumer waves:** Wave 10 (ATLAS), Wave 7 (CURSOR), Wave 11 (CURSOR multi-ISO), Wave 12 (FORGE ISO selector), Wave 13 (FORGE simulates).
 
 **Boundary:** `GenerationUnit` excludes batteries — `BatteryAsset` is the separate contract. The Wave 10A `BatteryAsset` is also distinct from the PJM-optimizer `BatteryAsset` in `src/lib/types/storage.ts` (geospatial fleet vs. power/SOC optimizer domain). `ZoneSnapshot` in `market.ts` is NOT modified; the `iso` field is a Wave 12 change.
+
+## ATLAS WAVE 5 — ATLAS ALL-US INFRASTRUCTURE
+
+**Status:** closed in mock mode. Live-wire follow-up phase 9b deferred
+until CURSOR Wave 7 is healthy. Smoke probe at close-time:
+`/api/infra/generation-units` → 500, `/api/infra/transmission-segments`
+→ 404, `/api/infra/batteries` → 500. No additional ATLAS work
+required for the live flip; only `.env.local` change (set
+`VITE_MOCK_API=` empty / unset) + smoke screenshots.
+
+National-scale infrastructure layer added on top of the existing
+PJM-focused Atlas. ~15K EIA generators (clustered), all 115 kV+
+transmission (LOD-aware geometry), all batteries (point dots).
+Bbox-driven viewport fetches with 250ms debounce; LOD computed
+from zoom (`<=4 low / 5-7 mid / >=8 high`). Existing PJM-focused
+systems are preserved verbatim — both layer families render
+side-by-side via independent left-rail toggles.
+
+### Architecture
+
+```
+   GridAtlasMap.onMoveEnd
+        │ debounce 250ms
+        ▼
+   onViewportChange({ bbox, lod, zoom })
+        │
+        ▼
+   GridAtlasView.setViewport
+        │
+        ▼ (cacheKey = JSON.stringify(query))
+   useGenerationUnits(query)  →  fetchGenerationUnits  →  /api/infra/generation-units
+   useTransmissionSegments(query) → fetchTransmissionSegments → /api/infra/transmission-segments
+   useBatteryAssets(query)    →  fetchBatteryAssets   →  /api/infra/batteries
+        │
+        ▼ (request-id stale guard)
+   GridAtlasView GeoJSON adapters (memoized on data)
+        │
+        ▼
+   GridAtlasMap <Source> + <Layer> renders
+```
+
+### New layer files
+
+- `colorRamps.ts` — `voltageColorExpression` (numeric `voltage_kv`
+  step), `fuelColorExpression` (lowercase `fuel` match, token-driven),
+  `lmpHeatExpression` (preserved), `clusterColorExpression`
+  (point_count step, token-driven), plus `legacy*` expressions for
+  the PJM-only static GeoJSON layers (byte-identical to the old
+  inline definitions).
+- `generationLayers.ts` — `allUsGenClusterLayer`,
+  `allUsGenClusterCountLayer`, `allUsGenCircleLayer`. Cluster up to
+  zoom 8 with three-step radius/color tiers. Individual dot color
+  encodes fuel via `fuelColorExpression`; radius interpolates on
+  `capacityMw`.
+- `transmissionLayers.ts` — `allUsTxGlowLayer`, `allUsTxCoreLayer`.
+  Width interpolation: exponential-1.5 zoom × linear voltage_kv
+  (115 kV thin / 765 kV trunk lines pop at high zoom).
+- `batteryLayers.ts` — `allUsBatteryCircleLayer`. Distinct visual
+  category from generation: 1.5 px stroke (vs 0.5 on gen circles),
+  `C.fuelBattery` purple fill, status-keyed stroke
+  (operating=white, planned/uc=falconGold, retired/cancelled=red,
+  standby=textMuted).
+
+### New panel
+
+- `panels/AssetDetailPanel.tsx` — top-right (top: 64, right: 12,
+  width: 320, max-height calc(100vh - 160px) with internal scroll).
+  Discriminated union on `kind: 'generation' | 'battery'` so
+  battery-only fields (energy MWh, duration hr) render only for
+  batteries. Status colored per FOUNDRY's `AssetStatus` palette
+  (operating electric blue, planned/uc falcon gold, retired/cancelled
+  alert red, standby muted). ESC + ✕ close.
+
+### New hooks (one-time authorized boundary blur into FORGE territory)
+
+- `src/hooks/data/useGenerationUnits.ts`
+- `src/hooks/data/useTransmissionSegments.ts`
+- `src/hooks/data/useBatteryAssets.ts`
+
+All three follow FORGE's `useLMP.ts` style — compact, single-purpose,
+return shape `{ data, loading, live, count, truncated, … }`. They
+diverge from `useEnvelopeQuery` because viewport-scoped queries can
+race during a pan; the request-id stale guard ensures whichever
+fetch is the most recent wins, not whichever happens to finish last.
+Cancellation propagates through `AbortController`.
+
+### New services
+
+- `src/services/api/generation.ts` — `fetchGenerationUnits(query, signal?)`
+- `src/services/api/transmission.ts` — `fetchTransmissionSegments(query, signal?)`
+- `src/services/api/batteries.ts` — `fetchBatteryAssets(query, signal?)`
+
+Each routes through `BASE_URL + /api/infra/{kind}` when MOCK_MODE is
+false; under MOCK_MODE returns FOUNDRY's Wave 10a fixtures clipped
+to the requested bbox + filtered. Battery service returns server-side
+`totalMw` / `totalMwh` aggregates so the intel panel doesn't recompute
+them client-side.
+
+### Modified
+
+- `GridAtlasMap.tsx` — color ramp imports replace inline expressions
+  (Phase 1, byte-identical); three new sources + their layer specs
+  added (Phases 3-5); `interactiveLayerIds` extended for the two new
+  point layers; `onClick` branches on layer id to dispatch to the
+  matching detail-panel handler; `onMoveEnd` extended with debounced
+  `onViewportChange` fan-out (Phase 6); `onMapLoad` fires an initial
+  `onViewportChange` so saved-camera returns refresh too.
+- `GridAtlasView.tsx` — three layer toggles in the layers panel
+  (ALL-US GENERATION, ALL-US TRANSMISSION, BATTERY STORAGE); three
+  Wave 5 hooks + GeoJSON adapters; viewport state seeded with CONUS
+  / 'low' / 5.5 so first paint demos the layers; intel panel extended
+  with a "NATIONAL · VIEWPORT" section (top fuels by capacity, battery
+  totals, transmission km, truncation hint, LOD readout); asset detail
+  panel mounted at the bottom of the JSX.
+
+### Preserved
+
+All PJM-focused systems render unchanged when their toggles are on:
+20-zone centroid hub LMP system, 97-plant `power-plants.geojson`
+clustering, `transmission-lines.geojson` static layer, gas pipelines
++ termini, substations, snapshot-driven outage overlay, weather,
+earthquakes, time-travel scrubber. Color expressions for those layers
+moved to `legacy*Expression` exports in `colorRamps.ts` — paint
+output is byte-identical.
+
+### LOD ladder (must match backend)
+
+| Zoom | LOD | Backend behavior |
+| --- | --- | --- |
+| ≤ 4 | `low`  | Simplified geometry, voltage ≥ 345 kV only |
+| 5-7 | `mid`  | Partial simplification, voltage ≥ 138 kV |
+| ≥ 8 | `high` | Native precision, all voltages |
+
+The MOCK_MODE branch applies the same voltage floor client-side over
+the fixtures; geometry simplification is inert (mock segments are
+already 2-point LineStrings).
+
+### Live-wire phase 9b checklist (when CURSOR Wave 7 lands)
+
+1. Confirm endpoints respond:
+   ```
+   curl -s "$BASE/api/infra/generation-units?bbox=-125,24,-66,49&iso=PJM&limit=5"
+   curl -s "$BASE/api/infra/transmission-segments?bbox=-125,24,-66,49&lod=low&limit=5"
+   curl -s "$BASE/api/infra/batteries?bbox=-125,24,-66,49&limit=5"
+   ```
+   Each must return shape `{ data, live, fetchedAt, count, truncated, [aggregates] }`.
+2. Unset `VITE_MOCK_API` in `.env.local` (or set to anything other
+   than the literal string `'true'` — see `services/api/client.ts`).
+3. Run `npx tsc --noEmit` (must pass) and `npm run build` (must
+   pass — but note pre-existing TERMINAL Recharts formatter errors
+   in `src/components/nest/student/*` are NOT ATLAS Wave 5).
+4. `/screenshot-loop` at 1440x900 / 1920x1080 / 3440x1440 capturing:
+   continental zoom-out (clusters), PJM zoom (gen + tx visible),
+   CAISO close-up (battery cluster), generator click → asset detail.
+5. `node tools/gridalpha-detect/bin/gridalpha-detect.mjs ./src` —
+   ATLAS Wave 5 baseline at close: 0 P0 in ATLAS-owned files.
+
+### Future polish
+
+- Click-outside dismissal on `AssetDetailPanel` (currently ESC + ✕).
+- Click-into-cluster fly handler so clicking a cluster bubble zooms
+  the camera in instead of being inert.
+- Fuel filter panel extension to include batteries as a 9th category
+  with capacity floor (mentioned in the brief; deferred — out of
+  scope for this wave's hour budget).
+- Dedicated outage layers file (`outageLayers.ts`) — currently the
+  three outage layer specs live inline in `GridAtlasMap.tsx`.
+- `legacy*Expression` retirement when the legacy GeoJSON files at
+  `public/data/*.geojson` are migrated to FOUNDRY's typed schemas
+  (separate sprint).

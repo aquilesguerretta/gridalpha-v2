@@ -37,6 +37,13 @@ import {
   legacyVoltageColorExpression,
   legacyVoltageWidthExpression,
 } from './layers/colorRamps';
+// ATLAS Wave 5 — all-US infrastructure layer specs. Each module owns
+// the LayerProps for one source (generation / transmission / batteries).
+import {
+  allUsGenClusterLayer,
+  allUsGenClusterCountLayer,
+  allUsGenCircleLayer,
+} from './layers/generationLayers';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -295,15 +302,38 @@ export interface GridAtlasMapProps {
   pipelineGeoJson:    GeoJSON.FeatureCollection | null;
   earthquakeGeoJson:  GeoJSON.FeatureCollection | null;
   weatherGeoJson:     GeoJSON.FeatureCollection | null;
+  /**
+   * ATLAS Wave 5 — all-US generation FeatureCollection. ~15K EIA
+   * generators when wired to live; bbox-clipped before render so
+   * only viewport-resident features hit the GPU.
+   */
+  allUsGenerationGeoJson?: GeoJSON.FeatureCollection | null;
   showTx:             boolean;
   showPlants:         boolean;
   showNodes:          boolean;
   showSubstations:    boolean;
   showGasPipelines:   boolean;
   showEarthquakes:    boolean;
+  /** Wave 5 toggle — controls visibility of the all-US generation layer. */
+  showAllUsGeneration?: boolean;
   onZoneClick:        (zoneId: string | null) => void;
   onPlantHover:       (props: Record<string, unknown> | null, x: number, y: number) => void;
   onZoneHover:        (name: string | null) => void;
+  /**
+   * Wave 5 — fired when the user clicks an individual all-US generator
+   * dot. Properties are the unwrapped GenerationUnit shape.
+   */
+  onGeneratorClick?:  (props: Record<string, unknown>) => void;
+  /**
+   * Wave 5 — fired on every map moveend (debounced upstream by
+   * GridAtlasView before it fires the bbox-driven hooks). Carries
+   * current viewport bounds + LOD derived from zoom.
+   */
+  onViewportChange?:  (v: {
+    bbox: [number, number, number, number];
+    lod:  'low' | 'mid' | 'high';
+    zoom: number;
+  }) => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────
@@ -314,9 +344,12 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
       mapStyle, txGeoJson, plantGeoJson, hubGeoJson, outagesGeoJson,
       substationGeoJson, pipelineGeoJson, earthquakeGeoJson,
       weatherGeoJson,
+      allUsGenerationGeoJson,
       showTx, showPlants, showNodes,
       showSubstations, showGasPipelines, showEarthquakes,
+      showAllUsGeneration,
       onZoneClick, onPlantHover, onZoneHover,
+      onGeneratorClick, onViewportChange,
     },
     ref,
   ) {
@@ -343,13 +376,20 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
     const onMapClick = useCallback((e: any) => {
       const features = e.features as any[];
       if (!features?.length) { onZoneClick(null); return; }
+      const f = features[0];
+      // Wave 5 — branch on the layer that produced the hit so the
+      // asset detail panel and the legacy zone-select don't compete.
+      if (f.layer?.id === 'all-us-gen-circle' && onGeneratorClick) {
+        onGeneratorClick(f.properties as Record<string, unknown>);
+        return;
+      }
       const zoneId =
-        features[0]?.properties?.zone_id ??
-        features[0]?.properties?.ZONE ??
-        features[0]?.properties?.name ??
+        f?.properties?.zone_id ??
+        f?.properties?.ZONE ??
+        f?.properties?.name ??
         null;
       onZoneClick(zoneId);
-    }, [onZoneClick]);
+    }, [onZoneClick, onGeneratorClick]);
 
     const onMouseMove = useCallback((e: any) => {
       const features = e.features as any[];
@@ -464,6 +504,10 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
     const interactiveLayerIds = [
       ...(showPlants ? ['plant-circles', 'plant-clusters'] : []),
       ...(showNodes  ? ['hub-dots'] : []),
+      // Wave 5 — clicking a single all-US generator opens the asset
+      // detail panel via onGeneratorClick. Cluster bubbles aren't
+      // interactive (would need a fly-into-cluster handler — future).
+      ...(showAllUsGeneration ? ['all-us-gen-circle'] : []),
     ];
 
     return (
@@ -499,6 +543,21 @@ const GridAtlasMap = forwardRef<GridAtlasMapHandle, GridAtlasMapProps>(
             <Layer {...plantClusterLayer} />
             <Layer {...plantClusterCountLayer} />
             <Layer {...plantCircleFallback} />
+          </Source>
+        )}
+
+        {/* All-US Generation — Wave 5. Renders above the PJM `plants`
+            source. ~15K EIA generators clustered by Mapbox to z8.
+            Source data flows from useGenerationUnits via a
+            FeatureCollection adapter in GridAtlasView. */}
+        {styleLoaded && showAllUsGeneration && allUsGenerationGeoJson && (
+          <Source
+            id="all-us-generation" type="geojson" data={allUsGenerationGeoJson}
+            cluster={true} clusterMaxZoom={8} clusterRadius={40}
+          >
+            <Layer {...allUsGenClusterLayer} />
+            <Layer {...allUsGenClusterCountLayer} />
+            <Layer {...allUsGenCircleLayer} />
           </Source>
         )}
 

@@ -32,6 +32,11 @@ import { TimeTravelScrubber } from './TimeTravelScrubber';
 // selected and pushes assembled snapshots back into the time-travel
 // store. Side-effect-only; no return value.
 import { useAtlasHistorical } from '@/hooks/data/useAtlasHistorical';
+// Wave 5 — all-US infrastructure data hooks. Bbox-driven viewport fetches
+// against CURSOR's /api/infra/* endpoints (or FOUNDRY mock fixtures
+// under MOCK_MODE).
+import { useGenerationUnits } from '@/hooks/data/useGenerationUnits';
+import type { LodLevel } from '@/lib/types/infrastructure';
 
 const GridAtlasMap = lazy(() => import('./GridAtlasMap'));
 
@@ -260,9 +265,29 @@ export default function GridAtlasView() {
   const [showGasPipelines,   setShowGasPipelines]   = useState(false);
   const [showEarthquakes,    setShowEarthquakes]    = useState(true);
   const [showWeather,        setShowWeather]        = useState(true);
+  // Wave 5 — all-US infrastructure layer toggles (off by default so
+  // first-time visitors see the curated PJM view; one click reveals
+  // the national surface).
+  const [showAllUsGeneration,   setShowAllUsGeneration]   = useState(false);
+  const [showAllUsTransmission, setShowAllUsTransmission] = useState(false);
+  const [showBatteries,         setShowBatteries]         = useState(false);
 
   // Map style
   const [activeStyle, setActiveStyle] = useState<MapStyleId>('terminal');
+
+  // Wave 5 — current viewport bbox + LOD. Phase 6 wires onMoveEnd to
+  // refresh these from the live map. Until then we seed with a CONUS
+  // bbox at low LOD so the layers render the full mock fixture set
+  // immediately on mount.
+  const [viewport, setViewport] = useState<{
+    bbox: [number, number, number, number];
+    lod:  LodLevel;
+    zoom: number;
+  }>({
+    bbox: [-125, 24, -66, 49],
+    lod:  'low',
+    zoom: 5.5,
+  });
 
   // Zone / plant interaction
   const [selectedZone,  setSelectedZone]  = useState<string | null>(null);
@@ -294,6 +319,39 @@ export default function GridAtlasView() {
   // on the store and fires fetchHistoricalWindow when a named event
   // is selected. Side-effect-only; no render contribution.
   useAtlasHistorical();
+
+  // Wave 5 — bbox-driven viewport queries. Pass `null` to disable each
+  // hook when its layer is toggled off; the hooks return empty data
+  // shapes and the layer renders nothing.
+  const generation = useGenerationUnits(
+    showAllUsGeneration ? { bbox: viewport.bbox, limit: 5000 } : null,
+  );
+
+  // Adapter: GenerationUnit[] → GeoJSON.FeatureCollection. Mapbox cluster
+  // sources need this exact shape; we pass through every typed property
+  // so onClick handlers can read the unit fields off the feature.
+  const allUsGenerationGeoJson = useMemo<GeoJSON.FeatureCollection>(() => ({
+    type: 'FeatureCollection',
+    features: generation.data.map((g) => ({
+      type: 'Feature' as const,
+      properties: {
+        id:             g.id,
+        name:           g.name,
+        owner:          g.owner,
+        iso:            g.iso,
+        state:          g.state,
+        fuel:           g.fuel,
+        capacityMw:     g.capacityMw,
+        status:         g.status,
+        codDate:        g.codDate,
+        retirementDate: g.retirementDate,
+        eiaPlantId:     g.eiaPlantId,
+        eiaGeneratorId: g.eiaGeneratorId,
+        kind:           'generation' as const,
+      },
+      geometry: { type: 'Point' as const, coordinates: [g.lon, g.lat] },
+    })),
+  }), [generation.data]);
 
   // Live data hooks (gracefully return empty when backend not ready)
   // Note: live useOutages() is replaced by snapshot.outages — the time-travel
@@ -475,12 +533,14 @@ export default function GridAtlasView() {
             substationGeoJson={substationGeoJson}
             pipelineGeoJson={pipelineGeoJson}
             earthquakeGeoJson={earthquakeGeoJson}
+            allUsGenerationGeoJson={allUsGenerationGeoJson}
             showTx={showTx}
             showPlants={showPlants}
             showNodes={showNodes}
             showSubstations={showSubstations}
             showGasPipelines={showGasPipelines}
             showEarthquakes={showEarthquakes}
+            showAllUsGeneration={showAllUsGeneration}
             weatherGeoJson={showWeather ? weatherGeoJson : null}
             onZoneClick={setSelectedZone}
             onPlantHover={handlePlantHover}
@@ -646,13 +706,19 @@ export default function GridAtlasView() {
         {/* Layers */}
         {expandedPanel === 'layers' && (
         <Panel label="LAYERS">
-          <Toggle label="TRANSMISSION"    active={showTx}             color="#00FFF0"        onToggle={() => setShowTx(p => !p)} />
-          <Toggle label="POWER PLANTS"    active={showPlants}         color={C.electricBlueLight}         onToggle={() => setShowPlants(p => !p)} />
-          <Toggle label="HUB NODES"       active={showNodes}          color="#FFB800"        onToggle={() => setShowNodes(p => !p)} />
-          <Toggle label="GAS PIPELINES"   active={showGasPipelines}   color="#F97316"        onToggle={() => setShowGasPipelines(p => !p)} />
-          <Toggle label="SUBSTATIONS"     active={showSubstations}    color={C.textPrimary}  onToggle={() => setShowSubstations(p => !p)} />
-          <Toggle label="SEISMIC ALERTS"  active={showEarthquakes}    color="#FF3B3B"        onToggle={() => setShowEarthquakes(p => !p)} />
-          <Toggle label="WEATHER"         active={showWeather}        color="#00FFF0"        onToggle={() => setShowWeather(p => !p)} />
+          <Toggle label="TRANSMISSION"      active={showTx}               color="#00FFF0"             onToggle={() => setShowTx(p => !p)} />
+          <Toggle label="POWER PLANTS"      active={showPlants}           color={C.electricBlueLight} onToggle={() => setShowPlants(p => !p)} />
+          <Toggle label="HUB NODES"         active={showNodes}            color="#FFB800"             onToggle={() => setShowNodes(p => !p)} />
+          <Toggle label="GAS PIPELINES"     active={showGasPipelines}     color="#F97316"             onToggle={() => setShowGasPipelines(p => !p)} />
+          <Toggle label="SUBSTATIONS"       active={showSubstations}      color={C.textPrimary}       onToggle={() => setShowSubstations(p => !p)} />
+          <Toggle label="SEISMIC ALERTS"    active={showEarthquakes}      color="#FF3B3B"             onToggle={() => setShowEarthquakes(p => !p)} />
+          <Toggle label="WEATHER"           active={showWeather}          color="#00FFF0"             onToggle={() => setShowWeather(p => !p)} />
+          {/* Wave 5 — all-US infrastructure layer toggles. The new
+              layers render alongside (not in place of) the PJM-focused
+              ones above; the user can show either or both. */}
+          <Toggle label="ALL-US GENERATION" active={!!showAllUsGeneration}   color={C.electricBlueLight} onToggle={() => setShowAllUsGeneration(p => !p)} />
+          <Toggle label="ALL-US TRANSMISSION" active={!!showAllUsTransmission} color="#00FFF0"           onToggle={() => setShowAllUsTransmission(p => !p)} />
+          <Toggle label="BATTERY STORAGE"   active={!!showBatteries}         color={C.fuelBattery}     onToggle={() => setShowBatteries(p => !p)} />
         </Panel>
         )}
 

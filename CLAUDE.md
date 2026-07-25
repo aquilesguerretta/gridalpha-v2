@@ -627,3 +627,77 @@ para ~3000px.
 **Gates:** `tsc --noEmit` exit 0. `gridalpha-detect` sobre
 `src/components/alexandria`, `src/design/alexandria-tokens.ts`,
 `src/pages/alexandria` — "No findings. Surface is clean." (0 P0/P1/P2).
+
+## ARCHITECT — PORTAL BR WAVE 1
+
+**Status:** fechada. Estrutural — estética final pendente de wave visual.
+
+**Rotas:** `/br` → PortalBR · `/us` → plataforma americana ·
+`/alexandria` inalterada (produto próprio, fora do prefixo de mercado
+porque tem trilhas universal/brasil/usa).
+
+**Decisão de arquitetura:** mercado é segmento de URL, não estado em
+store. Link compartilhável, bookmark funciona, sem hidratação.
+
+**Arquivos:** src/pages/br/PortalBR.tsx · src/components/br/ (4) ·
+src/lib/data/br-destinos.ts (5 destinos, 1 disponível).
+
+**Pendente:** tokens próprios do portal BR — cores estão locais com
+TODO até a wave visual.
+
+### Notas de implementação
+
+**`/us` é redirect, não página.** `<Navigate to="/" replace />` para a
+LandingPage, que é a superfície de entrada americana existente. O par
+natural de um portal é outro portal, não um destino interno como
+`/nest`. Quando o portal US ganhar página própria, só este element
+muda — `SeletorMercado` não.
+
+**Scroll.** O repo tem dois idiomas para páginas fora do GlobalShell,
+porque `index.css` trava `html, body, #root` em 100vh / overflow hidden:
+a LandingPage sequestra e restaura o overflow do documento num
+`useEffect`; o AlexandriaShell monta um quadro de 100vh e rola por
+dentro. PortalBR segue o AlexandriaShell — não muta estado global, então
+não há cleanup a falhar. Efeito colateral conhecido: screenshot
+`fullPage` não captura a página inteira, porque o scroll é do `<main>`,
+não do documento.
+
+**Tipografia não declarada.** Nenhum `fontFamily` nos seis arquivos. O
+portal herda `--font-sans` do `index.css`. Declarar agora seria adivinhar
+a wave visual; herdar é a única posição honesta. Também mantém os
+arquivos fora do alcance de `no-inter-no-system`.
+
+**Cor sem importação.** Cada arquivo carrega o próprio objeto `BR` com
+`// TODO: substituir por tokens do portal BR quando a wave visual
+chegar`. Duplicação deliberada — o portal terá tokens próprios, e
+importar de `tokens.ts` ou `alexandria-tokens.ts` agora criaria
+acoplamento que alguém teria que desfazer. Fios derivam da tinta
+(`rgba(242,242,240,α)`), não de branco puro.
+
+**Hierarquia da grade sem span calculado.** Destinos são separados por
+status e renderizados em duas grades `auto-fit`. Com um único destino
+aberto, `auto-fit` colapsa as trilhas vazias e o card ocupa a largura
+inteira — vira o elemento dominante sozinho. Derivado dos dados: se um
+segundo destino abrir, a composição acompanha.
+
+**Orçamento de altura do hero.** Descoberto na verificação visual: com
+a reserva da gravura em 4/3 + 300px, o hero consumia os 900px inteiros e
+nenhum destino aparecia no primeiro paint. Corrigido para 16/10 + 248px.
+Isto é a restrição estrutural que a wave visual herda — a gravura tem
+esse envelope, não o que ela quiser.
+
+**Decisão fora do brief:** medida máxima de prancha 1200px (a Alexandria
+usa 1120px). Mais ar porque aqui há grade de quatro colunas, não página
+de monografia. Sem o teto, em 3440px a grade estica e o portal vira
+landing page de SaaS.
+
+**Gates:** `tsc --noEmit` exit 0. `gridalpha-detect` sobre
+`src/pages/br`, `src/components/br`, `src/lib/data/br-destinos.ts` —
+"No findings. Surface is clean." (0 P0/P1/P2). Verificado em 1440x900 e
+1920x1080: zero erro de console, zero overflow horizontal, caminho
+`/br` → Alexandria → shell montado com `?trilha=brasil` preservado, e
+`/us` → `/` com a landing americana intacta.
+
+**Herdado, não resolvido:** `AlexandriaHome` ainda não lê `?trilha=`.
+O parâmetro chega correto na URL e fica inerte até LYCEUM consumir —
+contrato à frente da implementação, de propósito.

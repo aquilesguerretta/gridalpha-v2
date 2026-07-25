@@ -569,3 +569,61 @@ fill/stroke/pathLength como autorados no arquivo bruto, separando
 elemento desenhado de elemento sólido, e sinaliza desvios sem corrigir.
 Precisa ser servido por HTTP — `file://` bloqueia o fetch, e o
 carregamento é inline porque com `<img>` o `currentColor` não resolve.
+
+## LYCEUM — ALEXANDRIA WAVE 2
+
+**Status:** fechada.
+
+**Tokens:** `src/design/alexandria-tokens.ts` — A (cor), AF (família),
+AT (escala tipográfica), AS (espaçamento), AR (raio), AE (movimento),
+ALAYOUT (larguras do shell). Sistema separado do terminal; os dois
+nunca se importam. Extras: A2 (segundo nível de cor que o handoff usa
+mas não nomeia), ATEXTURA (fibra de papel), AFONT_HREF.
+
+**Shell:** `src/components/alexandria/shell/` — AlexandriaShell,
+AlexandriaHeader, RailRight, RailLeft, AlexandriaFooter.
+
+**Rota:** `/alexandria` → AlexandriaHome (placeholder).
+
+**Invariantes:** header navy full-bleed · rail direito sempre navy 300px
+· rail esquerdo opcional sempre creme 232px · canvas creme · rodapé navy
+com faixa de blueprint. Raio zero. Sem box-shadow. Sem Tailwind.
+
+**Procedência:** todo valor de cor tem citação de linha no handoff em
+`docs/alexandria/design-handoff/.../Alexandria Sistema.dc.html`. O
+handoff não tem arquivo de tokens — zero custom properties, zero
+`:root`, zero `var()`. Fonte canônica: folha de tokens L936-987 +
+folha de cor semântica L1145-1152.
+
+**Valores marcados TODO:**
+- `ALAYOUT.headerHeight` — o handoff não elege uma altura. Três valores
+  literais concorrentes: 70px (L281, L497, L748, L1647), 74px (L54),
+  78px (L1165, L1481). Está em 70px por ser o modal (4 de 7) e o valor
+  das telas de produto interno. É decisão, não extração.
+- `ALAYOUT.footerHeight` — não existe no handoff. Nenhum `height` /
+  `min-height` / `max-height` em nenhum rodapé; os dois rodapés reais
+  são dimensionados por conteúdo. String vazia é deliberada;
+  AlexandriaFooter usa padding, como o handoff.
+
+**Divergências brief × handoff (implementado conforme o BRIEF):**
+- `AT` diverge da escala canônica do handoff (L993-1002) em cinco dos
+  oito papéis: h1 32/33px, h2 22/24px, rótulo .18/.20em, h3 15/18px,
+  dado 14/13px. Mantidos os valores do brief; conflito documentado no
+  próprio arquivo de tokens.
+- Campo de busca sem caixa. Quatro dos cinco campos do handoff têm
+  container de quatro lados; o quinto (⌘K, L2038) é só fio embaixo — e
+  é esse o padrão que o brief manda seguir.
+- Faixa de blueprint no rodapé. O handoff descreve em prosa (L1084) mas
+  nenhum rodapé de produto carrega background-image.
+- Playfair Display excluída. O handoff carrega três famílias (L13) e
+  usa Playfair 36 vezes — é o defeito conhecido. O shell injeta só
+  Cinzel + Lora, porque `index.html` não é território desta wave.
+
+**Decisão fora do handoff:** medida máxima de prancha (1120px, centrada)
+no canvas. O handoff só tem frames fixos de 1440px, onde o canvas mede
+~908px depois dos dois rails; sem o teto, em 3440px os blocos esticavam
+para ~3000px.
+
+**Gates:** `tsc --noEmit` exit 0. `gridalpha-detect` sobre
+`src/components/alexandria`, `src/design/alexandria-tokens.ts`,
+`src/pages/alexandria` — "No findings. Surface is clean." (0 P0/P1/P2).

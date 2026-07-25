@@ -40,7 +40,11 @@ export function PortalHero({ titulo, subtitulo, illustrationSlot }: PortalHeroPr
         gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 0.95fr)',
         gap: '56px',
         alignItems: 'center',
-        padding: '72px 0',
+        // A altura do hero é orçada, não escolhida: header (64) + hero +
+        // respiro da seção precisa caber antes do primeiro destino em
+        // 1440x900. Um portal que abre sem mostrar para onde encaminha
+        // falha na própria função.
+        padding: '48px 0',
         borderBottom: `1px solid ${BR.fio}`,
       }}
     >
@@ -65,8 +69,8 @@ export function PortalHero({ titulo, subtitulo, illustrationSlot }: PortalHeroPr
       <div
         style={{
           position: 'relative',
-          minHeight: '300px',
-          aspectRatio: '4 / 3',
+          minHeight: '248px',
+          aspectRatio: '16 / 10',
           border: `1px solid ${BR.fio}`,
           borderRadius: 0,
           display: 'flex',

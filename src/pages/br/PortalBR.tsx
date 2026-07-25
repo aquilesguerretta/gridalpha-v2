@@ -122,7 +122,7 @@ export function PortalBR() {
           <section
             aria-label="Destinos"
             style={{
-              padding: '56px 0',
+              padding: '40px 0 56px',
               display: 'flex',
               flexDirection: 'column',
               gap: '20px',

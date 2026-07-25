@@ -110,3 +110,37 @@ export interface CurriculumAula {
   /** Documentos de referência ligados à aula. */
   references: LessonReference[];
 }
+
+export interface LessonVideo {
+  id: string;
+  url: string;
+  provider: 'vimeo' | 'youtube' | 'self-hosted' | 'other';
+  title: string;
+  durationSeconds: number;
+  captionsUrl: string | null;
+  /** Caminho do poster estático exibido antes do play. */
+  posterAsset: string | null;
+}
+
+export interface LessonActivity {
+  id: string;
+  kind: ActivityKind;
+  prompt: string;
+  points: number;
+  /** Formato específico por kind. LYCEUM tipa em detalhe quando
+   *  construir cada mecânica — deixado solto de propósito porque
+   *  as mecânicas ainda não foram especificadas. */
+  config: Record<string, unknown>;
+}
+
+/** Documento de apoio: PDF, planilha, link externo.
+ *  Alimenta a seção "Material de apoio" e a Biblioteca. */
+export interface LessonReference {
+  id: string;
+  title: string;
+  source: string;                    // 'ONS', 'EPE', 'CCEE', 'ANEEL', ...
+  kind: 'pdf' | 'xlsx' | 'csv' | 'link';
+  url: string;
+  sizeBytes: number | null;
+  publishedAt: string | null;        // ISO date
+}

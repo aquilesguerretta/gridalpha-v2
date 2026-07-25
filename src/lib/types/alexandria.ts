@@ -43,3 +43,70 @@ export type BlockPriority =
 /** Dificuldade da aula. Mapeia para a tag visual
  *  Básico / Intermediário / Avançado das telas de referência. */
 export type AulaDifficulty = 'basico' | 'intermediario' | 'avancado';
+
+/** Bloco do Currículo Definitivo. São 17, fixos.
+ *  O bloco é a unidade de conteúdo; o módulo é a unidade de navegação.
+ *  Um módulo referencia um bloco. */
+export interface CurriculumBlock {
+  id: string;                        // 'bloco-01' .. 'bloco-17'
+  number: number;                    // 1-17
+  level: CurriculumLevel;
+  title: string;
+  track: CurriculumTrack;
+  /** Prefixo de 3 letras da biblioteca de gravuras ('fis-', 'red-', ...).
+   *  null onde a metáfora visual ainda não foi decidida. */
+  illustrationPrefix: string | null;
+  priority: BlockPriority;
+  /** null onde o Currículo Definitivo não declara carga horária. */
+  estimatedHoursMin: number | null;
+  estimatedHoursMax: number | null;
+}
+
+/** Trilha — o agrupamento de mais alto nível que o aluno escolhe.
+ *  Ex: "Fundamentos do SIN", "Operação e mercados de energia". */
+export interface CurriculumTrilha {
+  id: string;
+  title: string;
+  description: string;
+  level: CurriculumLevel;
+  track: CurriculumTrack;
+  language: CurriculumLanguage;
+  moduleIds: string[];
+  totalAulas: number;
+}
+
+/** Módulo — subdivisão da trilha. Exibido como "Módulo 3 de 6". */
+export interface CurriculumModule {
+  id: string;
+  trilhaId: string;
+  number: number;
+  totalInTrilha: number;
+  title: string;
+  blockId: string;                   // referência a CurriculumBlock
+}
+
+/** Aula — a unidade que o aluno consome. Exibida como "Aula 8". */
+export interface CurriculumAula {
+  id: string;
+  moduleId: string;
+  number: number;
+  totalInModule: number;
+  title: string;
+  subtitle: string | null;
+  track: CurriculumTrack;
+  language: CurriculumLanguage;
+  durationMinutes: number;
+  difficulty: AulaDifficulty;
+  /** Vazio quando a aula não tem recorte regional. */
+  submercados: SubmercadoTag[];
+  /** Eixo de categorização transversal aos níveis.
+   *  Ex: 'Preço e mercado', 'Regulação', 'Tarifas', 'Operação do SIN'. */
+  competencies: string[];
+  /** Nomes de arquivo da biblioteca de gravuras, sem caminho.
+   *  Ex: 'ger-03-turbina-francis-corte.png' */
+  illustrations: string[];
+  video: LessonVideo | null;
+  activities: LessonActivity[];
+  /** Documentos de referência ligados à aula. */
+  references: LessonReference[];
+}

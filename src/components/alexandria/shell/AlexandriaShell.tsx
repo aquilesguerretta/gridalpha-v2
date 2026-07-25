@@ -100,7 +100,21 @@ export function AlexandriaShell({
               pointerEvents: 'none',
             }}
           />
-          <div style={{ position: 'relative', padding: `${AS.xxl} ${AS.xxl}` }}>
+          {/* Medida máxima da prancha. Sem ela, em 3440px os blocos de
+              conteúdo esticam para ~3000px e a tela vira landing page de
+              SaaS — o modo de falha que o brief nomeia. O handoff não
+              cobre ultrawide: as maquetes são frames fixos de 1440px,
+              onde o canvas mede ~908px depois dos dois rails. 1120px
+              mantém a proporção de prancha e centraliza como página de
+              monografia. */}
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '1120px',
+              margin: '0 auto',
+              padding: `${AS.xxl} ${AS.xxl}`,
+            }}
+          >
             {children}
           </div>
         </main>

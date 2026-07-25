@@ -11,6 +11,7 @@ import { SignupProfilePage } from './pages/auth/SignupProfilePage';
 import { SignupDetailsPage } from './pages/auth/SignupDetailsPage';
 import { SignupSuccessPage } from './pages/auth/SignupSuccessPage';
 import { AuthLayout } from './components/editorial/AuthLayout';
+import { AlexandriaHome } from './pages/alexandria/AlexandriaHome';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -38,6 +39,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/vault/alexandria/lesson/:lessonId" element={<GlobalShell initialView="vault" />} />
         <Route path="/vault/alexandria/entry/:entrySlug" element={<GlobalShell initialView="vault" />} />
         <Route path="/vault/:id" element={<GlobalShell initialView="vault" />} />
+
+        <Route path="/alexandria" element={<AlexandriaHome />} />
 
         <Route path="*" element={<LandingPage />} />
       </Routes>

@@ -35,9 +35,14 @@ export function AlexandriaFooter() {
           position: 'absolute',
           inset: 0,
           backgroundImage: 'url(/alexandria/textura/texture-blueprint-band-on-navy.png)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          opacity: 0.14,
+          // O asset é uma faixa de 2400x400 (6:1). O rodapé é muito mais
+          // largo que alto, então `cover` ampliava a faixa e mostrava só
+          // um recorte central. `auto 100%` + repeat-x preserva a
+          // proporção e deixa a faixa correr na horizontal.
+          backgroundSize: 'auto 100%',
+          backgroundRepeat: 'repeat-x',
+          backgroundPosition: 'left center',
+          opacity: 0.1,
           pointerEvents: 'none',
         }}
       />
@@ -55,7 +60,10 @@ export function AlexandriaFooter() {
           Alexandria · GridAlpha
         </span>
 
+        {/* Coluna focal — 1.4fr contra 1fr das laterais, como o rodapé
+            do handoff (L1835). O marcador é descritivo, não cosmético. */}
         <span
+          data-focal
           style={{
             ...AT.corpo,
             fontSize: '13px',

@@ -515,3 +515,24 @@ already 2-point LineStrings).
 - `legacy*Expression` retirement when the legacy GeoJSON files at
   `public/data/*.geojson` are migrated to FOUNDRY's typed schemas
   (separate sprint).
+
+## FOUNDRY — ALEXANDRIA WAVE 1
+
+**Status:** fechada.
+
+**Arquivos:**
+- `src/lib/types/alexandria.ts` — CurriculumTrack, CurriculumLanguage,
+  CurriculumLevel, ActivityKind, SubmercadoTag, BlockPriority,
+  AulaDifficulty, CurriculumBlock, CurriculumTrilha, CurriculumModule,
+  CurriculumAula, LessonVideo, LessonActivity, LessonReference, Badge,
+  UserBadgeProgress, Certificate, UserProgress.
+- `src/lib/data/alexandria-blocks.ts` — ALEXANDRIA_BLOCKS (17) + 3 helpers.
+
+**Fronteira:** arquivo próprio. Não estende nem importa
+`src/lib/types/curriculum.ts`, que pertence ao Vault legado e segue travado.
+
+**Pendências registradas:** blocos 2, 3, 8, 9, 11 com prioridade
+'confirmar' e carga horária null. Bloco 11 tem título derivado de
+evidência circunstancial, não confirmado em cabeçalho literal.
+
+**Consumidores:** LYCEUM (todas as waves).

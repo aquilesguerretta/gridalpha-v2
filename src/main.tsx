@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import './index.css';
 import GlobalShell from './components/GlobalShell';
@@ -12,6 +12,7 @@ import { SignupDetailsPage } from './pages/auth/SignupDetailsPage';
 import { SignupSuccessPage } from './pages/auth/SignupSuccessPage';
 import { AuthLayout } from './components/editorial/AuthLayout';
 import { AlexandriaHome } from './pages/alexandria/AlexandriaHome';
+import { PortalBR } from './pages/br/PortalBR';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -41,6 +42,16 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/vault/:id" element={<GlobalShell initialView="vault" />} />
 
         <Route path="/alexandria" element={<AlexandriaHome />} />
+
+        {/* Portais de mercado. Mercado é segmento de URL, não estado em
+            store: link compartilhável, bookmark funciona, sem hidratação.
+            `/alexandria` fica fora do prefixo de propósito — tem trilhas
+            universal / brasil / usa, então pertence aos dois portais.
+            `/us` é alias da superfície de entrada americana existente;
+            quando o portal US ganhar página própria, só este element
+            muda. */}
+        <Route path="/br" element={<PortalBR />} />
+        <Route path="/us" element={<Navigate to="/" replace />} />
 
         <Route path="*" element={<LandingPage />} />
       </Routes>

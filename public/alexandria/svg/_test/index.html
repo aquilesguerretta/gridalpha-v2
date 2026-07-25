@@ -244,8 +244,10 @@
       <tbody></tbody>
     </table>
     <div class="legend">
-      Esperado em nove arquivos: <code>fill="none"</code> + <code>stroke="currentColor"</code> + <code>pathLength="1"</code>.<br>
-      <code>dot-active.svg</code> é exceção proposital: <code>fill="currentColor"</code>, sem stroke, sem pathLength.<br>
+      Elemento <strong>desenhado</strong> (anima): <code>fill="none"</code> + <code>stroke="currentColor"</code> + <code>pathLength="1"</code>.<br>
+      Elemento <strong>sólido</strong> (não anima): <code>fill="currentColor"</code>, sem stroke, sem pathLength.<br>
+      Duas peças têm sólido, ambas por especificação: <code>dot-active.svg</code> (1 sólido, 0 desenhados) e
+      <code>leader-line.svg</code> (círculo de ancoragem + 1 desenhado).<br>
       Desvios são <em>sinalizados</em>, nunca corrigidos automaticamente.
     </div>
   </section>
@@ -254,19 +256,27 @@
 <script>
 /* --------------------------------------------------------------------
    Manifesto. `long` marca os dois rings (1200ms). `shackle` marca a peça
-   que gira. `solid` marca a exceção proposital do dot-active.
+   que gira.
+
+   `desenhados` = elementos que animam (pathLength="1", fill none,
+   stroke currentColor). `solidos` = elementos de preenchimento que NÃO
+   animam. Duas peças têm sólidos, ambas por especificação:
+     dot-active  — 1 sólido, 0 desenhados (é um ponto, não um traço).
+     leader-line — 1 sólido (círculo de ancoragem) + 1 desenhado.
+   Contar os dois papéis separadamente evita falso positivo: agregar
+   `fill` sobre a peça inteira acusaria o leader-line sem motivo.
    -------------------------------------------------------------------- */
 const PIECES = [
-  { file: 'nos-trilha/ring-track.svg',        group: 'nós de trilha', long: true },
-  { file: 'nos-trilha/ring-progress.svg',     group: 'nós de trilha', long: true },
-  { file: 'nos-trilha/check-mark.svg',        group: 'nós de trilha' },
-  { file: 'nos-trilha/lock-body.svg',         group: 'nós de trilha' },
-  { file: 'nos-trilha/lock-shackle.svg',      group: 'nós de trilha', shackle: true },
-  { file: 'nos-trilha/dot-active.svg',        group: 'nós de trilha', solid: true },
-  { file: 'anotacao/leader-line.svg',         group: 'anotação' },
-  { file: 'anotacao/arrow-directional.svg',   group: 'anotação' },
-  { file: 'anotacao/bracket.svg',             group: 'anotação' },
-  { file: 'anotacao/detail-frame.svg',        group: 'anotação' },
+  { file: 'nos-trilha/ring-track.svg',      group: 'nós de trilha', long: true, desenhados: 1, solidos: 0 },
+  { file: 'nos-trilha/ring-progress.svg',   group: 'nós de trilha', long: true, desenhados: 1, solidos: 0 },
+  { file: 'nos-trilha/check-mark.svg',      group: 'nós de trilha',             desenhados: 1, solidos: 0 },
+  { file: 'nos-trilha/lock-body.svg',       group: 'nós de trilha',             desenhados: 1, solidos: 0 },
+  { file: 'nos-trilha/lock-shackle.svg',    group: 'nós de trilha', shackle: true, desenhados: 1, solidos: 0 },
+  { file: 'nos-trilha/dot-active.svg',      group: 'nós de trilha',             desenhados: 0, solidos: 1 },
+  { file: 'anotacao/leader-line.svg',       group: 'anotação',                  desenhados: 1, solidos: 1 },
+  { file: 'anotacao/arrow-directional.svg', group: 'anotação',                  desenhados: 1, solidos: 0 },
+  { file: 'anotacao/bracket.svg',           group: 'anotação',                  desenhados: 1, solidos: 0 },
+  { file: 'anotacao/detail-frame.svg',      group: 'anotação',                  desenhados: 1, solidos: 0 },
 ];
 
 const grid = document.getElementById('grid');
@@ -282,7 +292,7 @@ async function load(piece) {
   if (piece.long) row.dataset.long = 'true';
   if (piece.shackle) row.dataset.shackle = 'true';
 
-  const dur = piece.long ? '1200ms' : (piece.solid ? '—' : '700ms');
+  const dur = piece.long ? '1200ms' : (piece.desenhados === 0 ? '—' : '700ms');
   row.innerHTML = `
     <div class="row-head">
       <div class="row-name">${piece.file}</div>
@@ -327,31 +337,40 @@ function audit() {
     const parseError = doc.querySelector('parsererror');
     const shapes = svg ? [...svg.querySelectorAll('path,circle,rect,line,polyline,polygon,ellipse')] : [];
 
-    const attr = (name) => {
-      const vals = new Set();
-      if (svg && svg.hasAttribute(name)) vals.add(svg.getAttribute(name));
-      shapes.forEach(s => { if (s.hasAttribute(name)) vals.add(s.getAttribute(name)); });
-      return vals.size ? [...vals].join(' / ') : '(ausente)';
+    // Separa por papel, não por arquivo.
+    const desenhados = shapes.filter(s => s.getAttribute('pathLength') === '1');
+    const solidos = shapes.filter(s => s.getAttribute('pathLength') !== '1');
+
+    const show = (els, name) => {
+      if (!els.length) return '(ausente)';
+      const vals = [...new Set(els.map(e => e.getAttribute(name) ?? '(ausente)'))];
+      return vals.join(' / ');
     };
-
-    const fill = attr('fill');
-    const stroke = attr('stroke');
-    const pathLength = attr('pathLength');
-    const animates = shapes.some(s => s.getAttribute('pathLength') === '1');
-
-    const expected = piece.solid
-      ? { fill: 'currentColor', stroke: '(ausente)', pathLength: '(ausente)' }
-      : { fill: 'none', stroke: 'currentColor', pathLength: '1' };
 
     const dev = [];
     if (parseError) dev.push('SVG inválido');
     if (!shapes.length) dev.push('sem geometria');
-    if (fill !== expected.fill) dev.push(`fill=${fill} (esperado ${expected.fill})`);
-    if (stroke !== expected.stroke) dev.push(`stroke=${stroke} (esperado ${expected.stroke})`);
-    if (pathLength !== expected.pathLength) dev.push(`pathLength=${pathLength} (esperado ${expected.pathLength})`);
+
+    if (desenhados.length !== piece.desenhados)
+      dev.push(`${desenhados.length} elemento(s) com pathLength=1 (esperado ${piece.desenhados})`);
+    if (solidos.length !== piece.solidos)
+      dev.push(`${solidos.length} elemento(s) sólido(s) (esperado ${piece.solidos})`);
+
+    desenhados.forEach(e => {
+      if (e.getAttribute('fill') !== 'none') dev.push(`<${e.tagName}> desenhado com fill=${e.getAttribute('fill') ?? '(ausente)'} (esperado none)`);
+      if (e.getAttribute('stroke') !== 'currentColor') dev.push(`<${e.tagName}> desenhado com stroke=${e.getAttribute('stroke') ?? '(ausente)'} (esperado currentColor)`);
+    });
+    solidos.forEach(e => {
+      if (e.getAttribute('fill') !== 'currentColor') dev.push(`<${e.tagName}> sólido com fill=${e.getAttribute('fill') ?? '(ausente)'} (esperado currentColor)`);
+      if (e.hasAttribute('stroke')) dev.push(`<${e.tagName}> sólido não deveria ter stroke`);
+    });
 
     rows.push({
-      file: piece.file, fill, stroke, pathLength, animates,
+      file: piece.file,
+      fill: `traço ${show(desenhados, 'fill')}${piece.solidos ? ` · sólido ${show(solidos, 'fill')}` : ''}`,
+      stroke: show(desenhados, 'stroke'),
+      pathLength: show(desenhados, 'pathLength'),
+      animates: desenhados.length > 0,
       renderOk: !parseError && shapes.length > 0,
       deviation: dev.length ? dev.join('; ') : '—',
     });

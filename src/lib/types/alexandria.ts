@@ -144,3 +144,48 @@ export interface LessonReference {
   sizeBytes: number | null;
   publishedAt: string | null;        // ISO date
 }
+
+/** Badge com critério mensurável. As telas de referência mostram
+ *  critérios como "Atinja 0,92 de FP médio em simulação tarifária" —
+ *  o critério é dado, não texto decorativo. */
+export interface Badge {
+  id: string;
+  name: string;
+  criterion: string;
+  category: 'conteudo' | 'exploracao' | 'dominio';
+  expReward: number;
+  /** Ícone de centro do badge. A moldura é única e composta por CSS.
+   *  null enquanto a biblioteca de ícones de badge não existe. */
+  iconAsset: string | null;
+}
+
+export interface UserBadgeProgress {
+  badgeId: string;
+  status: 'bloqueado' | 'conquistado';
+  earnedAt: string | null;
+}
+
+export interface Certificate {
+  id: string;
+  levelCompleted: CurriculumLevel;
+  trilhaId: string;
+  issuedAt: string;                  // ISO date
+  /** Padrão: 'alx-{track}-{level}-{sequencial}'. */
+  verificationId: string;
+  totalAulas: number;
+  totalHours: number;
+  scorePercent: number;
+}
+
+/** Progresso agregado do aluno. Alimenta o painel de progresso
+ *  e o rail direito de toda tela. */
+export interface UserProgress {
+  aulasCompleted: number;
+  aulasTotal: number;
+  exp: number;
+  badgesEarned: number;
+  badgesTotal: number;
+  byLevel: Record<CurriculumLevel, number>;   // percentual 0-100
+  bySubmercado: Record<SubmercadoTag, { completed: number; total: number }>;
+  studyStreakDays: number;
+}

@@ -536,3 +536,36 @@ already 2-point LineStrings).
 evidência circunstancial, não confirmado em cabeçalho literal.
 
 **Consumidores:** LYCEUM (todas as waves).
+
+## LYCEUM — ALEXANDRIA WAVE 1
+
+**Status:** fechada.
+
+**Arquivos:** 10 primitivos SVG em `public/alexandria/svg/`
+(6 em `nos-trilha/`, 4 em `anotacao/`) + harness de teste em `_test/`.
+
+**Técnica:** revelação por `stroke-dashoffset` em path com
+`pathLength="1"`. Cor via `currentColor`, definida pelo componente pai.
+`pathLength="1"` normaliza o comprimento para 1 unidade, então a
+animação não depende de medição em runtime e vale em qualquer viewport.
+
+**Veredito do bracket:** precisa revisão. As duas pontas estão
+alinhadas em x=16 — isso passa. O arco do meio, porém, está invertido
+em relação a uma chave tipográfica: com `sweep=1` ele empurra para
+**dentro** (x=6,71), deixando a haste (x=4) como ponto mais externo.
+Numa chave `{` real a cúspide central é o ponto mais externo. Trocar o
+flag do arco do meio para `sweep=0` leva a cúspide para x=1,29 e bate
+com o glifo de referência. **Não aplicado** — geometria é decisão de
+design. Preview medido e fotografado no fechamento da wave.
+
+**Exceções (2, ambas propositais):**
+- `dot-active.svg` — fill sólido, sem stroke, sem `pathLength`.
+- `leader-line.svg` — o círculo de ancoragem é elemento separado, sem
+  `pathLength`; só o path anima.
+
+**Harness:** `window.alxSetPhase(1|0.5|0)` congela a animação num
+offset exato para captura determinística; `window.alxAudit()` lê
+fill/stroke/pathLength como autorados no arquivo bruto, separando
+elemento desenhado de elemento sólido, e sinaliza desvios sem corrigir.
+Precisa ser servido por HTTP — `file://` bloqueia o fetch, e o
+carregamento é inline porque com `<img>` o `currentColor` não resolve.

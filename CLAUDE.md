@@ -798,3 +798,97 @@ arquivos — "No findings. Surface is clean." Árvore inteira: 0 P0, 0 P1,
 27 P2 — idêntico ao fechamento da Wave 1, delta zero.
 
 **Consumidores:** LYCEUM (todas as waves).
+
+## FOUNDRY — ALEXANDRIA WAVE 3
+
+**Status:** fechada. Só dado semente — **zero tipo novo**. A inspeção não
+revelou lacuna de contrato: `Badge`, `UserBadgeProgress` e `UserProgress`
+da Wave 1 expressam tudo que a fonte mostra.
+
+**Arquivos:**
+- `src/lib/data/alexandria-badges.ts` (190 linhas, NOVO) —
+  `ALEXANDRIA_BADGES` (13), `BLOCOS_COM_CONTEUDO`, 2 helpers.
+- `src/lib/data/alexandria-progress-mock.ts` (101 linhas, NOVO) —
+  `MOCK_USER_PROGRESS`, `MOCK_BADGE_PROGRESS` (13, cobertura 1:1).
+
+### Procedência de cada badge
+
+**(A) Referência visual — 4.** Fonte:
+`docs/alexandria/design-handoff/.../project/Alexandria Sistema.dc.html`,
+painel "Conquistas". Nome, critério e EXP literais da tela.
+
+| Badge | EXP | Linha | Conteúdo por trás |
+| --- | --- | --- | --- |
+| Anatomista de Faturas | 25 | L1912-14 | Bloco 10 — sem HTML |
+| Cartógrafo do SIN | 20 | L1918-20 | Atlas de submercados — não existe |
+| Leitor de Mercado | 30 | L1924-26 | Bloco 09 — sem HTML |
+| Guardião do Fator de Potência | 25 | L1930-32 | Bloco 01 ✓ |
+
+**(B) Checklist real dos Módulos 01-03 — 9**, três por bloco. Critério é
+texto verbatim de `.checklist-item`, com linha citada no arquivo.
+
+| Badge | Bloco | Item / linha |
+| --- | --- | --- |
+| Tradutor de kW e kWh | 01 | item 1, L2497 |
+| Leitor de Fator de Carga | 01 | item 5, L2501 |
+| Aluno de Ohm | 01 | item 6, L2502 |
+| Desenhista da Cadeia | 02 | item 1, L2765 |
+| Fronteira do ONS | 02 | item 11, L2775 |
+| Os Dez Segundos | 02 | item 15, L2779 |
+| Matriz em Duas Lentes | 03 | item 1, L2467 |
+| Aferidor de Fator de Capacidade | 03 | item 2, L2468 |
+| Vacina do LCOE | 03 | item 16, L2482 |
+
+Checklists inspecionados: 16 itens no Módulo 01, 18 no 02, 18 no 03.
+
+**Procedência dupla:** `badge-guardiao-fp` é o único badge nas duas fontes
+— o limiar de 0,92 da referência é corroborado pelo checklist do Módulo 01,
+L2507 ("...por que abaixo de 0,92 pode virar cobrança").
+
+**Extração × atribuição:** nome e critério são extração literal. `category` e
+o `expReward` das entradas (B) são atribuição — o checklist não declara nem
+categoria nem pontuação; EXP fica na faixa 20/25/30 observada na referência.
+Distribuição resultante: conteudo 3, exploracao 1, dominio 9 — o checklist é
+lista de domínio, então o viés é da fonte.
+
+**Escala:** a referência mostra "12 de 31 badges". Estes 13 são os que têm
+fonte hoje; os demais entram quando os Blocos 04-17 ganharem HTML.
+
+### Honestidade do progresso
+
+- **2 conquistados de 13**, ambos do Módulo 01 — único bloco com conteúdo
+  completo no cenário. Nenhum badge (A) é conquistado: três dependem de
+  conteúdo inexistente, e `badge-guardiao-fp` aparece bloqueado na própria
+  tela de referência.
+- **`badge-lei-de-ohm` fica bloqueado com o Módulo 01 concluído.** Modelo
+  adotado: concluir a aula torna o badge *disponível*; conquistar exige a
+  ação de domínio. Sem isso, 12/29 aulas obrigaria 3 conquistas.
+- **`aulasTotal: 29` é lido de `getTrilhaByLevel(1)`**, não digitado.
+  `badgesTotal` e `badgesEarned` também são derivados — o mock não pode
+  divergir dos catálogos.
+- **`byLevel[1] = 41`** é 12/29 medido contra as aulas CONFIRMADAS, não
+  contra o Nível 1 inteiro — Módulos 04-05 têm `totalAulas: null`, então o
+  denominador real é desconhecido e este número **sobe-estima**. Níveis 2 e 3
+  em 0 significam "nada disponível", não "aluno não estudou".
+- **`bySubmercado` todo zerado, inclusive os totais.** Submercado é ensinado
+  (~40 menções na prosa dos três módulos), mas `CurriculumAula` não tem
+  nenhum registro — a Wave 2 shipou estrutura, não conteúdo. Sem inventário
+  de aula não há o que contar por submercado, e qualquer total seria
+  inventado. O widget de cobertura regional renderiza vazio até as aulas
+  existirem com `submercados` preenchido.
+- **`exp: 480` é valor de demonstração** — nenhuma fonte declara EXP por
+  aula. Decomposto no arquivo: 50 dos dois badges (valores reais do
+  catálogo) + 430 atribuídos às 12 aulas.
+- **Datas de conquista são fixas**, não relativas a "hoje".
+
+**Pontuação preservada verbatim:** critérios do Módulo 01 e da referência
+terminam em ponto, os dos Módulos 02-03 não. A diferença é da fonte — não
+"corrigir".
+
+**Gates:** `tsc --noEmit` exit 0. `gridalpha-detect` sobre os dois arquivos —
+"No findings. Surface is clean." Árvore inteira: 0 P0, 0 P1, 27 P2 — delta
+zero vs. Waves 1 e 2. Smoke test em runtime: 13 ids únicos, zero `badgeId`
+órfão, cobertura 1:1 badge↔progresso, e as seis invariantes de coerência
+(earnedAt vs status, derivações, percentual) passando.
+
+**Consumidores:** LYCEUM — os cinco slots do `RailRight`.

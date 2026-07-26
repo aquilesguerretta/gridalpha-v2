@@ -892,3 +892,82 @@ zero vs. Waves 1 e 2. Smoke test em runtime: 13 ids únicos, zero `badgeId`
 (earnedAt vs status, derivações, percentual) passando.
 
 **Consumidores:** LYCEUM — os cinco slots do `RailRight`.
+
+## LYCEUM — ALEXANDRIA WAVE 3
+
+**Status:** fechada.
+
+**Rotas** (`AlexandriaRouter`, montado em `/alexandria/*`):
+`/` hub · `/trilha/:trilhaId` caminho de expedição ·
+`/trilha/:trilhaId/modulo/:moduloId` lista de aula ·
+`/trilha/:trilhaId/modulo/:moduloId/aula/:aulaNumero` placeholder do viewer.
+
+**Arquivos:** `src/components/alexandria/navigation/` — TrilhasHub,
+TrilhaCard, CaminhoExpedicao, ModuloNode, ModuloAulaList.
+`src/pages/alexandria/` — AlexandriaRouter, AlexandriaHome.
+`src/main.tsx` — uma linha: `/alexandria` → `/alexandria/*`.
+
+**`?trilha=` fechado.** O contrato que o ARCHITECT abriu na Portal BR
+Wave 1 e deixou inerte agora é lido. O parâmetro indica TRACK — mercado
+de entrada —, não trilha exata: sugere destaque (fio terracota de 3px à
+esquerda + rótulo) e **nunca filtra**. As três trilhas ficam sempre
+visíveis. Valor inválido, ausente ou `usa` (nenhuma trilha tem esse
+track hoje — a Trilha 3 é `brasil`) cai em null e o hub não destaca nada.
+
+**Cinco estados de módulo, com os primitivos da Wave 1:**
+
+| Estado | Primitivo |
+| --- | --- |
+| concluído | `check-mark` (oliva) |
+| em andamento | `ring-track` + `ring-progress` parcial |
+| desbloqueado | `ring-track` + `dot-active` |
+| bloqueado | `lock-body` + `lock-shackle` |
+| em produção | `ring-track` tracejado, sem ponto, sem número |
+
+`em-producao` e `bloqueado` distinguem-se por **forma**, não só por cor:
+cadeado sólido fechado ("existe, não é sua vez") contra contorno
+tracejado não preenchido ("ainda não foi gravado").
+
+**Progressão:** módulo em produção NÃO tranca a fila. Não existe, então
+não pode ser pré-requisito — sem isso um módulo sem HTML congelaria a
+trilha inteira.
+
+**Contagem nunca inventada.** `ring-progress` usa `dashoffset = 1 −
+fração` (`pathLength="1"`, verificado em 0.6 para 4/10). Módulo com
+`totalAulas: null` mostra estado de produção, sem lista fake. Trilha 1
+diz "29 aulas confirmadas · 3 de 5 módulos com fonte" porque
+`totalAulasPartial` é true e o número é piso, não total.
+
+**Consumo dos primitivos:** fetch + inline com cache de módulo, nunca
+`<img>` — com `<img>` o CSS do pai não alcança o path e `currentColor`
+não resolve. Uma trilha de 7 módulos faz 2-3 fetches, não 7.
+
+### Pendências e decisões
+
+- **FOUNDRY Wave 3 não fechou.** `alexandria-progress-mock.ts` e
+  `alexandria-badges.ts` não existem. `MOCK_USER_PROGRESS`,
+  `MOCK_BADGE_PROGRESS`, `ALEXANDRIA_BADGES` e
+  `AULAS_CONCLUIDAS_POR_MODULO` estão inline em `AlexandriaRouter.tsx`,
+  tipados contra `UserProgress` / `Badge` / `UserBadgeProgress`. Quando
+  FOUNDRY entrar, o bloco sai e viram imports — os consumidores não
+  mudam, porque todos leem de um lugar só.
+- **Cobertura por submercado é painel de leitura, não filtro.** Filtrar
+  exige `submercados[]` no nível da AULA, e `CurriculumAula` não tem dado
+  real. Um controle que parece filtrar e não filtra é pior que um painel
+  honesto. Vira filtro quando a aula existir.
+- **Papel milimetrado é de LINHAS, não de pontos.** A proibição da Wave
+  2 é sobre textura de papel; o canvas segue com fibra irregular.
+- **A rota entra por fade, não por dashoffset** — `stroke-dasharray` já
+  está ocupado desenhando o tracejado, e os dois usos brigam pela mesma
+  propriedade.
+
+**Gates:** `tsc -b` — 0 erros em arquivos Alexandria (restam os erros
+pré-existentes de Recharts em `nest/student/*`, não desta wave).
+`gridalpha-detect` sobre `src/components/alexandria`,
+`src/design/alexandria-tokens.ts`, `src/pages/alexandria` — "No findings.
+Surface is clean." (13 arquivos, 0 P0/P1/P2).
+
+**Nota de gate:** `tsc --noEmit` sobre o tsconfig raiz **não** typecheca
+os arquivos da app — passou limpo com um `navigate` não declarado em
+`ModuloRoute`, que só o `tsc -b` do `npm run build` pegou. O gate real
+desta árvore é `tsc -b`.

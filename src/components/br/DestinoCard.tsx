@@ -13,7 +13,7 @@
 // interação pela página inteira. Card em breve NÃO é disabled: abre o
 // estado "em breve" em planta baixa, nunca link morto.
 
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 
@@ -152,6 +152,27 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   const [sobre, setSobre] = useState(false);
   const navigate = useNavigate();
 
+  // A planta baixa desenha AO ENTRAR EM VIEWPORT (spec §3), não no
+  // mount — quem chega rolando do hero vê o traço acontecer. Uma vez
+  // visto, fica desenhado.
+  const quadroRef = useRef<HTMLElement | null>(null);
+  const [visto, setVisto] = useState(false);
+  useEffect(() => {
+    const el = quadroRef.current;
+    if (!el || visto) return;
+    const io = new IntersectionObserver(
+      ([entrada]) => {
+        if (entrada.isIntersecting) {
+          setVisto(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visto]);
+
   const disponivel = destino.status === 'disponivel' && destino.rota !== null;
 
   const quadro: CSSProperties = {
@@ -178,7 +199,7 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
           background: disponivel ? ALEXANDRIA_PAPEL : 'transparent',
         }}
       >
-        {disponivel ? <PreviaAlexandria /> : <PlantaBaixa destinoId={destino.id} visivel />}
+        {disponivel ? <PreviaAlexandria /> : <PlantaBaixa destinoId={destino.id} visivel={visto} />}
       </div>
 
       <div
@@ -271,6 +292,9 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
     return (
       <Link
         to={rota}
+        ref={(el) => {
+          quadroRef.current = el;
+        }}
         {...eventos}
         onClick={(e) => {
           // Navegação por view transition — papel Jaguar cruza em fade
@@ -286,34 +310,72 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   }
 
   return (
-    <button type="button" {...eventos} onClick={() => onZoom?.(destino)} style={quadro}>
+    <button
+      type="button"
+      ref={(el) => {
+        quadroRef.current = el;
+      }}
+      {...eventos}
+      onClick={() => onZoom?.(destino)}
+      style={quadro}
+    >
       {corpo}
     </button>
   );
 }
 
-/** Prévia real da Alexandria — cores e conteúdo do produto vivo.
- *  Wave 2 Fase 2: bloco sólido com identidade; a prévia completa
- *  (strings do hub real) entra na Fase 3 do índice. */
+/** Prévia real da Alexandria — cores do sistema dela (literais da spec
+ *  §3) e conteúdo genuíno do hub vivo: os itens de nav do shell, o
+ *  rótulo e o título da home, e a linha de acervo. Nada ilustrativo. */
 function PreviaAlexandria(): ReactNode {
+  const mono9: CSSProperties = {
+    fontFamily: JF.mono,
+    fontSize: '8px',
+    letterSpacing: '0.20em',
+    textTransform: 'uppercase',
+  };
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div
         style={{
           background: ALEXANDRIA_TINTA,
-          padding: '8px 14px',
-          fontFamily: JF.mono,
-          fontSize: '9px',
-          letterSpacing: '0.22em',
-          textTransform: 'uppercase',
-          color: ALEXANDRIA_PAPEL,
+          padding: '7px 14px',
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: '10px',
         }}
       >
-        Alexandria
+        <span style={{ ...mono9, fontSize: '9px', color: ALEXANDRIA_PAPEL }}>Alexandria</span>
+        <span
+          style={{
+            ...mono9,
+            color: ALEXANDRIA_PAPEL,
+            opacity: 0.72,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            minWidth: 0,
+          }}
+        >
+          Biblioteca · Trilhas · Atlas · Glossário
+        </span>
       </div>
-      <div style={{ flex: 1, padding: '14px', display: 'flex', alignItems: 'flex-end' }}>
-        <span style={{ fontSize: '14px', lineHeight: 1.3, color: ALEXANDRIA_TINTA }}>
+      <div
+        style={{
+          flex: 1,
+          padding: '12px 14px',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          gap: '5px',
+        }}
+      >
+        <span style={{ ...mono9, color: ALEXANDRIA_TINTA, opacity: 0.6 }}>Fundações</span>
+        <span style={{ fontSize: '15px', lineHeight: 1.25, color: ALEXANDRIA_TINTA }}>
           Atlas vivo da energia do Brasil
+        </span>
+        <span style={{ ...mono9, letterSpacing: '0.12em', color: ALEXANDRIA_TINTA, opacity: 0.55 }}>
+          17 blocos · 3 trilhas · 106 gravuras
         </span>
       </div>
     </div>

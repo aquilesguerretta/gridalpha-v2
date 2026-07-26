@@ -976,3 +976,138 @@ Surface is clean." (13 arquivos, 0 P0/P1/P2).
 os arquivos da app — passou limpo com um `navigate` não declarado em
 `ModuloRoute`, que só o `tsc -b` do `npm run build` pegou. O gate real
 desta árvore é `tsc -b`.
+
+## ARCHITECT — PORTAL BR WAVE 2 · JAGUAR
+
+**Status:** fechada. Hero e índice de destinos vestidos com o sistema
+Jaguar (claro, tinta sobre papel). Faixa de independência, rodapé e
+itens de nav seguem ABERTOS por decisão de design — não preenchidos.
+
+**Arquivos novos:** `src/design/jaguar-tokens.ts` (literal da folha de
+tokens, incluindo a grafia `acenteOcre`) · `src/lib/geo/brasil-outline.ts`
+(gerado — paths projetados + provenance) · `public/br/brasil-outline.geojson`
+· `public/br/submercados.geojson`.
+
+**Modificados:** PortalHero (sequência de scroll), DestinoCard (dois
+estados + PlantaBaixa exportada), PortalBR (reskin + overlay em breve),
+SeletorMercado (só cor), FaixaIndependencia (→ placeholder null).
+
+### Fonte de GeoJSON — decisão central da wave
+
+- **Contorno:** IBGE, API de malhas territoriais v3, `qualidade=minima`,
+  capturado 2026-07-26. Payload integral em `public/br/brasil-outline.geojson`
+  com provenance; nenhum vértice alterado.
+- **Submercados:** o ONS NÃO publica fronteira geográfica de submercado
+  no portal de dados abertos (único match de busca é dataset tabular de
+  programação diária; o servidor SIG não respondeu). Caminho adotado sem
+  geometria inventada: malha por UF do IBGE (`intrarregiao=UF`) dissolvida
+  por `turf.union` segundo a classificação oficial CCEE/ONS — SE/CO inclui
+  AC e RO (subsistema Acre-Rondônia); DF entra pelo recorte Centro-Oeste.
+  **RR não pertence a submercado nenhum** na definição CCEE documentada e
+  fica no contorno sem preenchimento. Se a integração pós-Linhão de
+  Tucuruí mudar isso, é mudança de uma linha no conversor (cod 14 →
+  norte) — pendência de verificação com fonte primária.
+- Conversão Web Mercator em build-time (turf só no scratchpad, nada de
+  dependência nova no repo). Regeneração documentada no header do
+  arquivo gerado.
+
+### Polígono real × círculo-marcador — decidido no render
+
+Polígono real venceu. As quatro regiões são legíveis, RR aparece como
+lacuna honesta, e AC/RO dentro do SE/CO educa em vez de confundir.
+Correção pós-verificação: mesma tinta na mesma opacidade fundia os
+quatro submercados numa mancha única — resolvido com opacidade
+escalonada por região (0.34/0.18/0.26/0.12) + fio interno hairline nas
+fronteiras dissolvidas. O tracinho a leste do rótulo SE-CO é anel
+interno real do contorno IBGE, não artefato — dado real fica.
+
+### Hero
+
+Palco sticky sobre pista de 280vh dentro do `<main>` que rola (o
+documento não rola — idioma AlexandriaShell). Janelas: contorno 0-25%,
+regiões 20-50% escalonadas, intercâmbios 45-75%, número 70-100%.
+Conectores entre centroides são ESQUEMÁTICOS (diagrama de intercâmbio
+S↔SE/CO, SE/CO↔NE, SE/CO↔N, N↔NE), não traçado físico de linha — a
+regra de geometria real cobre contorno e fronteira; isso está declarado
+em comentário. Número é MOCK (138,72) marcado "valor ilustrativo" em
+texto visível. `prefers-reduced-motion` colapsa a pista e nasce no
+estado final.
+
+### Clique-zoom e o Terminal Brasil que não existe
+
+View Transitions API nativa com checagem de suporte (`'startViewTransition'
+in document`) + `flushSync`; sem GSAP. Sem suporte, o DOM atualiza sem
+animação. Como o Terminal Brasil não existe e `main.tsx` está fora da
+posse desta wave, clique em região (e em card em breve) abre um estado
+"em breve" NA PRÓPRIA PÁGINA — painel `role="dialog"` com a planta
+baixa do destino; região vem identificada ("abrirá contextualizado por
+esta região"). **Inferência do implementador**, não especificação: quando
+o Terminal Brasil abrir, o overlay vira navegação real para
+`/terminal-brasil?regiao=<sigla>`. ESC, backdrop e ✕ fecham.
+
+### Índice de destinos
+
+Cinco cards de mesma moldura (grade uniforme — o peso igual é da spec;
+a hierarquia mora dentro do card). Alexandria: prévia com cores literais
+da spec §3 (`#F2E9D6`/`#0D2340` hardcoded — importar alexandria-tokens
+segue proibido) e conteúdo genuíno do hub. Em breve: planta baixa por
+destino em traço ocre, `pathLength=1` + dashoffset, desenhando ao entrar
+em viewport (IntersectionObserver, uma vez). Verificado ponta a ponta:
+card Alexandria navega com view transition e o hub monta com "sugerida
+pelo seu portal" na Trilha 2 — o `?trilha=` da LYCEUM Wave 3 reagindo.
+
+### Pendentes confirmados intocados
+
+- `FaixaIndependencia.tsx` rende **null** — a copy de negação da Wave 1
+  (que estava commitada e no ar) foi removida porque a spec §4 a declara
+  rejeitada. Nenhuma copy nova inventada.
+- Rodapé mínimo (marca + ano) com TODO — esboço papelSunken/citação de
+  fontes volta à mesa junto com a faixa.
+- Itens de nav: só o seletor Brasil/EUA, recolorido. Nenhum item criado.
+
+### Divergência doc 39 × doc 40
+
+A spec de página declara o padrão disponível/em-breve confirmado por
+protótipo; a folha de tokens o lista como aberto. O brief da wave travou
+a versão da spec (§3) e foi a implementada. Nota: a §1 da spec diz
+"Alexandria + 3 em breve", mas a §3 lista 4 em breve e "cinco cards" —
+seguido o detalhe da §3, que bate com o catálogo (5 destinos).
+
+### Notas técnicas
+
+- `@font-face` de Geist Sans injetado pelo PortalBR — o arquivo
+  `Geist-Variable.woff2` já existia órfão em `public/fonts`; index.html
+  segue fora da posse. `JF.sans` cai para Inter se a fonte falhar.
+- `startViewTransition` com aba oculta/ocluída adia o callback (rAF
+  throttled) — irrelevante para usuário com aba visível; descoberto
+  porque a verificação roda em janela de automação.
+- Gate real de tipo é `tsc -b` (nota da LYCEUM Wave 3 confirmada);
+  restam só os erros pré-existentes de Recharts em `nest/student/*`.
+
+### Revisão adversarial pós-implementação
+
+Workflow de 14 agentes (4 dimensões → refutação por achado): 10 achados
+brutos, 9 confirmados, todos corrigidos no commit `review fixes`:
+scroller `<main>` focável (teclado puro não rolava nada — documento
+travado), gestão de foco do diálogo (entra/prende/restaura — ciclo
+verificado no browser), `comTransicao` pula VT sob reduced-motion (o
+kill-switch CSS desmonta junto com a página na navegação), seletor
+reduced-motion cobre `-old`/`-group` do painel, clique modificado
+devolvido ao browser, `<article>`+botão esticado no card em breve
+(h3 dentro de button achatava a navegação por cabeçalho), contraste:
+tintaMuted 10px → tintaSecundaria e ocre-como-texto → badge
+`acenteOcreWash`+fio. O único refutado: a copy rejeitada só existia em
+COMENTÁRIO da FaixaIndependencia — parafraseado mesmo assim.
+
+**Pendência de token para a wave visual:** o ocre #C17D1F não passa AA
+como texto pequeno sobre os papéis (2,9–3,1:1). Se o design quiser
+rótulo ocre, precisa de um tom escuro dedicado (ex.: ~#8A5A16 ≈ 5,4:1)
+na folha de tokens — decisão de design, não tomada aqui.
+
+**Gates:** `tsc -b` — 0 erros em arquivos da wave. `gridalpha-detect`
+sobre `src/pages/br`, `src/components/br`, `src/design/jaguar-tokens.ts`,
+`src/lib/geo` — "No findings. Surface is clean." Verificado em 1440x900
+e 1920x1080: sequência de scroll nos cinco pontos-chave, overlay de
+região, dois estados do índice, caminho card → Alexandria com trilha
+destacada, ciclo de foco do diálogo, zero erro de console, zero
+overflow horizontal.

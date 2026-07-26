@@ -23,6 +23,7 @@ import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { TrilhasHub } from '@/components/alexandria/navigation/TrilhasHub';
 import { CaminhoExpedicao } from '@/components/alexandria/navigation/CaminhoExpedicao';
+import { ModuloAulaList } from '@/components/alexandria/navigation/ModuloAulaList';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 import type {
   Badge,
@@ -217,6 +218,7 @@ export function AlexandriaRouter({ trackDeEntrada }: AlexandriaRouterProps) {
       <Route index element={<HubRoute trilhaSugeridaId={sugerida} />} />
       <Route path="trilha/:trilhaId" element={<TrilhaRoute />} />
       <Route path="trilha/:trilhaId/modulo/:moduloId" element={<ModuloRoute />} />
+      <Route path="trilha/:trilhaId/modulo/:moduloId/aula/:aulaNumero" element={<AulaRoute />} />
       <Route path="*" element={<HubRoute trilhaSugeridaId={sugerida} />} />
     </Routes>
   );
@@ -297,10 +299,76 @@ function ModuloRoute() {
         referencias: <SlotReferencias />,
       }}
     >
-      {/* Fase 5 substitui por ModuloAulaList. */}
-      <span style={{ ...AT.dado, color: A.tintaSuave }}>
-        {item.modulo.title} · {item.estado}
-      </span>
+      <ModuloAulaList
+        item={item}
+        trilha={trilha}
+        onAbrirAula={(numero) =>
+          navigate(`/alexandria/trilha/${trilha.id}/modulo/${modulo.id}/aula/${numero}`)
+        }
+      />
+    </AlexandriaShell>
+  );
+}
+
+/** Placeholder do viewer de aula — a wave seguinte constrói de verdade.
+ *  Existe para que o clique numa aula tenha destino real em vez de
+ *  cair no catch-all e voltar pro hub sem explicação. */
+function AulaRoute() {
+  const { trilhaId, moduloId, aulaNumero } = useParams();
+  const trilha = trilhaId ? getTrilhaById(trilhaId) : null;
+  const modulo = moduloId ? getModuleById(moduloId) : null;
+
+  if (!trilha || !modulo || modulo.trilhaId !== trilha.id) {
+    return <NaoEncontrado titulo="Aula não encontrada" />;
+  }
+
+  const numero = Number(aulaNumero);
+  const total = modulo.totalAulas;
+  if (!Number.isInteger(numero) || numero < 1 || total === null || numero > total) {
+    return <NaoEncontrado titulo="Aula não encontrada" />;
+  }
+
+  const itens = estadosDaTrilha(getModulesByTrilha(trilha.id));
+
+  return (
+    <AlexandriaShell
+      showLeftRail={trilha.track === 'brasil'}
+      leftRailContent={<CoberturaSubmercado />}
+      rightRailSlots={{
+        progresso: <SlotProgresso nivel={trilha.level} />,
+        listaAulas: <SlotModulos itens={itens} />,
+        proximaAula: <SlotProxima itens={itens} />,
+        conquistas: <SlotConquistas />,
+        referencias: <SlotReferencias />,
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: AS.lg }}>
+        <Voltar
+          rotulo={`← ${modulo.title}`}
+          para={`/alexandria/trilha/${trilha.id}/modulo/${modulo.id}`}
+        />
+        <span style={{ ...AT.rotulo, color: A.terracota }}>
+          Aula {numero} de {total}
+        </span>
+        <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>{modulo.title}</h1>
+        <div
+          style={{
+            borderLeft: `3px solid ${A.fioSobreCreme}`,
+            padding: `${AS.md} ${AS.xl}`,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: AS.sm,
+          }}
+        >
+          <span style={{ ...AT.h3, color: A.tintaSuave, letterSpacing: '0.08em' }}>
+            Viewer de aula — wave seguinte
+          </span>
+          <span style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave, maxWidth: '58ch' }}>
+            A rota existe e a numeração é real. O player de vídeo, a apostila e
+            os instrumentos entram quando o viewer for construído.
+          </span>
+        </div>
+      </div>
     </AlexandriaShell>
   );
 }

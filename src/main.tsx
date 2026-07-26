@@ -41,7 +41,7 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/vault/alexandria/entry/:entrySlug" element={<GlobalShell initialView="vault" />} />
         <Route path="/vault/:id" element={<GlobalShell initialView="vault" />} />
 
-        <Route path="/alexandria" element={<AlexandriaHome />} />
+        <Route path="/alexandria/*" element={<AlexandriaHome />} />
 
         {/* Portais de mercado. Mercado é segmento de URL, não estado em
             store: link compartilhável, bookmark funciona, sem hidratação.

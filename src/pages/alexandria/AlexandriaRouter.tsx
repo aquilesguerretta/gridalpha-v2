@@ -277,6 +277,7 @@ function TrilhaRoute() {
 
 function ModuloRoute() {
   const { trilhaId, moduloId } = useParams();
+  const navigate = useNavigate();
   const trilha = trilhaId ? getTrilhaById(trilhaId) : null;
   const modulo = moduloId ? getModuleById(moduloId) : null;
 

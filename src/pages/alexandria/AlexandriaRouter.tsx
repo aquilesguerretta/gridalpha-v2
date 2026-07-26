@@ -4,20 +4,16 @@
 //   /alexandria/trilha/:trilhaId                  → caminho de expedição
 //   /alexandria/trilha/:trilhaId/modulo/:moduloId → lista de aula
 //
-// ─────────────────────────────────────────────────────────────
-// DADO INLINE — PENDÊNCIA DE FRONTEIRA
+// Progresso e insígnias vêm da FOUNDRY Wave 3, que fechou durante esta
+// wave. O dado inline que existia aqui antes foi removido — ele
+// divergia em dois pontos, e a FOUNDRY estava certa nos dois:
 //
-// FOUNDRY Wave 3 não fechou: `src/lib/data/alexandria-progress-mock.ts`
-// e `alexandria-badges.ts` não existem, e `MOCK_USER_PROGRESS` /
-// `ALEXANDRIA_BADGES` não aparecem em lugar nenhum de `src/lib/`.
-//
-// O brief autoriza dado inline estruturalmente idêntico ao tipo. É o que
-// está abaixo: tipado contra `UserProgress`, `Badge` e `UserBadgeProgress`
-// de `src/lib/types/alexandria.ts`, sem nenhum campo inventado.
-//
-// Quando FOUNDRY Wave 3 entrar, este bloco sai inteiro e viram imports.
-// Os consumidores não mudam — todos leem daqui, não de literais espalhados.
-// ─────────────────────────────────────────────────────────────
+//   1. aulasCompleted era 13; o correto é 12 (Módulo 01 inteiro = 9,
+//      mais 3 das 10 do Módulo 02).
+//   2. bySubmercado tinha totais inventados (2/6 e 1/4). A FOUNDRY zera
+//      todos os quatro totais, e o motivo é o mesmo princípio desta
+//      wave: `CurriculumAula` não tem registro nenhum, então não existe
+//      aula para contar por submercado e qualquer total seria invenção.
 
 import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
@@ -26,13 +22,10 @@ import { CaminhoExpedicao } from '@/components/alexandria/navigation/CaminhoExpe
 import { ModuloAulaList } from '@/components/alexandria/navigation/ModuloAulaList';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 import type {
-  Badge,
   CurriculumLevel,
   CurriculumModule,
   CurriculumTrack,
   SubmercadoTag,
-  UserBadgeProgress,
-  UserProgress,
 } from '@/lib/types/alexandria';
 import {
   ALEXANDRIA_TRILHAS,
@@ -40,102 +33,38 @@ import {
   getModulesByTrilha,
   getTrilhaById,
 } from '@/lib/data/alexandria-trilhas';
+import { ALEXANDRIA_BADGES } from '@/lib/data/alexandria-badges';
+import { MOCK_BADGE_PROGRESS, MOCK_USER_PROGRESS } from '@/lib/data/alexandria-progress-mock';
 
-// ── Aulas concluídas por módulo ──────────────────────────────
-// Só módulos com `totalAulas` conhecido podem ter progresso: não existe
-// "3 de null". Módulo 01 fechado, 02 em curso, 03 intocado.
+export { MOCK_USER_PROGRESS };
+
+/** Repartição por módulo das `aulasCompleted` da FOUNDRY.
+ *
+ *  `MOCK_USER_PROGRESS.aulasCompleted` é 12 e o próprio arquivo declara a
+ *  decomposição: "Módulo 01 inteiro (9 aulas) + 3 das 10 do Módulo 02".
+ *  O contrato `UserProgress` é agregado e não carrega essa repartição,
+ *  mas o estado de nó precisa dela. Reproduzo a decomposição declarada e
+ *  travo a soma contra o agregado logo abaixo, para os dois não
+ *  divergirem em silêncio se a FOUNDRY mudar o número.
+ *
+ *  Só módulo com `totalAulas` conhecido pode aparecer aqui: não existe
+ *  "3 de null". */
 export const AULAS_CONCLUIDAS_POR_MODULO: Record<string, number> = {
   'modulo-01': 9,
-  'modulo-02': 4,
+  'modulo-02': 3,
   'modulo-03': 0,
 };
 
-/** Aulas confirmadas por nível — soma só o que tem fonte.
- *  Nível 1 = 9 + 10 + 10 = 29 em 3 dos 5 módulos. Níveis 2 e 3 não têm
- *  nenhum módulo com fonte, então o denominador é desconhecido, não zero. */
-const AULAS_CONHECIDAS_POR_NIVEL: Record<CurriculumLevel, number | null> = {
-  1: 29,
-  2: null,
-  3: null,
-};
-
-function percentualDoNivel(level: CurriculumLevel): number {
-  const total = AULAS_CONHECIDAS_POR_NIVEL[level];
-  if (total === null || total === 0) return 0;
-  const trilha = ALEXANDRIA_TRILHAS.find((t) => t.level === level);
-  if (!trilha) return 0;
-  const feitas = trilha.moduleIds.reduce(
-    (soma, id) => soma + (AULAS_CONCLUIDAS_POR_MODULO[id] ?? 0),
-    0,
-  );
-  return Math.round((feitas / total) * 100);
+if (import.meta.env.DEV) {
+  const soma = Object.values(AULAS_CONCLUIDAS_POR_MODULO).reduce((a, b) => a + b, 0);
+  if (soma !== MOCK_USER_PROGRESS.aulasCompleted) {
+    console.warn(
+      `[alexandria] AULAS_CONCLUIDAS_POR_MODULO soma ${soma} mas ` +
+        `MOCK_USER_PROGRESS.aulasCompleted é ${MOCK_USER_PROGRESS.aulasCompleted}. ` +
+        'A repartição por módulo saiu de sincronia com o agregado da FOUNDRY.',
+    );
+  }
 }
-
-const AULAS_FEITAS = Object.values(AULAS_CONCLUIDAS_POR_MODULO).reduce((a, b) => a + b, 0);
-
-export const ALEXANDRIA_BADGES: Badge[] = [
-  {
-    id: 'badge-primeiro-circuito',
-    name: 'Primeiro circuito',
-    criterion: 'Concluir as 9 aulas do Módulo 01 — Física de Energia e Eletricidade',
-    category: 'conteudo',
-    expReward: 120,
-    iconAsset: null,
-  },
-  {
-    id: 'badge-leitor-de-rede',
-    name: 'Leitor de rede',
-    criterion: 'Concluir as 10 aulas do Módulo 02 — Como Funciona uma Rede Elétrica',
-    category: 'conteudo',
-    expReward: 140,
-    iconAsset: null,
-  },
-  {
-    id: 'badge-cartografo',
-    name: 'Cartógrafo',
-    criterion: 'Abrir ao menos uma aula em cada um dos quatro submercados do SIN',
-    category: 'exploracao',
-    expReward: 80,
-    iconAsset: null,
-  },
-  {
-    id: 'badge-fator-de-potencia',
-    name: 'Fator de potência',
-    criterion: 'Atingir 0,92 de FP médio em simulação tarifária',
-    category: 'dominio',
-    expReward: 200,
-    iconAsset: null,
-  },
-];
-
-export const MOCK_BADGE_PROGRESS: UserBadgeProgress[] = [
-  { badgeId: 'badge-primeiro-circuito', status: 'conquistado', earnedAt: '2026-07-14' },
-  { badgeId: 'badge-leitor-de-rede', status: 'bloqueado', earnedAt: null },
-  { badgeId: 'badge-cartografo', status: 'bloqueado', earnedAt: null },
-  { badgeId: 'badge-fator-de-potencia', status: 'bloqueado', earnedAt: null },
-];
-
-export const MOCK_USER_PROGRESS: UserProgress = {
-  aulasCompleted: AULAS_FEITAS,
-  // Piso confirmado, não total do currículo: 14 dos 17 módulos não têm
-  // fonte de contagem. O rótulo na UI diz "confirmadas", nunca "total".
-  aulasTotal: 29,
-  exp: 120,
-  badgesEarned: MOCK_BADGE_PROGRESS.filter((b) => b.status === 'conquistado').length,
-  badgesTotal: ALEXANDRIA_BADGES.length,
-  byLevel: {
-    1: percentualDoNivel(1),
-    2: percentualDoNivel(2),
-    3: percentualDoNivel(3),
-  },
-  bySubmercado: {
-    norte: { completed: 0, total: 0 },
-    nordeste: { completed: 0, total: 0 },
-    'sudeste-centro-oeste': { completed: 2, total: 6 },
-    sul: { completed: 1, total: 4 },
-  },
-  studyStreakDays: 6,
-};
 
 // ── Estado de módulo ─────────────────────────────────────────
 //
@@ -577,12 +506,36 @@ function SlotProxima({ itens }: { itens: ModuloComEstado[] }) {
   );
 }
 
+/** O catálogo da FOUNDRY tem 13 insígnias — listar todas com critério
+ *  transformaria o rail num paredão. Mostra as conquistadas primeiro, corta
+ *  em 4, e diz quantas restam. */
+const LIMITE_CONQUISTAS = 4;
+
 function SlotConquistas() {
+  const conquistadoDe = (id: string) =>
+    MOCK_BADGE_PROGRESS.find((p) => p.badgeId === id)?.status === 'conquistado';
+
+  const ordenadas = [...ALEXANDRIA_BADGES].sort(
+    (a, b) => Number(conquistadoDe(b.id)) - Number(conquistadoDe(a.id)),
+  );
+  const visiveis = ordenadas.slice(0, LIMITE_CONQUISTAS);
+  const restantes = ordenadas.length - visiveis.length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {ALEXANDRIA_BADGES.map((badge, i) => {
-        const prog = MOCK_BADGE_PROGRESS.find((p) => p.badgeId === badge.id);
-        const conquistado = prog?.status === 'conquistado';
+      <span
+        style={{
+          ...AT.dado,
+          fontSize: '11px',
+          color: A2.tintaMetadadoNavy,
+          paddingBottom: AS.sm,
+        }}
+      >
+        {MOCK_USER_PROGRESS.badgesEarned} de {MOCK_USER_PROGRESS.badgesTotal} conquistadas
+      </span>
+
+      {visiveis.map((badge, i) => {
+        const conquistado = conquistadoDe(badge.id);
         return (
           <div
             key={badge.id}
@@ -616,6 +569,21 @@ function SlotConquistas() {
           </div>
         );
       })}
+
+      {restantes > 0 && (
+        <span
+          style={{
+            ...AT.dado,
+            fontSize: '11px',
+            fontStyle: 'italic',
+            color: A2.tintaMetadadoNavy,
+            paddingTop: AS.sm,
+            borderTop: `1px solid ${A.fioSobreNavy}`,
+          }}
+        >
+          + {restantes} no catálogo
+        </span>
+      )}
     </div>
   );
 }

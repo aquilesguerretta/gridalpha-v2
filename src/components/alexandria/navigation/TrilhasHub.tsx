@@ -77,7 +77,10 @@ export function TrilhasHub({ trilhaSugeridaId }: TrilhasHubProps) {
               totalModulos={modulos.length}
               percentual={MOCK_USER_PROGRESS.byLevel[trilha.level]}
               sugerida={trilha.id === trilhaSugeridaId}
-              onAbrir={() => navigate(`trilha/${trilha.id}`)}
+              // Caminho absoluto, não relativo: o shell monta sob a splat
+              // route `/alexandria/*`, e o React Router avisa que a
+              // resolução relativa dentro de splat muda na v7.
+              onAbrir={() => navigate(`/alexandria/trilha/${trilha.id}`)}
             />
           );
         })}

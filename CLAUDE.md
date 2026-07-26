@@ -701,3 +701,100 @@ landing page de SaaS.
 **Herdado, não resolvido:** `AlexandriaHome` ainda não lê `?trilha=`.
 O parâmetro chega correto na URL e fica inerte até LYCEUM consumir —
 contrato à frente da implementação, de propósito.
+
+## FOUNDRY — ALEXANDRIA WAVE 2
+
+**Status:** fechada.
+
+**Arquivos:**
+- `src/lib/types/alexandria.ts` (283 linhas) — acrescenta `InstrumentKind`,
+  `InstrumentField`, `InstrumentOutput`, `Instrument`; campo `instruments`
+  em `CurriculumAula`; campo `totalAulas` em `CurriculumModule`;
+  `totalAulas` nullable + `totalAulasPartial` em `CurriculumTrilha`.
+- `src/lib/data/alexandria-trilhas.ts` (153 linhas, NOVO) —
+  `ALEXANDRIA_TRILHAS` (3), `ALEXANDRIA_MODULES` (17), 4 helpers.
+- `src/lib/data/alexandria-blocks.ts` — **não modificado**, só lido.
+
+### Contagem real de aula, extraída dos HTML
+
+Três sinais independentes, todos concordando. `.aula` é classe
+compartilhada — aparato (filosofia, mapa, caso, quiz, glossário,
+checklist) usa a mesma classe que aula real, então a contagem bruta
+superestima.
+
+| Módulo | Bloco | `.aula` bruto | `Aula NN` | `§` aparato | Hero | Instrumentos |
+| --- | --- | --- | --- | --- | --- | --- |
+| 01 Física de Energia | `bloco-01` | 19 | **9** | 10 | "Nove aulas" | 7 |
+| 02 Rede Elétrica | `bloco-02` | 20 | **10** | 10 | "Dez aulas" | 9 |
+| 03 Tecnologias de Geração | `bloco-03` | 20 | **10** | 10 | "Dez aulas" | 9 |
+
+**Blocos 04-17 ficam `totalAulas: null`** — não têm HTML, e estimar
+seria inventar. Trilha 1 fecha com 29 aulas confirmadas em 3 de 5
+módulos (`totalAulasPartial: true`); trilhas 2 e 3 ficam
+`totalAulas: null`, porque nenhum dos seus 12 módulos tem fonte.
+
+### Procedência dos títulos de trilha
+
+O `GridAlpha_Curriculo_Definitivo.docx` **não está no repositório**.
+Todas as seis menções a "Nível" nos três HTML são ao Nível 1.
+
+- **Nível 1 — literal confirmado.** `Nível 1 — Fundamentos Universais`
+  no rodapé dos Módulos 02 e 03; `Nível 1 · Fundamentos Universais ·
+  Módulo NN` no hero dos três.
+- **Nível 2 — não confirmado.** Herdado do brief.
+- **Nível 3 — não confirmado.** O brief o declara literal, mas não há
+  ocorrência em fonte disponível. Mesmo estado do Nível 2, apesar de o
+  brief tratar os dois como casos diferentes.
+
+Reconfirmar 2 e 3 quando a fonte primária entrar no repo.
+
+### Instrumento como dado — três generalizações sobre o brief
+
+Os 25 instrumentos dos três módulos provaram que o contrato do brief,
+derivado só do Módulo 01, não expressa a maioria deles. Cada mudança é
+superconjunto estrito do que o brief especifica; nenhuma inventa
+categoria que a fonte não mostre.
+
+1. **`InstrumentKind` de 3 → 9 membros.** Os três do brief cobrem os 7
+   instrumentos do Módulo 01. Os Módulos 02-03 acrescentam seis
+   prefixos. Frequência no currículo: calculadora 8, simulador 8,
+   comparador 2, explorador 2, controles 1, laboratorio 1,
+   cadeia-de-transformacao 1, dimensionador 1, quebra-cabeca 1.
+2. **`outputs: InstrumentOutput[]`** no lugar de `outputLabel` +
+   `outputUnit`. Só ~7 dos 25 têm saída única (`.instrument-output`);
+   19 têm saída múltipla (`.sim-readouts` com 4 readouts,
+   `.case-data-grid` com 6 células). `Controles · Triângulo de
+   potência`, do próprio Módulo 01, tem zero saídas — desenha diagrama.
+3. **`formula: string | null`.** `Explorador · Camadas da rede` é
+   consulta pura, sem fórmula a exibir.
+
+**Não precisou de extensão:** as pills de preset (`.pill-row`, 4
+ocorrências) são select de escolha única renderizado como botões —
+mapeiam em `kind: 'select'` + `options`. O `.verdict` (15 ocorrências)
+é saída qualitativa — vira `InstrumentOutput` com `unit: null`.
+
+### Outros desvios do brief
+
+- **`CurriculumTrilha.totalAulas` virou `number | null` + flag
+  `totalAulasPartial`.** O brief prescreve somar os conhecidos e deixar
+  `0` nas trilhas sem fonte. `0` renderiza como "0 aulas" para o aluno,
+  que é afirmação falsa; `null` é o idioma que a Wave 1 já usa para
+  "fonte não declara" (`estimatedHoursMin`). A flag torna a parcialidade
+  legível por máquina em vez de só por comentário.
+- **`CurriculumModule.totalAulas` é campo novo** — a Wave 1 não o tinha,
+  e o brief da Wave 2 depende dele.
+- **Módulos são derivados de `ALEXANDRIA_BLOCKS`, não escritos à mão.**
+  Título de módulo vem do bloco, então nunca diverge. Só as três
+  contagens de aula são dado digitado.
+- **4 helpers** em vez de nenhum — mesma convenção dos 3 de
+  `alexandria-blocks.ts`.
+
+**Pendente para LYCEUM:** os 25 instrumentos estão tipados mas não
+populados. `CurriculumAula` também segue sem dado real — a Wave 2 ship
+estrutura e contagem, não conteúdo.
+
+**Gates:** `tsc --noEmit` exit 0. `gridalpha-detect` sobre os três
+arquivos — "No findings. Surface is clean." Árvore inteira: 0 P0, 0 P1,
+27 P2 — idêntico ao fechamento da Wave 1, delta zero.
+
+**Consumidores:** LYCEUM (todas as waves).

@@ -2,12 +2,13 @@
 //
 // TODO: aguardando copy revisada.
 //
-// A versão da Wave 1 renderizava as quatro declarações de negação
-// ("não vendemos energia, não temos comercializadora, não recebemos
-// comissão") vindas do brief original. Essa redação foi REVISADA E
-// REJEITADA na revisão de design (spec da página, §4): a seção não
-// pode ser inteira baseada em negação — precisa virar afirmação
-// positiva do que a GridAlpha FAZ, e essa copy ainda não foi escrita.
+// A versão da Wave 1 renderizava quatro declarações de negação vindas
+// do brief original (a lista do que a GridAlpha não faz nem recebe).
+// Essa redação foi REVISADA E REJEITADA na revisão de design (spec da
+// página, §4): a seção não pode ser inteira baseada em negação —
+// precisa virar afirmação positiva do que a GridAlpha FAZ, e essa
+// copy ainda não foi escrita. A frase rejeitada não sobrevive aqui nem
+// como citação, para não voltar por copy-paste.
 //
 // Até ela existir, o componente rende null de propósito. Adivinhar a
 // copy de boa-fé recriaria exatamente a versão que já morreu — spec §5.

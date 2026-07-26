@@ -29,9 +29,13 @@ const ALEXANDRIA_TINTA = '#0D2340';
 
 /** startViewTransition com checagem de suporte — mesma técnica do
  *  PortalBR; duplicado aqui de propósito (componente não importa de
- *  página). flushSync para o snapshot novo capturar o DOM atualizado. */
+ *  página). flushSync para o snapshot novo capturar o DOM atualizado.
+ *  Reduced-motion pula a transição por inteiro: o kill-switch CSS do
+ *  PortalBR desmonta junto com a página na navegação, então confiar
+ *  nele deixaria o crossfade default do UA animar mesmo assim. */
 function comTransicao(mudanca: () => void) {
-  if ('startViewTransition' in document) {
+  const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduzido && 'startViewTransition' in document) {
     document.startViewTransition(() => {
       flushSync(mudanca);
     });
@@ -263,13 +267,21 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
               </span>
             </>
           ) : (
+            // Badge com acenteOcreWash — o uso que a folha de tokens
+            // prescreve para o wash. Ocre puro como TEXTO de 10px fica
+            // em ~3:1 sobre os papéis e falha AA; a tinta cheia sobre o
+            // wash passa com folga e o ocre segue presente no fio.
             <span
               style={{
                 fontFamily: JF.mono,
                 fontSize: '10px',
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
-                color: J.acenteOcre,
+                color: J.tintaPrimaria,
+                background: J.acenteOcreWash,
+                border: `1px solid ${J.bordaAcento}`,
+                borderRadius: 0,
+                padding: '3px 8px',
               }}
             >
               Em breve
@@ -297,8 +309,11 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
         }}
         {...eventos}
         onClick={(e) => {
-          // Navegação por view transition — papel Jaguar cruza em fade
-          // para o papel Alexandria, a razão de o portal ser claro.
+          // Clique modificado (Ctrl/Cmd/Shift/Alt, botão do meio) fica
+          // com o browser — nova aba/janela. Só o clique simples entra
+          // na view transition: papel Jaguar cruza em fade para o papel
+          // Alexandria, a razão de o portal ser claro.
+          if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
           e.preventDefault();
           comTransicao(() => navigate(rota));
         }}
@@ -309,18 +324,38 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
     );
   }
 
+  // Card em breve: <article> com botão esticado por cima, NÃO <button>
+  // envolvendo o corpo — botão só aceita phrasing content, e o <h3> lá
+  // dentro seria achatado da árvore de acessibilidade (navegação por
+  // cabeçalho de leitor de tela perderia 4 dos 5 destinos).
   return (
-    <button
-      type="button"
+    <article
       ref={(el) => {
         quadroRef.current = el;
       }}
-      {...eventos}
-      onClick={() => onZoom?.(destino)}
-      style={quadro}
+      onMouseEnter={eventos.onMouseEnter}
+      onMouseLeave={eventos.onMouseLeave}
+      style={{ ...quadro, position: 'relative' }}
     >
       {corpo}
-    </button>
+      <button
+        type="button"
+        aria-label={`${destino.titulo} — em breve; ver a planta do destino`}
+        onFocus={eventos.onFocus}
+        onBlur={eventos.onBlur}
+        onClick={() => onZoom?.(destino)}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'transparent',
+          border: 'none',
+          borderRadius: 0,
+          padding: 0,
+          cursor: 'pointer',
+          outlineColor: J.acenteOcre,
+        }}
+      />
+    </article>
   );
 }
 

@@ -46,7 +46,9 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
     fontSize: '10px',
     letterSpacing: '0.18em',
     textTransform: 'uppercase',
-    color: J.tintaMuted,
+    // tintaSecundaria, não tintaMuted: 10px em tintaMuted fica em
+    // 2,2:1 sobre papelBase — abaixo de AA.
+    color: J.tintaSecundaria,
   };
 
   return (

@@ -47,9 +47,11 @@ interface ZoomEmBreve {
 }
 
 /** startViewTransition com checagem de suporte. flushSync dentro do
- *  callback para o snapshot "novo" capturar o DOM já atualizado. */
+ *  callback para o snapshot "novo" capturar o DOM já atualizado.
+ *  Reduced-motion pula a transição — regra do projeto: estado final. */
 function comTransicao(mudanca: () => void) {
-  if ('startViewTransition' in document) {
+  const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduzido && 'startViewTransition' in document) {
     document.startViewTransition(() => {
       flushSync(mudanca);
     });
@@ -60,15 +62,20 @@ function comTransicao(mudanca: () => void) {
 
 export function PortalBR() {
   const mainRef = useRef<HTMLElement>(null);
+  const painelRef = useRef<HTMLDivElement>(null);
+  // Quem tinha o foco quando o overlay abriu — restaurado no fechamento.
+  const retornoFocoRef = useRef<HTMLElement | null>(null);
   const [zoom, setZoom] = useState<ZoomEmBreve | null>(null);
 
   const abrirRegiao = useCallback((regiao: SubmercadoPath) => {
+    retornoFocoRef.current = document.activeElement as HTMLElement | null;
     comTransicao(() =>
       setZoom({ titulo: 'Terminal Brasil', destinoId: 'terminal-brasil', regiao }),
     );
   }, []);
 
   const abrirDestino = useCallback((destino: DestinoBR) => {
+    retornoFocoRef.current = document.activeElement as HTMLElement | null;
     comTransicao(() => setZoom({ titulo: destino.titulo, destinoId: destino.id }));
   }, []);
 
@@ -76,10 +83,45 @@ export function PortalBR() {
     comTransicao(() => setZoom(null));
   }, []);
 
+  // Gestão de foco do diálogo: entra no painel ao abrir, volta para o
+  // elemento de origem ao fechar. Sem isso o foco fica atrás do
+  // aria-modal e leitor de tela continua lendo a página coberta.
+  useEffect(() => {
+    if (zoom) {
+      painelRef.current?.focus();
+      return;
+    }
+    if (retornoFocoRef.current) {
+      retornoFocoRef.current.focus();
+      retornoFocoRef.current = null;
+    }
+  }, [zoom]);
+
   useEffect(() => {
     if (!zoom) return;
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') fechar();
+      if (e.key === 'Escape') {
+        fechar();
+        return;
+      }
+      // Trap de Tab — o foco circula dentro do painel enquanto o
+      // diálogo está aberto.
+      if (e.key === 'Tab' && painelRef.current) {
+        const focaveis = painelRef.current.querySelectorAll<HTMLElement>(
+          'button, a[href], [tabindex]:not([tabindex="-1"])',
+        );
+        if (focaveis.length === 0) return;
+        const primeiro = focaveis[0];
+        const ultimo = focaveis[focaveis.length - 1];
+        const ativo = document.activeElement;
+        if (e.shiftKey && (ativo === primeiro || ativo === painelRef.current)) {
+          e.preventDefault();
+          ultimo.focus();
+        } else if (!e.shiftKey && ativo === ultimo) {
+          e.preventDefault();
+          primeiro.focus();
+        }
+      }
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
@@ -133,6 +175,8 @@ export function PortalBR() {
             stroke-dashoffset: 0 !important;
           }
           ::view-transition-old(root), ::view-transition-new(root),
+          ::view-transition-group(jaguar-painel),
+          ::view-transition-old(jaguar-painel),
           ::view-transition-new(jaguar-painel) {
             animation: none !important;
           }
@@ -167,13 +211,15 @@ export function PortalBR() {
             aria-hidden="true"
             style={{ width: '1px', height: '14px', background: J.bordaDefault }}
           />
+          {/* tintaSecundaria, não ocre: texto de 10px em acenteOcre fica
+              em ~2,9:1 sobre papelBase — o ocre vive em traço e wash. */}
           <span
             style={{
               fontFamily: JF.mono,
               fontSize: '10px',
               letterSpacing: '0.20em',
               textTransform: 'uppercase',
-              color: J.acenteOcre,
+              color: J.tintaSecundaria,
             }}
           >
             Brasil
@@ -185,7 +231,16 @@ export function PortalBR() {
         <SeletorMercado ativo="br" />
       </header>
 
-      <main ref={mainRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+      {/* tabIndex={0}: o documento está travado em overflow hidden e
+          este <main> é o único scroller — sem foco nele, teclado puro
+          (setas/PageDown) não rola nada e a sequência do hero fica
+          pulada por padrão. */}
+      <main
+        ref={mainRef}
+        tabIndex={0}
+        aria-label="Portal Brasil — conteúdo rolável"
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', outlineColor: J.acenteOcre }}
+      >
         <div style={{ maxWidth: MEDIDA, margin: '0 auto', padding: `0 ${RESPIRO_LATERAL}` }}>
           <PortalHero
             titulo="Inteligência independente do setor elétrico brasileiro"
@@ -210,7 +265,7 @@ export function PortalBR() {
                 fontSize: '10px',
                 letterSpacing: '0.20em',
                 textTransform: 'uppercase',
-                color: J.tintaMuted,
+                color: J.tintaSecundaria,
               }}
             >
               Destinos
@@ -260,7 +315,7 @@ export function PortalBR() {
                 fontSize: '10px',
                 letterSpacing: '0.18em',
                 textTransform: 'uppercase',
-                color: J.tintaMuted,
+                color: J.tintaSecundaria,
               }}
             >
               {new Date().getFullYear()}
@@ -289,8 +344,11 @@ export function PortalBR() {
           }}
         >
           <div
+            ref={painelRef}
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             style={{
+              outline: 'none',
               viewTransitionName: 'jaguar-painel',
               width: 'min(560px, 100%)',
               background: J.papelOverlay,
@@ -315,9 +373,14 @@ export function PortalBR() {
                   style={{
                     fontFamily: JF.mono,
                     fontSize: '10px',
-                    letterSpacing: '0.20em',
+                    letterSpacing: '0.18em',
                     textTransform: 'uppercase',
-                    color: J.acenteOcre,
+                    color: J.tintaPrimaria,
+                    background: J.acenteOcreWash,
+                    border: `1px solid ${J.bordaAcento}`,
+                    borderRadius: 0,
+                    padding: '3px 8px',
+                    alignSelf: 'flex-start',
                   }}
                 >
                   Em breve
@@ -373,7 +436,7 @@ export function PortalBR() {
                     fontSize: '10px',
                     letterSpacing: '0.18em',
                     textTransform: 'uppercase',
-                    color: J.tintaMuted,
+                    color: J.tintaSecundaria,
                   }}
                 >
                   Região

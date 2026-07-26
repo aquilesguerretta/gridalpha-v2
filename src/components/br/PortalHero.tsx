@@ -184,7 +184,10 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <span style={{ ...rotulo, color: J.acenteOcre }}>Portal · Brasil</span>
+          {/* Rótulos de 10px usam tintaSecundaria (4,5:1) — tintaMuted
+              e ocre puro ficam abaixo de AA como texto pequeno sobre os
+              papéis claros; o ocre segue em traço, fill e wash. */}
+          <span style={{ ...rotulo, color: J.tintaSecundaria }}>Portal · Brasil</span>
 
           <h1
             style={{
@@ -220,10 +223,10 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
               display: 'flex',
               flexDirection: 'column',
               gap: '6px',
-              opacity: 0.25 + 0.75 * tNumero,
+              opacity: 0.4 + 0.6 * tNumero,
             }}
           >
-            <span style={{ ...rotulo, color: J.tintaMuted }}>
+            <span style={{ ...rotulo, color: J.tintaSecundaria }}>
               PLD médio SE/CO · R$/MWh · valor ilustrativo
             </span>
             <span
@@ -244,11 +247,12 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             </span>
           </div>
 
+          {/* Única instrução de rolagem da página — visível também para
+              leitor de tela (sem aria-hidden). */}
           <span
-            aria-hidden="true"
             style={{
               ...rotulo,
-              color: J.tintaMuted,
+              color: J.tintaSecundaria,
               opacity: reduzido ? 0 : Math.max(0, 1 - fase(p, 0, 0.1)),
             }}
           >

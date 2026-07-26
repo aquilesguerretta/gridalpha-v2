@@ -1,23 +1,18 @@
-// SeletorMercado — ARCHITECT, Portal BR Wave 1.
+// SeletorMercado — ARCHITECT, Portal BR Wave 2 · Jaguar.
 //
 // Troca o prefixo de mercado da URL. Mercado é segmento de rota, não
 // estado em store: o link é compartilhável, o bookmark funciona, e não
 // há hidratação nem flash de mercado errado no primeiro paint.
 //
-// Discreto de propósito — mora no header, não disputa atenção com o
-// hero. Não é um toggle de produto; é uma indicação de onde você está
-// com a saída ao lado.
+// Wave 2: cores locais da Wave 1 substituídas pelos tokens Jaguar —
+// o TODO da wave estrutural fecha aqui. Os ITENS não mudam: a spec
+// (§4) confirma só o sistema de cor e o seletor discreto; item de
+// menu segue não especificado.
 
 import { useState, type CSSProperties } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-// TODO: substituir por tokens do portal BR quando a wave visual chegar
-const BR = {
-  tinta: '#F2F2F0',
-  tintaSuave: 'rgba(242,242,240,0.58)',
-  tintaFraca: 'rgba(242,242,240,0.32)',
-  fio: 'rgba(242,242,240,0.14)',
-};
+import { J, JF } from '../../design/jaguar-tokens';
 
 export type MercadoId = 'br' | 'us';
 
@@ -47,10 +42,11 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
   const atual: MercadoId = ativo ?? (pathname.startsWith('/br') ? 'br' : 'us');
 
   const rotulo: CSSProperties = {
+    fontFamily: JF.mono,
     fontSize: '10px',
     letterSpacing: '0.18em',
     textTransform: 'uppercase',
-    color: BR.tintaFraca,
+    color: J.tintaMuted,
   };
 
   return (
@@ -60,7 +56,10 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
     >
       <span style={rotulo}>Mercado</span>
 
-      <span aria-hidden="true" style={{ width: '1px', height: '12px', background: BR.fio }} />
+      <span
+        aria-hidden="true"
+        style={{ width: '1px', height: '12px', background: J.bordaDefault }}
+      />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {MERCADOS.map((m) => {
@@ -81,12 +80,12 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
                 letterSpacing: '0.10em',
                 textTransform: 'uppercase',
                 textDecoration: 'none',
-                color: realcado ? BR.tinta : BR.tintaSuave,
+                color: realcado ? J.tintaPrimaria : J.tintaSecundaria,
                 borderRadius: 0,
                 // O mercado ativo é marcado por fio embaixo, não por caixa
                 // nem por pílula. Fio de 1px é toda a profundidade que este
                 // sistema usa.
-                borderBottom: `1px solid ${selecionado ? BR.tinta : 'transparent'}`,
+                borderBottom: `1px solid ${selecionado ? J.tintaPrimaria : 'transparent'}`,
                 paddingBottom: '3px',
                 transition: 'color 140ms ease, border-bottom-color 140ms ease',
               }}

@@ -1,163 +1,322 @@
-// DestinoCard — ARCHITECT, Portal BR Wave 1.
+// DestinoCard — ARCHITECT, Portal BR Wave 2 · Jaguar.
 //
-// Dois estados visuais, nunca "ativo versus desabilitado":
+// Cinco cards, mesma moldura e tamanho (spec §3). A hierarquia mora
+// DENTRO do card, nos dois estados confirmados por protótipo:
 //
-//   disponivel — tinta cheia, fio pleno, clicável, chamada explícita.
-//   em-breve   — traço mais leve, rótulo discreto, não clicável.
+//   disponível — prévia real da interface, nas cores reais do sistema
+//                do destino. Conteúdo genuíno, não ilustração.
+//   em breve   — planta baixa: retângulos vazios em traço fino ocre,
+//                sem preenchimento, desenhando via stroke-dashoffset.
+//                Sugere o layout do que existirá, sem fingir conteúdo.
 //
-// Sem `disabled`, sem cinza morto, sem opacidade reduzida no bloco
-// inteiro. Um destino em breve é antecipação declarada: ele se lê como
-// promessa legível, não como botão quebrado. A hierarquia entre os dois
-// estados é feita por peso de tinta e espessura de fio — o portal não
-// gasta cor nisso.
+// Clique tem o mesmo comportamento de zoom do hero — consistência de
+// interação pela página inteira. Card em breve NÃO é disabled: abre o
+// estado "em breve" em planta baixa, nunca link morto.
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { flushSync } from 'react-dom';
 
+import { J, JF } from '../../design/jaguar-tokens';
 import type { DestinoBR } from '../../lib/data/br-destinos';
 
-// TODO: substituir por tokens do portal BR quando a wave visual chegar
-const BR = {
-  campo: '#141418',
-  tinta: '#F2F2F0',
-  tintaSuave: 'rgba(242,242,240,0.62)',
-  tintaFraca: 'rgba(242,242,240,0.34)',
-  fio: 'rgba(242,242,240,0.16)',
-  fioForte: 'rgba(242,242,240,0.34)',
-  fioFraco: 'rgba(242,242,240,0.08)',
+// Cores REAIS do sistema Alexandria, literais da spec §3 ("papel
+// #F2E9D6, tinta navy #0D2340"). Hardcoded de propósito: importar de
+// alexandria-tokens.ts é proibido — a prévia cita o destino, não
+// acopla os dois sistemas.
+const ALEXANDRIA_PAPEL = '#F2E9D6';
+const ALEXANDRIA_TINTA = '#0D2340';
+
+/** startViewTransition com checagem de suporte — mesma técnica do
+ *  PortalBR; duplicado aqui de propósito (componente não importa de
+ *  página). flushSync para o snapshot novo capturar o DOM atualizado. */
+function comTransicao(mudanca: () => void) {
+  if ('startViewTransition' in document) {
+    document.startViewTransition(() => {
+      flushSync(mudanca);
+    });
+  } else {
+    mudanca();
+  }
+}
+
+// ─── Planta baixa ────────────────────────────────────────────────────
+// Um esboço de layout por destino — traço fino ocre, sem preenchimento.
+// Cada forma leva pathLength=1 + data-traco; o CSS do PortalBR anima o
+// stroke-dashoffset quando .jaguar-planta--visivel entra. Reduced
+// motion cai para o estado final via a mesma folha.
+
+interface Traco {
+  el: 'rect' | 'line' | 'polyline';
+  attrs: Record<string, string | number>;
+}
+
+const moldura: Traco = { el: 'rect', attrs: { x: 6, y: 6, width: 268, height: 138 } };
+
+// viewBox 0 0 280 150. Cada destino sugere o próprio layout futuro.
+const PLANTAS: Record<string, Traco[]> = {
+  'terminal-brasil': [
+    moldura,
+    { el: 'line', attrs: { x1: 6, y1: 30, x2: 274, y2: 30 } },
+    { el: 'line', attrs: { x1: 76, y1: 30, x2: 76, y2: 144 } },
+    { el: 'rect', attrs: { x: 88, y: 42, width: 82, height: 42 } },
+    { el: 'rect', attrs: { x: 180, y: 42, width: 82, height: 42 } },
+    { el: 'rect', attrs: { x: 88, y: 94, width: 174, height: 38 } },
+    { el: 'polyline', attrs: { points: '96,122 118,108 140,116 166,100 196,110 224,96 252,104' } },
+  ],
+  'energy-brief': [
+    moldura,
+    { el: 'line', attrs: { x1: 6, y1: 34, x2: 274, y2: 34 } },
+    { el: 'rect', attrs: { x: 24, y: 48, width: 152, height: 12 } },
+    { el: 'line', attrs: { x1: 24, y1: 76, x2: 176, y2: 76 } },
+    { el: 'line', attrs: { x1: 24, y1: 90, x2: 176, y2: 90 } },
+    { el: 'line', attrs: { x1: 24, y1: 104, x2: 176, y2: 104 } },
+    { el: 'line', attrs: { x1: 24, y1: 118, x2: 148, y2: 118 } },
+    { el: 'rect', attrs: { x: 192, y: 48, width: 64, height: 84 } },
+  ],
+  'conta-de-luz-express': [
+    moldura,
+    { el: 'rect', attrs: { x: 24, y: 20, width: 108, height: 20 } },
+    { el: 'line', attrs: { x1: 24, y1: 58, x2: 256, y2: 58 } },
+    { el: 'line', attrs: { x1: 24, y1: 74, x2: 256, y2: 74 } },
+    { el: 'line', attrs: { x1: 24, y1: 90, x2: 256, y2: 90 } },
+    { el: 'line', attrs: { x1: 24, y1: 106, x2: 256, y2: 106 } },
+    { el: 'rect', attrs: { x: 168, y: 118, width: 88, height: 18 } },
+  ],
+  'diagnostico-energetico': [
+    moldura,
+    { el: 'rect', attrs: { x: 20, y: 20, width: 72, height: 44 } },
+    { el: 'rect', attrs: { x: 104, y: 20, width: 72, height: 44 } },
+    { el: 'rect', attrs: { x: 188, y: 20, width: 72, height: 44 } },
+    { el: 'line', attrs: { x1: 20, y1: 84, x2: 216, y2: 84 } },
+    { el: 'line', attrs: { x1: 20, y1: 100, x2: 184, y2: 100 } },
+    { el: 'line', attrs: { x1: 20, y1: 116, x2: 244, y2: 116 } },
+    { el: 'line', attrs: { x1: 20, y1: 132, x2: 152, y2: 132 } },
+  ],
 };
+
+const PLANTA_GENERICA: Traco[] = [
+  moldura,
+  { el: 'line', attrs: { x1: 6, y1: 32, x2: 274, y2: 32 } },
+  { el: 'rect', attrs: { x: 24, y: 48, width: 232, height: 36 } },
+  { el: 'rect', attrs: { x: 24, y: 96, width: 108, height: 36 } },
+  { el: 'rect', attrs: { x: 148, y: 96, width: 108, height: 36 } },
+];
+
+export interface PlantaBaixaProps {
+  destinoId: string;
+  /** Dispara o desenho do traço. */
+  visivel: boolean;
+  /** Altura do bloco em px; a largura acompanha o container. */
+  altura?: number;
+}
+
+export function PlantaBaixa({ destinoId, visivel, altura = 150 }: PlantaBaixaProps) {
+  const tracos = PLANTAS[destinoId] ?? PLANTA_GENERICA;
+  return (
+    <svg
+      viewBox="0 0 280 150"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+      className={`jaguar-planta${visivel ? ' jaguar-planta--visivel' : ''}`}
+      style={{ width: '100%', height: `${altura}px`, display: 'block' }}
+    >
+      {tracos.map((t, i) => {
+        const Tag = t.el;
+        return (
+          <Tag
+            key={i}
+            {...t.attrs}
+            pathLength={1}
+            data-traco
+            fill="none"
+            stroke={J.acenteOcre}
+            strokeWidth={1}
+            style={{ animationDelay: `${i * 90}ms` }}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+// ─── Card ────────────────────────────────────────────────────────────
 
 export interface DestinoCardProps {
   destino: DestinoBR;
+  /** Zoom "em breve" — mesmo comportamento do clique de região no hero. */
+  onZoom?: (destino: DestinoBR) => void;
 }
 
-export function DestinoCard({ destino }: DestinoCardProps) {
+export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   const [sobre, setSobre] = useState(false);
+  const navigate = useNavigate();
 
   const disponivel = destino.status === 'disponivel' && destino.rota !== null;
 
+  const quadro: CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    background: J.papelRaised,
+    border: `1px solid ${sobre ? J.bordaStrong : J.bordaDefault}`,
+    borderRadius: 0,
+    padding: 0,
+    textAlign: 'left',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    transition: 'border-color 140ms ease',
+  };
+
   const corpo = (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <h2
+      {/* Prévia — a diferença entre os dois estados mora aqui. */}
+      <div
+        style={{
+          height: '150px',
+          borderBottom: `1px solid ${J.bordaDefault}`,
+          overflow: 'hidden',
+          background: disponivel ? ALEXANDRIA_PAPEL : 'transparent',
+        }}
+      >
+        {disponivel ? <PreviaAlexandria /> : <PlantaBaixa destinoId={destino.id} visivel />}
+      </div>
+
+      <div
+        style={{
+          padding: '16px 18px 18px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          flex: 1,
+        }}
+      >
+        <h3
           style={{
             margin: 0,
-            fontSize: '18px',
+            fontSize: '16px',
             lineHeight: 1.25,
             letterSpacing: '-0.01em',
-            fontWeight: 400,
-            color: disponivel ? BR.tinta : BR.tintaSuave,
+            fontWeight: 500,
+            color: J.tintaPrimaria,
           }}
         >
           {destino.titulo}
-        </h2>
-
-        <p
-          style={{
-            margin: 0,
-            fontSize: '13px',
-            lineHeight: 1.6,
-            color: disponivel ? BR.tintaSuave : BR.tintaFraca,
-          }}
-        >
+        </h3>
+        <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.55, color: J.tintaSecundaria }}>
           {destino.descricao}
         </p>
-      </div>
 
-      {/* Rodapé do bloco separado por fio — o mesmo recurso de
-          profundidade usado em toda parte neste sistema. */}
-      <div
-        style={{
-          marginTop: '24px',
-          paddingTop: '14px',
-          borderTop: `1px solid ${disponivel ? BR.fio : BR.fioFraco}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-        }}
-      >
-        {disponivel ? (
-          <>
+        <div
+          style={{
+            marginTop: 'auto',
+            paddingTop: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+          }}
+        >
+          {disponivel ? (
+            <>
+              <span
+                style={{
+                  fontFamily: JF.mono,
+                  fontSize: '10px',
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  color: J.tintaPrimaria,
+                }}
+              >
+                Acessar
+              </span>
+              <span
+                aria-hidden="true"
+                style={{
+                  fontSize: '13px',
+                  color: J.acenteOcre,
+                  transform: sobre ? 'translateX(3px)' : 'none',
+                  transition: 'transform 140ms ease',
+                }}
+              >
+                →
+              </span>
+            </>
+          ) : (
             <span
               style={{
-                fontSize: '11px',
-                letterSpacing: '0.14em',
+                fontFamily: JF.mono,
+                fontSize: '10px',
+                letterSpacing: '0.18em',
                 textTransform: 'uppercase',
-                color: BR.tinta,
+                color: J.acenteOcre,
               }}
             >
-              Acessar
+              Em breve
             </span>
-            <span
-              aria-hidden="true"
-              style={{
-                fontSize: '13px',
-                color: BR.tinta,
-                transform: sobre ? 'translateX(3px)' : 'none',
-                transition: 'transform 140ms ease',
-              }}
-            >
-              →
-            </span>
-          </>
-        ) : (
-          <span
-            style={{
-              fontSize: '10px',
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: BR.tintaFraca,
-            }}
-          >
-            Em breve
-          </span>
-        )}
+          )}
+        </div>
       </div>
     </>
   );
 
-  const caixa = {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    justifyContent: 'space-between' as const,
-    minHeight: '196px',
-    padding: '22px',
-    borderRadius: 0,
+  const eventos = {
+    onMouseEnter: () => setSobre(true),
+    onMouseLeave: () => setSobre(false),
+    onFocus: () => setSobre(true),
+    onBlur: () => setSobre(false),
   };
 
-  if (!disponivel) {
+  if (disponivel) {
+    const rota = destino.rota as string;
     return (
-      <article
-        style={{
-          ...caixa,
-          border: `1px solid ${BR.fioFraco}`,
-          background: 'transparent',
+      <Link
+        to={rota}
+        {...eventos}
+        onClick={(e) => {
+          // Navegação por view transition — papel Jaguar cruza em fade
+          // para o papel Alexandria, a razão de o portal ser claro.
+          e.preventDefault();
+          comTransicao(() => navigate(rota));
         }}
+        style={quadro}
       >
         {corpo}
-      </article>
+      </Link>
     );
   }
 
   return (
-    <Link
-      // `rota` é string aqui — `disponivel` já garantiu que não é null.
-      to={destino.rota as string}
-      onMouseEnter={() => setSobre(true)}
-      onMouseLeave={() => setSobre(false)}
-      onFocus={() => setSobre(true)}
-      onBlur={() => setSobre(false)}
-      style={{
-        ...caixa,
-        border: `1px solid ${sobre ? BR.fioForte : BR.fio}`,
-        background: BR.campo,
-        textDecoration: 'none',
-        transition: 'border-color 140ms ease',
-      }}
-    >
+    <button type="button" {...eventos} onClick={() => onZoom?.(destino)} style={quadro}>
       {corpo}
-    </Link>
+    </button>
+  );
+}
+
+/** Prévia real da Alexandria — cores e conteúdo do produto vivo.
+ *  Wave 2 Fase 2: bloco sólido com identidade; a prévia completa
+ *  (strings do hub real) entra na Fase 3 do índice. */
+function PreviaAlexandria(): ReactNode {
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div
+        style={{
+          background: ALEXANDRIA_TINTA,
+          padding: '8px 14px',
+          fontFamily: JF.mono,
+          fontSize: '9px',
+          letterSpacing: '0.22em',
+          textTransform: 'uppercase',
+          color: ALEXANDRIA_PAPEL,
+        }}
+      >
+        Alexandria
+      </div>
+      <div style={{ flex: 1, padding: '14px', display: 'flex', alignItems: 'flex-end' }}>
+        <span style={{ fontSize: '14px', lineHeight: 1.3, color: ALEXANDRIA_TINTA }}>
+          Atlas vivo da energia do Brasil
+        </span>
+      </div>
+    </div>
   );
 }
 

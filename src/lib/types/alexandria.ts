@@ -72,7 +72,13 @@ export interface CurriculumTrilha {
   track: CurriculumTrack;
   language: CurriculumLanguage;
   moduleIds: string[];
-  totalAulas: number;
+  /** Soma das aulas dos módulos cuja contagem é conhecida. null quando
+   *  nenhum módulo da trilha tem fonte ainda — 'desconhecido', não 'zero'.
+   *  Wave 2. */
+  totalAulas: number | null;
+  /** true quando ao menos um módulo da trilha está com totalAulas null.
+   *  O número acima é piso confirmado, não total. Wave 2. */
+  totalAulasPartial: boolean;
 }
 
 /** Módulo — subdivisão da trilha. Exibido como "Módulo 3 de 6". */
@@ -83,6 +89,9 @@ export interface CurriculumModule {
   totalInTrilha: number;
   title: string;
   blockId: string;                   // referência a CurriculumBlock
+  /** Contagem real de aulas, extraída do HTML do módulo. null onde o
+   *  módulo ainda não tem HTML — não estimar. Wave 2. */
+  totalAulas: number | null;
 }
 
 /** Aula — a unidade que o aluno consome. Exibida como "Aula 8". */

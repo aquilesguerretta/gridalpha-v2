@@ -21,6 +21,7 @@
 
 import { Route, Routes, useParams } from 'react-router-dom';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
+import { TrilhasHub } from '@/components/alexandria/navigation/TrilhasHub';
 import type {
   Badge,
   CurriculumLevel,
@@ -218,7 +219,7 @@ export function AlexandriaRouter({ trackDeEntrada }: AlexandriaRouterProps) {
 function HubRoute({ trilhaSugeridaId }: { trilhaSugeridaId: string | null }) {
   return (
     <AlexandriaShell>
-      <span>hub · sugerida: {trilhaSugeridaId ?? 'nenhuma'}</span>
+      <TrilhasHub trilhaSugeridaId={trilhaSugeridaId} />
     </AlexandriaShell>
   );
 }

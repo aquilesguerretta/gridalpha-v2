@@ -19,18 +19,26 @@
 // Os consumidores não mudam — todos leem daqui, não de literais espalhados.
 // ─────────────────────────────────────────────────────────────
 
-import { Route, Routes, useParams } from 'react-router-dom';
+import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { TrilhasHub } from '@/components/alexandria/navigation/TrilhasHub';
+import { CaminhoExpedicao } from '@/components/alexandria/navigation/CaminhoExpedicao';
+import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 import type {
   Badge,
   CurriculumLevel,
   CurriculumModule,
   CurriculumTrack,
+  SubmercadoTag,
   UserBadgeProgress,
   UserProgress,
 } from '@/lib/types/alexandria';
-import { ALEXANDRIA_TRILHAS } from '@/lib/data/alexandria-trilhas';
+import {
+  ALEXANDRIA_TRILHAS,
+  getModuleById,
+  getModulesByTrilha,
+  getTrilhaById,
+} from '@/lib/data/alexandria-trilhas';
 
 // ── Aulas concluídas por módulo ──────────────────────────────
 // Só módulos com `totalAulas` conhecido podem ter progresso: não existe
@@ -42,8 +50,8 @@ export const AULAS_CONCLUIDAS_POR_MODULO: Record<string, number> = {
 };
 
 /** Aulas confirmadas por nível — soma só o que tem fonte.
- *  Nível 1 = 9 + 10 + 10 = 29 em 3 dos 5 módulos. Níveis 2 e 3 = 0
- *  módulos com fonte, então o denominador é desconhecido, não zero. */
+ *  Nível 1 = 9 + 10 + 10 = 29 em 3 dos 5 módulos. Níveis 2 e 3 não têm
+ *  nenhum módulo com fonte, então o denominador é desconhecido, não zero. */
 const AULAS_CONHECIDAS_POR_NIVEL: Record<CurriculumLevel, number | null> = {
   1: 29,
   2: null,
@@ -214,8 +222,9 @@ export function AlexandriaRouter({ trackDeEntrada }: AlexandriaRouterProps) {
   );
 }
 
-// Placeholders de rota — substituídos pelas Fases 2-5. Cada rota monta o
-// próprio shell porque a configuração de rail varia entre hub e trilha.
+// ── Rotas ────────────────────────────────────────────────────
+// Cada rota monta o próprio shell porque a configuração de rail varia.
+
 function HubRoute({ trilhaSugeridaId }: { trilhaSugeridaId: string | null }) {
   return (
     <AlexandriaShell>
@@ -223,20 +232,330 @@ function HubRoute({ trilhaSugeridaId }: { trilhaSugeridaId: string | null }) {
     </AlexandriaShell>
   );
 }
+
 function TrilhaRoute() {
   const { trilhaId } = useParams();
+  const navigate = useNavigate();
+  const trilha = trilhaId ? getTrilhaById(trilhaId) : null;
+
+  if (!trilha) return <NaoEncontrado titulo="Trilha não encontrada" />;
+
+  const itens = estadosDaTrilha(getModulesByTrilha(trilha.id));
+
   return (
-    <AlexandriaShell>
-      <span>caminho de expedição · {trilhaId}</span>
+    <AlexandriaShell
+      // Recorte regional só existe em trilha de mercado brasileiro. A
+      // Trilha 1 é 'universal' e não carrega submercado — por isso o rail
+      // esquerdo aparece quando é aplicável, não sempre.
+      showLeftRail={trilha.track === 'brasil'}
+      leftRailContent={<CoberturaSubmercado />}
+      rightRailSlots={{
+        progresso: <SlotProgresso nivel={trilha.level} />,
+        listaAulas: <SlotModulos itens={itens} />,
+        proximaAula: <SlotProxima itens={itens} />,
+        conquistas: <SlotConquistas />,
+        referencias: <SlotReferencias />,
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xl }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+          <Voltar rotulo="← Todas as trilhas" para="/alexandria" />
+          <span style={{ ...AT.rotulo, color: A.terracota }}>Nível {trilha.level}</span>
+          <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>{trilha.title}</h1>
+        </div>
+
+        <CaminhoExpedicao
+          itens={itens}
+          onAbrirModulo={(id) => navigate(`/alexandria/trilha/${trilha.id}/modulo/${id}`)}
+        />
+      </div>
     </AlexandriaShell>
   );
 }
+
 function ModuloRoute() {
   const { trilhaId, moduloId } = useParams();
+  const trilha = trilhaId ? getTrilhaById(trilhaId) : null;
+  const modulo = moduloId ? getModuleById(moduloId) : null;
+
+  if (!trilha || !modulo || modulo.trilhaId !== trilha.id) {
+    return <NaoEncontrado titulo="Módulo não encontrado" />;
+  }
+
+  const itens = estadosDaTrilha(getModulesByTrilha(trilha.id));
+  const item = itens.find((i) => i.modulo.id === modulo.id)!;
+
+  return (
+    <AlexandriaShell
+      showLeftRail={trilha.track === 'brasil'}
+      leftRailContent={<CoberturaSubmercado />}
+      rightRailSlots={{
+        progresso: <SlotProgresso nivel={trilha.level} />,
+        listaAulas: <SlotModulos itens={itens} />,
+        proximaAula: <SlotProxima itens={itens} />,
+        conquistas: <SlotConquistas />,
+        referencias: <SlotReferencias />,
+      }}
+    >
+      {/* Fase 5 substitui por ModuloAulaList. */}
+      <span style={{ ...AT.dado, color: A.tintaSuave }}>
+        {item.modulo.title} · {item.estado}
+      </span>
+    </AlexandriaShell>
+  );
+}
+
+// ── Peças compartilhadas ─────────────────────────────────────
+
+function Voltar({ rotulo, para }: { rotulo: string; para: string }) {
+  const navigate = useNavigate();
+  return (
+    <button
+      type="button"
+      onClick={() => navigate(para)}
+      style={{
+        ...AT.rotulo,
+        alignSelf: 'flex-start',
+        color: A2.tintaMetadado,
+        background: 'none',
+        border: 'none',
+        borderRadius: AR.none,
+        padding: 0,
+        cursor: 'pointer',
+      }}
+    >
+      {rotulo}
+    </button>
+  );
+}
+
+function NaoEncontrado({ titulo }: { titulo: string }) {
   return (
     <AlexandriaShell>
-      <span>lista de aula · {trilhaId} · {moduloId}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: AS.md }}>
+        <span style={{ ...AT.rotulo, color: A.terracota }}>Sem registro</span>
+        <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>{titulo}</h1>
+        <p style={{ ...AT.corpo, color: A.tintaSuave, margin: 0, fontSize: '15px' }}>
+          Nenhum registro do currículo corresponde a esse endereço.
+        </p>
+        <Voltar rotulo="← Todas as trilhas" para="/alexandria" />
+      </div>
     </AlexandriaShell>
+  );
+}
+
+const NOME_SUBMERCADO: Record<SubmercadoTag, string> = {
+  norte: 'Norte',
+  nordeste: 'Nordeste',
+  'sudeste-centro-oeste': 'Sudeste / C.-Oeste',
+  sul: 'Sul',
+};
+
+/** Cobertura por submercado — painel de leitura, não filtro.
+ *
+ *  O brief pede "filtro de submercado (se aplicável)". Filtrar de verdade
+ *  exige `submercados[]` no nível da AULA, e `CurriculumAula` ainda não tem
+ *  dado real: a FOUNDRY Wave 2 shipou estrutura e contagem, não conteúdo.
+ *  Um controle que parece filtrar e não filtra é pior que um painel
+ *  honesto — mesma disciplina de não inventar contagem de aula. Vira
+ *  filtro na wave em que a aula existir. */
+function CoberturaSubmercado() {
+  const entradas = Object.entries(MOCK_USER_PROGRESS.bySubmercado) as [
+    SubmercadoTag,
+    { completed: number; total: number },
+  ][];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: AS.md, padding: `0 ${AS.lg}` }}>
+      <span style={{ ...AT.rotulo, color: A.terracota }}>Cobertura regional</span>
+
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {entradas.map(([tag, v], i) => (
+          <div
+            key={tag}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              gap: AS.sm,
+              padding: `${AS.sm} 0`,
+              borderTop: i > 0 ? `1px solid ${A2.fioClaroSobreCreme}` : 'none',
+            }}
+          >
+            <span style={{ ...AT.dado, fontSize: '12px', color: A.tintaSobreCreme }}>
+              {NOME_SUBMERCADO[tag]}
+            </span>
+            <span style={{ ...AT.dado, fontSize: '12px', color: A.tintaSuave }}>
+              {v.total > 0 ? `${v.completed}/${v.total}` : '—'}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <span
+        style={{
+          ...AT.dado,
+          fontSize: '11px',
+          fontStyle: 'italic',
+          lineHeight: 1.5,
+          color: A2.tintaMetadado,
+        }}
+      >
+        Recorte por submercado vira filtro quando a aula tiver dado regional.
+      </span>
+    </div>
+  );
+}
+
+function SlotProgresso({ nivel }: { nivel: CurriculumLevel }) {
+  const pct = MOCK_USER_PROGRESS.byLevel[nivel];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+      <div style={{ height: '5px', background: A.fioSobreNavy, borderRadius: AR.none }}>
+        <div
+          style={{
+            width: `${pct}%`,
+            height: '5px',
+            background: A2.olivaSobreNavy,
+            borderRadius: AR.none,
+          }}
+        />
+      </div>
+      <span style={{ ...AT.dado, fontSize: '12px', color: A.tintaSobreNavy }}>
+        {pct}% deste nível
+      </span>
+      <span style={{ ...AT.dado, fontSize: '11px', color: A2.tintaMetadadoNavy }}>
+        {MOCK_USER_PROGRESS.aulasCompleted} de {MOCK_USER_PROGRESS.aulasTotal} aulas confirmadas
+        {' · '}
+        {MOCK_USER_PROGRESS.studyStreakDays} dias seguidos
+      </span>
+    </div>
+  );
+}
+
+const PONTO_ESTADO: Record<EstadoModulo, string> = {
+  concluido: A2.olivaSobreNavy,
+  'em-andamento': A2.terracotaClara,
+  desbloqueado: A2.ouroSobreNavy,
+  bloqueado: A.fioSobreNavy,
+  'em-producao': A.terracota,
+};
+
+function SlotModulos({ itens }: { itens: ModuloComEstado[] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {itens.map((item, i) => (
+        <div
+          key={item.modulo.id}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: AS.sm,
+            padding: `${AS.sm} 0`,
+            borderTop: i > 0 ? `1px solid ${A.fioSobreNavy}` : 'none',
+          }}
+        >
+          <span
+            style={{
+              flex: 'none',
+              width: '7px',
+              height: '7px',
+              borderRadius: AR.circulo,
+              background: PONTO_ESTADO[item.estado],
+            }}
+          />
+          <span
+            style={{
+              ...AT.dado,
+              fontSize: '12px',
+              color: item.estado === 'bloqueado' ? A2.tintaMetadadoNavy : A.tintaSobreNavy,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.modulo.number}. {item.modulo.title}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SlotProxima({ itens }: { itens: ModuloComEstado[] }) {
+  const proximo = itens.find((i) => i.estado === 'em-andamento' || i.estado === 'desbloqueado');
+
+  if (!proximo) {
+    return (
+      <span style={{ ...AT.dado, fontStyle: 'italic', color: A2.tintaMetadadoNavy }}>
+        Nada disponível nesta trilha
+      </span>
+    );
+  }
+
+  const total = proximo.modulo.totalAulas ?? 0;
+  const numero = (proximo.aulasFeitas ?? 0) + 1;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xs }}>
+      <span style={{ ...AT.dado, fontSize: '12px', color: A2.ouroSobreNavy }}>
+        Aula {numero} de {total}
+      </span>
+      <span style={{ ...AT.dado, fontSize: '12px', color: A.tintaSobreNavy, lineHeight: 1.5 }}>
+        {proximo.modulo.title}
+      </span>
+    </div>
+  );
+}
+
+function SlotConquistas() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {ALEXANDRIA_BADGES.map((badge, i) => {
+        const prog = MOCK_BADGE_PROGRESS.find((p) => p.badgeId === badge.id);
+        const conquistado = prog?.status === 'conquistado';
+        return (
+          <div
+            key={badge.id}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+              padding: `${AS.sm} 0`,
+              borderTop: i > 0 ? `1px solid ${A.fioSobreNavy}` : 'none',
+            }}
+          >
+            <span
+              style={{
+                ...AT.dado,
+                fontSize: '12px',
+                color: conquistado ? A2.olivaSobreNavy : A2.tintaMetadadoNavy,
+              }}
+            >
+              {badge.name} {conquistado ? '·' : ''} {conquistado ? `+${badge.expReward} XP` : ''}
+            </span>
+            <span
+              style={{
+                ...AT.dado,
+                fontSize: '11px',
+                lineHeight: 1.45,
+                color: A2.tintaMetadadoNavy,
+              }}
+            >
+              {badge.criterion}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SlotReferencias() {
+  return (
+    <span style={{ ...AT.dado, fontStyle: 'italic', color: A2.tintaMetadadoNavy, lineHeight: 1.5 }}>
+      Documentos de apoio aparecem junto com a aula.
+    </span>
   );
 }
 

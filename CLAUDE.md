@@ -944,13 +944,18 @@ não resolve. Uma trilha de 7 módulos faz 2-3 fetches, não 7.
 
 ### Pendências e decisões
 
-- **FOUNDRY Wave 3 não fechou.** `alexandria-progress-mock.ts` e
-  `alexandria-badges.ts` não existem. `MOCK_USER_PROGRESS`,
-  `MOCK_BADGE_PROGRESS`, `ALEXANDRIA_BADGES` e
-  `AULAS_CONCLUIDAS_POR_MODULO` estão inline em `AlexandriaRouter.tsx`,
-  tipados contra `UserProgress` / `Badge` / `UserBadgeProgress`. Quando
-  FOUNDRY entrar, o bloco sai e viram imports — os consumidores não
-  mudam, porque todos leem de um lugar só.
+- **FOUNDRY Wave 3 fechou durante esta wave.** O dado inline que existia
+  aqui foi removido; `MOCK_USER_PROGRESS`, `MOCK_BADGE_PROGRESS` e
+  `ALEXANDRIA_BADGES` vêm de `src/lib/data/`. O inline divergia em dois
+  pontos e a FOUNDRY estava certa nos dois: `aulasCompleted` era 13 (o
+  correto é 12) e `bySubmercado` tinha totais **inventados** (2/6 e 1/4),
+  quando o certo é zerar os quatro — sem inventário de aula não existe
+  aula para contar por submercado. Era violação da regra da própria wave.
+- **`AULAS_CONCLUIDAS_POR_MODULO` fica em `AlexandriaRouter.tsx`.**
+  `UserProgress` é agregado e não carrega repartição por módulo, que o
+  estado de nó precisa. Reproduz a decomposição que o arquivo da FOUNDRY
+  declara em prosa (9 + 3 + 0 = 12), com trava em DEV que avisa se a soma
+  sair de sincronia com o agregado.
 - **Cobertura por submercado é painel de leitura, não filtro.** Filtrar
   exige `submercados[]` no nível da AULA, e `CurriculumAula` não tem dado
   real. Um controle que parece filtrar e não filtra é pior que um painel

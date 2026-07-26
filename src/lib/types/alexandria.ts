@@ -109,6 +109,9 @@ export interface CurriculumAula {
   activities: LessonActivity[];
   /** Documentos de referência ligados à aula. */
   references: LessonReference[];
+  /** Instrumentos interativos da aula. Vazio quando a aula não tem
+   *  nenhum — a maioria tem zero ou um. Wave 2. */
+  instruments: Instrument[];
 }
 
 export interface LessonVideo {
@@ -188,4 +191,84 @@ export interface UserProgress {
   byLevel: Record<CurriculumLevel, number>;   // percentual 0-100
   bySubmercado: Record<SubmercadoTag, { completed: number; total: number }>;
   studyStreakDays: number;
+}
+
+// ── WAVE 2 — Instrumentos ──────────────────────────────────────────────────
+//
+// Um instrumento é dado, não componente. O LYCEUM implementa UM primitivo de
+// renderização que lê estas interfaces e monta qualquer calculadora, simulador
+// ou laboratório configurado aqui.
+//
+// Procedência: os 25 instrumentos dos três HTML de módulo em
+// `Alexandria modulos/` — Módulo 01 (7), Módulo 02 (9), Módulo 03 (9).
+// Nada aqui é inventado; cada variante existe na fonte.
+//
+// Três generalizações sobre o contrato do brief da Wave 2, cada uma
+// superconjunto estrito do que ele especifica, cada uma forçada pela fonte:
+//
+// 1. InstrumentKind vai de 3 para 9 membros. Os três do brief
+//    (calculadora / controles / laboratorio) vêm do Módulo 01 e cobrem os 7
+//    instrumentos dele. Os Módulos 02-03 acrescentam seis prefixos —
+//    'simulador' sozinho tem 8 ocorrências, empatado com 'calculadora' como
+//    o mais frequente do currículo.
+// 2. `outputs: InstrumentOutput[]` no lugar de `outputLabel` + `outputUnit`.
+//    Só ~7 dos 25 têm saída única (`.instrument-output`); 19 têm saída
+//    múltipla (`.sim-readouts` com 4 readouts, `.case-data-grid` com 6
+//    células). Saída única vira array de um; `Controles · Triângulo de
+//    potência`, que não tem elemento de saída nenhum, vira array vazio.
+// 3. `formula: string | null`. `Explorador · Camadas da rede` é consulta
+//    pura — pill de camada dentro, seis campos descritivos fora. Não há
+//    fórmula a exibir.
+//
+// O que NÃO precisou de extensão: as pills de preset (`.pill-row`, 4
+// ocorrências) são select de escolha única renderizado como botões — mapeiam
+// direto em `kind: 'select'` + `options`. O `.verdict` (15 ocorrências) é
+// saída qualitativa derivada — vira um InstrumentOutput com `unit: null`.
+
+/** Prefixo do título do instrumento na fonte ('Calculadora · ...').
+ *  Nove valores observados nos Módulos 01-03. Os três primeiros são os
+ *  do Módulo 01; os seis seguintes entram com os Módulos 02-03. */
+export type InstrumentKind =
+  | 'calculadora'
+  | 'controles'
+  | 'laboratorio'
+  | 'simulador'
+  | 'comparador'
+  | 'explorador'
+  | 'cadeia-de-transformacao'
+  | 'dimensionador'
+  | 'quebra-cabeca';
+
+export interface InstrumentField {
+  id: string;
+  label: string;
+  unit: string | null;
+  kind: 'number' | 'range' | 'select';
+  defaultValue: number | string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: { value: string; label: string }[];
+}
+
+/** Uma saída do instrumento. Instrumento de saída única tem um item;
+ *  simulador tem quatro; explorador tem seis; `Controles · Triângulo de
+ *  potência` tem zero, porque desenha um diagrama em vez de imprimir número. */
+export interface InstrumentOutput {
+  id: string;
+  label: string;
+  /** null em saída qualitativa — o `.verdict` da fonte. */
+  unit: string | null;
+}
+
+export interface Instrument {
+  id: string;                      // 'inst-01', 'lab-01' — mantém convenção da fonte
+  kind: InstrumentKind;
+  title: string;                   // 'Calculadora · kWh = kW × h'
+  /** Fórmula legível, ex: 'kWh = kW × h'. null onde o instrumento é
+   *  consulta e não cálculo. */
+  formula: string | null;
+  fields: InstrumentField[];
+  outputs: InstrumentOutput[];
+  note: string | null;             // texto de contexto, se existir na fonte
 }

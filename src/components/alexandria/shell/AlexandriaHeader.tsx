@@ -10,11 +10,16 @@
 // L108). O quinto — a linha de consulta do ⌘K (L2038) — é só fio
 // embaixo, e é esse o padrão que o brief manda seguir.
 
+import { useLocation, useNavigate } from 'react-router-dom';
 import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-tokens';
 
 export interface AlexandriaNavItem {
   id: string;
   rotulo: string;
+  /** Destino absoluto. O header navega sozinho — não depende de o
+   *  chamador passar `onNavegar`, que era o motivo de a nav estar morta
+   *  até a Wave 6. */
+  destino: string;
 }
 
 interface AlexandriaHeaderProps {
@@ -26,19 +31,42 @@ interface AlexandriaHeaderProps {
 }
 
 const NAV_PADRAO: AlexandriaNavItem[] = [
-  { id: 'biblioteca', rotulo: 'Biblioteca' },
-  { id: 'trilhas', rotulo: 'Trilhas' },
-  { id: 'atlas', rotulo: 'Atlas' },
-  { id: 'glossario', rotulo: 'Glossário' },
+  // Biblioteca e Trilhas apontam para o mesmo lugar de propósito: o hub É a
+  // biblioteca, e é onde as trilhas são listadas. O que os distingue é o
+  // estado ativo — Biblioteca acende no índice, Trilhas acende quando o
+  // aluno está dentro de uma trilha. Clicar em Trilhas de dentro de uma
+  // aula devolve ao índice, que é o comportamento que se espera.
+  { id: 'biblioteca', rotulo: 'Biblioteca', destino: '/alexandria' },
+  { id: 'trilhas', rotulo: 'Trilhas', destino: '/alexandria' },
+  { id: 'atlas', rotulo: 'Atlas', destino: '/alexandria/atlas' },
+  { id: 'glossario', rotulo: 'Glossário', destino: '/alexandria/glossario' },
 ];
+
+/** Deriva o item ativo do endereço atual. `itemAtivo` explícito vence —
+ *  é assim que os stubs marcam a própria seção.
+ *
+ *  `/alexandria/perfil` não acende nenhum: Perfil tem rota mas não tem
+ *  item de nav. */
+function ativoPorRota(pathname: string): string | null {
+  const p = pathname.replace(/\/+$/, '');
+  if (p === '/alexandria' || p === '') return 'biblioteca';
+  if (p.startsWith('/alexandria/trilha')) return 'trilhas';
+  if (p.startsWith('/alexandria/atlas')) return 'atlas';
+  if (p.startsWith('/alexandria/glossario')) return 'glossario';
+  return null;
+}
 
 export function AlexandriaHeader({
   itens = NAV_PADRAO,
-  itemAtivo = 'biblioteca',
+  itemAtivo,
   onNavegar,
   termoBusca = '',
   onBuscar,
 }: AlexandriaHeaderProps) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const ativo = itemAtivo ?? ativoPorRota(pathname);
+
   return (
     <header
       style={{
@@ -84,18 +112,24 @@ export function AlexandriaHeader({
       {/* Nav em linha única. Ativo = fio de 1px embaixo. Sem caixa. */}
       <nav style={{ display: 'flex', alignItems: 'center', gap: AS.xl, flex: 'none' }}>
         {itens.map((item) => {
-          const ativo = item.id === itemAtivo;
+          const estaAtivo = item.id === ativo;
           return (
             <button
               key={item.id}
               type="button"
-              onClick={() => onNavegar?.(item.id)}
+              aria-current={estaAtivo ? 'page' : undefined}
+              onClick={() => {
+                // `onNavegar` continua sendo o override do chamador; sem ele,
+                // o header navega por conta própria.
+                if (onNavegar) onNavegar(item.id);
+                else navigate(item.destino);
+              }}
               style={{
                 ...AT.nav,
-                color: ativo ? A.tintaSobreNavy : A2.tintaMetadadoNavy,
+                color: estaAtivo ? A.tintaSobreNavy : A2.tintaMetadadoNavy,
                 background: 'none',
                 border: 'none',
-                borderBottom: `1px solid ${ativo ? A2.terracotaClara : 'transparent'}`,
+                borderBottom: `1px solid ${estaAtivo ? A2.terracotaClara : 'transparent'}`,
                 borderRadius: AR.none,
                 padding: `0 0 ${AS.xs} 0`,
                 cursor: 'pointer',

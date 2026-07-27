@@ -1,40 +1,51 @@
-// PortalHero — ARCHITECT, Portal BR Wave 2 · Jaguar.
+// PortalHero — ARCHITECT, Portal BR Wave 3 · hero imersivo.
 //
-// A sequência confirmada por protótipo (spec §2), com as duas correções
-// obrigatórias aplicadas:
-//   1. o contorno é o GeoJSON real do IBGE convertido em build-time
-//      (src/lib/geo/brasil-outline.ts), nunca o rascunho ilustrativo;
-//   2. as regiões são os polígonos reais dos submercados (IBGE dissolvido
-//      pela classificação CCEE/ONS), não círculos-marcador. Decisão tomada
-//      olhando o render: as formas regionais são legíveis e em tela pequena
-//      degradam para mancha de região, não para ruído.
+// O mapa deixa de morar num painel fixo e vira o protagonista físico
+// da sequência. Cinco fases sobre uma pista de 340vh:
 //
-// Sequência de scroll (0→100% da seção):
-//   0–25%   contorno desenha via stroke-dashoffset (pathLength=1 — mesma
-//           normalização que a Alexandria usa nos primitivos)
-//   20–50%  quatro submercados preenchem em sequência escalonada
-//   45–75%  conectores de intercâmbio desenham com a mesma técnica de traço
-//   70–100% número sobe até o valor — MOCK, marcado como ilustrativo
+//   0–25%   contorno IBGE desenha — mapa nasce menor, próximo do
+//           centro da viewport, não ancorado à direita
+//   20–50%  quatro submercados reais preenchem, escalonados
+//   45–75%  intercâmbios esquemáticos conectam os centroides
+//   75–95%  FASE NOVA — o mapa cresce e recentraliza até dominar a
+//           tela; título e parágrafo esmaecem; rótulos regionais
+//           (sigla + PLD ilustrativo) ancoram nos centroides
+//   95–100% assentamento — barra compacta reintegra o headline e o
+//           PLD agregado; a seção solta o scroll e o documento segue
 //
-// Os conectores entre centroides são ESQUEMÁTICOS — representam os
-// intercâmbios entre submercados (S↔SE/CO, SE/CO↔NE, SE/CO↔N, N↔NE),
-// não o traçado físico de linha de transmissão. A regra travada de
-// geometria real cobre contorno e fronteira; o conector é diagrama de
-// rede, declarado como tal.
+// MECANISMO: cálculo de progresso em JS (validado na Wave 2),
+// estendido para dirigir também transform/opacity. animation-timeline:
+// view() foi avaliado e descartado nesta wave: cobertura ainda parcial
+// fora do Chromium para view()+animation-range, e a sequência dirige
+// ESTADO React (contadores, rótulos, interpolações SVG) — duas linhas
+// do tempo (CSS e JS) dessincronizariam a mesma cena.
 //
-// prefers-reduced-motion cai para o ESTADO FINAL (mapa pronto, número
-// cheio), nunca para vazio — regra que o repo já segue desde a Alexandria.
+// ESCAPE: botão "Pular apresentação" — primeiro focável da seção,
+// visível enquanto a sequência roda; rola o <main> direto para o fim
+// da pista. Ninguém fica preso.
+//
+// REDUCED-MOTION: sem pista, sem sticky, sem fase — layout ESTÁTICO em
+// fluxo com todo o conteúdo legível (eyebrow, headline, parágrafo,
+// mapa grande com rótulos, PLD). Não é o estado final da animação com
+// texto esmaecido: é uma composição própria, porque esmaecer o
+// parágrafo para quem nunca viu as fases seria perda de conteúdo, não
+// redução de movimento.
+//
+// Os conectores seguem ESQUEMÁTICOS (diagrama de intercâmbio, não
+// traçado físico); PLD segue MOCK, marcado ilustrativo em texto
+// visível. Regra de geometria real: contorno e fronteira vêm de
+// src/lib/geo/brasil-outline.ts (IBGE), nunca de path desenhado.
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type RefObject,
 } from 'react';
 
-import { J, JF } from '../../design/jaguar-tokens';
+import { J, JF, JT } from '../../design/jaguar-tokens';
 import {
   BRASIL_OUTLINE_D,
   BRASIL_VIEWBOX,
@@ -52,34 +63,46 @@ export interface PortalHeroProps {
   onRegiaoClick: (regiao: SubmercadoPath) => void;
 }
 
-// Valor ILUSTRATIVO — nenhum feed de PLD existe no front hoje. A spec
-// permite mock desde que marcado como tal; o rótulo na tela diz
-// "ilustrativo" em texto corrido, não em tooltip escondido.
-const PLD_MOCK = 138.72;
+// Valores ILUSTRATIVOS — nenhum feed de PLD existe no front hoje.
+// Mesma linguagem de submercado que Atlas e Alexandria já usam; o
+// rótulo na tela diz "ilustrativo" em texto corrido.
+const PLD_AGREGADO_MOCK = 138.72; // referência SE/CO
+const PLD_REGIONAL_MOCK: Record<SubmercadoPath['id'], number> = {
+  norte: 132.45,
+  nordeste: 129.8,
+  sudesteCentroOeste: 138.72,
+  sul: 141.1,
+};
 
-// Janelas da sequência, em fração do progresso total.
+// Deslocamento do rótulo regional em relação ao centroide (unidades do
+// viewBox), escolhido para não cobrir o polígono vizinho.
+const ROTULO_OFFSET: Record<SubmercadoPath['id'], readonly [number, number]> = {
+  norte: [12, -10],
+  nordeste: [16, -2],
+  sudesteCentroOeste: [14, 26],
+  sul: [14, 14],
+};
+
 const fase = (p: number, ini: number, fim: number) =>
   Math.min(1, Math.max(0, (p - ini) / (fim - ini)));
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-// Opacidade de preenchimento por região. Mesma tinta ocre em quatro
-// pesos — sem isso os quatro submercados fundem numa mancha única e a
-// fronteira entre eles some (visto no render de verificação). Vizinhos
-// alternam contraste; o fio interno hairline faz o resto.
-const PESO_FILL: Record<SubmercadoPath['id'], number> = {
-  norte: 0.34,
-  nordeste: 0.18,
-  sudesteCentroOeste: 0.26,
-  sul: 0.12,
-};
-
-// Intercâmbios esquemáticos entre submercados (pares de ids).
 const CONEXOES: ReadonlyArray<readonly [string, string]> = [
   ['sul', 'sudesteCentroOeste'],
   ['sudesteCentroOeste', 'nordeste'],
   ['sudesteCentroOeste', 'norte'],
   ['norte', 'nordeste'],
 ];
+
+// Opacidade de preenchimento por região — vizinhos alternam contraste;
+// o fio interno hairline faz o resto (decisão da Wave 2).
+const PESO_FILL: Record<SubmercadoPath['id'], number> = {
+  norte: 0.34,
+  nordeste: 0.18,
+  sudesteCentroOeste: 0.26,
+  sul: 0.12,
+};
 
 function usePrefereMenosMovimento(): boolean {
   const [reduzido, setReduzido] = useState(
@@ -93,6 +116,9 @@ function usePrefereMenosMovimento(): boolean {
   }, []);
   return reduzido;
 }
+
+const formatoBRL = (v: number) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: PortalHeroProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -133,10 +159,27 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
     };
   }, [scrollHost, reduzido]);
 
+  // Escape da sequência presa: rola o <main> direto para o fim da
+  // pista. Primeiro focável da seção — teclado sai na primeira parada.
+  const pular = useCallback(() => {
+    const host = scrollHost.current;
+    const wrap = wrapRef.current;
+    if (!host || !wrap) return;
+    const alvo =
+      wrap.getBoundingClientRect().bottom -
+      host.getBoundingClientRect().top +
+      host.scrollTop -
+      host.clientHeight;
+    host.scrollTo({ top: alvo, behavior: 'smooth' });
+  }, [scrollHost]);
+
   const p = progresso;
   const tContorno = easeOut(fase(p, 0, 0.25));
-  const tNumero = easeOut(fase(p, 0.7, 1));
-  const valor = PLD_MOCK * tNumero;
+  const tCresce = easeInOut(fase(p, 0.75, 0.95));
+  const opTexto = reduzido ? 1 : 1 - easeOut(fase(p, 0.75, 0.88));
+  const opBarra = reduzido ? 1 : easeOut(fase(p, 0.9, 0.98));
+  const tNumero = easeOut(fase(p, 0.75, 0.98));
+  const valorAgregado = reduzido ? PLD_AGREGADO_MOCK : PLD_AGREGADO_MOCK * tNumero;
 
   const conectores = useMemo(() => {
     const porId = new Map(SUBMERCADOS.map((s) => [s.id, s]));
@@ -148,7 +191,6 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
       const dx = cb[0] - ca[0];
       const dy = cb[1] - ca[1];
       const norma = Math.hypot(dx, dy) || 1;
-      // Bojo perpendicular alternado — diagrama de rede, não rota física.
       const bojo = 0.14 * norma * (i % 2 === 0 ? 1 : -1);
       const cx = mx - (dy / norma) * bojo;
       const cy = my + (dx / norma) * bojo;
@@ -156,211 +198,310 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
     });
   }, []);
 
-  const rotulo: CSSProperties = {
-    fontFamily: JF.mono,
-    fontSize: '10px',
-    letterSpacing: '0.20em',
-    textTransform: 'uppercase',
-  };
+  // ─── O SVG do mapa — compartilhado pelos dois layouts ─────────────
+  const mapa = (
+    <svg
+      viewBox={BRASIL_VIEWBOX}
+      role="group"
+      aria-label="Mapa do Brasil com os quatro submercados do SIN"
+      style={{ width: '100%', height: '100%', display: 'block', overflow: 'visible' }}
+    >
+      {SUBMERCADOS.map((s, i) => {
+        const ini = 0.2 + i * 0.055;
+        const t = reduzido ? 1 : easeOut(fase(p, ini, ini + 0.13));
+        const sobre = regiaoSobre === s.id;
+        const clicavel = t > 0.15;
+        return (
+          <path
+            key={s.id}
+            d={s.d}
+            fillRule="evenodd"
+            fill={J.acenteOcre}
+            fillOpacity={t * (PESO_FILL[s.id] + (sobre ? 0.16 : 0))}
+            stroke={sobre ? J.acenteOcre : J.tintaPrimaria}
+            strokeOpacity={sobre ? 1 : 0.3 * t}
+            strokeWidth={sobre ? 1.2 : 0.7}
+            role="button"
+            tabIndex={clicavel ? 0 : -1}
+            aria-label={`Submercado ${s.nome} — Terminal Brasil, em breve`}
+            style={{
+              cursor: clicavel ? 'pointer' : 'default',
+              pointerEvents: clicavel ? 'auto' : 'none',
+              outlineColor: J.acenteOcre,
+              transition: 'fill-opacity 140ms ease',
+            }}
+            onMouseEnter={() => setRegiaoSobre(s.id)}
+            onMouseLeave={() => setRegiaoSobre(null)}
+            onFocus={() => setRegiaoSobre(s.id)}
+            onBlur={() => setRegiaoSobre(null)}
+            onClick={() => onRegiaoClick(s)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onRegiaoClick(s);
+              }
+            }}
+          />
+        );
+      })}
 
+      <path
+        d={BRASIL_OUTLINE_D}
+        fillRule="evenodd"
+        fill="none"
+        stroke={J.tintaPrimaria}
+        strokeWidth={1.1}
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={reduzido ? 0 : 1 - tContorno}
+        style={{ pointerEvents: 'none' }}
+      />
+
+      {conectores.map((c, i) => {
+        const ini = 0.45 + i * 0.06;
+        const t = reduzido ? 1 : easeOut(fase(p, ini, ini + 0.12));
+        return (
+          <path
+            key={c.chave}
+            d={c.d}
+            fill="none"
+            stroke={J.acenteOcre}
+            strokeWidth={1.4}
+            pathLength={1}
+            strokeDasharray={1}
+            strokeDashoffset={1 - t}
+            opacity={0.85}
+            style={{ pointerEvents: 'none' }}
+          />
+        );
+      })}
+
+      {/* Nós dos centroides — aparecem com os conectores. */}
+      {SUBMERCADOS.map((s, i) => {
+        const t = reduzido ? 1 : easeOut(fase(p, 0.45 + i * 0.04, 0.58 + i * 0.04));
+        return (
+          <circle
+            key={`no-${s.id}`}
+            cx={s.centroid[0]}
+            cy={s.centroid[1]}
+            r={3.2}
+            fill={J.tintaPrimaria}
+            opacity={t}
+            style={{ pointerEvents: 'none' }}
+          />
+        );
+      })}
+
+      {/* Fase nova (75–95%): rótulos regionais ancorados — sigla + PLD
+          ilustrativo. Tamanhos em unidades de viewBox ≈ px no estado
+          final (escala ~1). Piso de 13px respeitado onde o rótulo é
+          legível de fato: no estado crescido. */}
+      {SUBMERCADOS.map((s, i) => {
+        const t = reduzido ? 1 : easeOut(fase(p, 0.78 + i * 0.03, 0.9 + i * 0.03));
+        if (t === 0) return null;
+        const [dx, dy] = ROTULO_OFFSET[s.id];
+        const x = s.centroid[0] + dx;
+        const y = s.centroid[1] + dy;
+        const valor = reduzido ? PLD_REGIONAL_MOCK[s.id] : PLD_REGIONAL_MOCK[s.id] * t;
+        return (
+          <g key={`rotulo-${s.id}`} opacity={t} style={{ pointerEvents: 'none' }}>
+            <line
+              x1={s.centroid[0]}
+              y1={s.centroid[1]}
+              x2={x - 3}
+              y2={y - 4}
+              stroke={J.tintaPrimaria}
+              strokeOpacity={0.35}
+              strokeWidth={0.8}
+            />
+            <text
+              x={x}
+              y={y}
+              fontFamily={JF.mono}
+              fontSize={13}
+              letterSpacing="0.1em"
+              fill={J.tintaSecundaria}
+            >
+              {s.sigla}
+            </text>
+            <text
+              x={x}
+              y={y + 20}
+              fontFamily={JF.mono}
+              fontSize={20}
+              fontWeight={500}
+              fill={J.tintaPrimaria}
+              style={{ fontVariantNumeric: 'tabular-nums' }}
+            >
+              {formatoBRL(valor)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+
+  const eyebrow = (
+    <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal · Brasil</span>
+  );
+
+  const barraPld = (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
+        borderLeft: `3px solid ${J.bordaStrong}`,
+        paddingLeft: '18px',
+      }}
+    >
+      <span style={{ ...JT.h3, color: J.tintaPrimaria }}>{titulo}</span>
+      <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>
+        PLD médio SE/CO · R$/MWh · valor ilustrativo
+      </span>
+      <span
+        data-numeric
+        // fontVariantNumeric literal repetido do JT.dadoDestaque — o
+        // auditor não resolve spread de token; o valor é o mesmo.
+        style={{ ...JT.dadoDestaque, fontVariantNumeric: 'tabular-nums', color: J.tintaPrimaria }}
+      >
+        {formatoBRL(valorAgregado)}
+      </span>
+    </div>
+  );
+
+  // ─── Reduced-motion: composição estática própria, em fluxo ────────
+  // Nada de pista, nada de sticky, nada esmaecido. Todo o conteúdo
+  // (parágrafo incluso) legível — esmaecer texto para quem nunca viu
+  // as fases seria perda de conteúdo, não redução de movimento.
+  if (reduzido) {
+    return (
+      <section
+        aria-label="O Sistema Interligado Nacional em quatro submercados"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '40px',
+          padding: '56px 0',
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '62ch' }}>
+          {eyebrow}
+          <h1 style={{ ...JT.h1, margin: 0, color: J.tintaPrimaria }}>{titulo}</h1>
+          <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{subtitulo}</p>
+        </div>
+        <div style={{ width: 'min(680px, 88%)', aspectRatio: '720 / 755', alignSelf: 'center' }}>
+          {mapa}
+        </div>
+        {barraPld}
+      </section>
+    );
+  }
+
+  // ─── Sequência imersiva ───────────────────────────────────────────
   return (
-    // Pista de rolagem: o palco fica sticky enquanto o wrapper percorre
-    // ~1.8 viewports — é esse percurso que vira o progresso da sequência.
-    // Com prefers-reduced-motion a pista colapsa e o mapa nasce pronto.
-    <div ref={wrapRef} style={{ height: reduzido ? 'auto' : '280vh' }}>
+    <div ref={wrapRef} style={{ height: '340vh' }}>
       <section
         aria-label="O Sistema Interligado Nacional em quatro submercados"
         style={{
           position: 'sticky',
           top: 0,
-          // Altura do scrollport do <main>: 100vh menos o header de 64px
-          // do PortalBR. Acoplamento consciente com o layout do pai.
+          // Scrollport do <main>: 100vh menos o header de 64px do
+          // PortalBR. Acoplamento consciente com o layout do pai.
           height: 'calc(100vh - 64px)',
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 0.85fr) minmax(0, 1.15fr)',
-          gap: '48px',
-          alignItems: 'center',
           overflow: 'hidden',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* Rótulos de 10px usam tintaSecundaria (4,5:1) — tintaMuted
-              e ocre puro ficam abaixo de AA como texto pequeno sobre os
-              papéis claros; o ocre segue em traço, fill e wash. */}
-          <span style={{ ...rotulo, color: J.tintaSecundaria }}>Portal · Brasil</span>
+        {/* Escape — primeiro focável da seção, some quando a sequência
+            assenta. Ninguém fica preso na pista. */}
+        <button
+          type="button"
+          onClick={pular}
+          aria-hidden={p >= 0.98}
+          tabIndex={p >= 0.98 ? -1 : 0}
+          style={{
+            position: 'absolute',
+            right: '4px',
+            bottom: '20px',
+            zIndex: 3,
+            ...JT.rotulo,
+            color: J.tintaSecundaria,
+            background: J.papelBase,
+            border: `1px solid ${J.bordaDefault}`,
+            borderRadius: 0,
+            padding: '8px 14px',
+            cursor: 'pointer',
+            opacity: p >= 0.98 ? 0 : 1,
+            pointerEvents: p >= 0.98 ? 'none' : 'auto',
+            transition: 'opacity 200ms ease',
+            outlineColor: J.acenteOcre,
+          }}
+        >
+          Pular apresentação ↓
+        </button>
 
-          <h1
-            style={{
-              margin: 0,
-              fontSize: '40px',
-              lineHeight: 1.12,
-              letterSpacing: '-0.02em',
-              fontWeight: 500,
-              color: J.tintaPrimaria,
-            }}
-          >
-            {titulo}
-          </h1>
+        {/* Camada do mapa — nasce menor, levemente à direita do centro;
+            cresce e recentraliza em 75–95% até dominar o palco. */}
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            height: '58%',
+            aspectRatio: '720 / 755',
+            transform: `translate(-50%, -50%) translateX(${(1 - tCresce) * 14}vw) scale(${
+              1 + 0.58 * tCresce
+            })`,
+            zIndex: 1,
+          }}
+        >
+          {mapa}
+        </div>
 
-          <p
-            style={{
-              margin: 0,
-              maxWidth: '48ch',
-              fontSize: '15px',
-              lineHeight: 1.65,
-              color: J.tintaSecundaria,
-            }}
-          >
-            {subtitulo}
-          </p>
-
-          {/* 70–100%: o número sobe. MOCK marcado em texto visível. */}
-          <div
-            style={{
-              marginTop: '18px',
-              paddingTop: '16px',
-              borderTop: `1px solid ${J.bordaDefault}`,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '6px',
-              opacity: 0.4 + 0.6 * tNumero,
-            }}
-          >
-            <span style={{ ...rotulo, color: J.tintaSecundaria }}>
-              PLD médio SE/CO · R$/MWh · valor ilustrativo
-            </span>
-            <span
-              data-numeric
-              style={{
-                fontFamily: JF.mono,
-                fontVariantNumeric: 'tabular-nums',
-                fontSize: '52px',
-                lineHeight: 1,
-                fontWeight: 500,
-                color: J.tintaPrimaria,
-              }}
-            >
-              {valor.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
-          </div>
-
-          {/* Única instrução de rolagem da página — visível também para
-              leitor de tela (sem aria-hidden). */}
+        {/* Camada de texto — recua quando o mapa assume (75–88%). */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: 'min(40%, 560px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '18px',
+            opacity: opTexto,
+            pointerEvents: opTexto < 0.1 ? 'none' : 'auto',
+            zIndex: 2,
+          }}
+        >
+          {eyebrow}
+          <h1 style={{ ...JT.h1, margin: 0, color: J.tintaPrimaria }}>{titulo}</h1>
+          <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{subtitulo}</p>
           <span
             style={{
-              ...rotulo,
+              ...JT.rotulo,
               color: J.tintaSecundaria,
-              opacity: reduzido ? 0 : Math.max(0, 1 - fase(p, 0, 0.1)),
+              opacity: Math.max(0, 1 - fase(p, 0, 0.1)),
             }}
           >
             Role — o mapa se constrói
           </span>
         </div>
 
-        <div style={{ height: '100%', minWidth: 0, padding: '40px 0', boxSizing: 'border-box' }}>
-          <svg
-            viewBox={BRASIL_VIEWBOX}
-            role="group"
-            aria-label="Mapa do Brasil com os quatro submercados do SIN"
-            style={{ width: '100%', height: '100%', display: 'block' }}
-          >
-            {/* 20–50%: submercados reais preenchem em sequência. */}
-            {SUBMERCADOS.map((s, i) => {
-              const ini = 0.2 + i * 0.055;
-              const t = easeOut(fase(p, ini, ini + 0.13));
-              const sobre = regiaoSobre === s.id;
-              const clicavel = t > 0.15;
-              return (
-                <path
-                  key={s.id}
-                  d={s.d}
-                  fillRule="evenodd"
-                  fill={J.acenteOcre}
-                  fillOpacity={t * (PESO_FILL[s.id] + (sobre ? 0.16 : 0))}
-                  stroke={sobre ? J.acenteOcre : J.tintaPrimaria}
-                  strokeOpacity={sobre ? 1 : 0.3 * t}
-                  strokeWidth={sobre ? 1.2 : 0.7}
-                  role="button"
-                  tabIndex={clicavel ? 0 : -1}
-                  aria-label={`Submercado ${s.nome} — Terminal Brasil, em breve`}
-                  style={{
-                    cursor: clicavel ? 'pointer' : 'default',
-                    pointerEvents: clicavel ? 'auto' : 'none',
-                    outlineColor: J.acenteOcre,
-                    transition: 'fill-opacity 140ms ease',
-                  }}
-                  onMouseEnter={() => setRegiaoSobre(s.id)}
-                  onMouseLeave={() => setRegiaoSobre(null)}
-                  onFocus={() => setRegiaoSobre(s.id)}
-                  onBlur={() => setRegiaoSobre(null)}
-                  onClick={() => onRegiaoClick(s)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      onRegiaoClick(s);
-                    }
-                  }}
-                />
-              );
-            })}
-
-            {/* 0–25%: contorno IBGE desenha. pathLength=1 normaliza o
-                comprimento — o traço não depende de medição em runtime. */}
-            <path
-              d={BRASIL_OUTLINE_D}
-              fillRule="evenodd"
-              fill="none"
-              stroke={J.tintaPrimaria}
-              strokeWidth={1.1}
-              pathLength={1}
-              strokeDasharray={1}
-              strokeDashoffset={1 - tContorno}
-              style={{ pointerEvents: 'none' }}
-            />
-
-            {/* 45–75%: intercâmbios esquemáticos desenham em sequência. */}
-            {conectores.map((c, i) => {
-              const ini = 0.45 + i * 0.06;
-              const t = easeOut(fase(p, ini, ini + 0.12));
-              return (
-                <path
-                  key={c.chave}
-                  d={c.d}
-                  fill="none"
-                  stroke={J.acenteOcre}
-                  strokeWidth={1.4}
-                  pathLength={1}
-                  strokeDasharray={1}
-                  strokeDashoffset={1 - t}
-                  opacity={0.85}
-                  style={{ pointerEvents: 'none' }}
-                />
-              );
-            })}
-
-            {/* Nós e rótulos de sigla acompanham o preenchimento. */}
-            {SUBMERCADOS.map((s, i) => {
-              const t = easeOut(fase(p, 0.2 + i * 0.055, 0.33 + i * 0.055));
-              return (
-                <g key={`rotulo-${s.id}`} opacity={t} style={{ pointerEvents: 'none' }}>
-                  <circle cx={s.centroid[0]} cy={s.centroid[1]} r={3} fill={J.tintaPrimaria} />
-                  <text
-                    x={s.centroid[0] + 9}
-                    y={s.centroid[1] + 4}
-                    fontFamily={JF.mono}
-                    fontSize={13}
-                    letterSpacing="0.08em"
-                    fill={J.tintaPrimaria}
-                  >
-                    {s.sigla}
-                  </text>
-                </g>
-              );
-            })}
-          </svg>
+        {/* Assentamento (90–100%): headline reintegrado + PLD agregado.
+            O agregado É a referência SE/CO — o mesmo número que o
+            rótulo regional mostra no mapa, promovido a figura. */}
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            bottom: '9%',
+            zIndex: 2,
+            opacity: opBarra,
+            pointerEvents: opBarra < 0.1 ? 'none' : 'auto',
+          }}
+        >
+          {barraPld}
         </div>
       </section>
     </div>

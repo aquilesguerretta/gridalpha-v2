@@ -161,6 +161,10 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
 
   // Escape da sequência presa: rola o <main> direto para o fim da
   // pista. Primeiro focável da seção — teclado sai na primeira parada.
+  // O foco muda para o próprio scroller ANTES de o botão sumir: sem
+  // isso, o aria-hidden do assentamento cai num nó que ainda segura o
+  // foco (violação que o Chromium bloqueia e loga).
+  const botaoPularRef = useRef<HTMLButtonElement>(null);
   const pular = useCallback(() => {
     const host = scrollHost.current;
     const wrap = wrapRef.current;
@@ -170,8 +174,17 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
       host.getBoundingClientRect().top +
       host.scrollTop -
       host.clientHeight;
+    host.focus({ preventScroll: true });
     host.scrollTo({ top: alvo, behavior: 'smooth' });
   }, [scrollHost]);
+
+  // Mesmo resgate quando o usuário rola manualmente até o assentamento
+  // com o foco parado no botão.
+  useEffect(() => {
+    if (progresso >= 0.98 && document.activeElement === botaoPularRef.current) {
+      scrollHost.current?.focus({ preventScroll: true });
+    }
+  }, [progresso, scrollHost]);
 
   const p = progresso;
   const tContorno = easeOut(fase(p, 0, 0.25));
@@ -227,7 +240,7 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             style={{
               cursor: clicavel ? 'pointer' : 'default',
               pointerEvents: clicavel ? 'auto' : 'none',
-              outlineColor: J.acenteOcre,
+              outlineColor: J.acenteOcreEscuro,
               transition: 'fill-opacity 140ms ease',
             }}
             onMouseEnter={() => setRegiaoSobre(s.id)}
@@ -316,30 +329,60 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
               stroke={J.acenteOcre}
               strokeWidth={1}
             />
+            {/* Halo de papel (paint-order) — a etiqueta cai DENTRO do
+                fill ocre da própria região; sem o halo o contraste
+                desaba para ~3:1 (achado da revisão adversarial). */}
             <text
               x={x}
               y={y}
               fontFamily={JF.mono}
-              fontSize={13}
-              letterSpacing="0.1em"
+              fontSize={14}
+              letterSpacing="0.14em"
               fill={J.tintaSecundaria}
+              stroke={J.papelBase}
+              strokeWidth={4}
+              strokeLinejoin="round"
+              style={{ paintOrder: 'stroke' }}
             >
               {s.sigla}
             </text>
             <text
               x={x}
-              y={y + 20}
+              y={y + 21}
               fontFamily={JF.mono}
               fontSize={20}
               fontWeight={500}
               fill={J.acenteOcreEscuro}
-              style={{ fontVariantNumeric: 'tabular-nums' }}
+              stroke={J.papelBase}
+              strokeWidth={5}
+              strokeLinejoin="round"
+              style={{ paintOrder: 'stroke', fontVariantNumeric: 'tabular-nums' }}
             >
               {formatoBRL(valor)}
             </text>
           </g>
         );
       })}
+
+      {/* A marca de ilustrativo entra JUNTO com os primeiros valores
+          regionais (78%), não só na barra final (90%) — sem janela em
+          que número mock apareça sem aviso. */}
+      <text
+        x={360}
+        y={750}
+        textAnchor="middle"
+        fontFamily={JF.mono}
+        fontSize={13}
+        letterSpacing="0.14em"
+        fill={J.tintaSecundaria}
+        stroke={J.papelBase}
+        strokeWidth={4}
+        strokeLinejoin="round"
+        opacity={reduzido ? 1 : easeOut(fase(p, 0.78, 0.9))}
+        style={{ paintOrder: 'stroke', textTransform: 'uppercase', pointerEvents: 'none' }}
+      >
+        PLD por submercado · R$/MWh · valores ilustrativos
+      </text>
     </svg>
   );
 
@@ -407,7 +450,9 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
           <h1 style={{ ...JT.h1, margin: 0, color: J.tintaPrimaria }}>{titulo}</h1>
           <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{subtitulo}</p>
         </div>
-        <div style={{ width: 'min(680px, 88%)', aspectRatio: '720 / 755', alignSelf: 'center' }}>
+        {/* min 770px: abaixo disso a escala do viewBox (720u) derruba a
+            sigla de 14u para menos de 13px renderizados — piso da JT. */}
+        <div style={{ width: 'min(770px, 94%)', aspectRatio: '720 / 755', alignSelf: 'center' }}>
           {mapa}
         </div>
         {barraPld}
@@ -446,15 +491,19 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
           }}
         />
 
-        {/* Legenda de hover — nome completo da região sob o mapa; o
-            polígono sozinho só diz a sigla. */}
+        {/* Legenda de hover — redundância VISUAL do aria-label que os
+            polígonos já carregam; aria-hidden para não virar live
+            region tagarela no leitor de tela. À esquerda, longe do
+            botão de pular, com teto de largura. */}
         <span
-          role="status"
+          aria-hidden="true"
           style={{
             position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            bottom: '22px',
+            left: 0,
+            bottom: '20px',
+            maxWidth: '58%',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
             ...JT.rotulo,
             color: J.acenteOcreEscuro,
             opacity: regiaoSobre ? 1 : 0,
@@ -472,6 +521,7 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         {/* Escape — primeiro focável da seção, some quando a sequência
             assenta. Ninguém fica preso na pista. */}
         <button
+          ref={botaoPularRef}
           type="button"
           onClick={pular}
           aria-hidden={p >= 0.98}
@@ -491,7 +541,7 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             opacity: p >= 0.98 ? 0 : 1,
             pointerEvents: p >= 0.98 ? 'none' : 'auto',
             transition: 'opacity 200ms ease',
-            outlineColor: J.acenteOcre,
+            outlineColor: J.acenteOcreEscuro,
           }}
         >
           Pular apresentação ↓
@@ -506,8 +556,10 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             top: '50%',
             height: '58%',
             aspectRatio: '720 / 755',
+            // 1.65 no fim: garante escala ≥1 do viewBox mesmo em palco
+            // de 836px — os rótulos de 14u nunca caem abaixo de 13px.
             transform: `translate(-50%, -50%) translateX(${(1 - tCresce) * 14}vw) scale(${
-              1 + 0.58 * tCresce
+              1 + 0.65 * tCresce
             })`,
             zIndex: 1,
           }}

@@ -340,7 +340,7 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
           borderRadius: 0,
           padding: 0,
           cursor: 'pointer',
-          outlineColor: J.acenteOcre,
+          outlineColor: J.acenteOcreEscuro,
         }}
       />
     </article>
@@ -393,7 +393,9 @@ function PreviaAlexandria(): ReactNode {
           gap: '5px',
         }}
       >
-        <span style={{ ...mono9, color: ALEXANDRIA_TINTA, opacity: 0.6 }}>Fundações</span>
+        {/* "Currículo" é o rótulo do hub VIVO (LYCEUM Wave 4) — a
+            prévia cita conteúdo real, e o real mudou. */}
+        <span style={{ ...mono9, color: ALEXANDRIA_TINTA, opacity: 0.6 }}>Currículo</span>
         <span style={{ fontSize: '15px', lineHeight: 1.25, color: ALEXANDRIA_TINTA }}>
           Atlas vivo da energia do Brasil
         </span>

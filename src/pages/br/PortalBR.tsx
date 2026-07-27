@@ -1,12 +1,12 @@
 // PortalBR — ARCHITECT, Portal BR Wave 2 · Jaguar.
 //
 // Header fixo → hero (mapa que se constrói no scroll) → índice de
-// destinos → [faixa de independência: ABERTA] → [rodapé: ABERTO].
+// destinos → faixa de independência (afirmativa, Wave 4) → rodapé real.
 //
-// As duas seções abertas são decisão de design, não esquecimento: a
-// redação de negação da faixa foi REJEITADA e a copy nova não existe;
-// o rodapé foi pausado junto. Nenhuma das duas é preenchida por
-// adivinhação aqui — spec §4.
+// A redação de negação da faixa foi REJEITADA em revisão de design; a
+// versão afirmativa atual é copy do implementador sob a autorização
+// aberta da Wave 4, sujeita a veto (commit isolado). O rodapé real
+// saiu do esboço original na Wave 3 e ganhou colunas na Wave 4.
 //
 // SCROLL — segue o idioma do AlexandriaShell: quadro de 100vh, o <main>
 // rola por dentro. O hero lê o scroll desse <main> via ref.
@@ -177,7 +177,10 @@ export function PortalBR() {
         .jaguar-flink {
           font-size: 13px;
           letter-spacing: 0.02em;
-          color: ${J.tintaSecundaria};
+          /* tintaPrimaria, não secundaria: sobre papelSunken a tinta a
+             60% fica em 4,28:1 — abaixo de AA (achado da revisão). O
+             hover fala por sublinhado, não por cor. */
+          color: ${J.tintaPrimaria};
           text-decoration: none;
           background: none;
           border: none;
@@ -186,10 +189,11 @@ export function PortalBR() {
           cursor: pointer;
           text-align: left;
           font-family: inherit;
-          transition: color 140ms ease;
+          outline-color: ${J.acenteOcreEscuro};
         }
         .jaguar-flink:hover, .jaguar-flink:focus-visible {
-          color: ${J.tintaPrimaria};
+          text-decoration: underline;
+          text-underline-offset: 3px;
         }
         @keyframes jaguar-desenha { to { stroke-dashoffset: 0; } }
         .jaguar-planta [data-traco] {
@@ -259,7 +263,7 @@ export function PortalBR() {
         ref={mainRef}
         tabIndex={0}
         aria-label="Portal Brasil — conteúdo rolável"
-        style={{ flex: 1, minHeight: 0, overflowY: 'auto', outlineColor: J.acenteOcre }}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', outlineColor: J.acenteOcreEscuro }}
       >
         <div style={{ maxWidth: MEDIDA, margin: '0 auto', padding: `0 ${RESPIRO_LATERAL}` }}>
           <PortalHero
@@ -333,8 +337,8 @@ export function PortalBR() {
             </div>
           </section>
 
-          {/* ABERTO — spec §4. A copy de negação foi rejeitada; a
-              afirmativa não existe ainda. O componente rende null. */}
+          {/* Versão afirmativa (Wave 4) — copy do implementador,
+              sujeita a veto; ver cabeçalho do componente. */}
           <FaixaIndependencia />
         </div>
 
@@ -357,7 +361,7 @@ export function PortalBR() {
               position: 'absolute',
               inset: 0,
               backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(
-                `<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M0 0H56M0 0V56' stroke='%231C140D' stroke-width='0.6' fill='none'/><path d='M0 56L56 0' stroke='%231C140D' stroke-width='0.4' fill='none'/></svg>`,
+                `<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M0 0H56M0 0V56' stroke='#1C140D' stroke-width='0.6' fill='none'/><path d='M0 56L56 0' stroke='#1C140D' stroke-width='0.4' fill='none'/></svg>`,
               )}")`,
               backgroundSize: '56px 56px',
               opacity: 0.05,
@@ -402,15 +406,15 @@ export function PortalBR() {
                   >
                     GridAlpha
                   </span>
-                  <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal Brasil</span>
+                  <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Portal Brasil</span>
                 </div>
-                <span style={{ fontSize: '14px', lineHeight: 1.55, color: J.tintaSecundaria }}>
+                <span style={{ fontSize: '14px', lineHeight: 1.55, color: J.tintaPrimaria }}>
                   Análise independente do mercado de energia.
                 </span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Destinos</span>
+                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Destinos</span>
                 {DESTINOS_BR.map((d) =>
                   d.status === 'disponivel' && d.rota ? (
                     <Link
@@ -440,7 +444,7 @@ export function PortalBR() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Mercados</span>
+                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Mercados</span>
                 <span style={{ fontSize: '13px', color: J.tintaPrimaria }}>
                   Brasil — você está aqui
                 </span>
@@ -462,22 +466,12 @@ export function PortalBR() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px', flexWrap: 'wrap' }}>
-                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Fontes</span>
-                <span
-                  style={{
-                    fontFamily: JF.mono,
-                    fontSize: '13px',
-                    letterSpacing: '0.10em',
-                    textTransform: 'uppercase',
-                    color: J.tintaPrimaria,
-                  }}
-                >
-                  ONS · ANEEL · CCEE · EPE
-                </span>
+                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Fontes</span>
+                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>ONS · ANEEL · CCEE · EPE</span>
               </div>
               {/* Provenância do que está renderizado HOJE: a geografia é
                   IBGE; o dado de mercado ainda é ilustrativo. */}
-              <span style={{ fontFamily: JF.mono, fontSize: '13px', color: J.tintaSecundaria }}>
+              <span style={{ fontFamily: JF.mono, fontSize: '13px', color: J.tintaPrimaria }}>
                 Geografia IBGE · dados de mercado ilustrativos · {new Date().getFullYear()}
               </span>
             </div>
@@ -533,7 +527,9 @@ export function PortalBR() {
                 <span
                   style={{
                     ...JT.rotulo,
-                    color: J.acenteOcreEscuro,
+                    // tintaPrimaria: sobre papelOverlay, ocre escuro no
+                    // wash fica em 4,43:1 — abaixo de AA (revisão).
+                    color: J.tintaPrimaria,
                     background: J.acenteOcreWash,
                     border: `1px solid ${J.bordaAcento}`,
                     borderRadius: 0,
@@ -578,7 +574,7 @@ export function PortalBR() {
                   borderTop: `1px solid ${J.bordaDefault}`,
                 }}
               >
-                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Região</span>
+                <span style={{ ...JT.rotulo, color: J.acenteOcreEscuro }}>Região</span>
                 <span style={{ fontSize: '14px', color: J.tintaPrimaria }}>
                   {zoom.regiao.nome}
                   <span style={{ fontFamily: JF.mono, color: J.tintaSecundaria }}>

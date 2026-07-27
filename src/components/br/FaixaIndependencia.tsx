@@ -59,31 +59,25 @@ export function FaixaIndependencia() {
         </h2>
       </div>
 
+      {/* Só fios horizontais: a borda vertical por índice da primeira
+          versão flutuava ao envelopar em viewport estreito (achado da
+          revisão). Colunas separam-se por respiro; quebra limpa em
+          qualquer largura, primeira coluna sempre alinhada ao título. */}
       <div
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          columnGap: '48px',
+          rowGap: '28px',
           borderTop: `1px solid ${J.bordaDefault}`,
           borderBottom: `1px solid ${J.bordaDefault}`,
+          padding: '24px 0 26px',
         }}
       >
-        {COMPROMISSOS.map((c, i) => (
-          <div
-            key={c.id}
-            style={{
-              padding: `24px ${i === COMPROMISSOS.length - 1 ? '0' : '28px'} 26px ${
-                i === 0 ? '0' : '28px'
-              }`,
-              borderLeft: i > 0 ? `1px solid ${J.bordaDefault}` : 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
-          >
+        {COMPROMISSOS.map((c) => (
+          <div key={c.id} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <h3 style={{ ...JT.h3, margin: 0, color: J.tintaPrimaria }}>{c.titulo}</h3>
-            <p style={{ ...JT.corpo, margin: 0, fontSize: '15px', color: J.tintaSecundaria }}>
-              {c.detalhe}
-            </p>
+            <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{c.detalhe}</p>
           </div>
         ))}
       </div>

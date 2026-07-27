@@ -12,7 +12,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-import { J, JF } from '../../design/jaguar-tokens';
+import { J, JT } from '../../design/jaguar-tokens';
 
 export type MercadoId = 'br' | 'us';
 
@@ -41,13 +41,10 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
 
   const atual: MercadoId = ativo ?? (pathname.startsWith('/br') ? 'br' : 'us');
 
+  // JT.rotulo (13px) — piso de texto de interface da Wave 3; os 10px
+  // da Wave 2 saem. tintaSecundaria, não tintaMuted (contraste AA).
   const rotulo: CSSProperties = {
-    fontFamily: JF.mono,
-    fontSize: '10px',
-    letterSpacing: '0.18em',
-    textTransform: 'uppercase',
-    // tintaSecundaria, não tintaMuted: 10px em tintaMuted fica em
-    // 2,2:1 sobre papelBase — abaixo de AA.
+    ...JT.rotulo,
     color: J.tintaSecundaria,
   };
 
@@ -78,9 +75,7 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
               onFocus={() => setSobre(m.id)}
               onBlur={() => setSobre(null)}
               style={{
-                fontSize: '11px',
-                letterSpacing: '0.10em',
-                textTransform: 'uppercase',
+                ...JT.nav,
                 textDecoration: 'none',
                 color: realcado ? J.tintaPrimaria : J.tintaSecundaria,
                 borderRadius: 0,

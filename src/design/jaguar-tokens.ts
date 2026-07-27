@@ -36,3 +36,73 @@ export const JF = {
   // Sem terceira fonte de exibição — a distinção fica na cor e na
   // densidade da composição, não em tipografia emprestada.
 } as const;
+
+// ─── ESCALA TIPOGRÁFICA (Wave 3) ─────────────────────────────────────
+// Mesmo espírito estrutural do AT da Alexandria (papéis nomeados, não
+// números soltos), valores próprios do Jaguar — sistemas de família,
+// nunca idênticos.
+//
+// Pisos do sistema, auditados contra o render da Wave 2:
+//   · nenhum texto de interface abaixo de 13px (a Wave 2 tinha rótulo
+//     de 10px e nav de 11px — ambos sobem);
+//   · nenhum corpo de parágrafo abaixo de 17px (era 15px no hero e
+//     13px nos cards);
+//   · dado numérico ao vivo lê como protagonista — dadoDestaque é
+//     tamanho de manchete, não de legenda (era 52px).
+export const JT = {
+  h1: {
+    fontFamily: JF.sans,
+    fontSize: '56px',
+    lineHeight: 1.06,
+    letterSpacing: '-0.025em',
+    fontWeight: 500,
+  },
+  h2: {
+    fontFamily: JF.sans,
+    fontSize: '26px',
+    lineHeight: 1.2,
+    letterSpacing: '-0.015em',
+    fontWeight: 500,
+  },
+  h3: {
+    fontFamily: JF.sans,
+    fontSize: '18px',
+    lineHeight: 1.25,
+    letterSpacing: '-0.01em',
+    fontWeight: 500,
+  },
+  corpo: {
+    fontFamily: JF.sans,
+    fontSize: '17px',
+    lineHeight: 1.6,
+    fontWeight: 400,
+  },
+  nav: {
+    fontFamily: JF.sans,
+    fontSize: '13px',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+  },
+  // Rótulo mono: 13px pede tracking menor que os 0.18-0.20em que a
+  // Wave 2 usava em 10px — em 13px aquele tracking vira arame farpado.
+  rotulo: {
+    fontFamily: JF.mono,
+    fontSize: '13px',
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase' as const,
+  },
+  dadoDestaque: {
+    fontFamily: JF.mono,
+    fontSize: '84px',
+    lineHeight: 1,
+    fontWeight: 500,
+    fontVariantNumeric: 'tabular-nums' as const,
+  },
+  dadoRegional: {
+    fontFamily: JF.mono,
+    fontSize: '20px',
+    lineHeight: 1,
+    fontWeight: 500,
+    fontVariantNumeric: 'tabular-nums' as const,
+  },
+} as const;

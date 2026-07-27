@@ -17,7 +17,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { Link, useNavigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 
-import { J, JF } from '../../design/jaguar-tokens';
+import { J, JF, JT } from '../../design/jaguar-tokens';
 import type { DestinoBR } from '../../lib/data/br-destinos';
 
 // Cores REAIS do sistema Alexandria, literais da spec §3 ("papel
@@ -215,21 +215,8 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
           flex: 1,
         }}
       >
-        <h3
-          style={{
-            margin: 0,
-            fontSize: '16px',
-            lineHeight: 1.25,
-            letterSpacing: '-0.01em',
-            fontWeight: 500,
-            color: J.tintaPrimaria,
-          }}
-        >
-          {destino.titulo}
-        </h3>
-        <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.55, color: J.tintaSecundaria }}>
-          {destino.descricao}
-        </p>
+        <h3 style={{ ...JT.h3, margin: 0, color: J.tintaPrimaria }}>{destino.titulo}</h3>
+        <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{destino.descricao}</p>
 
         <div
           style={{
@@ -243,17 +230,7 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
         >
           {disponivel ? (
             <>
-              <span
-                style={{
-                  fontFamily: JF.mono,
-                  fontSize: '10px',
-                  letterSpacing: '0.16em',
-                  textTransform: 'uppercase',
-                  color: J.tintaPrimaria,
-                }}
-              >
-                Acessar
-              </span>
+              <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Acessar</span>
               <span
                 aria-hidden="true"
                 style={{
@@ -273,10 +250,7 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
             // wash passa com folga e o ocre segue presente no fio.
             <span
               style={{
-                fontFamily: JF.mono,
-                fontSize: '10px',
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
+                ...JT.rotulo,
                 color: J.tintaPrimaria,
                 background: J.acenteOcreWash,
                 border: `1px solid ${J.bordaAcento}`,

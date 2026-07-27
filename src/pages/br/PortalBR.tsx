@@ -27,7 +27,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
-import { J, JF } from '../../design/jaguar-tokens';
+import { J, JF, JT } from '../../design/jaguar-tokens';
 import { DESTINOS_BR, type DestinoBR } from '../../lib/data/br-destinos';
 import type { SubmercadoPath } from '../../lib/geo/brasil-outline';
 import { DestinoCard, PlantaBaixa } from '../../components/br/DestinoCard';
@@ -199,7 +199,7 @@ export function PortalBR() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span
             style={{
-              fontSize: '15px',
+              fontSize: '16px',
               fontWeight: 500,
               letterSpacing: '-0.01em',
               color: J.tintaPrimaria,
@@ -211,19 +211,9 @@ export function PortalBR() {
             aria-hidden="true"
             style={{ width: '1px', height: '14px', background: J.bordaDefault }}
           />
-          {/* tintaSecundaria, não ocre: texto de 10px em acenteOcre fica
-              em ~2,9:1 sobre papelBase — o ocre vive em traço e wash. */}
-          <span
-            style={{
-              fontFamily: JF.mono,
-              fontSize: '10px',
-              letterSpacing: '0.20em',
-              textTransform: 'uppercase',
-              color: J.tintaSecundaria,
-            }}
-          >
-            Brasil
-          </span>
+          {/* tintaSecundaria, não ocre: acenteOcre como texto fica em
+              ~2,9:1 sobre papelBase — o ocre vive em traço e wash. */}
+          <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Brasil</span>
         </div>
 
         {/* Itens exatos de nav seguem não especificados (spec §4) —
@@ -259,17 +249,7 @@ export function PortalBR() {
               gap: '24px',
             }}
           >
-            <span
-              style={{
-                fontFamily: JF.mono,
-                fontSize: '10px',
-                letterSpacing: '0.20em',
-                textTransform: 'uppercase',
-                color: J.tintaSecundaria,
-              }}
-            >
-              Destinos
-            </span>
+            <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Destinos</span>
 
             {/* Cinco cards, mesma moldura e tamanho — spec §3. O peso
                 igual é da especificação; a hierarquia mora DENTRO do
@@ -371,10 +351,7 @@ export function PortalBR() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span
                   style={{
-                    fontFamily: JF.mono,
-                    fontSize: '10px',
-                    letterSpacing: '0.18em',
-                    textTransform: 'uppercase',
+                    ...JT.rotulo,
                     color: J.tintaPrimaria,
                     background: J.acenteOcreWash,
                     border: `1px solid ${J.bordaAcento}`,
@@ -385,17 +362,7 @@ export function PortalBR() {
                 >
                   Em breve
                 </span>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: '22px',
-                    fontWeight: 500,
-                    letterSpacing: '-0.01em',
-                    color: J.tintaPrimaria,
-                  }}
-                >
-                  {zoom.titulo}
-                </h2>
+                <h2 style={{ ...JT.h2, margin: 0, color: J.tintaPrimaria }}>{zoom.titulo}</h2>
               </div>
               <button
                 type="button"
@@ -430,25 +397,15 @@ export function PortalBR() {
                   borderTop: `1px solid ${J.bordaDefault}`,
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: JF.mono,
-                    fontSize: '10px',
-                    letterSpacing: '0.18em',
-                    textTransform: 'uppercase',
-                    color: J.tintaSecundaria,
-                  }}
-                >
-                  Região
-                </span>
-                <span style={{ fontSize: '13px', color: J.tintaPrimaria }}>
+                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Região</span>
+                <span style={{ fontSize: '14px', color: J.tintaPrimaria }}>
                   {zoom.regiao.nome}
                   <span style={{ fontFamily: JF.mono, color: J.tintaSecundaria }}>
                     {' '}
                     · {zoom.regiao.sigla}
                   </span>
                 </span>
-                <span style={{ fontSize: '12px', color: J.tintaSecundaria }}>
+                <span style={{ fontSize: '14px', color: J.tintaSecundaria }}>
                   — abrirá contextualizado por esta região.
                 </span>
               </div>

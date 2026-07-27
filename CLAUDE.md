@@ -1620,3 +1620,80 @@ defensivo na produção para contornar artefato de automação.
 
 **Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` — "No
 findings. Surface is clean." Verificado em 1440×900 e 1920×1080.
+
+## LYCEUM — ALEXANDRIA WAVE 8
+
+**Status:** fechada. `/glossario` deixou de ser stub — os verbetes reais
+do § Lex do Módulo 01 estão na página, com busca e âncora termo → aula.
+
+**Arquivos:** `src/lib/data/alexandria-glossario.ts` (NOVO) ·
+`src/components/alexandria/glossario/GlossarioView.tsx` (NOVO) ·
+`src/components/alexandria/glossario/GlossaryTermCard.tsx` (NOVO) ·
+`src/pages/alexandria/GlossarioStub.tsx` (corpo substituído; nome de
+arquivo fica — é o contrato de rota da Wave 6) ·
+`src/lib/types/alexandria.ts` (+`GlossaryTerm`, nada mais tocado).
+
+### Extração — 38 termos, não 28
+
+O § Lex tem **38** `details.glossary-item`; a prosa da própria seção diz
+«Vinte e oito termos». Divergência da fonte, registrada no header do
+arquivo de dados e não corrigida — a contagem real do markup vence a
+prosa. Termo, etiqueta (`.unit`) e definição são literais, com HTML
+inline (`<b>`) e entidades preservados; a definição renderiza com
+`dangerouslySetInnerHTML`, mesmo idioma dos blocos de apostila.
+
+**Extensão de tipo, a única além do contrato do brief:** `GlossaryTerm`
+ganhou `unit: string` — a etiqueta de categoria do `.unit` da fonte
+("Corrente", "Instituição", "Contrato"). É dado real; descartá-lo seria
+perda. Documentado no próprio tipo.
+
+### Cruzamento termo → aula
+
+Contra o corpo REAL das nove aulas (`MODULO_01_CORPO` + lead + título),
+método das Waves 4-5: varredura por padrão + leitura das frases nos
+casos de julgamento. Regras: palavra do termo, não símbolo de unidade
+('Volt' não mapeia toda aula que escreve 'V'); sentido do verbete, não
+colisão de string. **Excluídos após leitura:** 'oferta e demanda'
+(aula 03 — sentido sistêmico, não o conceito tarifário), 'diretor de
+energia' (aula 06 — cargo), 'mercado livre potencial' e 'ineficiência'
+(falso positivo de substring), 'motores mais eficientes' (aula 06 —
+adjetivo incidental).
+
+**35 de 38 termos ancorados**, 73 âncoras termo→aula no total:
+
+| Aula | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Termos | 7 | 14 | 6 | 6 | 8 | 8 | 13 | 2 | 9 |
+
+**CCEE, CUSD e PLD ficam com `aulaIds: []`** — definidos no § Lex, mas o
+corpo do Módulo 01 não os usa. O card diz isso ao aluno em vez de
+esconder a linha; é o mesmo idioma de honestidade das contagens null.
+
+### Página
+
+Layout de dicionário de monografia: coluna do termo (Lora versalete) +
+coluna da definição, fio de 1px entre verbetes, marcador de letra em
+Cinzel terracota, tudo visível — glossário impresso na prancha, não
+sanfona. Busca sem caixa (fio embaixo, padrão ⌘K do handoff),
+acento-insensível, cobrindo termo, categoria e definição. Âncora de aula
+é botão terracota sublinhado com número + título real da aula; a rota é
+derivada do catálogo (`getModuleById` → `trilhaId`), nunca digitada.
+
+### Verificação e ambiente
+
+Clique real confirmado: FP → Aula 7 monta com "Aula 7 de 9" e o viewer
+completo; busca "fator de pot" filtra para os 5 verbetes corretos; zero
+erro de console; zero overflow horizontal; 38 verbetes no DOM.
+
+Notas de ambiente (mesma família das waves anteriores): o painel
+Browser oculto não compõe frames — screenshot e clique sintético falham
+sem ser defeito da página. O Playwright MCP estava travado pela sessão
+paralela. Fallback que funcionou: `playwright-core` isolado no
+scratchpad dirigindo o Chrome local headless — screenshots capturados e
+o MESMO clique navegando para a Aula 7. Servidor próprio da sessão em
+porta dedicada via entrada nova no `.claude/launch.json`
+(`--port 5199 --strictPort`), porque o 5173 pertencia a outra janela.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os pré-existentes
+de Recharts em `nest/student/*`). `gridalpha-detect` sobre os 5 arquivos
+da wave — "No findings. Surface is clean."

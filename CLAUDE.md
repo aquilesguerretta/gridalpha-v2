@@ -1221,3 +1221,91 @@ o caso do INST 05, que na fonte tem zero `.instrument-output`.
 
 **Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` sobre os
 20 arquivos — "No findings. Surface is clean."
+
+## ARCHITECT — PORTAL BR WAVE 3 · HERO IMERSIVO E RODAPÉ
+
+**Status:** fechada. Escala tipográfica formal (`JT`), mapa como
+protagonista físico da sequência, ocre com função, rodapé real.
+`FaixaIndependencia` segue TODO — intocada.
+
+### Tipografia — antes/depois (auditado no render da Wave 2)
+
+| Papel | Antes | Depois (JT) |
+| --- | --- | --- |
+| nav / seletor | 11px | 13px `JT.nav` |
+| rótulo mono (eyebrow, badges, FONTES…) | 10px | 13px `JT.rotulo` (tracking 0.18-0.20em → 0.14em) |
+| headline h1 | 40px | 56px `JT.h1` |
+| h2 overlay | 22px | 26px `JT.h2` |
+| h3 card | 16px | 18px `JT.h3` |
+| corpo (hero §, card, overlay) | 15 / 13 / 12px | 17px `JT.corpo` (notas 14px) |
+| PLD agregado | 52px | 84px `JT.dadoDestaque` |
+| dado regional (novo) | — | 20 unidades SVG ≈ 20px `JT.dadoRegional` |
+
+Exceção deliberada: a miniatura da prévia Alexandria (8-9px) é retrato
+em escala de outro produto, não interface do portal.
+
+### Hero — cinco fases, pista de 340vh
+
+Contorno 0-25 · submercados 20-50 · intercâmbios 45-75 · **75-95: mapa
+cresce de 58% para ~93% do palco e recentraliza (translateX 14vw→0,
+scale 1→1.58), texto esmaece, rótulos regionais sigla+PLD ilustrativo
+ancoram nos centroides com leader line** · 90-100: barra compacta
+reintegra headline + PLD agregado. O agregado É a referência SE/CO —
+mesmo número do rótulo regional, promovido a figura; barra com fio
+ocre de 3px.
+
+**Decisão `animation-timeline: view()` vs JS:** JS da Wave 2 estendido.
+Cobertura de scroll-driven animations ainda parcial fora do Chromium
+para `view()`+`animation-range`, e o decisivo: a sequência dirige
+ESTADO React (contadores, rótulos, interpolações SVG), não só CSS —
+duas linhas do tempo dessincronizariam a cena.
+
+**Escape:** botão "Pular apresentação ↓" — primeiro focável da seção,
+some após o assentamento (p≥0.98), rola o `<main>` para o fim da
+pista. Verificado: clique leva scroll além da runway.
+
+**Reduced-motion:** composição ESTÁTICA própria em fluxo (seção
+`position: static`, sem wrapper de 340vh) — eyebrow, headline,
+parágrafo com opacidade 1, mapa grande com rótulos, PLD. NÃO é o
+estado final da animação (que tem texto esmaecido — seria perda de
+conteúdo, não redução de movimento). Verificado com emulação:
+scroll livre, zero prisão, botão de pular ausente.
+
+### Ocre com intenção — e o limite honesto
+
+Aplicado: nav ativo com fio ocre 2px (estado redundante em cor de
+texto + aria-current) · eyebrow com traço ocre líder · fio ocre 3px na
+barra de PLD · nós de centroide ocre com hairline de tinta · leader
+lines e ticks dos rótulos regionais · intercâmbios 1.4→1.8, opacidade
+cheia. **Ocre como TEXTO segue impossível com a folha atual:** #C17D1F
+fica em ~2,7-2,9:1 sobre os papéis — falha AA em qualquer tamanho. A
+intenção literal do brief (eyebrow em texto ocre) virou traço+tinta.
+Sinal registrado: se "mais cor" ainda parecer pouco, a próxima rodada
+precisa de tom ocre escuro na folha de tokens (≈#8A5A16 passa 4,5:1)
+ou de referência visual nova — não de mais ajuste cego.
+
+### Rodapé real
+
+`papelSunken`, textura de rede hairline (malha + diagonal de tinta a
+5%, data-uri), FONTES · ONS · ANEEL · CCEE · EPE em Geist Mono 13px,
+marca + Portal Brasil + ano, e linha de proveniência do que está
+renderizado hoje: "Geografia IBGE · dados de mercado ilustrativos".
+Desacoplado da faixa de independência.
+
+### Retestes de regressão (os dois riscos da wave)
+
+- **Teclado:** ordem de Tab verificada — seletor → `<main>` focável →
+  "Pular apresentação" → cards. Escape ativado por teclado leva além
+  da pista. Nota de ambiente: PageDown programático não rola nem o
+  portal NEM a landing americana (scroller de documento, intocada) na
+  janela de automação ocluída — mesma classe do throttling de rAF/VT
+  documentado na Wave 2; artefato de ambiente, não regressão.
+- **Reduced-motion:** emulado via Playwright — seção estática em
+  fluxo, `scrollHeight` livre, conteúdo integral visível.
+
+**Gates:** `tsc -b` 0 erros nos arquivos da wave (restam os
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
+sobre a superfície BR — "No findings. Surface is clean." (o único P1
+intermediário foi falso positivo de spread de token, resolvido com o
+literal `tabular-nums` redundante). 1440×900 e 1920×1080: sequência em
+0/50/85/100%, rodapé, zero overflow horizontal, zero erro de console.

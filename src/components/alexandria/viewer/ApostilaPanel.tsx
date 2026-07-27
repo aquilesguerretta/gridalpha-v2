@@ -18,7 +18,17 @@ const TOM: Record<string, string> = {
   neutro: A2.fioColunaSobreCreme,
 };
 
-export function ApostilaPanel({ lead, blocos }: { lead?: string; blocos: AulaBloco[] }) {
+export function ApostilaPanel({
+  lead,
+  blocos,
+  gravuras = [],
+}: {
+  lead?: string;
+  blocos: AulaBloco[];
+  /** Nomes de arquivo de `CurriculumAula.illustrations`. Array vazio não
+   *  reserva espaço nenhum — a prancha simplesmente não existe. */
+  gravuras?: string[];
+}) {
   return (
     <article style={{ display: 'flex', flexDirection: 'column', gap: AS.lg }}>
       {lead && (
@@ -34,6 +44,8 @@ export function ApostilaPanel({ lead, blocos }: { lead?: string; blocos: AulaBlo
           dangerouslySetInnerHTML={{ __html: lead }}
         />
       )}
+
+      {gravuras.length > 0 && <Prancha gravuras={gravuras} />}
 
       {blocos.map((b, i) => {
         switch (b.kind) {
@@ -131,6 +143,96 @@ export function ApostilaPanel({ lead, blocos }: { lead?: string; blocos: AulaBlo
       })}
     </article>
   );
+}
+
+/** Prancha de gravuras — a imagem real da biblioteca sobre o papel do
+ *  sistema. Servida de `/alexandria/gravuras/`, fundo transparente,
+ *  proporção preservada (`objectFit: contain`, nunca esticada).
+ *
+ *  Chamada só quando há gravura: array vazio não reserva slot, não deixa
+ *  buraco, não desenha placeholder. */
+function Prancha({ gravuras }: { gravuras: string[] }) {
+  return (
+    <figure
+      style={{
+        margin: 0,
+        display: 'grid',
+        gridTemplateColumns: gravuras.length > 1 ? 'repeat(auto-fit, minmax(200px, 1fr))' : '1fr',
+        gap: AS.lg,
+        borderTop: `1px solid ${A.fioSobreCreme}`,
+        borderBottom: `1px solid ${A.fioSobreCreme}`,
+        padding: `${AS.lg} 0`,
+      }}
+    >
+      {gravuras.map((arquivo) => (
+        <div
+          key={arquivo}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: AS.sm,
+            // Gravura sozinha não ocupa a prancha inteira: as imagens são
+            // quadradas ou 3:2, e esticar a caixa até 1056 px deixaria a
+            // figura ilhada no meio de vazio.
+            maxWidth: gravuras.length > 1 ? 'none' : 420,
+            marginInline: gravuras.length > 1 ? undefined : 'auto',
+          }}
+        >
+          <img
+            src={`/alexandria/gravuras/${arquivo}`}
+            alt={legenda(arquivo)}
+            loading="lazy"
+            style={{
+              width: '100%',
+              height: 'auto',
+              maxHeight: gravuras.length > 1 ? 220 : 380,
+              objectFit: 'contain',
+              display: 'block',
+              borderRadius: AR.none,
+            }}
+          />
+          <figcaption
+            style={{ ...AT.rotulo, fontSize: '9px', color: A2.tintaMetadado, textAlign: 'center' }}
+          >
+            {legenda(arquivo)}
+          </figcaption>
+        </div>
+      ))}
+    </figure>
+  );
+}
+
+/** Legenda derivada do nome do arquivo — `fis-01-dinamo-cc.png` vira
+ *  "Dínamo CC". Derivação determinística, não texto inventado: a
+ *  biblioteca não traz legenda própria.
+ *
+ *  Nome de arquivo é ASCII, então acento se perde na derivação. `ACENTOS`
+ *  devolve a grafia correta das palavras já em uso — é correção
+ *  ortográfica da mesma palavra, não rótulo inventado. Precisa crescer
+ *  conforme mais gravuras forem mapeadas. */
+const ACRONIMOS = new Set(['cc', 'ca', 'ac', 'dc', 'pch', 'gnl', 'pwr', 'h2']);
+const ACENTOS: Record<string, string> = {
+  dinamo: 'dínamo',
+  frequencia: 'frequência',
+  potencia: 'potência',
+  triangulo: 'triângulo',
+  eletrica: 'elétrica',
+  eletrico: 'elétrico',
+  inducao: 'indução',
+  medicao: 'medição',
+  composicao: 'composição',
+};
+
+function legenda(arquivo: string): string {
+  const partes = arquivo.replace(/\.png$/, '').split('-').slice(2);
+  if (!partes.length) return arquivo;
+  return partes
+    .map((bruto, i) => {
+      if (ACRONIMOS.has(bruto)) return bruto.toUpperCase();
+      const p = ACENTOS[bruto] ?? bruto;
+      return i === 0 ? p.charAt(0).toUpperCase() + p.slice(1) : p;
+    })
+    .join(' ');
 }
 
 function Tabela({ linhas }: { linhas: string[][] }) {

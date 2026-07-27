@@ -77,7 +77,9 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
         </div>
 
         <div style={{ paddingTop: AS.xl }}>
-          {aba === 'apostila' && <ApostilaPanel lead={lead} blocos={blocos} />}
+          {aba === 'apostila' && (
+            <ApostilaPanel lead={lead} blocos={blocos} gravuras={aula.illustrations} />
+          )}
 
           {aba === 'referencia' && (
             <AbaVazia

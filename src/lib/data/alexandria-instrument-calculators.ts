@@ -41,7 +41,7 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // usuário. O resultado do cálculo é idêntico; só o efeito colateral de
   // limpar campo alheio não foi portado. Decisão de conteúdo se deve
   // voltar.
-  'inst-02': (i) => {
+  'inst-02': (i): ResultadoInstrumento => {
     const V = i['i02-v'];
     const I = i['i02-i'];
     const R = i['i02-r'];

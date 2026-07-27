@@ -20,6 +20,8 @@ import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { TrilhasHub } from '@/components/alexandria/navigation/TrilhasHub';
 import { CaminhoExpedicao } from '@/components/alexandria/navigation/CaminhoExpedicao';
 import { ModuloAulaList } from '@/components/alexandria/navigation/ModuloAulaList';
+import { AulaViewer } from '@/components/alexandria/viewer/AulaViewer';
+import { getAulaModulo01 } from '@/lib/data/alexandria-modulo-01-content';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 import type {
   CurriculumLevel,
@@ -258,6 +260,9 @@ function AulaRoute() {
     return <NaoEncontrado titulo="Aula não encontrada" />;
   }
 
+  // Conteúdo real existe só para as nove aulas do Módulo 01, extraídas na
+  // Wave 4. As demais caem no estado "ainda não extraída".
+  const aulaReal = getAulaModulo01(`${modulo.id.replace('modulo', 'aula')}-${String(numero).padStart(2, '0')}`);
   const itens = estadosDaTrilha(getModulesByTrilha(trilha.id));
 
   return (
@@ -272,32 +277,48 @@ function AulaRoute() {
         referencias: <SlotReferencias />,
       }}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: AS.lg }}>
-        <Voltar
-          rotulo={`← ${modulo.title}`}
-          para={`/alexandria/trilha/${trilha.id}/modulo/${modulo.id}`}
-        />
-        <span style={{ ...AT.rotulo, color: A.terracota }}>
-          Aula {numero} de {total}
-        </span>
-        <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>{modulo.title}</h1>
-        <div
-          style={{
-            borderLeft: `3px solid ${A.fioSobreCreme}`,
-            padding: `${AS.md} ${AS.xl}`,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: AS.sm,
-          }}
-        >
-          <span style={{ ...AT.h3, color: A.tintaSuave, letterSpacing: '0.08em' }}>
-            Viewer de aula — wave seguinte
+      <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xl }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+          <Voltar
+            rotulo={`← ${modulo.title}`}
+            para={`/alexandria/trilha/${trilha.id}/modulo/${modulo.id}`}
+          />
+          <span style={{ ...AT.rotulo, color: A.terracota }}>
+            Aula {numero} de {total}
           </span>
-          <span style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave, maxWidth: '58ch' }}>
-            A rota existe e a numeração é real. O player de vídeo, a apostila e
-            os instrumentos entram quando o viewer for construído.
-          </span>
+          <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>
+            {aulaReal ? aulaReal.title : modulo.title}
+          </h1>
+          {aulaReal?.subtitle && (
+            <span style={{ ...AT.dado, fontSize: '13px', color: A.tintaSuave }}>
+              {aulaReal.subtitle}
+            </span>
+          )}
         </div>
+
+        {aulaReal ? (
+          // Conteúdo real — só as nove aulas do Módulo 01 extraídas na Wave 4.
+          <AulaViewer aula={aulaReal} />
+        ) : (
+          <div
+            style={{
+              borderLeft: `3px solid ${A.fioSobreCreme}`,
+              padding: `${AS.md} ${AS.xl}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: AS.sm,
+            }}
+          >
+            <span style={{ ...AT.h3, color: A.tintaSuave, letterSpacing: '0.08em' }}>
+              Aula ainda não extraída
+            </span>
+            <span style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave, maxWidth: '58ch' }}>
+              A numeração é real, mas o conteúdo desta aula ainda não foi
+              extraído da fonte. Hoje só as nove aulas do Módulo 01 têm texto,
+              instrumento e exercício.
+            </span>
+          </div>
+        )}
       </div>
     </AlexandriaShell>
   );

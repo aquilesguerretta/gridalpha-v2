@@ -1309,3 +1309,87 @@ sobre a superfície BR — "No findings. Surface is clean." (o único P1
 intermediário foi falso positivo de spread de token, resolvido com o
 literal `tabular-nums` redundante). 1440×900 e 1920×1080: sequência em
 0/50/85/100%, rodapé, zero overflow horizontal, zero erro de console.
+
+## LYCEUM — ALEXANDRIA WAVE 5
+
+**Status:** conversão e mapeamento fechados. **Render pendente** — o
+viewer não tem slot de imagem (ver abaixo).
+
+### Conversão
+
+106 gravuras, `pngquant --quality=65-90 --speed=1 --strip`.
+**260 MB → 42 MB, redução de 84%.** Os 106 nomes seguem idênticos, zero
+renomeado, zero falha. Maior arquivo final: `ins-08-sala-conselho`, 852 KB.
+
+Método: conversão para staging primeiro, com validação de nome,
+assinatura PNG e tamanho mínimo nos 106 antes de trocar no lugar — se
+algum tivesse falhado, a pasta original não teria sido tocada. Nada de
+estado misto.
+
+**Backup:** `C:\Users\aquil\alexandria-gravuras-original-backup`
+(fora do repo e fora do OneDrive, para não disparar upload de 260 MB).
+Verificado por hash MD5: 106/106, zero divergência.
+
+`pngquant 2.17.0` instalado isolado no scratchpad; `package.json` e
+lockfile do repo intocados. Entrada de `gravuras/` removida do
+`.gitignore` (linhas 42-43) — os 106 estão rastreados.
+
+**Verificação de decodificação:** as 106 carregadas no browser com
+`naturalWidth > 0` em todas. Dimensões preservadas, 1024–1536 px. É a
+prova que importa numa conversão com perda — nenhuma corrompeu.
+
+### Mapeamento do Bloco 1
+
+Cruzado por **conteúdo real** das nove aulas extraídas na Wave 4, não
+pelo documento antigo (`alexandria-gravuras-chatgpt.md` não está no
+repo). Método: frequência de termo por aula, seguida de leitura das
+frases reais nos casos de julgamento — frequência sozinha dá falso
+positivo, e deu em dois casos.
+
+| Aula | Gravura | Razão |
+| --- | --- | --- |
+| 01 Energia × Potência | — | "motor" só como exemplo genérico de 15 kW |
+| 02 As sete unidades | `fis-04-triangulo-potencia` | seção dedicada "kVA e kVAr"; enuncia o triângulo retângulo literalmente |
+| 03 Corrente alternada e frequência | `fis-01-dinamo-cc`, `fis-02-alternador-ca`, `fis-06-medidor-frequencia` | o contraste CC×CA **é** o assunto; 60 Hz também |
+| 04 Tensão, corrente e perdas | `fis-03-transformador-elevador` | seção "A solução: trocar corrente por tensão" |
+| 05 Demanda e fator de carga | — | 1 hit incidental |
+| 06 Tensão como categoria econômica | — | 1 hit incidental |
+| 07 Triângulo de potência e FP | `fis-04-triangulo-potencia` | assunto literal do subtítulo, mais o INST 05 |
+| 08 Capacidade instalada | — | zero hits |
+| 09 Qualidade de energia | — | "frequência" aparece como parâmetro de qualidade, não como o medidor |
+
+**4 aulas com gravura, 5 sem. 5 das 6 `fis-` usadas.**
+
+`fis-05-motor-inducao` **não foi mapeada**. Aparece uma única vez em
+todo o módulo, na Aula 07, dentro de uma lista de equipamentos indutivos
+("motores, transformadores, compressores, fornos a arco, bobinas de
+solda"). Menção em lista não faz do motor o assunto. Fica para quando
+existir aula que o trate.
+
+`fis-04` aparece em duas aulas: a 02 introduz o triângulo, a 07 opera
+com ele. Reuso é legítimo.
+
+### As outras 100
+
+`red-` 8, `ger-` 24, `ins-` 8, `mat-` 8, `mer-` 6, `tar-` 9, `geo-` 10,
+`his-` 11, `orn-` 15, `ar-` 1. Todas convertidas, **deliberadamente não
+mapeadas** — não existe aula extraída dos Módulos 02-17 para cruzar.
+`orn-` (15) nunca mapeia para aula: é mobília de interface, referenciada
+direto por componente quando esse componente existir.
+
+Nota da biblioteca: a numeração de `tar-` pula o 05 (vai de `tar-04` a
+`tar-06`). É como a biblioteca chegou; a contagem de 106 não muda.
+
+### Pendência — o viewer não renderiza gravura
+
+O brief da Wave 5 parte de que "o viewer já tem o slot de imagem
+construído desde a Wave 4". **Não tem.** A Wave 4 foi interrompida antes
+dessa parte, e o próprio fechamento dela registrou `illustrations` como
+vazio e pendente. Verificado nesta wave: `0` elementos `<img>` no DOM,
+tanto na Aula 03 (3 gravuras mapeadas) quanto na Aula 08 (nenhuma).
+
+A posse da Wave 5 proíbe tocar componente, então o slot não foi
+construído. `illustrations` está populado e correto; falta quem o leia.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` — "No
+findings. Surface is clean."

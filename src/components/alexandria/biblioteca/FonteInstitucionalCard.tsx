@@ -40,24 +40,13 @@ export function FonteInstitucionalCard({ fonte }: FonteInstitucionalCardProps) {
         borderRadius: AR.none,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: AS.sm }}>
-        <span style={{ ...AT.h2, fontSize: '18px', color: A.tintaSobreCreme }}>
-          {fonte.sigla}
-        </span>
-        {!fonte.comFonte && (
-          <span
-            style={{
-              ...AT.rotulo,
-              fontSize: '9px',
-              color: A.terracota,
-              borderBottom: `1px solid ${A.terracota}`,
-            }}
-            title="A razão social por extenso não tem citação interna no repositório — é razão social pública, não extração."
-          >
-            sem procedência interna
-          </span>
-        )}
-      </div>
+      {/* Sigla sozinha na primeira linha. A nota de procedência vai no pé
+          do card, não aqui: ao lado da sigla ela quebrava em duas linhas
+          só na ANEEL e empurrava o nome para baixo, desalinhando as
+          quatro razões sociais numa grade que existe para comparação. */}
+      <span style={{ ...AT.h2, fontSize: '18px', color: A.tintaSobreCreme }}>
+        {fonte.sigla}
+      </span>
 
       <span style={{ ...AT.h3, fontSize: '13px', color: A.tintaSobreCreme, letterSpacing: '0.04em' }}>
         {fonte.nome}
@@ -83,6 +72,23 @@ export function FonteInstitucionalCard({ fonte }: FonteInstitucionalCardProps) {
       >
         {fonte.dominio} ↗
       </a>
+
+      {!fonte.comFonte && (
+        <span
+          style={{
+            ...AT.dado,
+            fontSize: '11px',
+            fontStyle: 'italic',
+            lineHeight: 1.45,
+            color: A2.tintaMetadado,
+            marginTop: 'auto',
+            paddingTop: AS.xs,
+            borderTop: `1px solid ${A2.fioClaroSobreCreme}`,
+          }}
+        >
+          Razão social por extenso sem citação interna no repositório.
+        </span>
+      )}
     </article>
   );
 }

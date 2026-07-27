@@ -20,6 +20,9 @@ import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { TrilhasHub } from '@/components/alexandria/navigation/TrilhasHub';
 import { CaminhoExpedicao } from '@/components/alexandria/navigation/CaminhoExpedicao';
 import { ModuloAulaList } from '@/components/alexandria/navigation/ModuloAulaList';
+import { PerfilStub } from './PerfilStub';
+import { AtlasStub } from './AtlasStub';
+import { GlossarioStub } from './GlossarioStub';
 import { AulaViewer } from '@/components/alexandria/viewer/AulaViewer';
 import { getAulaModulo01 } from '@/lib/data/alexandria-modulo-01-content';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
@@ -150,6 +153,9 @@ export function AlexandriaRouter({ trackDeEntrada }: AlexandriaRouterProps) {
       <Route path="trilha/:trilhaId" element={<TrilhaRoute />} />
       <Route path="trilha/:trilhaId/modulo/:moduloId" element={<ModuloRoute />} />
       <Route path="trilha/:trilhaId/modulo/:moduloId/aula/:aulaNumero" element={<AulaRoute />} />
+      <Route path="perfil" element={<PerfilStub />} />
+      <Route path="atlas" element={<AtlasStub />} />
+      <Route path="glossario" element={<GlossarioStub />} />
       <Route path="*" element={<HubRoute trilhaSugeridaId={sugerida} />} />
     </Routes>
   );

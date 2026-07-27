@@ -104,8 +104,15 @@ export interface CurriculumAula {
   subtitle: string | null;
   track: CurriculumTrack;
   language: CurriculumLanguage;
-  durationMinutes: number;
-  difficulty: AulaDifficulty;
+  /** null onde a fonte não declara. O HTML do Módulo 01 não traz duração
+   *  por aula — o hero declara 4-6 horas para o MÓDULO inteiro (é de lá
+   *  que `estimatedHours` do bloco saiu), e o § MAP lista as nove aulas
+   *  sem tempo. Dividir 4-6 h por nove seria inventar. LYCEUM Wave 4. */
+  durationMinutes: number | null;
+  /** null onde a fonte não declara. O Módulo 01 não marca dificuldade em
+   *  nenhuma das nove aulas. Mesmo idioma de `estimatedHoursMin` do
+   *  bloco e de `totalAulas` do módulo. LYCEUM Wave 4. */
+  difficulty: AulaDifficulty | null;
   /** Vazio quando a aula não tem recorte regional. */
   submercados: SubmercadoTag[];
   /** Eixo de categorização transversal aos níveis.

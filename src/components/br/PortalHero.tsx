@@ -316,8 +316,6 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
               stroke={J.acenteOcre}
               strokeWidth={1}
             />
-            {/* Tick ocre marcando o valor — dado vivo leva o acento. */}
-            <rect x={x} y={y + 8} width={14} height={2.5} fill={J.acenteOcre} />
             <text
               x={x}
               y={y}
@@ -334,7 +332,7 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
               fontFamily={JF.mono}
               fontSize={20}
               fontWeight={500}
-              fill={J.tintaPrimaria}
+              fill={J.acenteOcreEscuro}
               style={{ fontVariantNumeric: 'tabular-nums' }}
             >
               {formatoBRL(valor)}
@@ -345,18 +343,16 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
     </svg>
   );
 
-  // Eyebrow com traço ocre líder. A intenção da wave era o TEXTO em
-  // ocre, mas #C17D1F fica em ~2,7-2,9:1 sobre os papéis — falha AA em
-  // qualquer tamanho de texto. Regra de não-regressão vence: o ocre
-  // entra como barra (não-texto), o texto fica em tintaSecundaria.
-  // Registrado no fechamento como limite da folha de tokens atual.
+  // Eyebrow em ocre DE VERDADE — acenteOcreEscuro (Wave 4) passa AA
+  // sobre papelBase, o que o #C17D1F nunca passou. A intenção original
+  // da Fase 3 da Wave 3, destravada pelo token novo.
   const eyebrow = (
     <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       <span
         aria-hidden="true"
         style={{ width: '22px', height: '3px', background: J.acenteOcre, flexShrink: 0 }}
       />
-      <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal · Brasil</span>
+      <span style={{ ...JT.rotulo, color: J.acenteOcreEscuro }}>Portal · Brasil</span>
     </span>
   );
 
@@ -379,7 +375,12 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         data-numeric
         // fontVariantNumeric literal repetido do JT.dadoDestaque — o
         // auditor não resolve spread de token; o valor é o mesmo.
-        style={{ ...JT.dadoDestaque, fontVariantNumeric: 'tabular-nums', color: J.tintaPrimaria }}
+        // Ocre escuro: o dado vivo É o lugar da cor (5,09:1 em 84px).
+        style={{
+          ...JT.dadoDestaque,
+          fontVariantNumeric: 'tabular-nums',
+          color: J.acenteOcreEscuro,
+        }}
       >
         {formatoBRL(valorAgregado)}
       </span>
@@ -428,6 +429,46 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
           overflow: 'hidden',
         }}
       >
+        {/* Fio de progresso da sequência — orientação de onde se está
+            na pista presa. Some no assentamento. */}
+        <span
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '2px',
+            width: `${p * 100}%`,
+            background: J.acenteOcre,
+            opacity: p >= 0.98 ? 0 : 1,
+            transition: 'opacity 200ms ease',
+            zIndex: 3,
+          }}
+        />
+
+        {/* Legenda de hover — nome completo da região sob o mapa; o
+            polígono sozinho só diz a sigla. */}
+        <span
+          role="status"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            bottom: '22px',
+            ...JT.rotulo,
+            color: J.acenteOcreEscuro,
+            opacity: regiaoSobre ? 1 : 0,
+            transition: 'opacity 140ms ease',
+            pointerEvents: 'none',
+            zIndex: 3,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {regiaoSobre
+            ? `${SUBMERCADOS.find((s) => s.id === regiaoSobre)?.nome} — Terminal Brasil, em breve`
+            : ''}
+        </span>
+
         {/* Escape — primeiro focável da seção, some quando a sequência
             assenta. Ninguém fica preso na pista. */}
         <button

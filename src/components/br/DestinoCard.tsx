@@ -155,6 +155,11 @@ export interface DestinoCardProps {
 export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   const [sobre, setSobre] = useState(false);
   const navigate = useNavigate();
+  // Só o estado inicial importa aqui — mudança de preferência no meio
+  // da visita re-renderiza no próximo mount.
+  const [reduzido] = useState(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
 
   // A planta baixa desenha AO ENTRAR EM VIEWPORT (spec §3), não no
   // mount — quem chega rolando do hero vê o traço acontecer. Uma vez
@@ -179,6 +184,9 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
 
   const disponivel = destino.status === 'disponivel' && destino.rota !== null;
 
+  // Entrada por viewport: sobe 12px e assenta. Com reduced-motion o
+  // card nasce pronto — mesma regra de estado final de sempre.
+  const entrou = visto || reduzido;
   const quadro: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -189,7 +197,11 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
     textAlign: 'left',
     textDecoration: 'none',
     cursor: 'pointer',
-    transition: 'border-color 140ms ease',
+    opacity: entrou ? 1 : 0,
+    transform: entrou ? 'none' : 'translateY(12px)',
+    transition: reduzido
+      ? 'border-color 140ms ease'
+      : 'border-color 140ms ease, opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0, 0, 1)',
   };
 
   const corpo = (
@@ -251,7 +263,9 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
             <span
               style={{
                 ...JT.rotulo,
-                color: J.tintaPrimaria,
+                // acenteOcreEscuro passa AA sobre o wash (Wave 4) — o
+                // badge finalmente fala na cor do sistema.
+                color: J.acenteOcreEscuro,
                 background: J.acenteOcreWash,
                 border: `1px solid ${J.bordaAcento}`,
                 borderRadius: 0,

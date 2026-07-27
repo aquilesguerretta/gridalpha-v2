@@ -26,6 +26,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { J, JF, JT } from '../../design/jaguar-tokens';
 import { DESTINOS_BR, type DestinoBR } from '../../lib/data/br-destinos';
@@ -63,6 +64,17 @@ function comTransicao(mudanca: () => void) {
 export function PortalBR() {
   const mainRef = useRef<HTMLElement>(null);
   const painelRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  // Identidade de documento da rota — o app compartilha um index.html
+  // só; o título entra e sai com a página.
+  useEffect(() => {
+    const anterior = document.title;
+    document.title = 'GridAlpha — Portal Brasil';
+    return () => {
+      document.title = anterior;
+    };
+  }, []);
   // Quem tinha o foco quando o overlay abriu — restaurado no fechamento.
   const retornoFocoRef = useRef<HTMLElement | null>(null);
   const [zoom, setZoom] = useState<ZoomEmBreve | null>(null);
@@ -129,6 +141,7 @@ export function PortalBR() {
 
   return (
     <div
+      lang="pt-BR"
       style={{
         height: '100vh',
         display: 'flex',
@@ -160,6 +173,23 @@ export function PortalBR() {
         }
         ::view-transition-new(jaguar-painel) {
           animation: jaguar-zoom-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+        }
+        .jaguar-flink {
+          font-size: 13px;
+          letter-spacing: 0.02em;
+          color: ${J.tintaSecundaria};
+          text-decoration: none;
+          background: none;
+          border: none;
+          border-radius: 0;
+          padding: 0;
+          cursor: pointer;
+          text-align: left;
+          font-family: inherit;
+          transition: color 140ms ease;
+        }
+        .jaguar-flink:hover, .jaguar-flink:focus-visible {
+          color: ${J.tintaPrimaria};
         }
         @keyframes jaguar-desenha { to { stroke-dashoffset: 0; } }
         .jaguar-planta [data-traco] {
@@ -239,17 +269,53 @@ export function PortalBR() {
             onRegiaoClick={abrirRegiao}
           />
 
+          {/* Faixa de fatos — só o que é real hoje, em densidade de
+              terminal. Nenhum número inventado. */}
+          <section
+            aria-label="O portal em números"
+            style={{
+              borderTop: `1px solid ${J.bordaDefault}`,
+              borderBottom: `1px solid ${J.bordaDefault}`,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '0 40px',
+              padding: '14px 0',
+            }}
+          >
+            {[
+              '4 submercados no SIN',
+              'Geografia IBGE · malhas v3',
+              `${DESTINOS_BR.length} destinos · ${DESTINOS_BR.filter((d) => d.status === 'disponivel').length} aberto hoje`,
+              'PLD ilustrativo até o Terminal Brasil',
+            ].map((fato, i) => (
+              <span
+                key={fato}
+                style={{
+                  ...JT.rotulo,
+                  color: i === 0 ? J.acenteOcreEscuro : J.tintaSecundaria,
+                  padding: '4px 0',
+                }}
+              >
+                {fato}
+              </span>
+            ))}
+          </section>
+
           <section
             aria-label="Destinos"
             style={{
               padding: '40px 0 64px',
-              borderTop: `1px solid ${J.bordaDefault}`,
               display: 'flex',
               flexDirection: 'column',
               gap: '24px',
             }}
           >
-            <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Destinos</span>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+              <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Destinos</span>
+              <span style={{ ...JT.rotulo, color: J.acenteOcreEscuro }}>
+                1 aberto · 4 em construção
+              </span>
+            </div>
 
             {/* Cinco cards, mesma moldura e tamanho — spec §3. O peso
                 igual é da especificação; a hierarquia mora DENTRO do
@@ -312,28 +378,76 @@ export function PortalBR() {
             <div
               style={{
                 display: 'flex',
-                alignItems: 'baseline',
                 justifyContent: 'space-between',
-                gap: '20px',
+                gap: '40px',
                 flexWrap: 'wrap',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                <span
-                  style={{
-                    fontSize: '15px',
-                    fontWeight: 500,
-                    letterSpacing: '-0.01em',
-                    color: J.tintaPrimaria,
-                  }}
-                >
-                  GridAlpha
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  maxWidth: '320px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                  <span
+                    style={{
+                      fontSize: '15px',
+                      fontWeight: 500,
+                      letterSpacing: '-0.01em',
+                      color: J.tintaPrimaria,
+                    }}
+                  >
+                    GridAlpha
+                  </span>
+                  <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal Brasil</span>
+                </div>
+                <span style={{ fontSize: '14px', lineHeight: 1.55, color: J.tintaSecundaria }}>
+                  Análise independente do mercado de energia.
                 </span>
-                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal Brasil</span>
               </div>
-              <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>
-                {new Date().getFullYear()}
-              </span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Destinos</span>
+                {DESTINOS_BR.map((d) =>
+                  d.status === 'disponivel' && d.rota ? (
+                    <Link
+                      key={d.id}
+                      className="jaguar-flink"
+                      to={d.rota}
+                      onClick={(e) => {
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+                          return;
+                        e.preventDefault();
+                        comTransicao(() => navigate(d.rota as string));
+                      }}
+                    >
+                      {d.titulo}
+                    </Link>
+                  ) : (
+                    <button
+                      key={d.id}
+                      type="button"
+                      className="jaguar-flink"
+                      onClick={() => abrirDestino(d)}
+                    >
+                      {d.titulo} · em breve
+                    </button>
+                  ),
+                )}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Mercados</span>
+                <span style={{ fontSize: '13px', color: J.tintaPrimaria }}>
+                  Brasil — você está aqui
+                </span>
+                <Link className="jaguar-flink" to="/us">
+                  Estados Unidos
+                </Link>
+              </div>
             </div>
 
             <div
@@ -364,7 +478,7 @@ export function PortalBR() {
               {/* Provenância do que está renderizado HOJE: a geografia é
                   IBGE; o dado de mercado ainda é ilustrativo. */}
               <span style={{ fontFamily: JF.mono, fontSize: '13px', color: J.tintaSecundaria }}>
-                Geografia IBGE · dados de mercado ilustrativos
+                Geografia IBGE · dados de mercado ilustrativos · {new Date().getFullYear()}
               </span>
             </div>
           </div>
@@ -419,7 +533,7 @@ export function PortalBR() {
                 <span
                   style={{
                     ...JT.rotulo,
-                    color: J.tintaPrimaria,
+                    color: J.acenteOcreEscuro,
                     background: J.acenteOcreWash,
                     border: `1px solid ${J.bordaAcento}`,
                     borderRadius: 0,

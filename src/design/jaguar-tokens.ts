@@ -23,6 +23,12 @@ export const J = {
   acenteOcre:      '#C17D1F',
   acenteOcreLight: '#D99A3F',   // hover
   acenteOcreWash:  'rgba(193,125,31,0.10)',   // fundo sutil, badge, chip
+  // Tom escuro do MESMO ocre, para TEXTO — fecha a pendência registrada
+  // nas Waves 2 e 3: #C17D1F fica em ~2,7-3,1:1 sobre os papéis e falha
+  // AA em qualquer tamanho. Este passa 4,5:1 sobre papelBase (5,09),
+  // papelRaised (5,42) e papelOverlay (4,86); sobre papelSunken fica em
+  // 4,35 — ali, só texto grande (≥24px / 18.66px bold) ou tinta.
+  acenteOcreEscuro: '#8A5A16',
 
   // ─── BORDAS — fio de 1px, mesma disciplina do sistema inteiro ────
   bordaDefault: 'rgba(28,20,13,0.12)',

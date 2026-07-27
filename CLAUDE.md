@@ -1988,3 +1988,67 @@ Portal BR Wave 1); as capturas de baixo saem rolando o container.
 **Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
 pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
 sobre os cinco arquivos — "No findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 14
+
+**Status:** fechada, com pendência registrada. Escopo entregue foi menor
+que o pedido, por decisão do war room — ver "o que fica pendente".
+
+### A medição inverteu o diagnóstico
+
+O brief parte de que os estados vazios do rail estão "pequenos e em
+itálico, ilegíveis contra o peso dos rótulos". Medido no computado, antes
+de tocar em qualquer coisa:
+
+| elemento | tamanho | estilo |
+| --- | --- | --- |
+| rótulo de seção | 11px | normal, ouro `#CBAA6E` |
+| placeholder (estado vazio) | **14px** | itálico, `#8CA0B8` |
+| conteúdo populado | **11-12px** | normal |
+| corpo da Apostila (critério) | 16px | normal |
+
+**O placeholder já era o maior texto do rail**, não o menor. A hierarquia
+não quebrava por tamanho — quebrava por peso ótico: o rótulo é Cinzel
+caixa-alta com tracking .18em em ouro, que grita; o conteúdo era itálico
+na tinta mais fraca da paleta navy, que sussurra. Subir o corpo não
+resolveria, e ainda deixaria o estado VAZIO maior que o POPULADO — o
+contrário do que a tela precisa dizer.
+
+### O que mudou em `RailRight.tsx`
+
+As duas propriedades que de fato causavam o problema:
+
+1. **Itálico saiu.** A regra do produto reserva itálico para ênfase
+   editorial — o lead da Apostila. Dado de estado é informação funcional
+   e vai em romano.
+2. **Contraste subiu** de `tintaMetadadoNavy` (`#8CA0B8`, sem rótulo de
+   token no handoff) para `tintaSobreNavySuave` (`#A9B6C8`, declarado
+   `on-navy-muted` com 6.9:1). Passa a ser tinta secundária, não metadado.
+
+Tamanho mantido em `AT.dado` (14px). O brief pede "nunca abaixo do corpo
+da Apostila", que mede 16px — mas a Apostila é superfície de leitura com
+medida de 68ch e o rail é chrome de 300px; aplicar piso de leitura ao
+chrome brigaria com a regra de densidade (40-60 elementos por tela). 14px
+já é o topo da escala de dado e 27% maior que o rótulo.
+
+Rótulo de seção intocado, como mandado.
+
+### O que fica pendente
+
+**O conteúdo populado segue em 11-12px.** Ele não é montado por
+`RailRight` — os cinco componentes `Slot*` vivem em
+`src/pages/alexandria/AlexandriaRouter.tsx` e chegam ao rail como
+`ReactNode` já estilizado. Estilo inline de filho não é sobrescritível
+pelo pai, então não há como corrigir isso de dentro do `RailRight`, e o
+router está fora da posse desta wave.
+
+Sobra também um itálico funcional em `SlotReferencias` ("Documentos de
+apoio aparecem junto com a aula"), pelo mesmo motivo.
+
+A fronteira ficou registrada no cabeçalho do `RailRight.tsx` para quem
+pegar isso depois: **este arquivo é dono do chassi e do estado vazio; a
+tipografia do conteúdo populado é do router.**
+
+**Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` — "No
+findings. Surface is clean." Rail fotografado nos três estados (vazio,
+trilha ativa, aula com conquistas) em 1440×900.

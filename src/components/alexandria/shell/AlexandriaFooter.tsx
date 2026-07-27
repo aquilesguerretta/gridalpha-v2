@@ -41,25 +41,25 @@
 import { Link } from 'react-router-dom';
 import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-tokens';
 import type { AlexandriaNavItem } from './AlexandriaHeader';
-import { ALEXANDRIA_TRILHAS, ALEXANDRIA_MODULES } from '../../../lib/data/alexandria-trilhas';
+import { ALEXANDRIA_MODULES } from '../../../lib/data/alexandria-trilhas';
 
-// ── ESTATÍSTICA — derivada dos catálogos, nunca digitada ──────
+// ── PROVENIÊNCIA — derivada dos catálogos, nunca digitada ─────
 //
 // Mesma disciplina da Wave 3: se o número for escrito à mão aqui, ele
 // diverge no dia em que um módulo ganhar HTML. `totalAulas: null`
-// significa 'sem fonte', não 'zero' — por isso a contagem de aulas soma
-// só o que tem procedência, e o rótulo diz 'com fonte' em vez de fingir
-// que 29 é o total do currículo.
-const TOTAL_TRILHAS = ALEXANDRIA_TRILHAS.length;
+// significa 'sem fonte', não 'zero'.
+//
+// A grade de estatística que existia aqui (3 trilhas · 17 módulos ·
+// 29 aulas) FOI REMOVIDA a pedido do Aquiles: esse mesmo número já
+// vive no hero da Wave 7, e repeti-lo no rodapé era o que inflava a
+// altura da faixa permanente sem acrescentar informação.
+//
+// O que sobra são estes dois, e por um papel diferente: a régua de
+// fecho não conta catálogo, declara ESTADO DE EXTRAÇÃO — quantos
+// módulos têm conteúdo verificado contra quantos existem. Isso é
+// proveniência do que está no ar, não vitrine.
 const TOTAL_MODULOS = ALEXANDRIA_MODULES.length;
 const MODULOS_COM_FONTE = ALEXANDRIA_MODULES.filter((m) => m.totalAulas !== null).length;
-const AULAS_COM_FONTE = ALEXANDRIA_MODULES.reduce((s, m) => s + (m.totalAulas ?? 0), 0);
-
-const ESTATISTICA: ReadonlyArray<{ rotulo: string; valor: number; nota?: string }> = [
-  { rotulo: 'Trilhas', valor: TOTAL_TRILHAS },
-  { rotulo: 'Módulos', valor: TOTAL_MODULOS, nota: `${MODULOS_COM_FONTE} com fonte` },
-  { rotulo: 'Aulas', valor: AULAS_COM_FONTE, nota: 'extraídas' },
-];
 
 // ── NAVEGAÇÃO — espelha o header ─────────────────────────────
 //
@@ -123,20 +123,47 @@ const FONTES: ReadonlyArray<{ sigla: string; nome: string; comFonte: boolean }> 
 // arquivo é ASCII) — mesma convenção da Prancha na Wave 5.
 const GRAVURA_BASE = '/alexandria/gravuras';
 
+/** As 15 `orn-` saíram da conversão da Wave 5 todas em 1536x1024 —
+ *  proporção 3:2, verificada arquivo a arquivo nas seis usadas ou
+ *  cogitadas aqui. A caixa de cada gravura é reservada por esta razão
+ *  em vez de por `width: auto`.
+ *
+ *  Isso não é micro-otimização, é correção de bug observado: com
+ *  `width: auto` a imagem mede 0 de largura enquanto não carrega, e um
+ *  elemento de área zero não dispara `loading="lazy"` — a largura nunca
+ *  sai de 0 porque a imagem nunca chega, e a imagem nunca chega porque
+ *  a largura é 0. Três das quatro gravuras ficaram invisíveis assim na
+ *  primeira medição (0x40, 0x44, 0x92); só o mapa escapou, por timing. */
+const RAZAO_ORN = 1536 / 1024;
+
 interface Gravura {
   arquivo: string;
   legenda: string;
   altura: number;
 }
 
+const larguraDe = (g: Gravura) => Math.round(g.altura * RAZAO_ORN);
+
 const G = {
   // Ambientação. Objeto mais 'instrumento científico' da coleção e o
   // único radialmente simétrico — ancora a ponta direita da cartela sem
   // apontar para lugar nenhum, que é o que ambientação deve fazer.
-  astrolabio: { arquivo: 'orn-15-astrolabio.png', legenda: 'Astrolábio', altura: 92 },
+  // ALTURAS — acento de canto, não ilustração de destaque.
+  //
+  // Calibradas contra o orçamento de faixa permanente, não escolhidas
+  // por gosto: a primeira medição deu 250px de rodapé em 1440x900,
+  // sobrando 581px de canvas. Passaram por 92/44/40/30 e depois por
+  // 66/38/34/26 antes de assentarem aqui. Uma gravura de rodapé que
+  // pede atenção está roubando-a do conteúdo — a 40px o astrolábio
+  // ancora a ponta da cartela sem virar figura.
+  astrolabio: { arquivo: 'orn-15-astrolabio.png', legenda: 'Astrolábio', altura: 40 },
 
   // Junto do link de Atlas. O objeto é literalmente o destino.
-  mapa: { arquivo: 'orn-13-mapa-dobrado.png', legenda: 'Mapa dobrado', altura: 30 },
+  // 16px e não mais: esta gravura fica INLINE na linha do link, então
+  // qualquer altura acima da linha de texto empurra a coluna inteira e
+  // se paga em faixa permanente. A 26px a coluna de navegação virava a
+  // mais alta das quatro (135px).
+  mapa: { arquivo: 'orn-13-mapa-dobrado.png', legenda: 'Mapa dobrado', altura: 16 },
 
   // Acento da coluna de fontes. ESCOLHIDA sobre orn-04-estante-arquivo
   // por três razões: (1) são quatro volumes empilhados para quatro
@@ -145,7 +172,7 @@ const G = {
   // estante é objeto alto e estreito e encolheria a nada; (3) 'fonte
   // primária' é o documento publicado — o livro É a fonte, o gaveteiro
   // é o continente, um nível acima do que a seção nomeia.
-  livros: { arquivo: 'orn-01-pilha-livros.png', legenda: 'Pilha de livros', altura: 44 },
+  livros: { arquivo: 'orn-01-pilha-livros.png', legenda: 'Pilha de livros', altura: 26 },
 
   // Acento da coluna de navegação. ESCOLHIDA sobre orn-05-compasso por
   // três razões: (1) sextante é o instrumento de NAVEGAR — mede o
@@ -155,33 +182,46 @@ const G = {
   // contra 15,5% do sextante, e a 40px sobre navy ele vira fiapo
   // invisível; (3) o compasso é altíssimo e estreito, o sextante é
   // compacto e encosta bem numa coluna de links.
-  sextante: { arquivo: 'orn-11-sextante.png', legenda: 'Sextante', altura: 40 },
+  sextante: { arquivo: 'orn-11-sextante.png', legenda: 'Sextante', altura: 24 },
 } as const satisfies Record<string, Gravura>;
 
 /** Gravura decorativa. `aria-hidden` + alt vazio: é mobília, não
  *  conteúdo — um leitor de tela não ganha nada anunciando 'sextante'.
  *
- *  PESO, registrado honestamente: as quatro somam ~1,8 MB e o rodapé é
- *  faixa permanente, então `loading="lazy"` não economiza nada aqui (o
- *  elemento está sempre em viewport). O que dá para fazer de dentro
- *  desta posse é tirá-las do caminho crítico — `fetchPriority="low"` +
- *  `decoding="async"` fazem o browser servir o conteúdo antes da
- *  decoração. A correção de verdade é converter os `orn-` para tamanho
- *  de exibição, e `public/alexandria/gravuras/` é somente-leitura nesta
- *  wave. Mesma classe da pendência do logo de 1.342 KB da Wave 6. */
+ *  SEM `loading="lazy"`, e isso é decisão medida, não esquecimento.
+ *  Lazy aqui não é só inútil — é quebrado. O rodapé é faixa permanente:
+ *  nasce dentro da viewport, num container que não rola. O observer de
+ *  lazy loading nunca dispara para um elemento que já estava lá, e três
+ *  das quatro gravuras ficaram com `currentSrc` vazio e `naturalWidth`
+ *  0 indefinidamente, mesmo com os arquivos respondendo 200 e os
+ *  elementos medindo dentro da tela. Só o mapa escapou.
+ *
+ *  O que fica é o par correto para decoração: `fetchPriority="low"` +
+ *  `decoding="async"` tiram a gravura do caminho crítico sem impedir
+ *  que ela chegue.
+ *
+ *  PESO, registrado honestamente: as quatro somam ~1,8 MB e carregam
+ *  em toda tela do produto, porque a faixa é permanente. A correção de
+ *  verdade é converter os `orn-` para tamanho de exibição — são
+ *  1536x1024 servindo caixas de 26 a 66px de altura. Isso é trabalho de
+ *  wave de asset: `public/alexandria/gravuras/` é somente-leitura aqui.
+ *  Mesma classe da pendência do logo de 1.342 KB da Wave 6. */
 function GravuraOrn({ g, opacidade = 0.82 }: { g: Gravura; opacidade?: number }) {
+  const largura = larguraDe(g);
   return (
     <img
       src={`${GRAVURA_BASE}/${g.arquivo}`}
       alt=""
       aria-hidden="true"
-      loading="lazy"
+      width={largura}
+      height={g.altura}
       decoding="async"
       fetchPriority="low"
       style={{
         display: 'block',
+        width: `${largura}px`,
         height: `${g.altura}px`,
-        width: 'auto',
+        objectFit: 'contain',
         flex: 'none',
         opacity: opacidade,
         borderRadius: AR.none,
@@ -192,18 +232,25 @@ function GravuraOrn({ g, opacidade = 0.82 }: { g: Gravura; opacidade?: number })
 }
 
 /** Rótulo de seção da cartela — Cinzel caixa alta, com o fio embaixo
- *  que é o idioma de separação do sistema (nunca caixa, nunca fundo). */
+ *  que é o idioma de separação do sistema (nunca caixa, nunca fundo).
+ *
+ *  SUBORDINADO DE PROPÓSITO. A 10px/0.18em estes rótulos disputavam
+ *  peso visual com os títulos do rail direito, que é superfície de
+ *  conteúdo — rodapé competindo com conteúdo é inversão de hierarquia.
+ *  A 8px/0.13em eles continuam legíveis (6,8:1 sobre o navy profundo,
+ *  medido) e voltam a ler como legenda de cartela, que é o papel. */
 function RotuloSecao({ children }: { children: React.ReactNode }) {
   return (
     <span
       style={{
         ...AT.rotulo,
-        fontSize: '10px',
+        fontSize: '8px',
+        letterSpacing: '0.13em',
         color: A2.tintaMetadadoNavy,
         display: 'block',
-        paddingBottom: AS.xs,
+        paddingBottom: '3px',
         borderBottom: `1px solid ${A.fioSobreNavy}`,
-        marginBottom: AS.md,
+        marginBottom: AS.sm,
       }}
     >
       {children}
@@ -277,7 +324,13 @@ export function AlexandriaFooter() {
         style={{
           position: 'relative',
           display: 'grid',
-          gridTemplateColumns: '1.15fr 0.85fr 1.35fr auto',
+          // Coluna 1 estreita de propósito. Ela era a mais larga
+          // (1.15fr) quando carregava a grade de estatística; sem ela
+          // sobrou só wordmark + tagline, e 450px para duas linhas
+          // abria exatamente o vazio de landing page que a identidade
+          // proíbe. A largura foi para as fontes, que têm razão social
+          // longa e ganham em caber numa linha cada.
+          gridTemplateColumns: '0.75fr 0.7fr 1.55fr auto',
           gap: AS.xxl,
           alignItems: 'start',
         }}
@@ -313,60 +366,6 @@ export function AlexandriaFooter() {
             Atlas vivo da energia do Brasil
           </span>
 
-          {/* Estatística real. Números derivados dos catálogos em tempo
-              de render — não há literal digitado nesta grade. */}
-          <dl
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'auto 1fr',
-              columnGap: AS.md,
-              rowGap: '3px',
-              margin: `${AS.md} 0 0 0`,
-              alignItems: 'baseline',
-            }}
-          >
-            {ESTATISTICA.map((e) => (
-              <div key={e.rotulo} style={{ display: 'contents' }}>
-                <dd
-                  style={{
-                    ...AT.dado,
-                    fontSize: '15px',
-                    color: A2.ouroSobreNavy,
-                    margin: 0,
-                    textAlign: 'right',
-                    minWidth: '22px',
-                  }}
-                >
-                  {e.valor}
-                </dd>
-                <dt
-                  style={{
-                    ...AT.rotulo,
-                    fontSize: '9px',
-                    color: A2.tintaMetadadoNavy,
-                  }}
-                >
-                  {e.rotulo}
-                  {e.nota && (
-                    <span
-                      style={{
-                        ...AT.corpo,
-                        fontSize: '10px',
-                        fontStyle: 'italic',
-                        letterSpacing: 'normal',
-                        textTransform: 'none',
-                        color: A2.tintaSobreNavySuave,
-                        marginLeft: AS.sm,
-                        maxWidth: 'none',
-                      }}
-                    >
-                      {e.nota}
-                    </span>
-                  )}
-                </dt>
-              </div>
-            ))}
-          </dl>
         </section>
 
         {/* ── 2 · NAVEGAÇÃO ─────────────────────────────────── */}
@@ -414,7 +413,11 @@ export function AlexandriaFooter() {
                 columnGap: AS.md,
                 rowGap: '3px',
                 margin: 0,
-                flex: 1,
+                // Sem `flex: 1`: esticando, o dl empurrava a pilha de
+                // livros para o canto direito da coluna e a gravura
+                // virava um objeto solto no vazio em vez de acento do
+                // bloco que ela acentua.
+                flex: 'none',
                 minWidth: 0,
                 alignItems: 'baseline',
               }}
@@ -488,8 +491,8 @@ export function AlexandriaFooter() {
           justifyContent: 'space-between',
           gap: AS.xl,
           flexWrap: 'wrap',
-          marginTop: AS.lg,
-          paddingTop: AS.md,
+          marginTop: AS.md,
+          paddingTop: AS.sm,
           borderTop: `1px solid ${A.fioSobreNavy}`,
         }}
       >
@@ -516,7 +519,21 @@ export function AlexandriaFooter() {
           }}
         >
           Currículo em extração · {MODULOS_COM_FONTE} de {TOTAL_MODULOS} módulos verificados
-          <span style={{ color: A.fioSobreNavy, margin: `0 ${AS.sm}` }}>·</span>
+          {/* Fio, não caractere. Um '·' pintado na cor de fio fica em
+              1,70:1 — reprova AA como texto, e é anunciado por leitor de
+              tela sem significar nada. O sistema já tem o separador
+              certo: profundidade vem de fio de 1px. */}
+          <span
+            aria-hidden="true"
+            style={{
+              display: 'inline-block',
+              width: '1px',
+              height: '9px',
+              background: A.fioSobreNavy,
+              margin: `0 ${AS.sm}`,
+              verticalAlign: 'baseline',
+            }}
+          />
           Alexandria · GridAlpha · {ano}
         </span>
       </div>

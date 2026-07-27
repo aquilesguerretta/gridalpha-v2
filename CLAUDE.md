@@ -1876,3 +1876,115 @@ Surface is clean." 1440×900 e 1920×1080: 4 seções, 4 gravuras com
 `naturalWidth` 1536, zero erro de console, zero overflow horizontal,
 zero reprova de contraste AA, raio zero e nenhuma `box-shadow` em toda
 a subárvore.
+
+## LYCEUM — ALEXANDRIA WAVE 15
+
+**Status:** fechada. A Biblioteca ganhou superfície própria e a colisão
+de nav que a Wave 6 deixou registrada como pendência está desfeita.
+
+**Arquivos:** `src/pages/alexandria/BibliotecaView.tsx` (NOVO) ·
+`src/components/alexandria/biblioteca/FonteInstitucionalCard.tsx`
+(NOVO) · `AlexandriaRouter.tsx` (uma rota) · `AlexandriaHeader.tsx`
+(destino + estado ativo) · `AlexandriaHome.tsx` (uma string de
+`navAtivo` — ver abaixo).
+
+### Auditoria da Fase 1 — os três achados
+
+1. **Biblioteca e Trilhas apontavam os dois para `/alexandria`.** Bate
+   com o achado da Wave 6, sem desvio.
+2. **`ativoPorRota` devolvia `'biblioteca'` para o hub**, então clicar
+   em Trilhas navegava para o hub e acendia Biblioteca. Era esse o
+   sintoma.
+3. **`references: []` nas NOVE aulas** (L362, 389, 410, 437, 471, 492,
+   519, 546, 567 de `alexandria-modulo-01-content.ts`). Vazio,
+   confirmado por leitura. A Wave 4 já tinha registrado o motivo: «o
+   § Ref é do módulo, não da aula».
+
+**Consequência aplicada:** não existe seção "Documentos por aula" na
+página, e nenhum documento de aula foi inventado. O estado ausente é
+declarado em contorno tracejado terracota — mesmo registro do
+`VideoArea` e do nó de módulo em produção.
+
+### O terceiro estado que o brief não previu
+
+O brief presumia binário: `references` populado (mostra documentos) ou
+vazio (fecha só com as quatro institucionais). A fonte tem um terceiro
+caso — o **§ Ref do Módulo 01** (`alexandria_modulo01.html` L2683-2706)
+traz **oito referências reais** com órgão, título, descrição e domínio.
+É bibliografia do MÓDULO, não da aula, então não é o caso que a regra
+proíbe: nada ali é invenção, é extração literal do mesmo § Ref de onde
+saíram os domínios dos quatro cards.
+
+Incluí como segunda seção porque quatro cards sozinhos numa prancha de
+1120px produzem exatamente o modo de falha que a identidade nomeia — a
+tela "limpa" de landing page, contra o alvo de 40-60 elementos. Vai em
+commit único, e não isolado como a faixa de independência da ARCHITECT
+(Portal BR Wave 4): lá o commit separado protegia copy inventada, e
+aqui não há invenção a proteger. **Para vetar:** remover
+`ReferenciaModulo`, `BIBLIOGRAFIA_MODULO_01` e a `<section>`
+"Bibliografia · Módulo 01"; o resto da página fica de pé sozinho.
+
+### A correção que precisou sair da posse declarada
+
+`AlexandriaHome.tsx` passava `navAtivo="biblioteca"` (L91), e
+declaração explícita **vence** `ativoPorRota` no header. Sem trocar
+essa string, a correção de nav não teria efeito nenhum na rota que mais
+importa: `/alexandria` continuaria acendendo Biblioteca, e clicar em
+Trilhas continuaria acendendo Biblioteca — o defeito inteiro da wave.
+
+O brief listava o arquivo como "hub · nunca modificar". Modifiquei
+**uma string**, sem tocar composição, hero ou `TrilhasHub`, depois de
+confirmar que a Wave 7 fechou (`e7d3714`), que o arquivo estava limpo
+no working tree, e que o brief da Wave 15 não a lista entre as janelas
+paralelas. É a Fase 3 da própria wave — "corrigir nav" — e não havia
+como entregá-la de outro jeito.
+
+### Semântica nova da nav
+
+| Rota | Item aceso |
+| --- | --- |
+| `/alexandria` (entrada + hub) | **Trilhas** |
+| `/alexandria/biblioteca` | Biblioteca |
+| `/alexandria/trilha/*` | Trilhas |
+| `/alexandria/atlas` | Atlas |
+| `/alexandria/glossario` | Glossário |
+| `/alexandria/perfil` | nenhum (tem rota, não tem item) |
+
+O hub passou a pertencer a Trilhas, que é o que ele de fato lista.
+Nenhum par colide.
+
+### Conteúdo
+
+Quatro cards institucionais com sigla, razão social, o que a
+instituição publica e o domínio oficial — `publica` e `dominio`
+literais do § Ref; nenhuma URL adivinhada. Razão social com a
+procedência que a Wave 10 auditou para o rodapé: ONS, CCEE e EPE têm a
+forma por extenso escrita em fonte do repositório, a da ANEEL **não
+aparece em lugar nenhum** e vai marcada como tal no pé do card.
+
+Ajuste de composição feito olhando o render: o marcador de procedência
+estava ao lado da sigla, quebrava em duas linhas só na ANEEL e
+empurrava o nome para baixo, desalinhando as quatro razões sociais numa
+grade que existe para comparação. Foi para o pé do card, com fio
+separador — as quatro siglas e os quatro nomes voltaram a bater.
+
+### Verificação
+
+Clique real nos quatro itens do header, estado lido por
+`aria-current` e não por cor. Sete estados conferidos, **zero falha**:
+entrada → Trilhas · Biblioteca → Biblioteca · Trilhas → Trilhas ·
+Biblioteca de novo → Biblioteca · Glossário → Glossário · Atlas →
+Atlas · dentro de trilha → Trilhas. Zero erro de console, zero overflow
+horizontal, 4 cards, 11 links externos, **todos** com `rel` contendo
+`noopener`.
+
+Nota de ambiente, terceira wave seguida: o painel Browser oculto não
+compõe frames e o Playwright MCP fica travado pela sessão paralela —
+verificação por `playwright-core` isolado no scratchpad dirigindo o
+Chrome local. `fullPage: true` não captura a página inteira porque o
+scroller é o `<main>`, não o documento (o ARCHITECT registrou isso na
+Portal BR Wave 1); as capturas de baixo saem rolando o container.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
+sobre os cinco arquivos — "No findings. Surface is clean."

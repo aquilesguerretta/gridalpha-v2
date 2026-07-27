@@ -288,3 +288,24 @@ export interface Instrument {
   outputs: InstrumentOutput[];
   note: string | null;             // texto de contexto, se existir na fonte
 }
+
+// ─── Glossário (LYCEUM Wave 8) ──────────────────────────────────────────
+// Verbete do § Lex do módulo. Fonte: `details.glossary-item` em
+// `Alexandria modulos/alexandria_modulo01.html` — `.term`, `.unit` e
+// `.glossary-content` extraídos literalmente.
+
+export interface GlossaryTerm {
+  id: string;                      // 'gl-<slug do termo>'
+  term: string;                    // literal do `.term`, ex: 'Fator de potência (FP)'
+  /** Etiqueta de categoria — literal do `.unit` da fonte, ex: 'Corrente',
+   *  'Instituição', 'Contrato'. Campo além do contrato do brief da Wave 8:
+   *  é dado real da fonte, descartá-lo seria perda. */
+  unit: string;
+  /** HTML inline preservado da fonte (`<b>`, entidades). Renderizar com o
+   *  mesmo idioma dos blocos de apostila. */
+  definition: string;
+  /** Aulas onde o termo genuinamente aparece no corpo extraído
+   *  (`MODULO_01_CORPO` + lead + título). Vazio é estado honesto — CCEE,
+   *  CUSD e PLD são definidos no § Lex mas o corpo do módulo não os usa. */
+  aulaIds: string[];
+}

@@ -1380,16 +1380,28 @@ direto por componente quando esse componente existir.
 Nota da biblioteca: a numeração de `tar-` pula o 05 (vai de `tar-04` a
 `tar-06`). É como a biblioteca chegou; a contagem de 106 não muda.
 
-### Pendência — o viewer não renderiza gravura
+### Slot de gravura — construído nesta wave
 
-O brief da Wave 5 parte de que "o viewer já tem o slot de imagem
-construído desde a Wave 4". **Não tem.** A Wave 4 foi interrompida antes
-dessa parte, e o próprio fechamento dela registrou `illustrations` como
-vazio e pendente. Verificado nesta wave: `0` elementos `<img>` no DOM,
-tanto na Aula 03 (3 gravuras mapeadas) quanto na Aula 08 (nenhuma).
+O brief da Wave 5 partia de que "o viewer já tem o slot de imagem
+construído desde a Wave 4". **Não tinha** — a Wave 4 foi interrompida
+antes dessa parte. Posse estendida a `AulaViewer` e `ApostilaPanel`
+(arquivos da própria LYCEUM) por decisão do war room, e o slot foi feito.
 
-A posse da Wave 5 proíbe tocar componente, então o slot não foi
-construído. `illustrations` está populado e correto; falta quem o leia.
+`Prancha` renderiza `illustrations` na aba Apostila, logo após o lead:
+`objectFit: contain` (nunca esticada), fundo transparente sobre o papel,
+fio de 1px em cima e embaixo. Gravura sozinha é limitada a 420px e
+centrada — as imagens são quadradas ou 3:2, e deixar a caixa ir a
+1056px ilhava a figura no meio de vazio. **Array vazio não reserva
+slot**: sem `figure`, sem placeholder, sem buraco.
+
+Legenda derivada do nome do arquivo, com mapa de acento — nome de
+arquivo é ASCII, então `dinamo` precisa virar `dínamo`. É correção
+ortográfica da mesma palavra, não rótulo inventado; o mapa precisa
+crescer conforme mais gravuras forem mapeadas.
+
+**Verificado por `naturalWidth` na tela**, não só presença de tag:
+Aula 03 três gravuras em grade 341×220, todas `nat>0`; Aulas 04 e 07 uma
+cada, `nat 1024×1024`; Aula 08 zero `figure`, layout intacto.
 
 **Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` — "No
 findings. Surface is clean."

@@ -265,12 +265,12 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             key={c.chave}
             d={c.d}
             fill="none"
+            // Mapa é protagonista agora — o intercâmbio intensifica.
             stroke={J.acenteOcre}
-            strokeWidth={1.4}
+            strokeWidth={1.8}
             pathLength={1}
             strokeDasharray={1}
             strokeDashoffset={1 - t}
-            opacity={0.85}
             style={{ pointerEvents: 'none' }}
           />
         );
@@ -284,8 +284,11 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             key={`no-${s.id}`}
             cx={s.centroid[0]}
             cy={s.centroid[1]}
-            r={3.2}
-            fill={J.tintaPrimaria}
+            r={3.6}
+            // Nó de dado vivo em ocre, ancorado por hairline de tinta.
+            fill={J.acenteOcre}
+            stroke={J.tintaPrimaria}
+            strokeWidth={0.6}
             opacity={t}
             style={{ pointerEvents: 'none' }}
           />
@@ -310,10 +313,11 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
               y1={s.centroid[1]}
               x2={x - 3}
               y2={y - 4}
-              stroke={J.tintaPrimaria}
-              strokeOpacity={0.35}
-              strokeWidth={0.8}
+              stroke={J.acenteOcre}
+              strokeWidth={1}
             />
+            {/* Tick ocre marcando o valor — dado vivo leva o acento. */}
+            <rect x={x} y={y + 8} width={14} height={2.5} fill={J.acenteOcre} />
             <text
               x={x}
               y={y}
@@ -341,8 +345,19 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
     </svg>
   );
 
+  // Eyebrow com traço ocre líder. A intenção da wave era o TEXTO em
+  // ocre, mas #C17D1F fica em ~2,7-2,9:1 sobre os papéis — falha AA em
+  // qualquer tamanho de texto. Regra de não-regressão vence: o ocre
+  // entra como barra (não-texto), o texto fica em tintaSecundaria.
+  // Registrado no fechamento como limite da folha de tokens atual.
   const eyebrow = (
-    <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal · Brasil</span>
+    <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <span
+        aria-hidden="true"
+        style={{ width: '22px', height: '3px', background: J.acenteOcre, flexShrink: 0 }}
+      />
+      <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal · Brasil</span>
+    </span>
   );
 
   const barraPld = (
@@ -351,7 +366,8 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        borderLeft: `3px solid ${J.bordaStrong}`,
+        // Fio ocre de 3px — o acento marcando o dado vivo, não decoração.
+        borderLeft: `3px solid ${J.acenteOcre}`,
         paddingLeft: '18px',
       }}
     >

@@ -79,10 +79,11 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
                 textDecoration: 'none',
                 color: realcado ? J.tintaPrimaria : J.tintaSecundaria,
                 borderRadius: 0,
-                // O mercado ativo é marcado por fio embaixo, não por caixa
-                // nem por pílula. Fio de 1px é toda a profundidade que este
-                // sistema usa.
-                borderBottom: `1px solid ${selecionado ? J.tintaPrimaria : 'transparent'}`,
+                // Wave 3: o ativo ganha fio ocre de 2px — mais assertivo
+                // que o hairline de tinta da Wave 2. O estado NÃO depende
+                // do ocre para ser percebido (cor de texto + aria-current
+                // carregam a informação); o fio é o acento com função.
+                borderBottom: `2px solid ${selecionado ? J.acenteOcre : 'transparent'}`,
                 paddingBottom: '3px',
                 transition: 'color 140ms ease, border-bottom-color 140ms ease',
               }}

@@ -1111,3 +1111,113 @@ e 1920x1080: sequência de scroll nos cinco pontos-chave, overlay de
 região, dois estados do índice, caminho card → Alexandria com trilha
 destacada, ciclo de foco do diálogo, zero erro de console, zero
 overflow horizontal.
+
+## LYCEUM — ALEXANDRIA WAVE 4
+
+**Status:** conteúdo fechado; **gravuras pendentes** (ver abaixo).
+
+**Arquivos:** `src/lib/data/alexandria-modulo-01-content.ts` (578) ·
+`alexandria-instrument-calculators.ts` (213) ·
+`src/components/alexandria/viewer/` — AulaViewer (144), InstrumentPanel
+(395), ApostilaPanel (187), ExercicioBlock (115), VideoArea (68).
+
+### Shape real dos tipos, lido na Fase 1
+
+`src/lib/types/alexandria.ts` inalterado desde a FOUNDRY Wave 2 (`d565a51`).
+
+- `Instrument` — `id · kind · title · formula: string | null · fields[] ·
+  outputs[] · note: string | null`. `InstrumentKind` tem 9 membros.
+- `InstrumentField` — `id · label · unit: string | null · kind:
+  'number'|'range'|'select' · defaultValue: number | string · min? · max? ·
+  step? · options?`.
+- `InstrumentOutput` — `id · label · unit: string | null`.
+- `CurriculumAula` — 17 campos; **não tem campo de corpo de texto**.
+- `LessonActivity` — `id · kind · prompt · points · config:
+  Record<string, unknown>`. Sem campo de gabarito: o gabarito vai em
+  `config`, que o contrato deixa solto de propósito.
+- `LessonReference` — `id · title · source · kind · url · sizeBytes ·
+  publishedAt`.
+
+### Extração — parsing determinístico, não transcrição
+
+19 seções `.aula` no HTML; nove são aula, dez são aparato. Resultado:
+**9 aulas · 135 blocos de corpo · 7 instrumentos · 8 exercícios.**
+
+| Aula | Instrumento | Exercícios | Blocos |
+| --- | --- | --- | --- |
+| 01 | inst-01 | Ex 01 | 21 |
+| 02 | inst-02 | Ex 02 | 17 |
+| 03 | — | — | 16 |
+| 04 | inst-03 | Ex 03 | 11 |
+| 05 | inst-04 | Ex 04, Ex 07 | 15 |
+| 06 | — | — | 14 |
+| 07 | inst-05 | Ex 05 | 18 |
+| 08 | inst-06 | Ex 06 | 9 |
+| 09 | — | — | 14 |
+
+**São 8 exercícios, não 6.** Dois tags fogem da forma canônica:
+`Ex · 07 · 3 níveis · Aula 05` (aponta a Aula 05) e
+`Ex · 08 · Síntese · Diagnóstico inicial` (não aponta aula — fica em
+`MODULO_01_SINTESE`). A prosa do § Drill já dizia "seis dos oito".
+
+**O sétimo instrumento** é `LAB · 01`, no aparato § Lab, fora de qualquer
+aula — por isso não aparece no viewer. INST 01-06 estão nas aulas.
+
+### O que a fonte não declara
+
+`video: null` nas nove — não existe vídeo nenhum no HTML. Estado real.
+`durationMinutes: null` e `difficulty: null` nas nove — o hero declara
+4-6 h para o MÓDULO (de onde saiu `estimatedHours` do bloco) e o § MAP
+lista as nove aulas sem tempo nem nível. `submercados`, `competencies`,
+`illustrations`, `references` ficam vazios.
+
+**Extensão de tipo, a única:** `CurriculumAula.durationMinutes` e
+`.difficulty` passam a aceitar `null`. Sem isso não dá para construir
+aula válida sem inventar. Mesmo idioma que `estimatedHoursMin` e
+`totalAulas` já usam. Ninguém consumia os dois campos.
+
+O corpo de texto ficou em `MODULO_01_CORPO`, **ao lado** de
+`CurriculumAula` e não dentro: o contrato não tem campo de corpo, e
+acrescentar um não era estritamente necessário. Candidato a `body`.
+
+### Cálculo portado, não rederivado
+
+Os sete vêm do `<script>` do HTML (L2720-3070). Prova de fidelidade: o
+HTML traz as saídas já renderizadas com os defaults — é o que o script
+produz no load. **16 de 16 valores conferem.**
+
+**Duas coisas sinalizadas, não corrigidas:**
+1. `lab-b-reativo` / `lab-b-total` — o script calcula
+   `(0,92−0,84)×100000×0,4 = R$ 3.200`; o markup estático traz
+   `R$ 1.800`, que corresponde a coeficiente 0,225. O estático é resíduo
+   de uma mudança de coeficiente; como `updateB()` roda no load, o aluno
+   vê 3.200. A porta segue o script.
+2. INST 02 (Lei de Ohm) — no original os handlers de V e de I limpam
+   `R.value` quando o próprio campo é esvaziado; o de R não limpa nada.
+   O efeito colateral não foi portado (a função aqui é pura); o
+   resultado do cálculo é idêntico.
+
+Também preservado: o `|| 1` de INST 04 e 06 em "horas", que faz campo
+vazio virar 1 em vez de estado de espera.
+
+### Viewer
+
+`VideoArea` usa contorno tracejado terracota — o mesmo idioma do nó de
+módulo em produção. Abas Referência / Apostila / Notas / Transcrição; só
+a Apostila tem conteúdo, as outras três dizem o que falta e por quê.
+`InstrumentPanel` é um componente para os nove `kind`; quando `formula`
+é null e `outputs` é vazio, desenha diagrama em vez de imprimir número —
+o caso do INST 05, que na fonte tem zero `.instrument-output`.
+
+### Pendências
+
+- **Gravuras não convertidas.** Fase 0 do brief revisado: 106 arquivos,
+  **260 MB**, ainda em `.gitignore` (linhas 42-43), **0 rastreados**.
+  A conversão `pngquant --quality=65-90` e o povoamento de
+  `illustrations` não foram feitos — próxima wave.
+- **Screenshots não capturados** nesta sessão: o Playwright estava
+  travado por outra sessão e o painel Browser não compõe frames.
+  Verificação foi funcional (valores computados lidos do DOM).
+
+**Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` sobre os
+20 arquivos — "No findings. Surface is clean."

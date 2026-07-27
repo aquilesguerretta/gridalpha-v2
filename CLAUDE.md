@@ -1537,3 +1537,86 @@ Estado ativo derivado da rota, com `itemAtivo` explícito vencendo:
 **Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` sobre 21
 arquivos — "No findings. Surface is clean." Quatro cliques reais
 verificados, mais o retorno de dentro de uma aula.
+
+## LYCEUM — ALEXANDRIA WAVE 7
+
+**Status:** fechada. A entrada de `/alexandria` deixa de cair direto no
+hub: agora é hero + hub na mesma página, um scroll só.
+
+### Auditoria da Fase 1 — o fluxo real antes
+
+`main.tsx` monta `/alexandria/*` → `AlexandriaHome` → `AlexandriaRouter`
+→ `index` → `HubRoute` → `AlexandriaShell` > `TrilhasHub`.
+
+`AlexandriaHome` **não era a página do hub** — desde a Wave 3 é delegador
+puro de todas as rotas. Sem parâmetro caía no hub; com `?trilha=` lia o
+track, resolvia a trilha sugerida e repassava ao router, que a entregava
+ao hub. Nenhum hero em lugar nenhum.
+
+### Desvio do brief, com motivo
+
+A Fase 3 pede "`AlexandriaHome` renderiza Hero + `TrilhasHub`", partindo
+de que o arquivo era a página do hub. Renderizar o hero ali sem mais nada
+o faria aparecer também em `/atlas`, `/perfil` e dentro de cada aula.
+
+O lugar estrutural do hero é o `HubRoute`, dentro de
+`AlexandriaRouter.tsx` — que esta wave não pode tocar. Então
+`AlexandriaHome` passa a interceptar o índice e servir a entrada; todo o
+resto segue para o router intocado. Verificado: `/atlas`, `/perfil` e
+aula 3 não têm hero.
+
+Sem `<Routes>` aninhado de propósito — com o pai casando `/alexandria/*`,
+resolução relativa dentro de splat é o caso que o React Router avisa que
+muda na v7. A decisão é por `pathname`.
+
+**Registrado, não resolvido:** o `index` e o catch-all do
+`AlexandriaRouter` continuam apontando para o `HubRoute`, que agora só é
+alcançável como fallback de endereço desconhecido — e esse fallback mostra
+o hub **sem** hero. Unificar é uma linha no router, quando ele estiver
+liberado.
+
+### Hero
+
+`src/components/alexandria/landing/AlexandriaLandingHero.tsx`. Eyebrow,
+título em `AT.display`, subtítulo, três estatísticas, CTA e gravura.
+
+**Gravura escolhida: `orn-13-mapa-dobrado`**, decidida vendo seis
+candidatas renderizadas lado a lado. É a única que é o Brasil
+especificamente — litoral e território reconhecíveis —, é um mapa (a
+metáfora do atlas) e é horizontal, que é o que a faixa do hero pede.
+Astrolábio e sextante são náuticos; teodolito e compasso são instrumento
+genérico e verticais; o pergaminho está literalmente em branco.
+
+**Estática, nunca interativa.** O mapa vivo é a feature Atlas, que ainda
+não existe — desenhar um aqui competiria com ela em vez de apontar para ela.
+
+**Estatística toda derivada** de `ALEXANDRIA_BLOCKS.length` (17),
+`ALEXANDRIA_TRILHAS.length` (3) e da soma dos `totalAulas` não-nulos (29).
+Nenhum número digitado solto: se o currículo crescer, o hero acompanha.
+Contagem de gravuras ficou de fora justamente por não ser derivável de
+módulo de dado nenhum — seria `106` hardcoded.
+
+### Bug encontrado e corrigido no CTA
+
+`elemento.scrollIntoView({ behavior: 'smooth' })` **não funciona quando o
+scroller é container aninhado** — e o scroller aqui é o `<main>` do shell,
+não o documento. Medido nas três variantes:
+
+| chamada | resultado |
+| --- | --- |
+| `scrollIntoView({behavior:'auto'})` | 477 px |
+| `scrollIntoView({behavior:'smooth'})` | **0** |
+| `main.scrollTo({behavior:'smooth'})` | 477 px |
+
+Corrigido chamando `scrollTo` no `<main>`, achado por `closest('main')`.
+
+**Limitação de ambiente registrada:** com `smooth`, o clique sintético do
+Playwright move 26 px e congela — assinatura de rAF estrangulado na janela
+de automação ocluída, mesma classe que o ARCHITECT documentou para View
+Transitions e PageDown. O caminho `auto` (exercitado via
+`prefers-reduced-motion`) chega aos 476 px sempre, o que prova alvo e
+mecanismo. Mantido `smooth` para usuário real em vez de enfiar um timer
+defensivo na produção para contornar artefato de automação.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` — "No
+findings. Surface is clean." Verificado em 1440×900 e 1920×1080.

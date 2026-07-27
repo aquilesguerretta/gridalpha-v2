@@ -375,7 +375,7 @@ export const MODULO_01_AULAS: CurriculumAula[] = [
     difficulty: null,
     submercados: [],
     competencies: [],
-    illustrations: [],
+    illustrations: ['fis-04-triangulo-potencia.png'],
     video: null,
     activities: [
       {
@@ -402,7 +402,7 @@ export const MODULO_01_AULAS: CurriculumAula[] = [
     difficulty: null,
     submercados: [],
     competencies: [],
-    illustrations: [],
+    illustrations: ['fis-01-dinamo-cc.png', 'fis-02-alternador-ca.png', 'fis-06-medidor-frequencia.png'],
     video: null,
     activities: [
 
@@ -423,7 +423,7 @@ export const MODULO_01_AULAS: CurriculumAula[] = [
     difficulty: null,
     submercados: [],
     competencies: [],
-    illustrations: [],
+    illustrations: ['fis-03-transformador-elevador.png'],
     video: null,
     activities: [
       {
@@ -505,7 +505,7 @@ export const MODULO_01_AULAS: CurriculumAula[] = [
     difficulty: null,
     submercados: [],
     competencies: [],
-    illustrations: [],
+    illustrations: ['fis-04-triangulo-potencia.png'],
     video: null,
     activities: [
       {

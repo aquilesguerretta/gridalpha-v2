@@ -1393,3 +1393,51 @@ construído. `illustrations` está populado e correto; falta quem o leia.
 
 **Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` — "No
 findings. Surface is clean."
+
+## ARCHITECT — PORTAL BR WAVE 4 · AUDITORIA LIVRE
+
+**Status:** fechada. Autorização aberta do Aquiles ("faça todas as
+melhorias que quiser"). Auditoria da página inteira + revisão
+adversarial de 20 agentes (16 achados, 16 confirmados, todos
+corrigidos).
+
+**Token novo:** `acenteOcreEscuro #8A5A16` — fecha a pendência das
+Waves 2-3. Ocre como TEXTO passa AA em papelBase (5,09), papelRaised
+(5,42) e papelOverlay (4,86); em papelSunken (4,35) só texto grande.
+Autorizado pela liberdade da wave; documentado no próprio token.
+
+**Onde o ocre-texto entrou:** eyebrow, PLD 84px, valores regionais do
+mapa (com halo de papel via paint-order — as etiquetas caem dentro do
+fill da própria região), rótulo Região do diálogo, badges (só sobre
+papelRaised — sobre papelOverlay fica em 4,43 e usa tinta).
+
+**Faixa de independência PREENCHIDA (afirmativa).** Copy do
+implementador em commit isolado (`wave 4 faixa independencia
+afirmativa`) para veto por revert limpo: "A análise é o produto" /
+"Todo dado tem origem citada" / "A remuneração vem de quem lê".
+Nenhuma negação como espinha, nenhuma promessa de economia.
+
+**Rodapé completo:** três colunas (marca+tagline · destinos navegáveis
+— Alexandria via view transition, em-breve abrem o overlay · mercados)
++ FONTES ONS·ANEEL·CCEE·EPE + proveniência honesta + ano. **Achado
+crítico da revisão: a textura de rede nunca tinha renderizado** — o
+`%23` pré-codificado passava por encodeURIComponent de novo. Nenhuma
+verificação visual anterior pegou porque a ausência de uma textura a
+5% é invisível em screenshot; só a leitura do computed style provou.
+Todo texto pequeno do rodapé usa tintaPrimaria (tinta a 60% sobre
+papelSunken = 4,28:1, reprovada).
+
+**Outros acréscimos:** document.title próprio com restauração ·
+lang="pt-BR" no root · faixa de fatos reais entre hero e destinos ·
+contagem "1 aberto · 4 em construção" · fio de progresso da sequência
+· legenda de hover com nome da região (aria-hidden — os polígonos já
+falam por aria-label) · entrada dos cards por viewport · disclaimer
+de PLD junto dos rótulos regionais (78%), não só na barra (90%) ·
+resgate de foco do botão Pular no limiar do assentamento · outline de
+foco em acenteOcreEscuro (≥3:1) · prévia Alexandria atualizada para o
+hub vivo ("Currículo") · mapa nunca deixa rótulo cair abaixo de 13px
+(crescimento 1.65, estático 770px, sigla 14u).
+
+**Gates:** `tsc -b` 0 erros nos arquivos da wave · `gridalpha-detect`
+"No findings. Surface is clean." · textura verificada por computed
+style (sem `%2523`) · zero overflow · zero erro de console.

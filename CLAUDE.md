@@ -1697,3 +1697,182 @@ porta dedicada via entrada nova no `.claude/launch.json`
 **Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os pré-existentes
 de Recharts em `nest/student/*`). `gridalpha-detect` sobre os 5 arquivos
 da wave — "No findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 10
+
+**Status:** fechada. O rodapé deixa de ser uma faixa de três frases e
+vira a **cartela do atlas** — quatro seções, como a caixa de legenda no
+canto de uma carta náutica. Fecha a pendência das 15 gravuras `orn-`,
+convertidas na Wave 5 e nunca ligadas a componente nenhum.
+
+**Posse:** `src/components/alexandria/shell/AlexandriaFooter.tsx`
+(único arquivo de produto modificado) + uma entrada nova em
+`.claude/launch.json`. Header, rails e rotas intocados.
+
+### A restrição que decidiu a composição inteira
+
+`AlexandriaShell` é `height: 100vh` + `overflow: hidden`, e o rodapé
+fica **fora** do `<main>` que rola, com `flex: none`. Isto não é rodapé
+de fim de página: é **faixa permanente**. Cada pixel de altura aqui é um
+pixel a menos de canvas de leitura, em toda tela do produto, o tempo
+inteiro.
+
+Foi por isso que a composição é densa e baixa em vez de arejada, e por
+isso que `loading="lazy"` não só não economiza como **quebra** (abaixo).
+A regra de densidade e a restrição estrutural apontam para o mesmo
+lugar, o que é conveniente — mas a segunda não é negociável.
+
+**Medição de fechamento (1440×900 e 1920×1080):**
+
+| Peça | Altura |
+| --- | --- |
+| Rodapé total | **211px** — 24% da tela em 900px, 20% em 1080px |
+| Grade das 4 seções | 119px |
+| Régua de fecho | 28px |
+| Padding (26 × 2) | 52px |
+
+Por seção: Marca 56 · **Navegação 119** · Fontes 97 · Astrolábio 56.
+
+**A altura restante está travada pela Navegação**, que é a única coluna
+com quatro linhas empilhadas. Se ela virasse linha única o piso cairia
+para ~97px (Fontes) e o rodapé para ~180px. Não foi mexido: o Aquiles
+declarou navegação fora de escopo desta wave, junto com o problema
+Trilhas→Biblioteca herdado da Wave 6.
+
+Se um dia o rodapé precisar crescer, o caminho **não** é aumentar o
+padding: é mover `<AlexandriaFooter/>` para dentro do `<main>` no Shell,
+e aí ele rola com o conteúdo. Uma linha, em arquivo de outra posse.
+
+### Escolha de gravura — medida, não opinada
+
+As seis candidatas foram **decodificadas** (palette + `tRNS`, unfilter
+de scanline) antes de qualquer decisão visual. Todas 1536×1024, alpha 0
+nos quatro cantos, tinta média entre `#ab9b82` e `#d2c5aa`.
+
+Isso deu o achado que orientou tudo: **a coleção `orn-` foi desenhada
+para campo escuro.** Contraste de 6,7:1 a 10,7:1 contra o navy do
+rodapé, e só 1,4:1 a 2,3:1 contra o creme. O rodapé navy é o campo
+certo para ela — num canvas creme essas gravuras sumiriam.
+
+| Seção | Gravura | Razão |
+| --- | --- | --- |
+| Ambientação | `orn-15-astrolabio` | Único radialmente simétrico — ancora a ponta da cartela sem apontar para lugar nenhum, que é o que ambientação deve fazer. |
+| Navegação (acento) | `orn-11-sextante` | Ver abaixo. |
+| Navegação (link Atlas) | `orn-13-mapa-dobrado` | O objeto é literalmente o destino. |
+| Fontes primárias | `orn-01-pilha-livros` | Ver abaixo. |
+
+**`orn-01-pilha-livros` sobre `orn-04-estante-arquivo`:** (1) são quatro
+volumes empilhados para quatro fontes primárias — a rima é numérica, não
+forçada; (2) a massa é horizontal e baixa, que é a proporção desta
+faixa, enquanto a estante é objeto alto e estreito e encolheria a nada;
+(3) "fonte primária" é o documento publicado — o livro **é** a fonte, o
+gaveteiro é o continente, um nível acima do que a seção nomeia.
+
+**`orn-11-sextante` sobre `orn-05-compasso`:** (1) sextante é o
+instrumento de **navegar** — mede o ângulo do astro para achar posição;
+compasso é de traçar em prancheta, pertence ao desenho; (2) densidade de
+traço medida no arquivo — o compasso tem **0,9%** de pixels opacos
+contra **15,5%** do sextante, e a 24px sobre navy ele viraria fiapo
+invisível; (3) o compasso é altíssimo e estreito, o sextante é compacto
+e encosta bem numa coluna de links.
+
+`orn-04` e `orn-05` ficam disponíveis — foram avaliadas e preteridas,
+não descartadas.
+
+### Três bugs que só a medição revelou
+
+Nenhum destes aparece em leitura de código, e dois deles são invisíveis
+em screenshot.
+
+1. **`loading="lazy"` impedia três das quatro gravuras de carregar.**
+   O rodapé nasce dentro da viewport, num container que não rola, então
+   o observer de lazy loading nunca dispara. `currentSrc` vazio e
+   `naturalWidth` 0 **indefinidamente**, com os quatro arquivos
+   respondendo 200 e os elementos medindo dentro da tela. Só o mapa
+   escapou, por timing. Removido. Ficam `decoding="async"` +
+   `fetchPriority="low"`, que tiram do caminho crítico sem impedir que
+   a imagem chegue.
+2. **`width: auto` colapsava a caixa para 0** antes de a imagem ter
+   dimensão intrínseca — e um elemento de área zero não dispara lazy,
+   o que fechava o ciclo do bug 1. Caixa agora reservada pela razão
+   real `1536/1024`.
+3. **O separador `·` da régua estava em cor de fio** — 1,70:1, reprova
+   AA como texto, e é anunciado por leitor de tela sem significar nada.
+   Virou fio de 1px de verdade, que é o idioma do sistema
+   ("profundidade vem de fio, nunca de sombra").
+
+### Textura de blueprint — verificada por rede, não por disco
+
+Pedido explícito do Aquiles, por causa do bug do Portal BR Wave 3
+(`%23` duplamente codificado, textura nunca renderizou apesar do arquivo
+estar certo, e nenhuma verificação visual pegou porque a ausência de uma
+textura a 5% é invisível em screenshot).
+
+Verificado aqui por `getComputedStyle` **mais requisição de rede**:
+`background-image` resolve para URL absoluta, retorna **200 · 87.996
+bytes · image/png**, sem dupla codificação. O vetor do Portal não se
+aplica — a banda é PNG externo, não data-URI. Conferida de passagem a
+fibra do canvas (essa **é** data-URI, no Shell): codificada uma vez só,
+também limpa.
+
+### Correções de escala pedidas em revisão
+
+- Rótulos de seção **10px/0.18em → 8px/0.13em**. A 10px disputavam peso
+  visual com os títulos do rail direito — rodapé competindo com
+  conteúdo é inversão de hierarquia.
+- **Grade de estatística removida** (3 trilhas / 17 módulos / 29 aulas).
+  O mesmo número já vive no hero da Wave 7, e era ela que inflava a
+  altura da coluna de marca. Sobrevivem `TOTAL_MODULOS` e
+  `MODULOS_COM_FONTE`, com papel diferente: a régua de fecho não conta
+  catálogo, declara **estado de extração** ("3 de 17 módulos
+  verificados") — proveniência do que está no ar, não vitrine.
+- Gravuras para acento de canto: astrolábio 92→40, livros 44→26,
+  sextante 40→24, mapa 30→16.
+- Grade rebalanceada `1.15fr → 0.75fr` na coluna 1: sem a estatística,
+  450px para wordmark + tagline abria exatamente o vazio de landing
+  page que a identidade proíbe.
+
+### Procedência assimétrica das fontes primárias
+
+Registrada no arquivo em vez de silenciada. Três das quatro razões
+sociais aparecem por extenso em fonte do próprio repositório; a da
+ANEEL **não aparece uma única vez**.
+
+| Sigla | Procedência |
+| --- | --- |
+| ONS | `alexandria-modulo-01-content.ts` L230 + 5× nos HTML dos módulos |
+| CCEE | 3× nos HTML dos módulos |
+| EPE | 1× nos HTML dos módulos |
+| **ANEEL** | **nenhuma.** A sigla ocorre 12+ vezes; a forma por extenso, zero. Marcada no código como razão social pública, não extração. |
+
+### Pendências registradas
+
+- **Peso: as quatro gravuras somam ~1,8 MB e carregam em toda tela**,
+  porque a faixa é permanente. São 1536×1024 servindo caixas de 16 a
+  40px de altura. A correção é converter os `orn-` para tamanho de
+  exibição — trabalho de wave de asset, `public/alexandria/gravuras/` é
+  somente-leitura aqui. Mesma classe da pendência do logo de 1.342 KB
+  da Wave 6, e maior que ela.
+- **`NAV_RODAPE` é duplicação deliberada.** `NAV_PADRAO` não é exportado
+  por `AlexandriaHeader`, e o header está fora da posse desta wave. O
+  tipo `AlexandriaNavItem` vem importado, então a forma não pode
+  divergir sem o compilador reclamar. Quem abrir o header de novo:
+  exportar `NAV_PADRAO` e deletar a constante daqui.
+- Navegação vertical governando a altura (ver acima) — fora de escopo
+  por decisão do Aquiles, junto com Trilhas→Biblioteca.
+
+**Nota de ambiente** (mesma família das waves anteriores): o painel
+Browser oculto não compõe frames, e o Playwright MCP estava travado pela
+sessão paralela. Fallback idêntico ao que a Wave 7 encontrou de forma
+independente — `playwright-core` isolado no scratchpad dirigindo o
+Chrome local. O chromium do `ms-playwright` falha com `spawn UNKNOWN`
+sob o sandbox do shell; o Chrome do sistema funciona. Servidor próprio
+em porta dedicada (`--port 5210 --strictPort`, entrada nova no
+`.claude/launch.json`), porque 5173 e 5199 pertenciam às outras janelas.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os pré-existentes
+de Recharts em `nest/student/*`). `gridalpha-detect` — "No findings.
+Surface is clean." 1440×900 e 1920×1080: 4 seções, 4 gravuras com
+`naturalWidth` 1536, zero erro de console, zero overflow horizontal,
+zero reprova de contraste AA, raio zero e nenhuma `box-shadow` em toda
+a subárvore.

@@ -272,34 +272,101 @@ export function PortalBR() {
           <FaixaIndependencia />
         </div>
 
-        {/* TODO: aguardando copy revisada — rodapé pausado junto com a
-            faixa de independência (spec §4). O esboço de protótipo
-            (papelSunken, textura de rede, fontes ONS/ANEEL/CCEE/EPE em
-            Geist Mono) volta à mesa com ela. Fio mínimo até lá. */}
-        <footer style={{ borderTop: `1px solid ${J.bordaDefault}` }}>
+        {/* Rodapé real (Wave 3) — do esboço do design original:
+            papelSunken, textura sutil de rede, citação de fonte em
+            Geist Mono. Desacoplado da FaixaIndependencia, que segue
+            TODO aguardando copy revisada. */}
+        <footer
+          style={{
+            position: 'relative',
+            borderTop: `1px solid ${J.bordaStrong}`,
+            background: J.papelSunken,
+            overflow: 'hidden',
+          }}
+        >
+          {/* Textura de rede — malha hairline de tinta, teto de 5%. */}
+          <span
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(
+                `<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M0 0H56M0 0V56' stroke='%231C140D' stroke-width='0.6' fill='none'/><path d='M0 56L56 0' stroke='%231C140D' stroke-width='0.4' fill='none'/></svg>`,
+              )}")`,
+              backgroundSize: '56px 56px',
+              opacity: 0.05,
+              pointerEvents: 'none',
+            }}
+          />
           <div
             style={{
+              position: 'relative',
               maxWidth: MEDIDA,
               margin: '0 auto',
-              padding: `24px ${RESPIRO_LATERAL}`,
+              padding: `36px ${RESPIRO_LATERAL} 40px`,
               display: 'flex',
-              alignItems: 'baseline',
-              justifyContent: 'space-between',
-              gap: '20px',
+              flexDirection: 'column',
+              gap: '22px',
             }}
           >
-            <span style={{ fontSize: '12px', color: J.tintaSecundaria }}>GridAlpha</span>
-            <span
+            <div
               style={{
-                fontFamily: JF.mono,
-                fontSize: '10px',
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: J.tintaSecundaria,
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: '20px',
+                flexWrap: 'wrap',
               }}
             >
-              {new Date().getFullYear()}
-            </span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+                <span
+                  style={{
+                    fontSize: '15px',
+                    fontWeight: 500,
+                    letterSpacing: '-0.01em',
+                    color: J.tintaPrimaria,
+                  }}
+                >
+                  GridAlpha
+                </span>
+                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Portal Brasil</span>
+              </div>
+              <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>
+                {new Date().getFullYear()}
+              </span>
+            </div>
+
+            <div
+              style={{
+                borderTop: `1px solid ${J.bordaDefault}`,
+                paddingTop: '18px',
+                display: 'flex',
+                alignItems: 'baseline',
+                justifyContent: 'space-between',
+                gap: '20px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px', flexWrap: 'wrap' }}>
+                <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Fontes</span>
+                <span
+                  style={{
+                    fontFamily: JF.mono,
+                    fontSize: '13px',
+                    letterSpacing: '0.10em',
+                    textTransform: 'uppercase',
+                    color: J.tintaPrimaria,
+                  }}
+                >
+                  ONS · ANEEL · CCEE · EPE
+                </span>
+              </div>
+              {/* Provenância do que está renderizado HOJE: a geografia é
+                  IBGE; o dado de mercado ainda é ilustrativo. */}
+              <span style={{ fontFamily: JF.mono, fontSize: '13px', color: J.tintaSecundaria }}>
+                Geografia IBGE · dados de mercado ilustrativos
+              </span>
+            </div>
           </div>
         </footer>
       </main>

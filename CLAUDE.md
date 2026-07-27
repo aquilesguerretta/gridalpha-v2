@@ -1354,11 +1354,11 @@ positivo, e deu em dois casos.
 | 04 Tensão, corrente e perdas | `fis-03-transformador-elevador` | seção "A solução: trocar corrente por tensão" |
 | 05 Demanda e fator de carga | — | 1 hit incidental |
 | 06 Tensão como categoria econômica | — | 1 hit incidental |
-| 07 Triângulo de potência e FP | `fis-04-triangulo-potencia` | assunto literal do subtítulo, mais o INST 05 |
+| 07 Triângulo de potência e FP | — | o INST 05 desenha o triângulo ao vivo; gravura estática seria redundante (decisão do war room, vendo renderizado) |
 | 08 Capacidade instalada | — | zero hits |
 | 09 Qualidade de energia | — | "frequência" aparece como parâmetro de qualidade, não como o medidor |
 
-**4 aulas com gravura, 5 sem. 5 das 6 `fis-` usadas.**
+**3 aulas com gravura, 6 sem. 5 das 6 `fis-` usadas.**
 
 `fis-05-motor-inducao` **não foi mapeada**. Aparece uma única vez em
 todo o módulo, na Aula 07, dentro de uma lista de equipamentos indutivos
@@ -1366,8 +1366,16 @@ todo o módulo, na Aula 07, dentro de uma lista de equipamentos indutivos
 solda"). Menção em lista não faz do motor o assunto. Fica para quando
 existir aula que o trate.
 
-`fis-04` aparece em duas aulas: a 02 introduz o triângulo, a 07 opera
-com ele. Reuso é legítimo.
+`fis-04` ficou **só na Aula 02**, que apresenta o triângulo pela primeira
+vez. Chegou a ser mapeada também na 07, mas com o render na tela ficou
+claro que ali é redundante — o INST 05 já desenha o triângulo ao vivo e
+dinâmico. Decisão do war room olhando os dois estados renderizados.
+
+`fis-05-motor-inducao` foi renderizada em teste ao lado do triângulo na
+Aula 07, onde cai logo acima do parágrafo "Em equipamentos indutivos —
+motores, transformadores...". O par lia bem, mas a decisão foi manter
+fora: uma menção dentro de lista de cinco equipamentos não faz do motor
+o assunto.
 
 ### As outras 100
 

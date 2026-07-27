@@ -505,7 +505,7 @@ export const MODULO_01_AULAS: CurriculumAula[] = [
     difficulty: null,
     submercados: [],
     competencies: [],
-    illustrations: ['fis-04-triangulo-potencia.png'],
+    illustrations: [],
     video: null,
     activities: [
       {

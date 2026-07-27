@@ -1,6 +1,7 @@
 // AlexandriaRouter — roteador interno do produto.
 //
 //   /alexandria                                   → hub das três trilhas
+//   /alexandria/biblioteca                        → fontes e bibliografia
 //   /alexandria/trilha/:trilhaId                  → caminho de expedição
 //   /alexandria/trilha/:trilhaId/modulo/:moduloId → lista de aula
 //
@@ -23,6 +24,7 @@ import { ModuloAulaList } from '@/components/alexandria/navigation/ModuloAulaLis
 import { PerfilStub } from './PerfilStub';
 import { AtlasStub } from './AtlasStub';
 import { GlossarioStub } from './GlossarioStub';
+import { BibliotecaView } from './BibliotecaView';
 import { AulaViewer } from '@/components/alexandria/viewer/AulaViewer';
 import { getAulaModulo01 } from '@/lib/data/alexandria-modulo-01-content';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
@@ -153,6 +155,7 @@ export function AlexandriaRouter({ trackDeEntrada }: AlexandriaRouterProps) {
       <Route path="trilha/:trilhaId" element={<TrilhaRoute />} />
       <Route path="trilha/:trilhaId/modulo/:moduloId" element={<ModuloRoute />} />
       <Route path="trilha/:trilhaId/modulo/:moduloId/aula/:aulaNumero" element={<AulaRoute />} />
+      <Route path="biblioteca" element={<BibliotecaView />} />
       <Route path="perfil" element={<PerfilStub />} />
       <Route path="atlas" element={<AtlasStub />} />
       <Route path="glossario" element={<GlossarioStub />} />

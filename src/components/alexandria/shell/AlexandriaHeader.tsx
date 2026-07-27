@@ -30,26 +30,33 @@ interface AlexandriaHeaderProps {
   onBuscar?: (termo: string) => void;
 }
 
+// Quatro itens, quatro destinos distintos. Até a Wave 15, Biblioteca e
+// Trilhas apontavam os DOIS para o hub, porque Biblioteca não tinha
+// superfície própria — e o efeito visível era clicar em Trilhas e ver
+// "Biblioteca" acender, que lê como navegação quebrada mesmo estando
+// funcionando por baixo. A Wave 15 deu à Biblioteca a rota que as
+// referências visuais sempre desenharam (fontes e documentos), e o hub
+// passou a pertencer a Trilhas, que é o que ele de fato lista.
 const NAV_PADRAO: AlexandriaNavItem[] = [
-  // Biblioteca e Trilhas apontam para o mesmo lugar de propósito: o hub É a
-  // biblioteca, e é onde as trilhas são listadas. O que os distingue é o
-  // estado ativo — Biblioteca acende no índice, Trilhas acende quando o
-  // aluno está dentro de uma trilha. Clicar em Trilhas de dentro de uma
-  // aula devolve ao índice, que é o comportamento que se espera.
-  { id: 'biblioteca', rotulo: 'Biblioteca', destino: '/alexandria' },
+  { id: 'biblioteca', rotulo: 'Biblioteca', destino: '/alexandria/biblioteca' },
   { id: 'trilhas', rotulo: 'Trilhas', destino: '/alexandria' },
   { id: 'atlas', rotulo: 'Atlas', destino: '/alexandria/atlas' },
   { id: 'glossario', rotulo: 'Glossário', destino: '/alexandria/glossario' },
 ];
 
 /** Deriva o item ativo do endereço atual. `itemAtivo` explícito vence —
- *  é assim que os stubs marcam a própria seção.
+ *  é assim que as páginas marcam a própria seção.
+ *
+ *  O hub acende TRILHAS: ele é o índice das três trilhas, e é para lá
+ *  que o item Trilhas navega. Cada item acende na própria rota e em
+ *  nenhuma outra — nenhum par colide.
  *
  *  `/alexandria/perfil` não acende nenhum: Perfil tem rota mas não tem
  *  item de nav. */
 function ativoPorRota(pathname: string): string | null {
   const p = pathname.replace(/\/+$/, '');
-  if (p === '/alexandria' || p === '') return 'biblioteca';
+  if (p === '/alexandria' || p === '') return 'trilhas';
+  if (p.startsWith('/alexandria/biblioteca')) return 'biblioteca';
   if (p.startsWith('/alexandria/trilha')) return 'trilhas';
   if (p.startsWith('/alexandria/atlas')) return 'atlas';
   if (p.startsWith('/alexandria/glossario')) return 'glossario';

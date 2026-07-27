@@ -88,7 +88,13 @@ function Entrada({ trilhaSugeridaId }: { trilhaSugeridaId: string | null }) {
   };
 
   return (
-    <AlexandriaShell navAtivo="biblioteca">
+    // 'trilhas', não 'biblioteca' (LYCEUM Wave 15 — correção de uma string).
+    // Esta declaração vence `ativoPorRota` no header, então enquanto dizia
+    // 'biblioteca' a entrada acendia Biblioteca — e como o item Trilhas
+    // navega para cá, clicar em Trilhas acendia Biblioteca. Desde que a
+    // Biblioteca ganhou superfície própria em `/alexandria/biblioteca`,
+    // esta página representa Trilhas: ela lista as três.
+    <AlexandriaShell navAtivo="trilhas">
       <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xxl }}>
         <AlexandriaLandingHero onComecar={irParaOHub} />
 

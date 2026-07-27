@@ -39,5 +39,3 @@ venv/
 # Claude Code (local-only settings)
 .claude/settings.local.json
 
-# Alexandria gravuras — 260 MB, pending Git LFS / optimization decision
-public/alexandria/gravuras/

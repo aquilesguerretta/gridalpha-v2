@@ -1461,3 +1461,79 @@ hub vivo ("Currículo") · mapa nunca deixa rótulo cair abaixo de 13px
 **Gates:** `tsc -b` 0 erros nos arquivos da wave · `gridalpha-detect`
 "No findings. Surface is clean." · textura verificada por computed
 style (sem `%2523`) · zero overflow · zero erro de console.
+
+## LYCEUM — ALEXANDRIA WAVE 6
+
+**Status:** fechada. Wave curta de roteamento — libera as waves de
+Perfil, Atlas e Glossário para rodarem em paralelo sem disputar
+`AlexandriaRouter.tsx`.
+
+### Auditoria da Fase 1 — o que estava lá antes
+
+Auditado por clique real e leitura de DOM, não por inspeção de código.
+
+**Logo:** já era o asset real desde a Wave 2 — `AlexandriaHeader` renderiza
+`/alexandria/marca/rosa-sm-on-navy.png`, carrega (`naturalWidth 1024`) e
+desenha em 30×30. A Fase 2 do brief virou no-op: não havia glifo Unicode
+nem SVG placeholder para trocar. O único `<svg>` inline do header é a
+lupa da busca.
+
+**Nav:** os quatro itens estavam **mortos**. O header disparava
+`onNavegar?.(id)`, `AlexandriaShell` repassava a prop, e nenhum
+consumidor jamais a passava — então o clique era no-op. Confirmado:
+clicar em Biblioteca, Trilhas, Atlas e Glossário não mudava a URL em
+nenhum dos quatro. "Biblioteca" aparecia aceso por padrão fixo
+(`itemAtivo = 'biblioteca'`), não por rota.
+
+**Rotas, na ordem:** `index` (hub) · `trilha/:trilhaId` ·
+`trilha/:trilhaId/modulo/:moduloId` ·
+`trilha/:trilhaId/modulo/:moduloId/aula/:aulaNumero` · `*` → hub.
+Nenhuma de perfil, atlas ou glossário.
+
+### O que existe agora
+
+**Três rotas novas:** `/perfil`, `/atlas`, `/glossario`, cada uma com seu
+stub montado no `AlexandriaShell`.
+
+**Os stubs não contêm conteúdo real** — sem progresso no perfil, sem mapa
+no atlas, sem verbete no glossário. Usam o mesmo registro de `VideoArea`
+e do nó de módulo em produção: contorno tracejado em terracota, com
+frase específica do que vai existir e da dependência que falta. O bloco
+visual é repetido nos três em vez de extraído para um quarto arquivo —
+cada stub será substituído por uma wave diferente e precisa poder sumir
+sem quebrar os outros.
+
+**Nav viva.** Cada item carrega destino absoluto e o header navega
+sozinho via `useNavigate`. `onNavegar` continua como override do
+chamador. `AlexandriaShell` não está na posse desta wave, então threading
+de prop por sete instâncias de shell estava fora de questão — e o header
+autossuficiente é o design melhor de qualquer forma.
+
+Estado ativo derivado da rota, com `itemAtivo` explícito vencendo:
+
+| Rota | Item aceso |
+| --- | --- |
+| `/alexandria` | Biblioteca |
+| `/alexandria/trilha/*` | Trilhas |
+| `/alexandria/atlas` | Atlas |
+| `/alexandria/glossario` | Glossário |
+| `/alexandria/perfil` | nenhum — tem rota, não tem item de nav |
+
+`aria-current="page"` no item ativo: o estado deixa de ser só cor e fio.
+
+### Duas coisas registradas, não resolvidas
+
+- **Biblioteca e Trilhas apontam para o mesmo lugar**, como o brief pede
+  (Trilhas → hub; Biblioteca estava morta → hub raiz). A consequência
+  visível é que clicar em Trilhas acende Biblioteca. É coerente — Trilhas
+  significa "você está dentro de uma trilha", e clicar devolve ao índice —
+  mas não é limpo. Resolver exige decisão de arquitetura de informação:
+  ou Biblioteca vira superfície própria, ou um dos dois sai.
+- **O logo pesa 1.342 KB para renderizar em 30×30.** A conversão da Wave 5
+  cobriu `gravuras/`, não `marca/` — os quatro PNG de marca seguem em
+  ~1,4 MB cada. `public/alexandria/marca/` é somente-leitura nesta wave.
+  Mesmo tratamento `pngquant` resolveria.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` sobre 21
+arquivos — "No findings. Surface is clean." Quatro cliques reais
+verificados, mais o retorno de dentro de uma aula.

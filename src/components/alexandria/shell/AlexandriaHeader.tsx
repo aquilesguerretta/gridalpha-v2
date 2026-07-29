@@ -9,6 +9,31 @@
 // busca do handoff têm container de quatro lados (L1181, L1356, L1660,
 // L108). O quinto — a linha de consulta do ⌘K (L2038) — é só fio
 // embaixo, e é esse o padrão que o brief manda seguir.
+//
+// ─────────────────────────────────────────────────────────────
+// LYCEUM WAVE 17 — CARÁTER DE FRONTISPÍCIO, zero token novo
+//
+// O header funcionava desde a Wave 6, mas lia genérico — qualquer app
+// escuro com cor trocada. Quatro mudanças, todas dentro do vocabulário
+// já declarado em `A`/`A2`/`AT`/`AS`:
+//
+//   1. Rosa dos ventos: `rosa-sm-on-navy.png` (estrela nua) trocada por
+//      `rosa-lg-on-navy.png` — mesmo diretório somente-leitura, e essa
+//      variante JÁ TEM moldura circular gravada + coroa ornamental. Não
+//      construí frame nenhum; o ativo que faltava já existia.
+//   2. Moldura de frontispício: fio duplo (ouro, não terracota — cor de
+//      estado nunca é decorativa) no topo e na base do header, como
+//      masthead de jornal do século XIX.
+//   3. Separador de nav: ponto médio entre itens em vez de espaço em
+//      branco puro — a nav lê como linha de índice, não como toolbar.
+//   4. Busca: ícone de lupa (a assinatura universal de "app moderno")
+//      removido; um rótulo Cinzel ("Buscar") faz o mesmo trabalho de
+//      anunciar a função, como o campo de um índice impresso.
+//
+// Veredito: resolveu. Diferente do teto que o Portal BR bateu (onde
+// ajuste de código parou de render diferença perceptível e a resposta
+// foi referência visual nova), aqui cada iteração produziu ganho visível
+// e cumulativo — não bateu no mesmo teto.
 
 import { useLocation, useNavigate } from 'react-router-dom';
 import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-tokens';
@@ -77,10 +102,10 @@ export function AlexandriaHeader({
   return (
     <header
       style={{
+        position: 'relative',
         height: ALAYOUT.headerHeight,
         flex: `0 0 ${ALAYOUT.headerHeight}`,
         background: A.navy,
-        borderBottom: `1px solid ${A.fioSobreNavy}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -89,13 +114,21 @@ export function AlexandriaHeader({
         borderRadius: AR.none,
       }}
     >
+      {/* Moldura de frontispício — fio duplo, como masthead de jornal do
+          século XIX, ancorando a faixa inteira do header. Ouro porque
+          terracota é cor de estado (em andamento/crítico) — nunca
+          decorativa — e este traço não marca estado nenhum. */}
+      <span aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: A2.ouroSobreNavy }} />
+      <span aria-hidden="true" style={{ position: 'absolute', top: '3px', left: 0, right: 0, height: '1px', background: A2.ouroSobreNavy, opacity: 0.5 }} />
+      <span aria-hidden="true" style={{ position: 'absolute', bottom: '3px', left: 0, right: 0, height: '1px', background: A2.ouroSobreNavy, opacity: 0.5 }} />
+      <span aria-hidden="true" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '1px', background: A2.ouroSobreNavy }} />
       {/* Marca — rosa dos ventos + wordmark + subtítulo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: AS.md, flex: 'none' }}>
         <img
-          src="/alexandria/marca/rosa-sm-on-navy.png"
+          src="/alexandria/marca/rosa-lg-on-navy.png"
           alt=""
-          width={30}
-          height={30}
+          width={46}
+          height={46}
           style={{ display: 'block', flex: 'none' }}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -116,59 +149,70 @@ export function AlexandriaHeader({
         </div>
       </div>
 
-      {/* Nav em linha única. Ativo = fio de 1px embaixo. Sem caixa. */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: AS.xl, flex: 'none' }}>
-        {itens.map((item) => {
+      {/* Nav em linha única. Ativo = fio de 1px embaixo. Sem caixa.
+          Separador entre itens é ornamental — ponto médio, não espaço em
+          branco puro — para que a nav leia como índice de catálogo, não
+          como barra de app genérica. */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: AS.md, flex: 'none' }}>
+        {itens.map((item, i) => {
           const estaAtivo = item.id === ativo;
           return (
-            <button
-              key={item.id}
-              type="button"
-              aria-current={estaAtivo ? 'page' : undefined}
-              onClick={() => {
-                // `onNavegar` continua sendo o override do chamador; sem ele,
-                // o header navega por conta própria.
-                if (onNavegar) onNavegar(item.id);
-                else navigate(item.destino);
-              }}
-              style={{
-                ...AT.nav,
-                color: estaAtivo ? A.tintaSobreNavy : A2.tintaMetadadoNavy,
-                background: 'none',
-                border: 'none',
-                borderBottom: `1px solid ${estaAtivo ? A2.terracotaClara : 'transparent'}`,
-                borderRadius: AR.none,
-                padding: `0 0 ${AS.xs} 0`,
-                cursor: 'pointer',
-                transition: `color ${AE.estado} ${AE.easing}, border-color ${AE.estado} ${AE.easing}`,
-              }}
-            >
-              {item.rotulo}
-            </button>
+            <span key={item.id} style={{ display: 'flex', alignItems: 'center', gap: AS.md }}>
+              {i > 0 && (
+                <span aria-hidden="true" style={{ ...AT.rotulo, fontSize: '11px', color: A.fioSobreNavy }}>
+                  ·
+                </span>
+              )}
+              <button
+                type="button"
+                aria-current={estaAtivo ? 'page' : undefined}
+                onClick={() => {
+                  // `onNavegar` continua sendo o override do chamador; sem ele,
+                  // o header navega por conta própria.
+                  if (onNavegar) onNavegar(item.id);
+                  else navigate(item.destino);
+                }}
+                style={{
+                  ...AT.nav,
+                  color: estaAtivo ? A.tintaSobreNavy : A2.tintaMetadadoNavy,
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: `1px solid ${estaAtivo ? A2.terracotaClara : 'transparent'}`,
+                  borderRadius: AR.none,
+                  padding: `0 0 ${AS.xs} 0`,
+                  cursor: 'pointer',
+                  transition: `color ${AE.estado} ${AE.easing}, border-color ${AE.estado} ${AE.easing}`,
+                }}
+              >
+                {item.rotulo}
+              </button>
+            </span>
           );
         })}
       </nav>
 
-      {/* Busca — fio embaixo, nada mais. Sem container de quatro lados. */}
+      {/* Busca — entrada de catálogo, não input de app. Sem ícone de lupa
+          (afirmação universal de "app moderno"): um rótulo Cinzel faz o
+          mesmo trabalho de anunciar a função, como o campo de busca de um
+          índice impresso. Fio embaixo, sem caixa de quatro lados. */}
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'baseline',
           gap: AS.sm,
           flex: 'none',
-          width: '250px',
+          width: '230px',
           borderBottom: `1px solid ${A2.fioCampoSobreNavy}`,
           paddingBottom: AS.xs,
         }}
       >
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style={{ flex: 'none' }}>
-          <circle cx="6" cy="6" r="4.5" stroke={A2.tintaMetadadoNavy} strokeWidth="1" />
-          <line x1="9.5" y1="9.5" x2="12" y2="12" stroke={A2.tintaMetadadoNavy} strokeWidth="1" />
-        </svg>
+        <span style={{ ...AT.rotulo, fontSize: '10px', color: A2.tintaMetadadoNavy, flex: 'none' }}>
+          Buscar
+        </span>
         <input
           value={termoBusca}
           onChange={(e) => onBuscar?.(e.target.value)}
-          placeholder="Buscar no atlas…"
+          placeholder="no atlas…"
           style={{
             ...AT.dado,
             fontStyle: 'italic',

@@ -3125,3 +3125,117 @@ continua existindo, mudou de lugar para `/criar-conta`.
 
 `/login` legado continua de pé como rota (não quebra link antigo), mas
 não é mais alcançável pelo header.
+
+
+## LYCEUM — ALEXANDRIA WAVE 23 — PERFIL REAL
+
+**Status:** fechada. Primeira superfície da Alexandria que consome o
+`AuthContext` da plataforma. Identidade é real; **progresso segue mock**,
+e a tela diz isso.
+
+**Arquivo:** `src/pages/alexandria/PerfilStub.tsx` (único modificado — o
+nome do arquivo fica, é o contrato de rota da Wave 6 e o router não é
+posse desta wave).
+
+### Auditoria da Fase 1 — shape real, não presumido
+
+`useAuth()` devolve `{ user, loading, login, signup, logout,
+activateProduct(productId), myProducts(signal?) }`. `PlatformUser` traz
+`id · email · name · authMethods · createdAt · updatedAt`.
+`ProductsResponse` traz `products[{productId, activatedAt}]` **e**
+`catalog[]` — o catálogo vem do servidor justamente para o front não
+manter segunda cópia.
+
+**O mecanismo de "sem sessão → /entrar com destino" já existia** e foi
+reaproveitado, não reinventado: `PerfilPlataforma.tsx` usa
+`<Navigate to="/entrar" replace state={{ de: location.pathname }} />`, e
+`EntrarView`/`CriarContaView` leem `location.state.de` (com fallback
+`/conta`) e navegam para lá no sucesso. Por isso entrar pelo Perfil da
+Alexandria devolve ao Perfil da Alexandria.
+
+### Guarda de rota
+
+`loading === true` mostra "Verificando sua sessão…" montando o shell
+inteiro — nunca redireciona. Redirecionar enquanto `/api/auth/me` não
+respondeu expulsaria quem TEM sessão válida a cada carga. Só com
+`loading === false && !user` o `Navigate` dispara.
+
+### Ativação automática — provada por rede
+
+Estar na página já é intenção de uso, então não há botão "ativar
+Alexandria". Mas a ativação **só dispara quando necessário**:
+`myProducts()` é consultado primeiro e, se `alexandria` já está lá,
+`activateProduct` não é chamado. A rota é idempotente no backend, mas
+idempotente não é motivo para gastar escrita a cada visita.
+
+Medido no browser com **conta nova**:
+
+| Momento | Rede observada | activate |
+| --- | --- | --- |
+| primeira visita | `GET /api/products/me` ×2, `POST /api/products/alexandria/activate` | **1 vez** |
+| recarga | `GET /api/products/me` | **0 vezes** |
+
+Os dois GET na primeira visita são o StrictMode do dev invocando o efeito
+duas vezes; o POST saiu uma vez só. Em produção o StrictMode não roda.
+
+### Composição — três seções, e o que cada uma pode afirmar
+
+- **Identidade** — nome, email, membro desde (`user.createdAt`) e
+  Alexandria ativada em. Peso igual entre as linhas: são fatos do mesmo
+  nível sobre a mesma conta. Data formatada igual ao `/conta`, para os
+  dois lados da mesma conta não escreverem a mesma data de jeitos
+  diferentes. Link "Gerenciar conta →" e ação "Sair da conta".
+- **Progresso na Alexandria** — quatro números e as insígnias
+  conquistadas, exatamente o que `MOCK_USER_PROGRESS` /
+  `ALEXANDRIA_BADGES` já entregam desde a FOUNDRY Wave 3.
+- **Certificado** — bloqueado, com a razão real: a Trilha 1 tem 29 aulas
+  confirmadas em 3 de 5 módulos, e emitir certificado sobre denominador
+  desconhecido seria certificar o que ninguém mediu.
+
+**Sair devolve a `/alexandria`**, não ao portal: quem estava aqui estava
+lendo a Alexandria.
+
+### PROGRESSO SEGUE MOCK — declarado na tela, não só aqui
+
+A seção de progresso carrega bloco em contorno tracejado terracota, o
+mesmo registro de "conteúdo em produção" do sistema inteiro:
+
+> **Ainda não é o seu progresso** — Os números acima são de demonstração,
+> iguais para toda conta. A Alexandria ainda não registra aula concluída
+> por usuário — sua identidade é real, seu percurso ainda não.
+
+**Isso precisa de wave do Cursor**, com endpoint de progresso por conta.
+Não foi simulado com `localStorage` de propósito: persistência local não
+é sincronização — é ilusão presa a um aparelho, e contradiz a própria
+ideia de conta que atravessa dispositivo. Grep de fechamento: zero uso de
+`localStorage`/`sessionStorage` no arquivo (a única ocorrência da palavra
+é o comentário que explica por que não usar).
+
+**O Perfil da Alexandria não lista outro produto nem assinatura** —
+isso é o `/conta` de plataforma, alcançável pelo link. Confirmado por
+grep e por leitura do texto renderizado.
+
+### Verificação por clique real
+
+Conta NOVA criada na verificação (`lyceum.w23.<timestamp>@gridalpha.com`),
+porque conta existente já teria `alexandria` ativada e não provaria o
+primeiro disparo.
+
+| Passo | Resultado |
+| --- | --- |
+| deslogado → `/alexandria/perfil` | redireciona para `/entrar` |
+| criar conta a partir dali | volta para **`/alexandria/perfil`**, não `/conta` |
+| identidade na tela | nome e email da conta usada, não mock |
+| recarga | `activate` não dispara de novo |
+| "Gerenciar conta" | chega em `/conta` |
+| "Sair da conta" | vai para `/alexandria`; revisitar `/perfil` volta a `/entrar` |
+
+Zero overflow horizontal em 1440×900 e 1920×1080. Os 401 no console são o
+log automático do browser para `/api/auth/me` sem sessão — estado normal,
+tratado pelo contexto, sem UI de falha (mesma nota da ARCHITECT Wave 1).
+
+**Conta de teste deixada no banco** — não há endpoint de exclusão no
+contrato, mesma pendência que a ARCHITECT registrou.
+
+**Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
+findings. Surface is clean."

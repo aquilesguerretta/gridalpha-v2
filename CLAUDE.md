@@ -2421,3 +2421,126 @@ ONDE ele aparece. Não é esquecimento — é decisão de produto pendente.
 de Recharts em `nest/student/*`). `gridalpha-detect` sobre os dois
 arquivos — "No findings. Surface is clean." Zero erro de console em
 1440×900 e 1920×1080.
+
+## CURSOR WAVE 8 — INFRASTRUCTURE DATA LOADED
+
+**Status:** fechada. A Wave 7 shipou schema, scripts e endpoints sem executar
+nada contra produção. Esta wave executou: migration aplicada, três ingests
+rodados, três endpoints servindo dado real.
+
+**Banco:** serviço `PostGIS 17` no projeto Railway `rare-victory` / ambiente
+`production`. PostGIS 3.7.0dev sobre PostgreSQL 17.9, GEOS 3.15, PROJ 9.9.
+`DATABASE_URL` no serviço `gridalpha-v2` aponta para o proxy público
+(`switchyard.proxy.rlwy.net`), então dá para operar da máquina local.
+
+### Contagens finais
+
+| Tabela | Linhas | Fonte | Tempo |
+| --- | --- | --- | --- |
+| `generation_units` | 34.347 | EIA 860, 2025 Early Release | 91 s |
+| `battery_assets` | 1.609 | EIA 860M, `june_generator2026.xlsx` | 23 s |
+| `transmission_segments` | 37.947 | HIFLD FeatureServer, ≥115 kV | 204 s |
+
+Migration `0001_postgis_infrastructure` conferida contra a especificação:
+colunas e precisões exatas, geometria `POINT`/`LINESTRING` em SRID 4326, os
+cinco índices GIST, e a constraint `CHECK` de ISO com onze valores nas três
+tabelas. Zero divergência. Zero geometria nula, zero SRID errado, zero
+segmento abaixo de 115 kV.
+
+### As duas faixas do brief estavam calibradas errado
+
+Não é problema de filtro nem de fonte — as duas divergências têm explicação
+medida.
+
+**Geração: 34.347, não 12–15 mil.** A faixa do brief é de nível de PLANTA; o
+860 Schedule 3_1 é de nível de GERADOR. O arquivo de plantas da mesma safra
+tem 16.900 registros, e uma usina de ciclo combinado entra com várias linhas.
+Somam-se 5.565 aposentados e 2.015 planejados, que o script ingere de
+propósito — `status` e `retirement_date` existem para isso, e o Endpoint 13
+filtra `operating` por padrão.
+
+**Baterias: 1.609, não 3–5 mil.** É a contagem real do 860M de junho/2026:
+1.097 operando, 306 em construção, 154 planejadas, 52 aposentadas. A aba
+`Canceled or Postponed` fica fora por decisão do Aquiles — projeto cancelado
+não pertence a um mapa de ativos.
+
+**Transmissão: 37.947 linhas de 38.353 upserts.** A fonte tem 38.298 feições
+com `VOLTAGE >= 115`; `MultiLineString` dividido em partes sobe para 38.353, e
+406 colidem porque o HIFLD reusa `ID` entre feições. A tabela é a contagem
+autoritativa.
+
+### Quatro mudanças de fonte externa desde a Wave 7
+
+Os scripts nunca tinham sido executados, então os defeitos só apareceram
+agora. Nenhum exigiu mudança de schema.
+
+- **A EIA renomeou o arquivo anual** de `f860YYYY.zip` para `eia860YYYY.zip`,
+  e passou a publicar também `eia860YYYYER.zip`. O regex antigo não casava com
+  nada e o script morria em `resolve_latest_860_zip()`.
+- **Duas linhas de banner antes do cabeçalho** nos dois workbooks da EIA. O
+  script pegava a primeira linha, `_col_map` devolvia `{}` e TODA aba era
+  descartada com um `warning` — zero linhas, sem erro.
+- **`Latitude`/`Longitude` não existem em `3_1_Generator`.** Vivem em
+  `2___Plant`, chaveadas por código de planta. Sem o join, todo gerador caía
+  no `continue`. Este é o defeito que sozinho já garantiria tabela vazia.
+- **O 860M escreve o mês por extenso** (`june_generator2026.xlsx`) e chama a
+  coluna de `Plant State`. O regex de três letras acertava só "may", então o
+  script sempre pegava um arquivo de maio no `/archive/` em vez do corrente.
+
+Nenhum dos três precisa de `EIA_API_KEY` — são downloads bulk sem
+autenticação. A chave existe no ambiente do serviço, mas é das rotas de Henry
+Hub.
+
+### Dois defeitos próprios, achados executando
+
+**`ST_Simplify` devolve NULL quando colapsa a linha.** As tolerâncias são
+~111 m (`geom_mid`) e ~1,1 km (`geom_low`); segmento mais curto que isso
+colapsa, e as colunas são `NOT NULL`. O ingest morreu em 20.010 linhas numa
+linha de 0,13 km. Resolvido com `COALESCE(ST_Simplify(g, tol), g)` — cai para
+a geometria real em vez de inventar stub degenerado. Schema intocado.
+
+**`executemany` do psycopg2 faz uma ida e volta por linha.** Medido em ~3,4
+linhas/s pelo proxy público: 34 mil linhas dariam quase 3 horas, e o
+`pg_stat_activity` confirmou o diagnóstico (`idle in transaction` /
+`Client/ClientRead`, `query_age` de 0,12 s — servidor ocioso esperando o
+cliente). Trocado por `execute_batch`; o mesmo ingest passou a levar 91 s.
+
+Também entrou `orderByFields` na paginação do HIFLD: `resultOffset` sem
+ordenação explícita não é estável no ArcGIS, e uma lacuna seria silenciosa.
+
+### Compressão LOD — 10,3×, confirmada
+
+Medida com a variável isolada: mesmo bbox, `voltage_min_kv=345` e
+`limit=10000` nos três LODs, então as 2.876 linhas são idênticas e só a coluna
+de geometria muda.
+
+| LOD | Payload | Vértices |
+| --- | --- | --- |
+| `high` | 9.023.881 B | 302.283 |
+| `mid` | 1.685.929 B | 44.274 |
+| `low` | 878.236 B | 15.800 |
+
+**10,3× de payload e 19,1× de vértices** entre `high` e `low`. No padrão do
+contrato, com cada LOD no seu piso de tensão, a razão vai a 13,9× — e esse
+número subestima, porque o `high` trunca no teto de 10.000 linhas.
+
+### Divergência de path — registrada, não corrigida
+
+`src/services/api/transmission.ts` chama `/api/infra/transmission-segments`;
+a rota é `/api/infra/transmission`. É o 404 que o ATLAS Wave 5 registrou como
+endpoint ausente — não está ausente, o path é que diverge. `src/services/api/`
+é posse do ATLAS, então o backend ficou intocado. **A Atlas não renderiza
+transmissão enquanto os dois lados não concordarem**, mesmo com o banco cheio.
+
+### O que a Wave 8 modificou
+
+- `app/scripts/ingest_eia_860.py` — regex do arquivo, varredura de cabeçalho,
+  join com `2___Plant`, `execute_batch`.
+- `app/scripts/ingest_eia_860m.py` — varredura de cabeçalho, `Plant State`,
+  `Energy Source Code`, mês por extenso, `execute_batch`.
+- `app/scripts/ingest_hifld_transmission.py` — `COALESCE` no `ST_Simplify`,
+  `orderByFields`, `execute_batch`.
+- `docs/v2-backend-contract.md` — seção de procedência dos dados.
+- Esta seção do CLAUDE.md.
+
+Endpoint PJM, V1 e schema commitado: intocados. Migration rodada uma vez só.

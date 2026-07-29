@@ -21,14 +21,16 @@ from urllib.parse import urljoin
 import openpyxl
 import requests
 from bs4 import BeautifulSoup
+from psycopg2.extras import execute_batch
 
 from app.scripts._db import connect
-from app.scripts.ingest_eia_860 import (  # reuse status + date helpers
+from app.scripts.ingest_eia_860 import (  # reuse status + date + header helpers
     USER_AGENT,
     _map_proposed_status,
     _operable_status,
     _parse_date,
     _retired_status,
+    scan_header,
 )
 from app.services.iso_lookup import iso_for_point
 
@@ -37,20 +39,28 @@ logger = logging.getLogger(__name__)
 
 EIA_860M_INDEX = "https://www.eia.gov/electricity/data/eia860m/"
 
+# EIA spells the month out in full (june_generator2026.xlsx). Three-letter keys
+# are kept because older archive entries use them.
 _MONTH_ORDER = {
-    "jan": 1,
-    "feb": 2,
-    "mar": 3,
-    "apr": 4,
+    "january": 1,
+    "february": 2,
+    "march": 3,
+    "april": 4,
     "may": 5,
-    "jun": 6,
-    "jul": 7,
-    "aug": 8,
-    "sep": 9,
-    "oct": 10,
-    "nov": 11,
-    "dec": 12,
+    "june": 6,
+    "july": 7,
+    "august": 8,
+    "september": 9,
+    "october": 10,
+    "november": 11,
+    "december": 12,
 }
+_MONTH_ABBR = {name[:3]: num for name, num in _MONTH_ORDER.items()}
+
+
+def _month_number(token: str) -> int:
+    t = (token or "").lower()
+    return _MONTH_ORDER.get(t) or _MONTH_ABBR.get(t[:3], 0)
 
 
 def _norm_header_val(val: Any) -> str:
@@ -71,13 +81,18 @@ def _col_map(header_row: tuple[Any, ...]) -> dict[str, int]:
             idx.setdefault("generator_id", i)
         elif h == "technology":
             idx.setdefault("technology", i)
-        elif h in ("energy source", "energy source 1", "energy source 1 code"):
+        elif h in (
+            "energy source",
+            "energy source 1",
+            "energy source 1 code",
+            "energy source code",
+        ):
             idx.setdefault("energy_source_1", i)
         elif "net summer capacity" in h and "mw" in h:
             idx.setdefault("capacity_mw", i)
         elif "nameplate energy capacity" in h and "mwh" in h:
             idx.setdefault("capacity_mwh", i)
-        elif h == "state":
+        elif h in ("state", "plant state"):
             idx.setdefault("state", i)
         elif h in ("latitude",):
             idx.setdefault("lat", i)
@@ -135,10 +150,10 @@ def resolve_latest_860m_generator_xlsx() -> tuple[str, str]:
     for a in soup.find_all("a", href=True):
         href = a["href"]
         name = href.split("/")[-1].lower()
-        m = re.match(r"([a-z]{3})_generator(20\d{2})\.xlsx$", name)
+        m = re.match(r"([a-z]+)_generator(20\d{2})\.xlsx$", name)
         if not m:
             continue
-        mon = _MONTH_ORDER.get(m.group(1), 0)
+        mon = _month_number(m.group(1))
         year = int(m.group(2))
         if mon == 0:
             continue
@@ -174,15 +189,9 @@ def build_battery_rows(wb: openpyxl.workbook.workbook.Workbook) -> list[tuple]:
             continue
         ws = wb[sheet_name]
         it = ws.iter_rows(values_only=True)
-        try:
-            header_row = next(it)
-        except StopIteration:
-            continue
-        if not header_row:
-            continue
-        cmap = _col_map(tuple(header_row))
         need = ("plant_id", "generator_id", "state", "capacity_mw")
-        if not all(k in cmap for k in need):
+        cmap = scan_header(it, need, _col_map)
+        if not cmap:
             logger.warning("sheet %s missing required columns %s", sheet_name, need)
             continue
         for raw in it:
@@ -288,7 +297,7 @@ def main() -> int:
         with conn.cursor() as cur:
             for batch_start in range(0, len(rows), 500):
                 batch = rows[batch_start : batch_start + 500]
-                cur.executemany(UPSERT_SQL, batch)
+                execute_batch(cur, UPSERT_SQL, batch, page_size=500)
                 conn.commit()
     finally:
         conn.close()

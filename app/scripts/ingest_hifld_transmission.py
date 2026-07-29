@@ -24,6 +24,7 @@ import sys
 from typing import Any
 
 import requests
+from psycopg2.extras import execute_batch
 from shapely.geometry import LineString, MultiLineString, shape
 
 from app.scripts._db import connect
@@ -52,8 +53,11 @@ SELECT
   %(iso)s,
   ST_Length(g::geography) / 1000.0,
   g,
-  ST_Simplify(g, 0.001),
-  ST_Simplify(g, 0.01)
+  -- ST_Simplify returns NULL when the tolerance collapses the line (segments
+  -- shorter than ~111 m at mid, ~1.1 km at low). geom_mid/geom_low are NOT
+  -- NULL, so fall back to the full geometry instead of inventing a stub.
+  COALESCE(ST_Simplify(g, 0.001), g),
+  COALESCE(ST_Simplify(g, 0.01), g)
 FROM (SELECT ST_SetSRID(ST_GeomFromGeoJSON(%(gj)s), 4326) AS g) AS _
 ON CONFLICT (id) DO UPDATE SET
   voltage_kv = EXCLUDED.voltage_kv,
@@ -103,7 +107,12 @@ def resolve_layer_url() -> str:
     return DEFAULT_LAYER
 
 
-def _page_size(layer_url: str) -> int:
+def _layer_meta(layer_url: str) -> tuple[int, str]:
+    """Return (page_size, object_id_field).
+
+    The object id field is needed to make ``resultOffset`` paging deterministic —
+    without an explicit sort, ArcGIS may repeat or skip features between pages.
+    """
     try:
         r = requests.get(
             layer_url,
@@ -113,9 +122,10 @@ def _page_size(layer_url: str) -> int:
         )
         r.raise_for_status()
         d = r.json()
-        return min(int(d.get("maxRecordCount") or 2000), 2000)
+        page = min(int(d.get("maxRecordCount") or 2000), 2000)
+        return page, str(d.get("objectIdField") or "OBJECTID")
     except (OSError, ValueError, requests.RequestException):
-        return 2000
+        return 2000, "OBJECTID"
 
 
 def _linestring_to_geojson(g: LineString) -> str:
@@ -142,7 +152,8 @@ def _iso_for_line(g: LineString) -> str:
 def ingest() -> int:
     layer = resolve_layer_url()
     logger.info("HIFLD layer: %s", layer)
-    page = _page_size(layer)
+    page, oid_field = _layer_meta(layer)
+    logger.info("page size %s, ordering by %s", page, oid_field)
     offset = 0
     total = 0
     conn = connect()
@@ -157,6 +168,7 @@ def ingest() -> int:
                     "returnGeometry": "true",
                     "outSR": "4326",
                     "f": "geojson",
+                    "orderByFields": oid_field,
                     "resultOffset": offset,
                     "resultRecordCount": page,
                 },
@@ -213,8 +225,8 @@ def ingest() -> int:
                         }
                     )
 
-            for row in batch:
-                cur.execute(UPSERT_SQL, row)
+            # One round trip per row is unusable over the public proxy; group them.
+            execute_batch(cur, UPSERT_SQL, batch, page_size=200)
             conn.commit()
             n = len(batch)
             total += n

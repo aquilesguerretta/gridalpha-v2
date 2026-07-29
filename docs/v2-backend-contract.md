@@ -1,6 +1,7 @@
 # GridAlpha V2 Backend — Endpoint Contract
 
-**Status:** Active contract for Cursor Wave 5.
+**Status:** Active contract for Cursor Wave 5. Endpoints 13–15 serve live
+PostGIS data as of Wave 8 — see [Infrastructure data provenance](#infrastructure-data-provenance).
 **Service:** `gridalpha-v2-production.up.railway.app` (Railway service `gridalpha-v2`).
 **Source:** [app/](../app) (FastAPI) in this monorepo.
 **Branch:** `feature/full-shell-buildout`.
@@ -566,6 +567,92 @@ parameters.
   `SUPPRESSED < $0`. Heat rate default `7500` BTU/kWh (typical CCGT).
 - **Reserve regimes.** `TIGHT < 12%`, `ADEQUATE 12-25%`,
   `COMFORTABLE > 25%`.
+
+---
+
+## Infrastructure data provenance
+
+Endpoints 13–15 read three PostGIS tables created by migration
+`0001_postgis_infrastructure` and populated by the ingest scripts in
+`app/scripts/`. The database is the `PostGIS 17` service in Railway project
+`rare-victory` (PostGIS 3.7.0dev on PostgreSQL 17.9).
+
+Loaded on 2026-07-29:
+
+| Table | Rows | Source | Runtime |
+| --- | --- | --- | --- |
+| `generation_units` | 34,347 | EIA 860, 2025 Early Release | 91 s |
+| `battery_assets` | 1,609 | EIA 860M, `june_generator2026.xlsx` | 23 s |
+| `transmission_segments` | 37,947 | HIFLD FeatureServer, ≥115 kV | 204 s |
+
+Refresh (from repo root, with `DATABASE_URL` in the environment):
+
+```bash
+py -3 -m app.scripts.ingest_eia_860
+py -3 -m app.scripts.ingest_eia_860m
+py -3 -m app.scripts.ingest_hifld_transmission
+```
+
+All three upsert on `id`, so re-running is idempotent and safe to interrupt.
+
+### Counting units
+
+`generation_units` counts **generators**, not plants — a combined-cycle site
+contributes several rows. The 2025 archive holds 34,347 generators across
+16,900 plants. The table also carries retired (5,565) and planned (2,015)
+units, because `status` and `retirement_date` exist to express them; clients
+that want only live capacity must filter on `status`, which Endpoint 13 does
+by default.
+
+`transmission_segments` holds 37,947 rows built from 38,353 upserts — HIFLD
+reuses `ID` across 406 features, and `ON CONFLICT` collapses them.
+
+### Source formats that moved after Wave 7
+
+The ingest scripts were written in Wave 7 and first executed in Wave 8. Four
+breakages surfaced, all fixed in the scripts, none requiring a schema change:
+
+- **EIA renamed the annual archive** from `f860YYYY.zip` to `eia860YYYY.zip`,
+  and now also ships `eia860YYYYER.zip` (early release). `EIA_860_ZIP_URL`
+  pins a specific archive; otherwise the newest year wins, with the final
+  archive outranking the early release for the same year.
+- **EIA workbooks open with a two-row title banner**, so the header is not the
+  first row. Both EIA scripts now scan for the header instead of assuming it.
+- **Coordinates are not in schedule `3_1_Generator`** — they live in
+  `2___Plant`, keyed by plant code. `ingest_eia_860` joins the two.
+- **860M spells the month out** (`june_generator2026.xlsx`), and names its
+  state column `Plant State`.
+
+No EIA API key is required — all three sources are unauthenticated bulk
+downloads. `EIA_API_KEY` exists in the service environment for the Henry Hub
+routes and is unrelated to these three.
+
+`ST_Simplify` returns `NULL` when the tolerance collapses a line, which the
+`NOT NULL` on `geom_mid` / `geom_low` rejects. Segments shorter than roughly
+111 m (mid) or 1.1 km (low) therefore store the full geometry via `COALESCE`
+rather than a degenerate stub.
+
+### LOD compression, measured
+
+Same CONUS bbox, `voltage_min_kv=345` and `limit=10000` held constant across
+all three LODs, so geometry is the only variable:
+
+| LOD | Payload | Vertices |
+| --- | --- | --- |
+| `high` | 9,023,881 B | 302,283 |
+| `mid` | 1,685,929 B | 44,274 |
+| `low` | 878,236 B | 15,800 |
+
+That is **10.3× payload** and 19.1× vertices between `high` and `low`. Left at
+each LOD's default voltage floor the payload ratio reaches 13.9×, and that
+figure understates the real gap because `high` truncates at the 10,000-row cap.
+
+### Known path mismatch
+
+`src/services/api/transmission.ts` calls `/api/infra/transmission-segments`.
+The route is `/api/infra/transmission` (Endpoint 14). The frontend service is
+ATLAS-owned, so the backend was left alone; Atlas will not render transmission
+until the two agree.
 
 ---
 

@@ -1,43 +1,67 @@
 // RailToggle — o botão flutuante que abre e fecha o rail direito.
 //
-// Bússola, não selo de progresso: `icon-compass-simple-on-cream.png` da
-// biblioteca de ícones — glifo de tinta navy com brilho suave, pensado
-// pra campo claro. Verificado por decodificação de pixel antes de usar:
-// 1024×1024, RGBA de verdade (canto = alpha 0, centro = alpha ~248), não
-// o cinza que a prévia de arquivo mostra por padrão.
+// ─────────────────────────────────────────────────────────────
+// POR QUE VETOR, NÃO MAIS O PNG DA BIBLIOTECA DE ÍCONES
 //
-// O botão carrega o PRÓPRIO disco creme — não herda o campo de trás. Sem
-// isso, a bússola (calibrada só pra campo claro; não existe variante
-// "on-navy" no acervo) ficaria ilegível quando o painel abre e o disco
-// passa a flutuar sobre o navy do drawer em vez do creme do canvas.
-// Círculo pleno é a única exceção sancionada ao raio zero do sistema.
+// A primeira versão usava `icon-compass-simple-on-cream.png` — funcionou,
+// mas três problemas vieram do próprio arquivo, não de como eu o usava:
 //
-// A agulha gira 90° ao abrir — a mesma animação que revela o painel,
-// não uma segunda animação por cima dela.
+// 1. QUALIDADE. É uma ilustração pintada de 1024px com brilho suave, não
+//    um ícone vetorial. Em 30-40px de exibição — o tamanho real do botão
+//    — o traço fino e o glow ficam borrados. Escalar mais o recorte só
+//    ampliava o borrão, nunca corrigia.
+// 2. DESCENTRALIZA AO GIRAR. Medido por decodificação de pixel: o glifo
+//    real dentro do PNG não fica no centro geométrico do canvas — o
+//    centro de massa está ~4% deslocado pra cima (bounding box de
+//    alpha>10: y de 150 a 798 num canvas de 1024, centro em 474 contra
+//    os 512 esperados). `transform: rotate()` gira ao redor do centro da
+//    CAIXA, não do centro visual do desenho — por isso a agulha "descia"
+//    ao abrir o painel.
+// 3. ANEL DUPLO. O PNG já traz um anel fino desenhado nele. Combinado com
+//    a borda do próprio botão, virava dois círculos concêntricos — e o
+//    espaço que a estrela podia ocupar ficava menor por causa do anel
+//    redundante, não maior.
 //
-// PADDING INTERNO DO PNG, MEDIDO — o arquivo carrega o glifo real
-// ocupando só ~62% do canvas de 1024×1024 (bounding box de alpha > 10
-// varrida pixel a pixel: 636×648 dentro de 1024×1024). Renderizar o
-// `<img>` do tamanho do botão deixa uma coroa de vazio transparente em
-// volta da bússola — era exatamente o "está muito pequeno" do retorno.
-// A correção não é aumentar o botão: é renderizar o `<img>` MAIOR que o
-// próprio botão e cortar o excesso em círculo (`overflow: hidden` +
-// `border-radius: 50%` no container) — o glifo passa a preencher o
-// disco de verdade, e o botão continua pequeno.
+// A correção pros três de uma vez é desenhar o glifo — mesma técnica de
+// `currentColor` que os primitivos da Wave 1 usam (ring-track,
+// check-mark, etc.), só que inline: é glifo de um consumidor só, então
+// fetch+cache de arquivo separado seria complexidade sem ganho.
+//
+// A estrela de quatro pontas é construída simétrica ao redor de (32,32)
+// num viewBox de 64×64 — o centro de rotação do CSS (`50% 50%` da caixa
+// renderizada) coincide exatamente com o centro visual por construção,
+// não por ajuste de `transform-origin`. Sem anel desenhado: o círculo já
+// vem da borda do próprio botão, e a estrela sozinha ocupa os 90% do
+// disco que o pedido especificou.
 
 import { A, AE } from '@/design/alexandria-tokens';
 
-const ICONE = '/alexandria/icones/icon-compass-simple-on-cream.png';
-
-// Pequeno, para não colidir com o painel (ver RailRight.tsx) — o
-// retorno pediu "a bola tem que ficar pequena não overlap".
+// Pequeno, para não colidir com o painel (ver RailRight.tsx).
 const DIAMETRO = 40;
 
-// Maior que DIAMETRO de propósito. 62% de preenchimento no arquivo
-// original significa que, pra o glifo ocupar ~78% do disco de 40px
-// (≈31px visíveis), o <img> precisa renderizar a ~50px e estourar a
-// caixa — o overflow correspondente (10px) é cortado pelo círculo.
-const ICONE_TAMANHO = 50;
+// 90% do disco, valor pedido diretamente — sem anel redundante disputando
+// esse espaço, a estrela pode usar quase toda a caixa.
+const ESTRELA_TAMANHO = 36;
+
+// Estrela de 4 pontas centrada em (32,32) — ponta longa a 30 do centro,
+// reentrância curta a 8. Construída por trigonometria, não por olho, pra
+// garantir simetria perfeita nas quatro direções.
+const R_LONGO = 30;
+const R_CURTO = 8;
+const C = 32;
+const D = R_CURTO * Math.SQRT1_2; // projeção de R_CURTO a 45°
+
+const ESTRELA_PATH = [
+  `M ${C} ${C - R_LONGO}`,
+  `L ${C + D} ${C - D}`,
+  `L ${C + R_LONGO} ${C}`,
+  `L ${C + D} ${C + D}`,
+  `L ${C} ${C + R_LONGO}`,
+  `L ${C - D} ${C + D}`,
+  `L ${C - R_LONGO} ${C}`,
+  `L ${C - D} ${C - D}`,
+  'Z',
+].join(' ');
 
 export interface RailToggleProps {
   expanded: boolean;
@@ -62,28 +86,23 @@ export function RailToggle({ expanded, onClick }: RailToggleProps) {
         background: A.cremePapel,
         border: `1px solid ${A.fioSobreCreme}`,
         borderRadius: '50%',
-        // Corta o excesso do <img> (que renderiza maior que o botão de
-        // propósito) numa moldura perfeitamente circular.
-        overflow: 'hidden',
         padding: 0,
         cursor: 'pointer',
       }}
     >
-      <img
-        src={ICONE}
-        alt=""
+      <svg
+        viewBox="0 0 64 64"
+        width={ESTRELA_TAMANHO}
+        height={ESTRELA_TAMANHO}
         aria-hidden="true"
-        width={ICONE_TAMANHO}
-        height={ICONE_TAMANHO}
         className="alx-rail-toggle-agulha"
         style={{
           display: 'block',
-          width: ICONE_TAMANHO,
-          height: ICONE_TAMANHO,
-          objectFit: 'contain',
           transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
         }}
-      />
+      >
+        <path d={ESTRELA_PATH} fill={A.navy} />
+      </svg>
 
       <style>{`
         .alx-rail-toggle {

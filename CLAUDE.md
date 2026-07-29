@@ -2788,3 +2788,164 @@ correção é de contrato, não de extração.
 
 **Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
 findings. Surface is clean."
+
+## CURSOR WAVE 9 — IDENTIDADE DE PLATAFORMA
+
+**Status:** fechada, com a Fase 4 (Google OAuth) **pausada por falta de
+credencial** — não por falta de tempo. Uma conta por pessoa no nível da
+plataforma inteira, não por produto. Alexandria, Portal Brasil e o futuro
+terminal americano leem esta base; nenhum deles guarda usuário próprio
+depois desta wave.
+
+**Migration:** `0002_identity` aplicada em produção (PostgreSQL 17.9).
+Aditiva — as três tabelas das Waves 7/8 seguem em 34.347 / 37.947 / 1.609,
+conferidas antes e depois.
+
+### Os três achados da Fase 1
+
+1. **`GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET`: ausentes.** As 25
+   variáveis do serviço `gridalpha-v2` são as de sempre — PJM, EIA,
+   Tomorrow, Anthropic, Mapbox, `DATABASE_URL`, `RAILWAY_*`. Fase 4
+   parada, sem placeholder fingindo funcionar.
+2. **Nenhuma biblioteca de hash instalada** — nem `bcrypt`, nem `argon2`,
+   nem `passlib`, e o `requirements.txt` não listava nenhuma. Escolhido
+   **`argon2-cffi`** (Argon2id): primeira recomendação atual do OWASP e
+   sem o truncamento em 72 bytes do bcrypt. Junto entraram `PyJWT` e
+   `email-validator`, as três com wheel puro para Python 3.14 — o build
+   do Railway não compila nada.
+3. **`JWT_SECRET`: ausente.** Gerados 64 bytes (86 caracteres base64url)
+   e setados direto no Railway por `railway variable set --stdin`: o
+   valor foi do gerador para o ambiente sem passar por arquivo, por
+   log, nem pelo chat. Verificado presente, sem espaço nas pontas.
+
+### Portabilidade — decisão deliberada, não acidente do deploy de hoje
+
+**A decisão de domínio final ainda não existe.** Hoje frontend e backend
+dividem a mesma origem no Railway; a intenção declarada é migrar para VPS
+própria, possivelmente com domínios separados. Três escolhas deixam essa
+mudança barata, e estão assim de propósito:
+
+- **O token é JWT assinado de verdade, não sessão opaca de servidor.**
+  Validar é conferir assinatura, então não há estado guardado no processo
+  — sobrevive a várias instâncias atrás de load balancer sem store
+  compartilhado.
+- **O endpoint aceita o token por cookie `httpOnly` OU por header
+  `Authorization: Bearer`.** Cookie serve a mesma origem hoje; o header
+  é o que funciona sem fricção se domínio separado ou app nativo
+  entrarem depois. Com os dois presentes, o header vence — explícito
+  ganha de ambiente.
+- **`sameSite`, `secure`, domínio, nome e TTL do cookie vêm de variável
+  de ambiente**, com default afinado para o cenário de hoje
+  (`lax` / `secure` / host-only / 30 dias). Mudar topologia é mudar
+  variável, não reescrever código.
+
+O token cru só aparece no corpo da resposta quando o cliente pede com
+`X-Auth-Transport: bearer`. Navegador recebe o token no cookie httpOnly
+e em lugar nenhum além dele, então não sobra nada no payload que um XSS
+pudesse levar; cliente nativo ou cross-domain faz opt-in e lê.
+
+### Catálogo canônico de `product_id`
+
+Definido no backend, em `app/db/models/product_access.py`:
+
+```
+alexandria · terminal-brasil · energy-brief ·
+conta-de-luz-express · diagnostico-energetico · us-terminal
+```
+
+**Nota de reconciliação, registrada e não resolvida:** essa lista precisa
+ficar em sincronia CONCEITUAL com `src/lib/data/br-destinos.ts`, que é
+território do ARCHITECT. Os cinco destinos brasileiros do frontend batem
+um a um com os cinco primeiros ids daqui; `us-terminal` não tem par no
+catálogo BR porque o portal americano ainda não existe. O backend **não
+importa** do arquivo do frontend — atravessar essa fronteira seria pior
+que a duplicação. Reconciliar não é responsabilidade desta wave; quem
+abrir o catálogo dos dois lados de novo, alinha lá.
+
+Para reduzir a chance de deriva, `GET /api/products/me` **serve o
+catálogo** junto da lista de ativados, para o frontend ler em vez de
+manter uma terceira cópia.
+
+A validação de pertencimento é na camada de API, não `CHECK` no banco —
+assim o catálogo cresce sem migration.
+
+### Quatro desvios do brief, todos deliberados
+
+1. **Models em `app/db/models/`, não `app/models/`.** O brief pede
+   `app/models/user.py`; a convenção do repositório é `app/db/models/`,
+   que é onde `infrastructure.py` vive e de onde `migrations/env.py` já
+   importa. Criar a segunda casa exigiria um import extra no `env.py`
+   que ninguém lembraria de manter. Nomes de arquivo preservados.
+2. **A FK carrega `ON DELETE CASCADE`**, que o SQL literal do brief não
+   tem. Sem isso, qualquer caminho futuro de exclusão de conta quebra na
+   constraint, e uma linha de `product_access` que sobrevive ao usuário
+   é órfã sem significado. Provado no smoke: apagar as contas de teste
+   limpou as ativações.
+3. **Identidade não usa o envelope `{meta, data, summary}`** das
+   Endpoints 1–15. Aquele envelope existe para carregar frescor de dado
+   (`timestamp`, `data_age_seconds`), que não quer dizer nada num login.
+   O domínio inteiro fica numa forma só em vez de rachar no meio.
+4. **Produto fora do catálogo responde 404, não 422.** Segmento de
+   caminho que não nomeia recurso nenhum é recurso ausente, não campo
+   malformado. As Endpoints 13–15 usam 422 porque lá o inválido é
+   query param.
+
+### Verificação — 82 asserções, 0 falhas
+
+Três rodadas: duas com o app em processo contra o banco de produção, e
+uma terceira por HTTPS real contra
+`gridalpha-v2-production.up.railway.app` depois do deploy.
+
+**Auth, 33 PASS / 0 FAIL:** flags do cookie (`HttpOnly`, `Secure`,
+`SameSite=lax`, `Path=/`, sem `Domain`), duplicata recusada em 409
+inclusive com o email em CAIXA ALTA, login errado e email inexistente
+devolvendo a MESMA mensagem (`invalid email or password` — senão o
+endpoint vira oráculo de quais endereços existem), round-trip completo
+por `Authorization: Bearer`, assinatura adulterada em 401, e 401 depois
+do logout.
+
+**Produtos, 25 PASS / 0 FAIL:** conta nova nasce com zero produtos,
+ativar duas vezes deixa UMA linha com o `activatedAt` original,
+`alreadyActive` distingue primeiro clique de repetição, conta não vê
+produto de outra conta, os dois endpoints em 401 sem sessão, e produto
+inventado em 404 sem gravar nada.
+
+**Deploy publicado, 24 PASS / 0 FAIL:** o fluxo inteiro do brief por
+HTTPS de fora — signup, cookie de sessão com as flags certas, `/me`
+autenticado, ativar `alexandria`, repetir sem duplicar, confirmar em
+`/api/products/me`, Bearer por header sem cookie nenhum, e 401 depois
+do logout. Prova o que o teste em processo não prova: que `argon2-cffi`
+e `PyJWT` instalaram no build do Railway e que o `JWT_SECRET` do
+ambiente é lido pelo container. `/api/infra/batteries` conferido na
+mesma rodada — as Waves 7/8 seguem servindo dado real.
+
+Um achado veio de falha do próprio teste: o fixture usava `.test`, e o
+`email-validator` recusa TLD reservado. Comportamento correto — o
+fixture é que estava errado.
+
+**Limpeza:** as contas de teste foram removidas. `users` e
+`product_access` voltaram a zero linhas; as três tabelas das Waves 7/8
+seguem intactas.
+
+### Pendências registradas
+
+- **Google OAuth.** Schema já preparado: `users.google_id` existe com
+  UNIQUE, e o `CHECK users_has_auth_method` aceita linha com
+  `password_hash` nulo. Quando as credenciais entrarem, a resolução do
+  callback tem que ser: procura `google_id`; não achando, procura o
+  EMAIL e **vincula** `google_id` à conta existente; só criando conta
+  nova se nenhum dos dois casar. Nunca segunda conta para um endereço
+  que já existe por outro método.
+- **Logout não revoga token.** Limpa o cookie do navegador e mais nada —
+  é o preço da validação sem estado. Um Bearer já emitido vale até
+  expirar. Revogação de verdade pede denylist ou access token curto com
+  refresh; nenhum dos dois é desta wave.
+- **Renovação deslizante é só do transporte por cookie.** Quem usa
+  Bearer reautentica no vencimento, porque não existe endpoint de
+  refresh — e emitir token novo num header de resposta inventaria
+  contrato que ninguém consome ainda.
+- **Sem gate de pagamento**, por decisão explícita. Ativar é gratuito e
+  automático no clique até o lançamento acontecer de verdade.
+
+**Variáveis novas no Railway:** só `JWT_SECRET` (já setada). As cinco de
+cookie e a de TTL são opcionais — o default cobre o deploy de hoje.

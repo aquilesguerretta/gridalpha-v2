@@ -656,10 +656,169 @@ until the two agree.
 
 ---
 
+## Platform identity (Wave 9)
+
+One account per person at the platform level, not per product. Alexandria,
+Portal Brasil and the future US terminal all read this base — none of them
+keeps its own user store. Creating an account activates nothing; a product
+becomes active only when the user enters it. **No payment gate in this wave**,
+by explicit decision.
+
+### Response shape — not the canonical envelope
+
+Endpoints 16–21 return plain JSON, **not** the `{meta, data, summary}` envelope
+of Endpoints 1–15. That envelope exists to carry data-freshness affordances
+(`timestamp`, `data_age_seconds`) for market and infrastructure reads, and none
+of it means anything for an identity call. The whole identity domain sits on one
+shape rather than splitting mid-domain.
+
+### Session transport
+
+The session is a **stateless JWT** (HS256, `iss: gridalpha`, 30-day expiry)
+signed with `JWT_SECRET`. Validation is a signature check, so it holds no state
+in the backend process.
+
+A caller may present the token two ways, and the endpoints accept either:
+
+| Transport | How | Renewal |
+| --- | --- | --- |
+| `httpOnly` cookie | Set automatically on signup/login | Slides forward on every authenticated request |
+| `Authorization: Bearer <token>` | Caller supplies the header | None in this wave — re-authenticate at expiry |
+
+`Authorization` wins over the cookie when both are present: explicit beats
+ambient.
+
+The raw token appears in the response body **only** when the request carries
+`X-Auth-Transport: bearer`. A browser therefore receives the token in the
+httpOnly cookie and nowhere else, so nothing readable by XSS lands in the
+payload; native and cross-domain callers opt in and read it themselves.
+
+Cookie attributes are environment-driven, with defaults tuned for today's
+same-origin Railway deploy. **The final domain topology is undecided** — see
+the Wave 9 section of `CLAUDE.md`.
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `JWT_SECRET` | *(none)* | Required. Absent → identity endpoints answer 503; the rest of the API is unaffected. |
+| `SESSION_TTL_DAYS` | `30` | |
+| `SESSION_COOKIE_NAME` | `ga_session` | |
+| `SESSION_COOKIE_SAMESITE` | `lax` | `lax` \| `strict` \| `none` |
+| `SESSION_COOKIE_SECURE` | `true` | Forced `true` when sameSite is `none` — browsers reject the pair otherwise. |
+| `SESSION_COOKIE_DOMAIN` | *(empty)* | Empty = host-only. Set to e.g. `.gridalpha.com` for sibling subdomains. |
+| `SESSION_COOKIE_PATH` | `/` | |
+
+### ENDPOINT 16 — Sign up with email and password
+
+`POST /api/auth/signup`
+
+Request: `{ "email": "a@b.com", "password": "min 8 chars", "name": "Full Name" }`
+
+Response (201) — plus `Set-Cookie: ga_session=…; HttpOnly; Secure; SameSite=lax; Path=/`:
+
+```json
+{
+  "user": {
+    "id": "1f0c…",
+    "email": "a@b.com",
+    "name": "Full Name",
+    "authMethods": ["password"],
+    "createdAt": "2026-07-29T15:04:05+00:00",
+    "updatedAt": "2026-07-29T15:04:05+00:00"
+  },
+  "expiresAt": "2026-08-28T15:04:05+00:00"
+}
+```
+
+`409` if the address is already registered — case-insensitively, since email is
+normalised to lower case on every write and lookup. `422` on a malformed
+address, a password under 8 characters, or a blank name. Reserved TLDs
+(`.test`, `.invalid`, `.localhost`) are rejected by the validator.
+
+### ENDPOINT 17 — Log in
+
+`POST /api/auth/login`
+
+Request: `{ "email": "a@b.com", "password": "…" }`. Response (200) is identical
+in shape to Endpoint 16.
+
+`401` with the single message `invalid email or password` for **every** failure
+mode — unknown address, wrong password, and a Google-only account are
+deliberately indistinguishable, or the endpoint becomes an oracle for which
+addresses are registered.
+
+### ENDPOINT 18 — Log out
+
+`POST /api/auth/logout` → `200 {"ok": true}` and an expired cookie.
+
+Clears the browser's copy and nothing else. The token is stateless by design, so
+a Bearer token already in a caller's hands stays valid until it expires. Real
+revocation needs a denylist or short access tokens plus refresh — neither is in
+this wave.
+
+### ENDPOINT 19 — Current user
+
+`GET /api/auth/me` → `200 {"user": { … }}`, same user object as Endpoint 16.
+
+`401` when no token, an expired token, a tampered signature, or a token whose
+user row no longer exists. Refreshes the session cookie when the token arrived
+by cookie.
+
+### ENDPOINT 20 — Activate a product
+
+`POST /api/products/{product_id}/activate`
+
+Authenticated. **Idempotent** — enforced by `ON CONFLICT DO NOTHING` against
+`UNIQUE(user_id, product_id)`, so two simultaneous clicks cannot write two rows.
+
+```json
+{ "productId": "alexandria", "activatedAt": "2026-07-29T15:04:05+00:00", "alreadyActive": false }
+```
+
+`alreadyActive` distinguishes a first activation from a repeat; `activatedAt`
+keeps the original timestamp on repeats. `404` for an id outside the catalog —
+a path segment naming no resource is a missing resource, not a malformed field.
+`401` unauthenticated.
+
+### ENDPOINT 21 — Products activated by the current user
+
+`GET /api/products/me`
+
+```json
+{
+  "products": [
+    { "productId": "alexandria", "activatedAt": "2026-07-29T15:04:05+00:00" }
+  ],
+  "catalog": [
+    "alexandria", "terminal-brasil", "energy-brief",
+    "conta-de-luz-express", "diagnostico-energetico", "us-terminal"
+  ]
+}
+```
+
+`products` is ordered by activation time and is empty for a fresh account.
+`catalog` is the canonical backend list, served so the frontend reads it instead
+of keeping a second hardcoded copy that can drift. `401` unauthenticated.
+
+### Google OAuth — not shipped
+
+`GET /api/auth/google/start` and `GET /api/auth/google/callback` are **absent**.
+The Wave 9 audit found no `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in the
+Railway environment, and a placeholder pretending to work was forbidden. The
+schema is already prepared: `users.google_id` exists with a UNIQUE constraint,
+and the `users_has_auth_method` CHECK permits a row with `password_hash NULL`.
+
+When the credentials arrive, callback resolution must be: look up `google_id`;
+failing that look up the email and **link** `google_id` to the existing row;
+only if neither matches create a new user. Never a second account for an
+address that already exists under another method.
+
+---
+
 ## Versioning
 
 This contract is version `1.0` (Wave 5). Wave 7 adds Endpoints 13–15
-(infrastructure viewport APIs) additively under the same version.
+(infrastructure viewport APIs) and Wave 9 adds Endpoints 16–21 (platform
+identity) additively under the same version.
 Additive changes (new fields in `meta` or `data`) remain non-breaking.
 Field renames or removals require a new version doc and coordinated
 frontend update.

@@ -3239,3 +3239,214 @@ contrato, mesma pendência que a ARCHITECT registrou.
 
 **Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
 findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 24 — MÓDULO 04
+
+**Status:** fechada. Extração, cálculos e fiação. Primeira wave em que a
+FONTE mudou de vocabulário — nenhum seletor das três extrações
+anteriores funciona aqui — e primeira sem gravura nenhuma, por contrato.
+
+**Arquivos:** `alexandria-modulo-04-content.ts` (NOVO, 605 linhas) ·
+`alexandria-instrument-calculators.ts` (+7) · `alexandria-curriculo.ts`
+(registro) · `alexandria-trilhas.ts` (uma linha — ver abaixo).
+
+**Arquivo da fonte:** `alexandria_modulo04.html`, nome conferido no
+disco antes de abrir. Limpo, sem o sufixo `__1_` que o brief alertou.
+180.140 bytes sem o `<script>`.
+
+### A fonte mudou de vocabulário
+
+Contagens dos seletores das Waves 4/18/19, medidas neste arquivo:
+
+| seletor | ocorrências |
+| --- | --- |
+| `class="aula"` | **0** |
+| `aula-marker` | **0** |
+| `div.exercise` | **0** |
+| `exercise-tag` | **0** |
+| `glossary-item` | **0** |
+| `checklist-item` | **0** |
+
+O vocabulário aqui é abreviado: `sec-id` delimita seção, `lede` é o
+lead, `inst` o instrumento, `box` a nota, `lv` um explicador em três
+níveis, `det-bd` o corpo de exercício em `<details>`. Nenhum regex
+anterior serve — a estrutura foi remapeada do zero antes de extrair.
+
+### Contagem real — prosa e markup CONCORDAM, pela primeira vez
+
+| sinal | prosa da fonte | markup |
+| --- | --- | --- |
+| aulas | §MAP "Sete aulas" | 7 seções `Aula NN` |
+| exercícios | §Ex "Nove exercícios" | 9 `<details>` |
+| glossário | §Lex "Cinquenta e oito termos" | 58 `.term` |
+
+Nos Módulos 01 e 02 a prosa subestimava o markup ("seis dos oito",
+"Oito" contra dez); no glossário da Wave 8 dizia 28 contra 38 reais.
+Aqui não houve divergência a registrar. 17 seções = 7 aulas + 10 de
+aparato (§00 §MAP §Caso §Erros §Ex §Quiz §Voz §Final §Lex §Ref).
+
+| Aula | Título | blocos | inst | saídas |
+| --- | --- | --- | --- | --- |
+| 01 | Ordem de mérito como formador de preço | 14 | ✓ | 2 |
+| 02 | PLD: o preço do curto prazo | 18 | ✓ | 3 |
+| 03 | Energia × capacidade e o *missing money* | 20 | ✓ | 4 |
+| 04 | Leilões: como o regulador descobre o preço | 15 | ✓ | 4 |
+| 05 | PPA: onde mora a economia real | 17 | ✓ | 2 |
+| 06 | Hedge: travando exposição ao PLD | 14 | ✓ | 4 |
+| 07 | Portfólio de contratação | 16 | ✓ | 3 |
+
+**114 blocos de apostila.** Tabela em 4 aulas (02, 04, 05, 07).
+
+### Instrumento — tipo confirmado na marcação, não presumido
+
+**Sete, um por aula, nenhum solto no aparato** — diferente do Módulo 01,
+que tinha o `LAB · 01` fora de qualquer aula e até hoje sem lugar na
+interface.
+
+Seis se declaram `Simulador`. O sétimo é **"Mesa de hedge · swap
+simples"**, e "mesa de hedge" NÃO é membro de `InstrumentKind` (que tem
+nove). `src/lib/types/alexandria.ts` é somente-leitura nesta wave, e a
+mecânica do INST 06 é idêntica à dos outros seis — campos numéricos →
+readouts → veredito. Entrou como `kind: 'simulador'` com o **título
+literal preservado**. Verificado na tela: o painel renderiza `title`, e
+"MESA DE HEDGE · SWAP SIMPLES" é o que o aluno lê. O `kind` é taxonomia
+interna; nada se perdeu.
+
+**Campos:** a fonte pareia cada controle numérico com um `<input
+type="range">` gêmeo — mesmo padrão do Módulo 02. São UM campo lógico.
+Os ids extraídos carregam sufixo `-n` porque é o `<input type="number">`
+que tem value/min/max/step. 24 campos ao todo.
+
+### As seis saídas que não couberam no contrato
+
+A fonte declara 28 readouts, 4 por instrumento, perfeitamente regular.
+**22 entram.** Seis ficam de fora porque a fonte as renderiza como
+TEXTO e `ResultadoInstrumento.valores` é `Record<string, number>`:
+
+| id | rótulo | o que a fonte imprime |
+| --- | --- | --- |
+| `i1-m` | Usina marginal | nome ('Gás', 'Hidráulica') |
+| `i1-lim` | Limite aplicado | categoria ('piso R$ 57,31') |
+| `i2-mes` | Mês crítico | mês ('Set') |
+| `i5-lo` | Mês mais barato | composto ('Fev · R$ 3,2 mi') |
+| `i5-w` | Mês mais caro | composto |
+| `i7-w` | Pior mês | composto |
+
+Emitir índice numérico cru sob o rótulo "Mês crítico" seria pior que
+omitir — é literalmente o defeito que a Wave 19 registrou ("Vale do
+portfólio: 7" deveria ler "Agosto"). A informação **não se perde**: o
+veredito literal da fonte já a carrega ("Pico em Set a R$ 158/MWh",
+verificado na tela). Estender o tipo para `number | string` quebraria
+`InstrumentPanel.tsx` (que tipa `valores: Record<string, number>` na
+L312 e é NUNCA MODIFICAR), então a correção é de contrato, não de
+extração — mesma pendência da Wave 19, agora com número.
+
+### Prova de fidelidade — 29 de 29
+
+Os sete portados do `<script>`, confrontados contra **reimplementação
+independente** do original com os defaults da fonte: 22 valores
+numéricos + os 7 vereditos (nenhum com `NaN`, `undefined` ou
+`[object`). **Zero divergência.**
+
+Validações cruzadas: o INST 01 forma **R$ 250/MWh**, que é o CVU do gás
+— a usina marginal com os defaults — e o veredito cai na faixa "Sistema
+em atenção" (`price<=400`). O INST 04 dá preço de corte **R$ 230**
+contra preço médio por lance **R$ 186**, exatamente a diferença que a
+Aula 04 ensina. O INST 02 põe o pico em **Set**, coerente com o máximo
+da curva de sazonalidade.
+
+Constantes literais, com a citação regulatória que o próprio script
+traz: `PLD_MIN` 57,31 · teto horário 1.611,04 · teto estrutural 785,27
+(ANEEL Despacho 3.850/2025). Os formatadores do original
+(`num`/`brl`/`brl2`/`mi`) foram portados junto, para o veredito sair
+com o mesmo texto — incluindo a escala mil/mi/bi.
+
+### Sem gravura, e sem buraco
+
+`bloco-04` tem `illustrationPrefix: null` no catálogo da FOUNDRY e não
+existe pasta correspondente. **`illustrations: []` nas sete aulas.**
+Nenhuma gravura `orn-` foi usada para preencher: `orn-` é mobília de
+interface (Tier B), e misturar as duas coisas quebraria a separação que
+a Wave 5 firmou.
+
+Verificado nas SETE aulas com o rodapé excluído do seletor (a revisão
+pós-Wave 16 moveu `AlexandriaFooter` para dentro do `<main>`, então
+`main img` captura as quatro `orn-` da cartela): **zero gravura de aula,
+zero `<figure>` vazio, zero placeholder.** A `Prancha` da Wave 5 não
+reserva slot com array vazio, e isso se confirmou.
+
+### Os nove exercícios são TODOS soltos
+
+Nos Módulos 01-03 a tag apontava a aula (`Ex · 04 · Aula 05`). Aqui o
+`<summary>` traz só `NN · Título`, e a varredura por `/[Aa]ula\s*\d+/`
+no enunciado **e** no gabarito dos nove devolve **zero** ocorrência. A
+fonte não declara o vínculo, então ele não foi inventado: os nove vão
+para `MODULO_04_EXERCICIOS_SOLTOS` e as sete aulas ficam com
+`activities: []`. Primeira vez que 100% dos exercícios de um módulo são
+soltos.
+
+### O explicador em três níveis
+
+`div.lv` é peça pedagógica nova: o mesmo conceito em "Criança de 12
+anos" / "Executivo" / "Especialista". `AulaBloco` tem seis kinds
+(`titulo · paragrafo · formula · nota · lista · tabela`) e nenhum de
+abas; criar um exigiria tocar contrato que esta wave só pode ler. Vira
+UMA `nota` com os três rotulados dentro, texto integral preservado.
+Verificado renderizando.
+
+### `video: null` — medido, não herdado
+
+Zero `<video>`, zero `<iframe>`, zero youtube, zero vimeo, zero `.mp4`
+no arquivo inteiro.
+
+### Duas armadilhas de parsing desta fonte
+
+1. **O `<script>` contém strings HTML** (`'<div class="vl">'`) que
+   envenenam qualquer regex de conteúdo — a primeira varredura de
+   `.vl` devolveu código JS, não markup. Removido antes de parsear.
+2. **As divs aninham** (`box` dentro de aula, `inst` dentro de aula), e
+   regex não-guloso fecha no lugar errado. Walker com contagem de
+   profundidade, e o bloco `.inst` excluído do corpo — senão o
+   `inst-intro` entrava como parágrafo de apostila.
+
+### Registro no resolvedor + Trilha 1
+
+A previsão das três waves anteriores se sustentou pela terceira vez:
+**um bloco de `import` e três spreads**, em UM arquivo. Nenhum
+componente tocado — `AulaViewer`, `InstrumentPanel`, `ModuloAulaList` e
+`AlexandriaRouter` intactos.
+
+**Trilha 1 passa de 29 aulas em 3 de 5 módulos para 36 em 4 de 5**
+(verificado na tela: "36 aulas confirmadas"). `totalAulasPartial`
+continua `true`, corretamente — o `bloco-05` segue sem HTML.
+
+`alexandria-trilhas.ts` não consta da posse declarada, mas `totalAulas`
+e `totalAulasPartial` são DERIVADOS de `AULAS_POR_BLOCO`, que vive nele;
+a Fase 4 pede a atualização explicitamente e não há outro caminho.
+Acrescentado `'bloco-04': 7` mais a nota de que o Módulo 04 não entra na
+coluna de `.aula` bruto da tabela, porque não usa essa marcação.
+
+### Verificação por clique real
+
+Aula 1 abre com **"AULA 1 DE 7"**, corpo completo, e o INST 01 no
+primeiro paint em **Preço formado 250 · Déficit 0 MW** — os mesmos
+valores da prova de fidelidade, **zero NaN**. Aula 6 mostra "MESA DE
+HEDGE · SWAP SIMPLES" com as quatro saídas (−400.000 / 2.500.000 /
+2.900.000 / 290) batendo. Aula 7 fecha em "AULA 7 DE 7".
+
+Regressão: M01 aula 3 com as 3 gravuras `fis-`, M02 aula 2 com 1, M03
+aula 6 com as 3 `ger-`, todas com `naturalWidth > 0`; nenhum NaN em
+nenhuma. Zero overflow horizontal em 1440×900 e 1920×1080.
+
+**Nota de progressão, não defeito:** o Módulo 04 aparece **trancado** na
+trilha ("7 aulas · conclua o módulo anterior") porque o progresso mock
+tem o Módulo 02 em 3/10 — é a regra da Wave 3 funcionando, idêntico ao
+que a Wave 19 registrou. As aulas abrem por URL direta, e foi assim que
+foram verificadas.
+
+Os 401 no console são `/api/auth/me` sem sessão — estado normal tratado
+pelo contexto, mesma nota das Waves 23 e ARCHITECT 1.
+
+**Gates:** `tsc -b` 0 erros em Alexandria (seguem só os pré-existentes
+de Recharts em `nest/student/*`) · `gridalpha-detect` "No findings.
+Surface is clean."

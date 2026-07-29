@@ -111,11 +111,10 @@ export function PerfilPlataforma() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
         {/* ─── Dados pessoais ─────────────────────────────────── */}
         <Secao titulo="Dados pessoais">
-          {/* Peso igual é intencional: nome, email e data de cadastro
-              são três fatos do mesmo nível sobre a mesma conta.
-              Eleger um deles como dominante inventaria hierarquia que
-              o dado não tem. */}
-          {/* gridalpha-detect-disable-next-line */}
+          {/* Lista de pares rótulo/valor, de peso deliberadamente
+              igual: nome, email e data de cadastro são três fatos do
+              mesmo nível sobre a mesma conta, e eleger um como
+              dominante inventaria hierarquia que o dado não tem. */}
           <dl
             style={{
               margin: 0,
@@ -125,9 +124,16 @@ export function PerfilPlataforma() {
               rowGap: '20px',
             }}
           >
-            <Dado rotulo="Nome" valor={user.name} />
-            <Dado rotulo="Email" valor={user.email} />
-            <Dado rotulo="Membro desde" valor={formatarData(user.createdAt)} />
+            {[
+              { rotulo: 'Nome', valor: user.name },
+              { rotulo: 'Email', valor: user.email },
+              { rotulo: 'Membro desde', valor: formatarData(user.createdAt) },
+            ].map((d) => (
+              <div key={d.rotulo} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <dt style={{ ...JT.rotulo, color: J.tintaSecundaria }}>{d.rotulo}</dt>
+                <dd style={{ margin: 0, fontSize: '16px', color: J.tintaPrimaria }}>{d.valor}</dd>
+              </div>
+            ))}
           </dl>
 
           <div
@@ -314,15 +320,6 @@ function Secao({
       </div>
       {children}
     </section>
-  );
-}
-
-function Dado({ rotulo, valor }: { rotulo: string; valor: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <dt style={{ ...JT.rotulo, color: J.tintaSecundaria }}>{rotulo}</dt>
-      <dd style={{ margin: 0, fontSize: '16px', color: J.tintaPrimaria }}>{valor}</dd>
-    </div>
   );
 }
 

@@ -20,6 +20,7 @@ import { flushSync } from 'react-dom';
 
 import { J, JT } from '../../design/jaguar-tokens';
 import type { DestinoBR } from '../../lib/data/br-destinos';
+import { useAuth } from '../../lib/auth/AuthContext';
 
 // Cor REAL de papel do sistema Alexandria, literal da spec §3 ("papel
 // #F2E9D6"). Hardcoded de propósito: importar de alexandria-tokens.ts
@@ -154,6 +155,7 @@ export interface DestinoCardProps {
 export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   const [sobre, setSobre] = useState(false);
   const navigate = useNavigate();
+  const { user, loading: authCarregando, activateProduct } = useAuth();
   // Só o estado inicial importa aqui — mudança de preferência no meio
   // da visita re-renderiza no próximo mount.
   const [reduzido] = useState(
@@ -288,6 +290,33 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
 
   if (disponivel) {
     const rota = destino.rota as string;
+
+    /**
+     * Entrar no produto é o que o ATIVA (contrato Wave 9: "Creating an
+     * account activates nothing; a product becomes active only when
+     * the user enters it").
+     *
+     * Sem sessão → /entrar, carregando o destino pretendido para a
+     * pessoa cair no produto depois de entrar, não numa tela solta.
+     *
+     * Com sessão → dispara a ativação e navega. A navegação NÃO espera
+     * a resposta: ativar é registro de uso, não portão de entrada, e
+     * `POST /activate` é idempotente por constraint no banco. Se a
+     * chamada falhar, quem clicou entra na Alexandria assim mesmo —
+     * bloquear a leitura porque um insert de telemetria falhou seria
+     * inverter a prioridade. O erro fica no console para diagnóstico.
+     */
+    const aoAbrir = () => {
+      if (!user) {
+        navigate('/entrar', { state: { de: rota } });
+        return;
+      }
+      void activateProduct(destino.id).catch((err: unknown) => {
+        console.warn(`[identidade] falha ao ativar "${destino.id}":`, err);
+      });
+      comTransicao(() => navigate(rota));
+    };
+
     return (
       <Link
         to={rota}
@@ -302,7 +331,11 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
           // Alexandria, a razão de o portal ser claro.
           if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
           e.preventDefault();
-          comTransicao(() => navigate(rota));
+          // Enquanto /api/auth/me não respondeu, não dá para saber se
+          // há sessão — mandar para /entrar aqui expulsaria quem está
+          // logado. Espera o contexto resolver; é questão de ms.
+          if (authCarregando) return;
+          aoAbrir();
         }}
         style={quadro}
       >

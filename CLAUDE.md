@@ -2646,3 +2646,145 @@ interface.
 
 **Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` sobre 36
 arquivos — "No findings. Surface is clean."
+
+
+## LYCEUM — ALEXANDRIA WAVE 19 — MÓDULO 03
+
+**Status:** fechada. Extração, cálculos e fiação. Os três tipos de
+instrumento que estreiam aqui couberam no modelo existente — **nenhum
+componente foi tocado**, e nenhuma mecânica de interação foi inventada.
+
+**Arquivos:** `alexandria-modulo-03-content.ts` (NOVO, 620 linhas) ·
+`alexandria-instrument-calculators.ts` (+9) ·
+`alexandria-curriculo.ts` (registro).
+
+### Contagem real, por três sinais
+
+20 `.aula` brutos = **10 aulas** + 10 de aparato; o hero declara "Dez
+aulas". **89 blocos de apostila** — bem menos que os 156 do Módulo 02,
+porque o Módulo 03 tem 1-3 subseções por aula contra 3-6: argumenta por
+tecnologia, não por mecanismo. `video: null`, `difficulty: null` e
+`durationMinutes: null` nas dez, **medidos** (zero `<video>`, `<iframe>`,
+youtube, vimeo; zero marcador de nível), não herdados dos outros módulos.
+
+| Aula | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| blocos | 10 | 11 | 7 | 10 | 7 | 10 | 9 | 8 | 9 | 8 |
+| instrumentos | 2 | 1 | 1 | — | 1 | 1 | — | — | 1 | 2 |
+| exercícios | 2 | 1 | — | 1 | 1 | 1 | — | 1 | 1 | 1 |
+| gravuras | — | — | 2 | 2 | 3 | 3 | 1 | 1 | 1 | — |
+
+**Prosa e markup CONCORDAM pela primeira vez:** o § Ex diz "Dez
+exercícios" e há dez `div.exercise`, todos com `exercise-tag`. Nos
+Módulos 01 e 02 a prosa subestimava o markup.
+
+Duas tags fogem do padrão. `Ex · 03 · Aulas 02–03` é **plural** — um
+`Aula (\d+)` ingênuo captaria só o "02" e perderia o vínculo com a 03.
+Fica na primeira aula nomeada, com a tag inteira preservada em
+`config.tag`; duplicar criaria exercício repetido e dobraria os pontos.
+`Ex · 10 · Síntese` não aponta aula e vai para
+`MODULO_03_EXERCICIOS_SOLTOS`.
+
+### Veredito dos três tipos estreantes: TODOS INTERATIVOS
+
+O brief autorizava renderizar como leitura estática o que não coubesse.
+**Não foi preciso em nenhum** — a marcação real foi inspecionada antes
+de qualquer extração:
+
+| Tipo | Marcação real | Veredito |
+| --- | --- | --- |
+| `comparador` (INST 04, 08) | campo numérico + `sim-readouts`; o 08 ainda tem `pill-row` de 5 tecnologias | **Interativo.** Cabe direto; pill já mapeia em `select` desde o Módulo 02 |
+| `dimensionador` (INST 07) | 3 campos numéricos + 4 readouts | **Interativo.** Cabe direto |
+| `quebra-cabeca` (INST 09) | `src-toggle-row` com 4 `src-check` (`data-src`) | **Interativo.** São QUATRO chaves booleanas independentes — não arrastar, ordenar nem parear. Cada uma vira `select` de duas opções, primitivo que o painel já renderiza |
+
+O `quebra-cabeca` era o único candidato real a não caber. Não coube por
+sorte: coube porque a interação da fonte é seleção múltipla, e seleção
+múltipla se expressa com o primitivo existente sem estender nada.
+
+### Mapa de gravura — 13 de 24, e três falsos positivos capturados
+
+O brief alertou que "turbina" é ambíguo. **Confirmado: aparece 11+ vezes
+nas Aulas 02, 03, 04, 06 e 08** — hidráulica, eólica, a gás e a vapor
+nuclear. Mapear pela palavra teria colado gravura de Francis na aula de
+eólica. A varredura foi por equipamento específico, com a frase lida.
+
+**Três falsos positivos que só a leitura pegou:**
+- **`ger-03-turbina-francis-corte`** — a única ocorrência de "Francis" no
+  módulo inteiro é **"São Francisco"**, o rio. Não é a turbina.
+- **`ger-16-pa-aerogerador-corte`** — o hit na Aula 03 é **"(Xingu, PA)"**,
+  a sigla do Pará.
+- **`ger-24-celula-litio-corte` na Aula 02** — "a bateria que veio antes
+  do lítio" é contraste retórico sobre reservatórios, não o assunto.
+  Mapeada só na Aula 09 (Armazenamento).
+
+| Aula | Gravuras | Razão |
+| --- | --- | --- |
+| 03 Fio d'água | `ger-06`, `ger-07` | 7 hits de "fio d'água"; "PCH (Pequenas Centrais Hidrelétricas, até 30 MW)" explícito |
+| 04 Eólica | `ger-14`, `ger-17` | "o Nordeste onshore compete com o offshore do Mar do Norte"; passagem dedicada ao offshore (Lei 15.097/2025) |
+| 05 Solar | `ger-18`, `ger-20`, `ger-21` | "o custo do módulo fotovoltaico caiu ~90%"; UFV e MMGD são metade do título |
+| 06 Térmicas a gás | `ger-08`, `ger-09`, `ger-13` | §6.1 "uma turbina a gás — essencialmente um motor de avião estacionário"; GNL com 6 hits |
+| 07 Biomassa | `ger-22` | 3 hits de bagaço na aula dedicada |
+| 08 Nuclear | `ger-11` | §8.1 "O parque real: dois reatores e um canteiro de 39 anos" |
+| 09 Armazenamento | `ger-24` | "eficiência de ciclo completo de 85-90% para lítio"; "fronteira lítio LFP × sódio" |
+
+**Onze NÃO mapeadas** (`ger-01`, `02`, `03`, `04`, `05`, `10`, `12`,
+`15`, `16`, `19`, `23`). Motivo estrutural, não descuido: **o Módulo 03
+ensina economia e papel sistêmico, não interna de equipamento.** Termos
+medidos no módulo inteiro: `Kaplan` 0 · `casa de força` 0 ·
+`eletrolisador` 0 · `contenção` 0 · `torre de resfriamento` 0 ·
+`célula fotovoltaica` 0 · `silício` 0 · `gravidade aliviada` 0 ·
+`barragem` 0. `vertedouro` e `nacele` existem só no § Lex (glossário),
+fora de qualquer aula.
+
+### Prova de fidelidade: 27 de 27
+
+Os nove portados do `<script>`, confrontados contra reimplementação
+independente com os defaults da fonte. **Zero divergência.** Validações
+cruzadas: o Quebra-cabeça com hidro sozinha dá razão 32,26% (< 40 → "Time
+de um jogador", exatamente o que a aula narra); o LCOE solar dá 88,5% de
+capital ("custo quase todo de capital"); o Dimensionador dá 400 MWh e
+54,55 MWh perdidos a 88% de eficiência.
+
+**SINALIZADO, não corrigido** (INST 08): no original, clicar numa pill
+**também reescreve o campo de FC** com o do preset (`fcEl.value = pr.fc`).
+Efeito colateral que função pura não reproduz. Aqui o FC do usuário
+permanece e o preset entra só como fallback de campo vazio — o que
+`parseFloat(fcEl.value) || p.fc` já fazia. Consequência: trocar de
+tecnologia sem mexer no FC compara as duas no MESMO fator de capacidade,
+que é justamente o "teste-chave" que a nota do instrumento pede.
+
+### Registro no resolvedor: um bloco de import + três spreads
+
+A previsão da fiação do Módulo 02 se sustentou. `git status` após a Fase 4
+mostrou **um único arquivo modificado** (`alexandria-curriculo.ts`).
+Nenhum componente tocado — o desacoplamento se pagou na primeira vez que
+foi exercido.
+
+### Verificação por clique real
+
+- Aula 06: 3 gravuras `ger-` com `naturalWidth` 1536; Simulador da pilha
+  de CVU com "CMO didático 150 · Hidro reservatório", batendo com a
+  fidelidade.
+- Comparador, Dimensionador e Quebra-cabeça: os três renderizam
+  **interativos**, sem `NaN` no primeiro paint.
+- Regressão: Módulo 01 INST 01 dá 50 kWh; Módulo 02 INST 02 renderiza
+  com os quatro campos.
+- Zero erro de console, zero overflow horizontal, 1440×900 e 1920×1080.
+
+**Nota de progressão, não defeito:** o Módulo 03 aparece **trancado** na
+trilha ("10 aulas · conclua o módulo anterior"), porque o progresso mock
+tem o Módulo 02 em 3/10. É a regra da Wave 3 funcionando. As aulas abrem
+por URL direta, e é assim que foram verificadas.
+
+### Registrado, não resolvido
+
+**Saídas que são índice aparecem como número cru.** "Vale do portfólio: 7"
+deveria ler "Agosto"; o mesmo vale para o mês do INST 03 e a hora do
+INST 05. A causa é o contrato: `ResultadoInstrumento.valores` é
+`Record<string, number>`, então um rótulo textual derivado (o `MESES[m]`
+do original) não tem onde caber. Não é invenção nem defeito da porta —
+é a mesma classe da pendência de unidades registrada na Wave 18, e a
+correção é de contrato, não de extração.
+
+**Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
+findings. Surface is clean."

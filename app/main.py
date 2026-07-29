@@ -8,6 +8,7 @@ from app.routers import (
     ai,
     ancillary,
     atlas,
+    auth,
     energy,
     fuel_mix,
     lmp,
@@ -72,6 +73,9 @@ app.include_router(outages_v2.router)  # /api/outages/*
 app.include_router(ancillary.router)  # /api/ancillary/*
 app.include_router(stream.router)  # /api/stream (SSE)
 app.include_router(infra_router)  # /api/infra/* (Wave 7 static infrastructure)
+
+# Wave 9 platform identity — one account per person, activation per product.
+app.include_router(auth.router)  # /api/auth/*
 
 
 @app.get("/health")

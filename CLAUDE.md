@@ -3450,3 +3450,107 @@ pelo contexto, mesma nota das Waves 23 e ARCHITECT 1.
 **Gates:** `tsc -b` 0 erros em Alexandria (seguem só os pré-existentes
 de Recharts em `nest/student/*`) · `gridalpha-detect` "No findings.
 Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 26 — ACESSO AO PERFIL NO HEADER
+
+**Status:** fechada. Wave curta: a Wave 23 construiu `/alexandria/perfil`
+inteiro e nenhuma superfície linkava para lá — só dava para chegar
+digitando a URL. Esta wave é a porta.
+
+**Arquivo:** `src/components/alexandria/shell/AlexandriaHeader.tsx`
+(único modificado). Zero token novo.
+
+### Auditoria da Fase 1
+
+**Wave 22 não estava em voo.** `AlexandriaHeader.tsx` limpo no working
+tree, remoto sincronizado 0/0. O último commit a tocá-lo é
+`af6b8c8 "alexandria header maior + recolhe ao rolar"` — posição 37 do
+log, já integrado, de sessão anterior. Nenhum commit "wave 22" existe.
+
+**Shape confirmado por leitura, não presumido.** `useAuth()` devolve
+`{ user, loading, login, signup, logout, activateProduct, myProducts }`.
+`PlatformUser` é `{ id, email, name, authMethods, createdAt, updatedAt }`
+— **sem campo de imagem**. O próprio `AuthContextValue` documenta o
+`loading`: "ninguém deve concluir 'não logado' — só 'ainda não sabemos'".
+
+**`AuthProvider` cobre `/alexandria/*`** (`main.tsx` L30-92, rota na
+L78), então `useAuth` — o consumidor que lança fora do provedor — é o
+correto aqui, e não `useAuthOpcional`.
+
+### Três estados, vocabulário replicado do Portal
+
+Nada foi inventado: o tratamento é o do `AcessoConta` do Portal Brasil
+(ARCHITECT · Identidade Wave 1), com os tokens trocados de Jaguar para
+os da Alexandria.
+
+| estado | tratamento |
+| --- | --- |
+| `loading` | espaço reservado de 32px, sem fio e sem letra — não afirma nada |
+| sem sessão | "Entrar" em **caixa de fio**, levando `location.state.de` |
+| com sessão | **círculo** com a inicial, levando a `/alexandria/perfil` |
+
+**Caixa de fio e nunca fio-embaixo**, pela razão que o Portal declara e
+que vale igual aqui: fio embaixo é o vocabulário de item de nav ATIVO
+(a nav deste mesmo header usa fio terracota para isso), então usá-lo
+faria "Entrar" ler como estado — "você está em Entrar" — em vez de ação.
+
+### Sem foto, e não é omissão
+
+`PlatformUser` não tem campo de imagem. Um `<img>` apontando para nada
+renderiza ícone de quebrado, então é **sempre inicial**. Nome em branco
+cai em `—`, que é a marca de campo sem valor do sistema, não uma letra
+inventada.
+
+### Zero token novo
+
+O círculo usa `AR.circulo` — é a única exceção de raio que a identidade
+concede (círculo pleno: anel de progresso, avatar). Desenhado com **fio
+de 1px**, não com disco preenchido, porque neste sistema profundidade
+vem de fio. Em **ouro** (`A2.ouroSobreNavy`, declarado 7,6:1 sobre
+navy), não terracota: terracota é cor de estado e a Wave 17 já registrou
+que ela nunca é decorativa. É o mesmo ouro do fio duplo de frontispício
+logo acima.
+
+Busca e acesso ficam num container só, para o `space-between` do header
+continuar distribuindo TRÊS blocos (marca · nav · direita) — soltos
+seriam quatro e a nav sairia do centro.
+
+### Verificação por clique real
+
+Conta nova criada na verificação, porque conta existente não provaria o
+caminho de volta.
+
+| passo | resultado |
+| --- | --- |
+| deslogado em `/alexandria` | "Entrar" visível · **raio 0px** · borda `#35506E` · texto `#F2E9D6` |
+| clique em Entrar | → `/entrar` |
+| criar conta a partir dali | → **volta para `/alexandria`**, não `/conta` |
+| logado | círculo `href=/alexandria/perfil` · texto **"L"** · **raio 50%** · fio e cor `#CBAA6E` |
+| clique no círculo | → `/alexandria/perfil`, perfil montado |
+
+**O estado `loading` foi provado, não assumido:** com `/api/auth/me`
+interceptado e atrasado em 2s, o header **nunca** mostrou "Entrar" —
+quatro amostras ao longo do atraso, todas negativas — e o círculo
+apareceu assim que `/me` respondeu. É a disciplina que o Portal firmou,
+agora medida.
+
+Zero erro de página. 1440×900.
+
+### Registrado, não corrigido — e é dívida da própria Wave 24
+
+`TrilhasHub.tsx` L30 traz a contagem **digitada à mão**: "Dezessete
+módulos catalogados do Currículo Definitivo. Três deles têm conteúdo
+escrito e navegável; os outros catorze estão em produção."
+
+Com o Módulo 04 extraído na Wave 24 são **quatro** com conteúdo e
+**treze** em produção — a frase virou afirmação falsa na tela, visível
+no hub. É correção de uma linha, mas `TrilhasHub.tsx` não está na posse
+desta wave, e a copy deveria ser derivada de `MODULOS_COM_CONTEUDO`
+(que o resolvedor já exporta) em vez de digitada — senão volta a
+divergir no Módulo 05.
+
+**Conta de teste deixada no banco** — não há endpoint de exclusão no
+contrato, mesma pendência das Waves 23 e ARCHITECT 1.
+
+**Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
+findings. Surface is clean."

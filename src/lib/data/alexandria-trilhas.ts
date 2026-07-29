@@ -20,20 +20,24 @@ import { getBlocksByLevel } from './alexandria-blocks';
  *  | 02     | 20            | 10        | 10          | "Dez aulas" |
  *  | 03     | 20            | 10        | 10          | "Dez aulas" |
  *  | 04     | —             | 7         | 10          | "Sete aulas"|
+ *  | 05     | —             | 6         | 10          | mapa de 6   |
  *
- *  O Módulo 04 não entra na coluna de `.aula` bruto porque não usa essa
- *  marcação: a fonte dele tem vocabulário próprio (`sec-id` delimita
- *  seção, e `class="aula"` ocorre ZERO vez). A contagem vem das 17
- *  divisões `sec-id`, das quais 7 casam `Aula NN` e 10 são aparato —
- *  e o § MAP anuncia "Sete aulas", concordando.
+ *  Os Módulos 04 e 05 não entram na coluna de `.aula` bruto porque não
+ *  usam essa marcação: a fonte dos dois tem vocabulário próprio (`sec-id`
+ *  delimita seção, e `class="aula"` ocorre ZERO vez). A contagem vem das
+ *  divisões `sec-id` — 17 no Módulo 04 (7 aulas + 10 aparato) e 16 no
+ *  Módulo 05 (6 aulas + 10 aparato). O § MAP do 04 anuncia "Sete aulas"; o
+ *  do 05 desenha um mapa com seis cartões, um por aula, e os seis títulos
+ *  batem 1:1 com os `<h3>` da fonte. LYCEUM Waves 24 e 25.
  *
- *  Blocos 05-17 ficam fora deste mapa de propósito — não têm HTML no
+ *  Blocos 06-17 ficam fora deste mapa de propósito — não têm HTML no
  *  repositório, e estimar seria inventar. */
 const AULAS_POR_BLOCO: Record<string, number> = {
   'bloco-01': 9,   // Física de Energia e Eletricidade
   'bloco-02': 10,  // Como Funciona uma Rede Elétrica
   'bloco-03': 10,  // Tecnologias de Geração
   'bloco-04': 7,   // Economia de Mercados de Energia
+  'bloco-05': 6,   // Regulação e Desenho de Mercados
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

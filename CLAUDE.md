@@ -3554,3 +3554,133 @@ contrato, mesma pendência das Waves 23 e ARCHITECT 1.
 
 **Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
 findings. Surface is clean."
+
+
+## LYCEUM — ALEXANDRIA WAVE 25 — MÓDULO 05 · TRILHA 1 COMPLETA
+
+**Status:** fechada. **A Trilha 1 fechou** — Fundamentos Universais é a
+primeira trilha do currículo do zero à fluência, com os cinco módulos
+extraídos e nenhum em `null`. 42 aulas.
+
+**Arquivos:** `alexandria-modulo-05-content.ts` (NOVO, 545 linhas) ·
+`alexandria-instrument-calculators.ts` (+6) · `alexandria-curriculo.ts`
+(registro) · `alexandria-trilhas.ts` (`AULAS_POR_BLOCO['bloco-05']`).
+
+### Vocabulário de classe — medido, não presumido
+
+A hipótese do brief (Módulos 5-6 compartilham o vocabulário novo do 4)
+estava certa, mas foi **verificada antes de escolher extrator**:
+
+| seletor | Módulos 01-03 | Módulo 05 |
+| --- | --- | --- |
+| `class="aula"`, `aula-marker`, `exercise-tag`, `glossary-item`, `instrument-title`, `checklist-item`, `class="lead"` | usados | **todos ZERO** |
+| `sec-id` · `lede` · `inst` · `lv` · `det-bd` | zero | 16 · 16 · 6 · 6 · 15 |
+
+Uma divergência interna ao vocabulário novo: o callout do Módulo 04 é
+`class="box"`; aqui é `box gd`. Uma varredura exata por `class="box"`
+daria zero e perderia os oito.
+
+### Contagem real
+
+16 seções `sec-id` = **6 aulas** + 10 de aparato (§00, §MAP, §Caso,
+§Erros, §Ex, §Quiz, §Voz, §Final, §Lex, §Ref). **126 blocos de apostila.**
+Validação independente: os títulos extraídos batem 1:1 com os `<h3>` da
+fonte em todas as seis (3, 5, 4, 6, 7, 5).
+
+| Aula | 01 | 02 | 03 | 04 | 05 | 06 |
+| --- | --- | --- | --- | --- | --- | --- |
+| blocos | 17 | 19 | 19 | 24 | 27 | 20 |
+| instrumento | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+**Um instrumento por aula, seis no total** — nenhum solto no aparato.
+`video: null` medido (zero `<video>`, `<iframe>`, youtube, vimeo, `.mp4`).
+`difficulty: null` — as ocorrências de "nível" são prosa ("achar seu
+nível", "por nível de tensão", "custo nivelado"), nenhuma é marcador.
+`illustrations: []` nas seis: `bloco-05` tem `illustrationPrefix: null`
+desde a FOUNDRY Wave 1.
+
+### OS TRÊS PRECEDENTES DA WAVE 24 SE REPETIRAM — todos
+
+**1. `kind` fora de `InstrumentKind` — duas vezes numa wave só.**
+`Termômetro` (Inst 04) e `Mapa` (Inst 06) não são membros do tipo, que
+é somente-leitura aqui. Título literal preservado na tela (o aluno lê
+"TERMÔMETRO · RISCO DE CAPTURA"), mapeamento interno decidido pela
+MECÂNICA e não pelo nome:
+
+| Fonte | Mecânica real | Mapeado para |
+| --- | --- | --- |
+| `Termômetro` | 8 chaves booleanas com peso + 1 campo numérico → índice | `quebra-cabeca` |
+| `Mapa` | 3 campos numéricos → posição + veredito | `simulador` |
+
+Com "Mesa de hedge" (Wave 24), são **três ocorrências em duas waves**.
+O vocabulário de instrumento da fonte cresce mais rápido que o enum —
+vale considerar, numa wave de contrato, se `InstrumentKind` deve virar
+união aberta ou ganhar um campo `kindLabel` separado do `kind` interno.
+
+**2. Saída inerentemente textual — quatro delas, em três instrumentos.**
+`i2-b` (grau ótimo: 'Contábil'/'Funcional'/'Jurídica'/'Societária'),
+`i4-r` (reprodutibilidade: 'não'/'parcial'/'sim'), `i6-q` (quadrante) e
+`i6-r` (risco dominante). `ResultadoInstrumento.valores` é
+`Record<string, number>`, então ficam fora — o veredito literal já as
+carrega em prosa. **Terceira wave seguida** com este padrão (Wave 19:
+mês; Wave 24: seis saídas; agora quatro). Não é mais ocorrência
+isolada: é limitação conhecida do contrato, e a correção é de contrato.
+
+**3. Exercício sem vínculo a aula — testado explicitamente.** Os dez
+foram varridos em resumo, enunciado E gabarito. Nove não mencionam aula
+nenhuma. O décimo tem "Aula 06" no fecho do gabarito ("é precisamente o
+caminho híbrido descrito na Aula 06") — referência de conteúdo em prosa,
+não tag de posse: a tag dele é `10 · Onde plotar o sistema`, sem aula,
+igual às outras nove. Os dez vão para `MODULO_05_EXERCICIOS_SOLTOS`.
+A prosa do §Ex diz "Dez exercícios" e concorda com o markup.
+
+### Prova de fidelidade: 27 de 27
+
+Os seis portados do `<script>`, confrontados contra reimplementação
+independente. **Zero divergência.** Validação cruzada notável: o INST 06
+com os defaults (85, 45) devolve distância **0,00** — os valores padrão
+são exatamente a posição do Brasil no mapa de dois eixos, e a coerência
+cai em 84,45/100 ("configuração coerente"). O INST 04 com os sinais 0 e 2
+marcados dá opacidade 42 e reprodutibilidade "não", como o original.
+
+Os oito sinais do Termômetro vivem no `<script>`, não no markup — a
+`sig-grid` nasce vazia e é populada por JS. Extraídos de lá com os pesos
+literais (22+20+20+12+12+6+5+3 = 100).
+
+### `totalAulasPartial` — correção à premissa do brief
+
+O brief pede "`totalAulasPartial` sai de true para false". **Não existe
+campo para editar:** ele é DERIVADO em `alexandria-trilhas.ts` L125 —
+`modules.some((m) => m.totalAulas === null)`. Acrescentar
+`'bloco-05': 6` ao `AULAS_POR_BLOCO` faz o valor virar `false` sozinho.
+
+Auditoria dos consumidores, feita ANTES de mudar o valor:
+
+| componente | consome? |
+| --- | --- |
+| `CaminhoExpedicao.tsx` | não consome `totalAulas` |
+| `AlexandriaHome.tsx` | não consome |
+| `TrilhasHub.tsx` | conta módulos com fonte; não ramifica em `partial` |
+| `TrilhaCard.tsx` | **único que ramifica** — com `false`, a ressalva "· N de M módulos com fonte" simplesmente não renderiza |
+
+Comportamento com `false` é exatamente o desejado. **Nenhum componente
+precisou mudar**, e nenhum dos sete da lista de proibição foi tocado.
+
+### Verificação por clique real
+
+- **Hub:** "42 aulas confirmadas" (9+10+10+7+6), **sem a ressalva de
+  parcial** — confirmado por leitura de DOM. Trilhas 2 e 3 seguem em
+  "Conteúdo em produção", corretamente.
+- **Trilha 1:** os cinco módulos com contagem real; o Módulo 5 mostra
+  "6 aulas".
+- **Módulo 05:** Aulas 1, 4 e 6 abrem com conteúdo real, `figure` = 0
+  (illustrations vazio), zero NaN. O Termômetro renderiza com os 8
+  alternadores Presente/Ausente e os pesos visíveis no rótulo.
+- **Regressão:** Módulo 01 aula 3 (3 gravuras `fis-`, naturalWidth
+  1024/1536/1024), Módulo 02 aula 3 (3 `red-`), Módulo 03 aula 6 (3
+  `ger-`, 1536) e Módulo 04 aula 1 (zero figura, como deve ser).
+- Zero erro de console fora dos 401 de `/api/auth/me` sem sessão, zero
+  overflow horizontal em 1440×900 e 1920×1080.
+
+**Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
+findings. Surface is clean."

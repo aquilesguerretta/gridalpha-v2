@@ -34,7 +34,14 @@
 // ajuste de código parou de render diferença perceptível e a resposta
 // foi referência visual nova), aqui cada iteração produziu ganho visível
 // e cumulativo — não bateu no mesmo teto.
+//
+// Ajuste pós-fechamento: brasão 46px → 52px, e o header recolhe (altura
+// + flex-basis + opacidade, não só `transform`, para que o `<main>`
+// ocupe o espaço liberado sem deixar vão) ao rolar para baixo — ver
+// `useEsconderAoRolar` abaixo. Respeita `prefers-reduced-motion`
+// desligando o listener por completo.
 
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-tokens';
 
@@ -88,6 +95,45 @@ function ativoPorRota(pathname: string): string | null {
   return null;
 }
 
+/** Esconde o header ao rolar para baixo, devolve ao rolar para cima ou ao
+ *  chegar perto do topo. O scroller real é o `<main>` do Shell, não a
+ *  janela — mesmo idioma que a Wave 7 já usou para o CTA do hero
+ *  (`closest('main')`), porque `index.css` trava o documento em 100vh e
+ *  quem rola é o container interno.
+ *
+ *  Sem `AlexandriaShell.tsx` — que segue fora da posse deste
+ *  componente — não há como injetar o listener no próprio `<main>`;
+ *  encontrá-lo por travessia do DOM a partir do header evita tocar
+ *  naquele arquivo. */
+function useEsconderAoRolar() {
+  const headerRef = useRef<HTMLElement>(null);
+  const [escondido, setEscondido] = useState(false);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    const scroller = header?.parentElement?.querySelector('main');
+    if (!scroller) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    let ultimoTopo = scroller.scrollTop;
+    const TOLERANCIA = 6;
+
+    function aoRolar() {
+      const atual = scroller!.scrollTop;
+      if (atual <= 4) setEscondido(false);
+      else if (atual > ultimoTopo + TOLERANCIA) setEscondido(true);
+      else if (atual < ultimoTopo - TOLERANCIA) setEscondido(false);
+      ultimoTopo = atual;
+    }
+
+    scroller.addEventListener('scroll', aoRolar, { passive: true });
+    return () => scroller.removeEventListener('scroll', aoRolar);
+  }, []);
+
+  return { headerRef, escondido };
+}
+
 export function AlexandriaHeader({
   itens = NAV_PADRAO,
   itemAtivo,
@@ -98,13 +144,19 @@ export function AlexandriaHeader({
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const ativo = itemAtivo ?? ativoPorRota(pathname);
+  const { headerRef, escondido } = useEsconderAoRolar();
 
   return (
     <header
+      ref={headerRef}
       style={{
         position: 'relative',
-        height: ALAYOUT.headerHeight,
-        flex: `0 0 ${ALAYOUT.headerHeight}`,
+        height: escondido ? '0px' : ALAYOUT.headerHeight,
+        flexGrow: 0,
+        flexShrink: 0,
+        flexBasis: escondido ? '0px' : ALAYOUT.headerHeight,
+        overflow: 'hidden',
+        opacity: escondido ? 0 : 1,
         background: A.navy,
         display: 'flex',
         alignItems: 'center',
@@ -112,6 +164,7 @@ export function AlexandriaHeader({
         gap: AS.xl,
         padding: `0 ${AS.xl}`,
         borderRadius: AR.none,
+        transition: `flex-basis ${AE.hover} ${AE.easing}, height ${AE.hover} ${AE.easing}, opacity ${AE.hover} ${AE.easing}`,
       }}
     >
       {/* Moldura de frontispício — fio duplo, como masthead de jornal do
@@ -127,8 +180,8 @@ export function AlexandriaHeader({
         <img
           src="/alexandria/marca/rosa-lg-on-navy.png"
           alt=""
-          width={46}
-          height={46}
+          width={52}
+          height={52}
           style={{ display: 'block', flex: 'none' }}
         />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>

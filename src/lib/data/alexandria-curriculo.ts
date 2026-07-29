@@ -28,11 +28,32 @@ import {
   MODULO_02_CORPO,
   MODULO_02_LEAD,
 } from './alexandria-modulo-02-content';
+import {
+  MODULO_03_AULAS,
+  MODULO_03_CORPO,
+  MODULO_03_LEAD,
+} from './alexandria-modulo-03-content';
 
 // ── Agregação. Acrescentar módulo novo é acrescentar aqui. ─────────
-const AULAS: CurriculumAula[] = [...MODULO_01_AULAS, ...MODULO_02_AULAS];
-const CORPO: Record<string, AulaBloco[]> = { ...MODULO_01_CORPO, ...MODULO_02_CORPO };
-const LEAD: Record<string, string> = { ...MODULO_01_LEAD, ...MODULO_02_LEAD };
+//
+// O Módulo 03 (Wave 19) entrou exatamente assim: um bloco de `import` e
+// três spreads. Nenhum componente foi tocado — o desacoplamento que a
+// fiação do Módulo 02 construiu se pagou na primeira vez que foi usado.
+const AULAS: CurriculumAula[] = [
+  ...MODULO_01_AULAS,
+  ...MODULO_02_AULAS,
+  ...MODULO_03_AULAS,
+];
+const CORPO: Record<string, AulaBloco[]> = {
+  ...MODULO_01_CORPO,
+  ...MODULO_02_CORPO,
+  ...MODULO_03_CORPO,
+};
+const LEAD: Record<string, string> = {
+  ...MODULO_01_LEAD,
+  ...MODULO_02_LEAD,
+  ...MODULO_03_LEAD,
+};
 
 // Os ids são únicos por construção (`aula-01-NN` × `aula-02-NN`), mas o
 // spread acima é silencioso em caso de colisão — um módulo novo com id

@@ -16,14 +16,63 @@
 // logado" — só "ainda não sabemos". Redirecionar aí expulsaria quem TEM
 // sessão válida a cada carga de página.
 
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 
+/** O id de `alexandria` no catálogo canônico que o backend serve em
+ *  `/api/products/me`. Não é lista local: o catálogo vem do servidor
+ *  justamente para o front não manter uma segunda cópia que deriva. */
+const PRODUTO = 'alexandria';
+
+/** Mesma forma de data que o `/conta` da plataforma usa, para os dois
+ *  lados da mesma conta não escreverem a mesma data de jeitos diferentes. */
+function formatarData(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
 export function PerfilStub() {
-  const { user, loading } = useAuth();
+  const { user, loading, myProducts, activateProduct } = useAuth();
   const location = useLocation();
+  const [ativadoEm, setAtivadoEm] = useState<string | null>(null);
+
+  // Ativação automática: estar nesta página já é intenção de uso, então
+  // não existe botão "ativar Alexandria" — seria fricção sem decisão.
+  //
+  // A ativação só DISPARA quando necessário. `myProducts()` é consultado
+  // primeiro; se `alexandria` já está lá, `activateProduct` não é chamado.
+  // A rota é idempotente no backend (constraint no banco), mas idempotente
+  // não é motivo para gastar uma escrita a cada visita.
+  useEffect(() => {
+    if (!user) return;
+    const ctrl = new AbortController();
+    let vivo = true;
+
+    myProducts(ctrl.signal)
+      .then(async ({ products }) => {
+        const ja = products.find((p) => p.productId === PRODUTO);
+        if (ja) {
+          if (vivo) setAtivadoEm(ja.activatedAt);
+          return;
+        }
+        const r = await activateProduct(PRODUTO);
+        if (vivo) setAtivadoEm(r.activatedAt);
+      })
+      .catch((err: unknown) => {
+        // Falha aqui não pode derrubar a página: o Perfil continua útil
+        // sem a data de ativação. Fica em null e a linha some.
+        if (err instanceof Error && err.name === 'AbortError') return;
+      });
+
+    return () => {
+      vivo = false;
+      ctrl.abort();
+    };
+  }, [user, myProducts, activateProduct]);
 
   if (loading) return <Carregando />;
   if (!user) return <Navigate to="/entrar" replace state={{ de: location.pathname }} />;
@@ -70,6 +119,11 @@ export function PerfilStub() {
             Depende de um modelo de conta — hoje o progresso é um mock único,
             sem usuário por trás.
           </span>
+          {ativadoEm && (
+            <span style={{ ...AT.dado, fontSize: '12px', color: A.tintaSuave }}>
+              Alexandria ativada nesta conta em {formatarData(ativadoEm)}.
+            </span>
+          )}
         </div>
       </div>
     </AlexandriaShell>

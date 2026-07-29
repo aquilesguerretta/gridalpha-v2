@@ -2052,3 +2052,69 @@ tipografia do conteúdo populado é do router.**
 **Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` — "No
 findings. Surface is clean." Rail fotografado nos três estados (vazio,
 trilha ativa, aula com conquistas) em 1440×900.
+
+## LYCEUM — ALEXANDRIA WAVE 17
+
+**Status:** fechada. **Veredito: resolveu** — não bateu no mesmo teto
+que o Portal BR (onde ajuste de código parou de produzir diferença
+perceptível e a resposta foi referência visual nova, não mais pixel).
+Aqui cada uma das quatro direções testadas produziu ganho visível e
+cumulativo. Zero token novo — as quatro mudanças usam só valores já
+declarados em `A`/`A2`/`AT`/`AS`/`AR`/`AE`.
+
+**Arquivo:** `src/components/alexandria/shell/AlexandriaHeader.tsx`
+(único modificado).
+
+### O que estava genérico
+
+O header funcionava desde a Wave 6 — logo real, nav real — mas lia como
+qualquer app escuro moderno com paleta trocada. Não era bug de dado, era
+ausência de caráter dentro do próprio vocabulário já definido.
+
+### As quatro direções testadas, uma de cada vez
+
+1. **Rosa dos ventos como brasão, não ícone.** A auditoria da Fase 1
+   revelou que `public/alexandria/marca/` já tinha o ativo que faltava:
+   `rosa-lg-on-navy.png` (mesma resolução 1024×1024 de `rosa-sm`, mas
+   composição inteiramente diferente — moldura circular gravada, coroa
+   de flores nos quatro cantos, anel pontilhado). O header usava
+   `rosa-sm` (estrela nua de 4 pontas) em 30px. Trocado para `rosa-lg`
+   em 46px. **Não construí frame nenhum — o ativo somente-leitura já
+   era o brasão**, só não estava sendo usado.
+2. **Moldura de frontispício.** Fio duplo (dois traços de 1px com opacidade
+   50% no segundo, 3px de distância) no topo e na base do header —
+   masthead de jornal do século XIX. Cor: `A2.ouroSobreNavy`, não
+   `A.terracota` — a identidade declara terracota como cor de ESTADO
+   (em andamento/crítico), nunca decorativa, e este traço não marca
+   estado nenhum. Substituiu o `borderBottom` de fio único que existia.
+3. **Separador de nav ornamental.** Ponto médio (`·`) em `AT.rotulo`
+   entre os itens, cor `A.fioSobreNavy`, no lugar do espaço em branco
+   puro que existia. Testado e confirmado por zoom 3x — visível mas
+   contido, sem competir com o texto dos itens.
+4. **Busca sem ícone de lupa.** O SVG de lupa era a peça mais
+   "assinatura de app moderno" do header — universal em qualquer
+   produto web. Removido; um rótulo `Buscar` em `AT.rotulo` (Cinzel)
+   faz o mesmo trabalho de anunciar a função, como campo de índice
+   impresso. Fio embaixo preservado, nenhuma caixa de quatro lados.
+
+### O que NÃO funcionou / não foi tentado
+
+Nenhuma das quatro direções foi descartada — todas sobreviveram ao
+julgamento por render real. Uma variante testada e revertida: fio duplo
+só no topo (sem duplicar a base) — funcionava, mas o header pareceu
+"aberto" de um lado só; dobrar os dois lados fechou a moldura.
+
+### Verificação
+
+Clique real confirma que a nav segue funcionando com o `<span>` de
+separador envolvendo cada botão: Biblioteca → Trilhas → Glossário →
+Atlas, quatro transições corretas, `aria-current` correto em cada uma.
+Zero erro de console, zero overflow horizontal em 1440×900 e 1920×1080,
+nas três páginas testadas (hub, biblioteca, glossário). Altura do
+header confirmada em 70px — `ALAYOUT.headerHeight` intocado.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
+sobre o arquivo — "No findings. Surface is clean." Nenhum token de cor
+ou fonte novo — os 18 tokens usados no arquivo já existiam em
+`alexandria-tokens.ts` antes desta wave, confirmado por grep.

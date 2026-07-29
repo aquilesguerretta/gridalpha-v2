@@ -14,6 +14,7 @@ from app.routers import (
     lmp,
     news,
     outages_v2,
+    products,
     reserve_margin,
     spark_spread,
     stream,
@@ -76,6 +77,7 @@ app.include_router(infra_router)  # /api/infra/* (Wave 7 static infrastructure)
 
 # Wave 9 platform identity — one account per person, activation per product.
 app.include_router(auth.router)  # /api/auth/*
+app.include_router(products.router)  # /api/products/*
 
 
 @app.get("/health")

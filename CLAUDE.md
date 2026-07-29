@@ -2118,3 +2118,106 @@ pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
 sobre o arquivo — "No findings. Surface is clean." Nenhum token de cor
 ou fonte novo — os 18 tokens usados no arquivo já existiam em
 `alexandria-tokens.ts` antes desta wave, confirmado por grep.
+
+## LYCEUM — ALEXANDRIA WAVE 16
+
+**Status:** fechada. Dois dos três invariantes que a Wave 2 travou como
+"nunca modificar" — rail direito sempre presente e sempre 300px, rodapé
+como faixa permanente fora do scroll — se provaram errados vendo
+renderizado em toda página do sistema, e mudam de verdade nesta wave.
+
+### Auditoria da Fase 1 — o que estava lá antes
+
+Medido, não presumido:
+
+- `AlexandriaFooter` **de fato** fora do `<main>`, irmã da linha
+  rail-esquerdo/canvas/rail-direito, com `flex: 0 0 auto` computado (o
+  `flex: 'none'` do próprio arquivo). Confirma o relatório da Wave 10.
+- Canvas com só o rail direito (300px, sem rail esquerdo): **1140px**.
+  Canvas com os dois rails: **908px**. Números reais, não estimados —
+  são o que a Fase 2 precisava bater depois do colapso.
+
+### Rail retrátil — a mecânica, decidida vendo renderizado
+
+Dois estados: **colapsado** (padrão de entrada em toda página) e
+**expandido**. A decisão de mecânica:
+
+A faixa colapsada (`LARGURA_COLAPSADA`, 64px, **constante nos dois
+estados**) é a ÚNICA peça que o flexbox da linha enxerga. O painel
+completo (300px, as cinco seções) é `position: absolute` dentro da
+linha — sai do cálculo de flex — e desliza por cima como overlay/drawer
+via `transform` quando expandido, em vez de empurrar o canvas.
+
+**Por quê overlay em vez de largura animada:** animar o próprio
+flex-basis do rail obriga o browser a recalcular o layout do canvas A
+CADA FRAME da transição. Com overlay, só `transform` anima (composto,
+sem reflow), e o flex-basis da faixa fina nunca muda — o canvas não
+recalcula nada, nem durante a animação, nem em repouso.
+
+**Medido no fechamento, não assumido:**
+
+| estado | canvas (sem rail esq.) | canvas (com rail esq.) |
+| --- | --- | --- |
+| colapsado | 1376px | 1144px |
+| expandido | 1376px | 1144px |
+
+Zero diferença entre os dois estados — confirma que o canvas nunca
+recalcula durante o toggle. Contra a linha de base pré-wave (1140 / 908
+com rail fixo em 300px), o colapso reclama os ~236px de verdade: reflow
+real de flexbox, não `display: none` deixando vão.
+
+Um único `RailToggle` (novo arquivo), posicionado por `absolute` acima
+dos dois estados (z-index mais alto) — o mesmo clique abre e fecha; não
+existem dois botões. Reaproveita `ring-track` + `ring-progress` da Wave 1
+como selo circular preenchido pela porcentagem real de
+`MOCK_USER_PROGRESS`, sem número impresso — mesma técnica de fetch +
+inline de `ModuloNode`, cache próprio (os dois arquivos não se importam).
+
+Fecha por clique no selo, ESC, ou clique fora (backdrop montado só
+quando expandido — confirmado que não intercepta clique nenhum no canvas
+quando colapsado).
+
+**Transição** usa `AE.hover` + `AE.easing`, nunca bounce. Sob
+`prefers-reduced-motion`, `transition-duration` mede `0s` por computed
+style, e o painel abre em menos de 50ms após o clique — funcional,
+instantâneo, sem deslizar.
+
+### Rodapé em fluxo
+
+`AlexandriaFooter` move para dentro do `<main>`, última posição, depois
+de todo conteúdo de página. Fica **fora** do wrapper de 1120px de
+propósito: o rodapé nasceu como banda navy full-bleed da shell inteira,
+e o wrapper de 1120px é medida de prancha de leitura. Confinar a 1120px
+trocaria banda full-bleed por rodapé de artigo. Continua full-bleed —
+só que da largura do canvas agora, não mais da shell inteira.
+
+`AlexandriaFooter.tsx` não foi tocado (fora da posse: "você só move onde
+ele mora no DOM") — o `flex: 'none'` que já existia lá dentro fica
+inofensivo na nova posição, porque `flex` só tem efeito como filho
+direto de container `display: flex`, e `<main>` é bloco comum.
+
+**Confirmado por medição em quatro páginas**, não como uma linha só:
+
+| página | scrollHeight | clientHeight | rodapé visível sem rolar? |
+| --- | --- | --- | --- |
+| Biblioteca | 1774 | 830 | não |
+| Aula (módulo 01, aula 3) | 2534 | 830 | não |
+
+Rolado até o fim, o rodapé entra corretamente na tela (medido: topo em
+689px, dentro dos limites do `<main>`).
+
+**Observação registrada, não corrigida:** em página muito curta
+(`/perfil`), `<main>` é esticado por flexbox (`align-items: stretch` da
+linha) à altura da linha inteira, e sobra vazio creme abaixo do rodapé
+quando conteúdo + rodapé somam menos que a viewport. Não é regressão —
+é o comportamento correto de fluxo normal, a página termina onde o
+conteúdo termina, sem forçar o rodapé a colar no fim da tela como antes
+fazia. Fica documentado para decisão futura se o vazio incomodar.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` sobre
+`src/components/alexandria/shell` — "No findings. Surface is clean."
+Testado em quatro páginas (Biblioteca, Glossário, dentro de trilha com
+rail esquerdo, dentro de aula): rail nasce colapsado, expande ao
+clicar, canvas reclama largura real, rodapé só aparece no fim do
+scroll. `prefers-reduced-motion` testado por `emulateMedia` — toggle
+não anima, continua funcional.

@@ -2292,3 +2292,132 @@ findings. Surface is clean." Testado em quatro páginas: zero `<aside>`
 em fluxo, canvas com largura idêntica colapsado/expandido, painel some
 completamente da tela ao fechar (por clique de novo, ESC, ou clique
 fora), rodapé só aparece ao fim do scroll real.
+
+## LYCEUM — ALEXANDRIA WAVE 18 — EXTRAÇÃO DO MÓDULO 02
+
+**Status:** dado fechado e verificado. **A interface ainda não consome** —
+ver "pendência de fiação" abaixo. Escopo da wave era dado, não interface,
+e o arquivo que faria a ligação está fora da posse declarada.
+
+**Arquivos:** `src/lib/data/alexandria-modulo-02-content.ts` (NOVO, 685
+linhas) · `alexandria-instrument-calculators.ts` (+9 calculadores; os 7 do
+Módulo 01 intocados).
+
+### Contagem real, por três sinais independentes
+
+| medida | bruto | real |
+| --- | --- | --- |
+| seções `.aula` | 20 | **10 aulas** + 10 de aparato |
+| `div.exercise` | 10 | **10** — a prosa diz "Oito" |
+| instrumentos | 9 | **9, todos vinculados a aula** |
+
+O hero declara "Dez aulas"; a contagem de subseções por aula
+(5,5,5,4,4,4,3,6,4,6) confere com a numeração x.y da própria fonte.
+**156 blocos de apostila** nas dez aulas.
+
+**Os 9 instrumentos são todos de aula — confirmado, não presumido.** Não
+existe `LAB` solto como o `lab-01` do Módulo 01. A **Aula 06** é a única
+sem instrumento.
+
+| Aula | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| blocos | 19 | 17 | 13 | 12 | 15 | 13 | 16 | 18 | 12 | 21 |
+| instrumento | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ | ✓ | ✓ | ✓ |
+| exercícios | — | 2 | — | — | 1 | 1 | — | 2 | — | 2 |
+
+### Divergência da fonte, registrada e não corrigida
+
+**A prosa do § Ex diz «Oito exercícios»; o markup tem DEZ.** Os dois
+últimos (`Ex · 09`, `Ex · 10`) usam `exercise-label` em vez de
+`exercise-header > exercise-tag`, e não apontam aula nenhuma. São
+exercícios reais e completos, com gabarito — não resíduo. Foram para
+`MODULO_02_EXERCICIOS_SOLTOS`, mesmo tratamento que o
+`MODULO_01_SINTESE` recebeu na Wave 4. Terceira wave seguida em que a
+prosa subestima o markup (Módulo 01: "seis dos oito"; glossário: 28 × 38).
+
+### Quirks da fonte, sinalizados e não corrigidos
+
+1. **A numeração `INST · NN` não bate com o prefixo dos ids internos.**
+   INST · 04 usa `i08-*`, INST · 05 usa `i04-*`, INST · 06 usa `i09-*`,
+   INST · 07 usa `i05-*`, INST · 08 usa `i06-*`, INST · 09 usa `i07-*`.
+   Resíduo de reordenação das aulas. Os ids internos são o que o script
+   referencia, então são eles que valem no cálculo.
+2. **O INST · 07 tem DUAS saídas de veredito** — um `.readout` rotulado
+   "Veredito" (`i05-status`, texto curto) e um `.verdict` separado
+   (`i05-verdict`, texto longo). Não é duplicata acidental: carregam
+   conteúdo diferente. Preservados os dois.
+3. **`|| 1` no INST · 06** (bateria): potência vazia vira 1 MW em vez de
+   estado de espera. Mesmo padrão dos INST 04/06 do Módulo 01.
+4. **Colisão de id evitada:** o Módulo 01 já ocupa `inst-01`..`inst-06` +
+   `lab-01` no registro de calculadoras. O Módulo 02 entrou namespaçado
+   como `m02-inst-01`..`m02-inst-09` — sem o prefixo, nove sobrescreveriam
+   seis. A fonte numera instrumentos por módulo, reiniciando do 01.
+
+**Campos:** a fonte pareia cada controle numérico com um `<input
+type="range">` gêmeo de id `<algo>-range`, ligados ao mesmo valor pelo
+script. São UM campo lógico — fica o `number`, que carrega
+value/min/max/step, e o `kind` vira `range` porque o deslizador existe.
+
+### Prova de fidelidade dos 9 cálculos
+
+Portados do `<script>`, não rederivados. Confrontados contra uma
+**reimplementação independente** do original, com os defaults da fonte:
+**24 de 24 valores conferem, zero divergência.** Validação cruzada:
+`i09-h` dá 4,0 h para 20 MW / 80 MWh — exatamente o número que o gabarito
+do Ex · 09 declara.
+
+### Mapa de gravura — 5 de 8, decidido por leitura de frase
+
+Mesma disciplina da Wave 5: frequência não é veredito.
+
+| Gravura | Aula | Razão |
+| --- | --- | --- |
+| `red-07-poste-distribuicao` | 01 | §1.1 ensina as quatro camadas; "Distribuição … capilariza até cada unidade consumidora" com a escada de tensões MT/BT |
+| `red-04-cabo-condutor-corte` | 02 | §2.4 "Os cinco limites de uma linha" — "corrente alta aquece o condutor; cabo quente dilata, cede em direção ao solo" |
+| `red-05-transformador-subestacao` | 03 | §3.1/3.2 — "o ativo mais caro e de maior prazo de reposição da subestação" |
+| `red-06-disjuntor-alta-tensao` | 03 | §3.2 — "o único equipamento capaz de interromper corrente de curto-circuito" |
+| `red-08-quadro-disjuntores` | 03 | §3.5 "Ponto de conexão" — "transformador, cabine e proteção são do cliente" |
+
+**Três NÃO mapeadas:** `red-01-torre-cara-de-gato`,
+`red-02-torre-estaiada` e `red-03-cadeia-isoladores`. O único hit
+substantivo das três é a mesma frase da Aula 02 — *"torres mais altas,
+cadeias de isoladores maiores, faixas de servidão mais largas"* —, uma
+**enumeração de itens de custo** em que nenhum é o assunto. O outro hit
+("sem derrubar uma única torre") é figura retórica sobre cibersegurança.
+É o padrão `fis-05` da Wave 5, idêntico. O módulo nunca trata tipologia
+de torre nem cadeia de isoladores como assunto. Mesma proporção do
+Módulo 01 (5 das 6 `fis-` usadas).
+
+### PENDÊNCIA DE FIAÇÃO — o dado não chega na tela
+
+**Nada consome `alexandria-modulo-02-content.ts` ainda.** Verificado por
+grep e provado por clique real: `AlexandriaRouter.tsx` L274 chama
+`getAulaModulo01` fixo, então uma aula do Módulo 02 cai no estado "Aula
+ainda não extraída", e a lista de aulas mostra "Aula N de 10" genérico
+(o próprio rodapé dela diz "Os títulos de aula chegam com o viewer").
+
+A correção é trocar uma linha do router para escolher o catálogo pelo
+`moduleId`. **Não foi feita**: o brief desta wave declara "esta wave é
+dado, não interface" e "NUNCA MODIFICAR … qualquer componente". Fica
+registrado para a wave que abrir o router.
+
+### Correção à premissa do brief
+
+O brief pede verificar "Trilha 2 → Módulo 1". A realidade do catálogo:
+"Como Funciona uma Rede Elétrica" é `bloco-02`, **level 1** — logo é o
+**Módulo 2 da Trilha 1** (Fundamentos Universais), não o Módulo 1 da
+Trilha 2. Rota real:
+`/alexandria/trilha/trilha-fundamentos-universais/modulo/modulo-02`.
+Confirmado por clique antes de reportar, como o brief mandou.
+
+### `LAB · 01` do Módulo 01 — decisão adiada, registrada
+
+Segue sem lugar na interface. É o sétimo instrumento do Módulo 01, vive
+no aparato § Lab (fora de qualquer aula), e por isso o viewer nunca o
+alcança. O cálculo está portado e testado desde a Wave 4; falta decidir
+ONDE ele aparece. Não é esquecimento — é decisão de produto pendente.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os pré-existentes
+de Recharts em `nest/student/*`). `gridalpha-detect` sobre os dois
+arquivos — "No findings. Surface is clean." Zero erro de console em
+1440×900 e 1920×1080.

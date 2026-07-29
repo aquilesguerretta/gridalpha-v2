@@ -1,14 +1,19 @@
 // alexandria-instrument-calculators.ts
-// A lógica de cálculo dos sete instrumentos do Módulo 01.
+// A lógica de cálculo dos instrumentos: sete do Módulo 01, nove do Módulo 02.
 //
-// PORTADA do `<script>` de `Alexandria modulos/alexandria_modulo01.html`
-// (linhas 2720-3070), não rederivada. Onde o original faz algo estranho,
-// o comportamento foi PRESERVADO e sinalizado em comentário — corrigir
-// matemática que já está em produção é decisão de conteúdo, não de código.
+// PORTADA do `<script>` de cada HTML em `Alexandria modulos/`, não
+// rederivada. Onde o original faz algo estranho, o comportamento foi
+// PRESERVADO e sinalizado em comentário — corrigir matemática que já está
+// em produção é decisão de conteúdo, não de código.
 //
 // O `formula` do tipo `Instrument` é rótulo de exibição ("kWh = kW × h"),
 // não expressão executável. O cálculo é este código; nada aqui avalia
 // string.
+//
+// CHAVES: o Módulo 01 ocupa `inst-01`..`inst-06` + `lab-01`; o Módulo 02
+// entra namespaçado como `m02-inst-01`..`m02-inst-09`. Sem o prefixo os
+// nove sobrescreveriam seis — a fonte numera os instrumentos por módulo,
+// reiniciando do 01.
 
 /** Entradas por id de campo → saídas por id de saída.
  *  Saída qualitativa (o `-interp` / `-status` do original) sai em
@@ -207,6 +212,392 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
           ? 'Mesmo kWh, mesma fatura — os perfis coincidem.'
           : `Mesmo kWh, diferença de R$ ${Math.abs(Math.round(dif)).toLocaleString('pt-BR')} por mês. O perfil elétrico é a diferença.`,
     };
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // MÓDULO 02 — Como Funciona uma Rede Elétrica (LYCEUM Wave 18)
+  //
+  // Portados do `<script>` de `alexandria_modulo02.html`. Os nove são
+  // vinculados a aula — não há `LAB` solto como no Módulo 01.
+  //
+  // QUIRK DA FONTE, sinalizado e não corrigido: a numeração `INST · NN`
+  // do cabeçalho não bate com o prefixo dos ids internos. INST · 04 usa
+  // `i08-*`, INST · 05 usa `i04-*`, INST · 06 usa `i09-*`, INST · 07 usa
+  // `i05-*`, INST · 08 usa `i06-*`, INST · 09 usa `i07-*`. É resíduo de
+  // reordenação das aulas; os ids internos são o que o script referencia,
+  // então são eles que valem aqui.
+  // ══════════════════════════════════════════════════════════════════
+
+  // ── M02 · INST 01 · Explorador · Camadas da rede ──────────
+  // Consulta pura, sem cálculo: o original só troca texto de seis células
+  // conforme a pill ativa. Sem número a devolver, `valores` vai vazio e a
+  // camada escolhida sai no veredito. Os seis textos por camada são
+  // conteúdo, não cálculo — vivem no HTML e não foram duplicados aqui.
+  'm02-inst-01': (i) => ({
+    valores: {},
+    veredito: String(i['i01-pills'] ?? 'ger'),
+  }),
+
+  // ── M02 · INST 02 · Simulador · Perdas na transmissão ─────
+  // Original, verbatim:
+  //   I    = P·1e6 / (√3 · V·1000 · 0,95)
+  //   R    = rk[V] · D          (rk = Ω/km por nível de tensão)
+  //   loss = 3 · R · I² / N / 1e6      [MW]
+  //   pct  = loss / P · 100
+  //   yr   = min(loss,P) · 8760 · 0,55 · 250   [R$/ano]
+  'm02-inst-02': (i) => {
+    // Ω/km típicos por nível de tensão — tabela literal do original.
+    const rk: Record<number, number> = { 138: 0.16, 230: 0.09, 345: 0.045, 500: 0.022, 765: 0.011 };
+    const P = n(i['i02-p']);
+    const D = n(i['i02-d']);
+    const V = n(i['i02-v']);
+    const N = n(i['i02-n']) || 1;
+    const I = (P * 1e6) / (Math.sqrt(3) * V * 1000 * 0.95);
+    const R = (rk[V] ?? 0) * D;
+    const loss = (3 * R * I * I) / N / 1e6;
+    const pct = P > 0 ? (loss / P) * 100 : 0;
+    // O original EXIBE a perda limitada ao bloco transmitido (`lossShown`),
+    // mas calcula `pct` com a perda crua — por isso o rótulo "> 100 %"
+    // existe. Preservado: o teto é de exibição, não do modelo.
+    const lossShown = Math.min(loss, P);
+    const yr = lossShown * 8760 * 0.55 * 250;
+
+    let veredito: string;
+    if (pct > 30)
+      veredito =
+        'Inviável. Nessa configuração as perdas consomem a maior parte do bloco — é por isso que essa linha não existe no mundo real. Suba o nível de tensão ou adicione circuitos e veja o quadrado da corrente trabalhar a seu favor.';
+    else if (pct > 8)
+      veredito =
+        'Caro. Perdas acima do razoável para um tronco. Em projeto real, subir a tensão ou adicionar um circuito tende a se pagar só com a energia que deixa de virar calor.';
+    else
+      veredito =
+        'Dentro da faixa de engenharia. Este é o tipo de compromisso capital × perdas que desenhou os troncos reais do SIN.';
+
+    return {
+      valores: { 'i02-i': I, 'i02-loss': lossShown, 'i02-pct': pct, 'i02-yr': yr },
+      veredito,
+    };
+  },
+
+  // ── M02 · INST 03 · Cadeia de transformação · por perfil ──
+  // O original soma as perdas típicas de cada trecho da cadeia conforme o
+  // perfil de consumidor. Os trechos são dado, não cálculo — a soma é a
+  // única aritmética. Percentuais literais do original.
+  //
+  // A própria nota do instrumento avisa: "Percentuais ilustrativos de
+  // ordem de grandeza por trecho". Preservados como estão.
+  'm02-inst-03': (i) => {
+    const base = [0.5, 1.8, 0.4]; // SE elevadora · tronco · SE abaixadora
+    const extra: Record<string, number[]> = {
+      a2: [0.4],
+      a4: [0.8, 0.5, 1.6],
+      bt: [0.8, 0.5, 1.6, 1.5, 2.9],
+    };
+    const perfil = String(i['i03-pills'] ?? 'a2');
+    const total = [...base, ...(extra[perfil] ?? extra.a2)].reduce((s, x) => s + x, 0);
+    return { valores: { 'i03-total': total }, veredito: perfil };
+  },
+
+  // ── M02 · INST 04 · Curva líquida e a rampa do fim da tarde
+  // (ids internos `i08-*` — ver quirk no cabeçalho da seção)
+  //
+  // Original: perfil horário `f[25]` fixo · solar senoidal elevada a 1.5
+  // entre 6h e 18h · net = carga − solar. Devolve mínimo da líquida, a
+  // maior rampa horária e a solar no pico.
+  'm02-inst-04': (i) => {
+    const f = [
+      0.72, 0.7, 0.68, 0.67, 0.67, 0.68, 0.72, 0.78, 0.84, 0.88, 0.9, 0.91, 0.9,
+      0.89, 0.88, 0.88, 0.9, 0.95, 1.0, 0.99, 0.95, 0.9, 0.83, 0.77, 0.72,
+    ];
+    const pico = i['i08-pico'] || 95;
+    const S = n(i['i08-solar']);
+    const cond = n(i['i08-ceu']);
+    const net: number[] = [];
+    for (let h = 0; h <= 24; h++) {
+      const L = pico * f[h];
+      const s =
+        h >= 6 && h <= 18
+          ? S * cond * Math.pow(Math.max(0, Math.sin((Math.PI * (h - 6)) / 12)), 1.5)
+          : 0;
+      net.push(L - s);
+    }
+    let minNet = Infinity;
+    let minH = 0;
+    for (let h = 0; h <= 24; h++) if (net[h] < minNet) { minNet = net[h]; minH = h; }
+    let rampa = -Infinity;
+    let rH = 0;
+    for (let h = 0; h < 24; h++) {
+      const d = net[h + 1] - net[h];
+      if (d > rampa) { rampa = d; rH = h; }
+    }
+    const solPico = S * cond;
+
+    let veredito: string;
+    if (rampa > 10)
+      veredito =
+        'Rampa crítica. É substituir uma Itaipu de geração em sessenta minutos — hidro flexível, térmicas, baterias e intercâmbios subindo juntos, com o operador contando reserva.';
+    else if (minNet < 35)
+      veredito =
+        'Carga líquida mínima muito baixa. Com inflexibilidades e renovável compulsória, sobra geração no meio do dia: CMO no piso, risco de excesso e de corte de renovável.';
+    else if (rampa > 6)
+      veredito =
+        'Rampa exigente no pôr do sol. Dentro da capacidade do parque flexível, mas é esta janela que valoriza bateria, resposta da demanda e a hidro com reservatório.';
+    else
+      veredito =
+        'Dia tranquilo. Com pouca solar, a curva líquida quase coincide com a total e a transição do fim da tarde é suave.';
+
+    return {
+      valores: { 'i08-min': minNet, 'i08-minh': minH, 'i08-rampa': rampa, 'i08-rampah': rH, 'i08-solpico': solPico },
+      veredito,
+    };
+  },
+
+  // ── M02 · INST 05 · Despacho por ordem de mérito ──────────
+  // (ids internos `i04-*`)
+  //
+  // Original: pilha de 10 usinas ordenada por custo; must-run (hidro fio
+  // d'água, eólica, solar, nuclear) sempre despachado. Se a demanda for
+  // menor que o must-run, corta na ordem solar → eólica → fio d'água e o
+  // CMO vai ao piso; senão, empilha até cobrir e a marginal define o CMO.
+  //
+  // `va` (valor da água) = clamp(650 − 6,2·reservatório, PISO, 650).
+  'm02-inst-05': (i) => {
+    const PISO = 61;
+    const D = n(i['i04-dem']);
+    const v = n(i['i04-vento']);
+    const s = n(i['i04-sol']);
+    const r = n(i['i04-res']);
+    const va = Math.max(PISO, Math.min(650, Math.round(650 - 6.2 * r)));
+
+    const stack = [
+      { id: 'hfio', name: "Hidro fio d'água", cap: 13, cost: 1, must: true },
+      { id: 'eol', name: 'Eólica', cap: (22 * v) / 100, cost: 0, must: true },
+      { id: 'sol', name: 'Solar (UFV + MMGD)', cap: (25 * s) / 100, cost: 0, must: true },
+      { id: 'nuc', name: 'Nuclear', cap: 2, cost: 30, must: true },
+      { id: 'hres', name: 'Hidro reservatório', cap: 42, cost: va, must: false },
+      { id: 'gn1', name: 'GN eficiente', cap: 9, cost: 190, must: false },
+      { id: 'car', name: 'Carvão', cap: 2.5, cost: 280, must: false },
+      { id: 'gn2', name: 'GN flexível', cap: 9, cost: 340, must: false },
+      { id: 'ole', name: 'Óleo / diesel', cap: 4.5, cost: 950, must: false },
+      { id: 'gnl', name: 'GNL spot / importação', cap: 3, cost: 1200, must: false },
+    ].sort((a, b) => a.cost - b.cost);
+
+    const disp: Record<string, number> = {};
+    const mustCap = stack.filter((p) => p.must).reduce((t, p) => t + p.cap, 0);
+    let marg: (typeof stack)[number] | null = null;
+    let cut = 0;
+    let deficit = 0;
+    let cmo: number;
+
+    if (D <= mustCap) {
+      let excess = mustCap - D;
+      stack.forEach((p) => { disp[p.id] = p.must ? p.cap : 0; });
+      for (const id of ['sol', 'eol', 'hfio']) {
+        const c = Math.min(excess, disp[id] ?? 0);
+        disp[id] -= c;
+        excess -= c;
+        cut += c;
+      }
+      cmo = PISO;
+    } else {
+      let rem = D;
+      stack.forEach((p) => {
+        const dd = Math.min(p.cap, rem);
+        disp[p.id] = dd;
+        if (dd > 1e-9) marg = p;
+        rem -= dd;
+      });
+      deficit = rem > 1e-6 ? rem : 0;
+      cmo = marg ? Math.max(PISO, (marg as { cost: number }).cost) : PISO;
+    }
+
+    const term = ['gn1', 'car', 'gn2', 'ole', 'gnl'].reduce((t, id) => t + (disp[id] ?? 0), 0);
+    const margId = marg ? (marg as { id: string }).id : null;
+
+    let veredito: string;
+    if (deficit > 0)
+      veredito =
+        'Déficit — a pilha esgotou. No mundo real isso é corte de carga: ERAC, racionamento, manchete.';
+    else if (cut > 0)
+      veredito =
+        'Excedente renovável cortado. Geração compulsória maior que a demanda — CMO no piso e curtailment. É a fotografia do Nordeste em madrugada ventosa de baixa carga.';
+    else if (margId === 'hres')
+      veredito =
+        'Hidro na margem — CMO = valor da água. O estado normal do Brasil: o preço não é o custo de queimar combustível hoje, é o custo de não ter água amanhã.';
+    else if (margId === 'gn1' || margId === 'car' || margId === 'gn2')
+      veredito =
+        'Térmica na margem. Estiagem e/ou noite sem vento e sol: cada GW adicional sobe um degrau da pilha. É o regime em que bandeira tarifária e PLD sobem juntos.';
+    else if (margId === 'ole' || margId === 'gnl')
+      veredito =
+        'Topo da pilha — óleo e GNL na margem, padrão de crise hídrica como 2021. O sistema atende, mas a que preço.';
+    else veredito = 'Renovável e nuclear cobrem a carga. CMO no piso.';
+
+    return { valores: { 'i04-cmo': cmo, 'i04-term': term, 'i04-cut': cut, 'i04-deficit': deficit }, veredito };
+  },
+
+  // ── M02 · INST 06 · Bateria: potência × energia ───────────
+  // (ids internos `i09-*`)
+  // Original: h = E / P, com `parseFloat(mwEl.value) || 1`.
+  //
+  // SINALIZADO, não corrigido: o mesmo `|| 1` dos INST 04 e 06 do Módulo
+  // 01 — potência vazia vira 1 MW em vez de estado de espera.
+  'm02-inst-06': (i) => {
+    const P = i['i09-mw'] || 1;
+    const E = n(i['i09-mwh']);
+    const h = E / P;
+    const voc =
+      h < 1
+        ? 'Regulação rápida · serviços ancilares'
+        : h <= 3
+          ? 'Corte de pico · arbitragem curta'
+          : 'Rampa do fim da tarde · deslocamento de energia';
+    const veredito =
+      h < 1
+        ? 'Tanque curto: potência sem fôlego. Vocação para resposta rápida, não para atravessar o pico. E o princípio de sempre: bateria não gera, desloca.'
+        : h <= 3
+          ? 'O formato clássico para cortar pico de demanda e arbitrar as horas caras. Bateria não gera — desloca energia do horário em que sobra para o horário em que falta.'
+          : 'Perfil de rampa: carrega na barriga solar do meio-dia e descarrega das 17h às 21h. É a logística temporal que a curva líquida pede.';
+    return { valores: { 'i09-h': h }, veredito: `${voc} — ${veredito}` };
+  },
+
+  // ── M02 · INST 07 · Excursão de frequência ────────────────
+  // (ids internos `i05-*`)
+  // Original:
+  //   rocof = (ΔP/P)·60 / (2H)
+  //   nadir = 60 − (ΔP/P)·60·1,8 / (2H)
+  //
+  // SINALIZADO, não corrigido: a fonte tem DUAS saídas de veredito neste
+  // instrumento — um `.readout` rotulado "Veredito" (`i05-status`, texto
+  // curto) e um `.verdict` separado (`i05-verdict`, texto longo). Não são
+  // duplicata acidental: carregam conteúdo diferente. Ambas preservadas —
+  // o texto curto vai em `valores` não é possível (é string), então sai
+  // concatenado no veredito, com o rótulo curto na frente.
+  'm02-inst-07': (i) => {
+    const DP = n(i['i05-dp']);
+    const P = i['i05-carga'] || 1;
+    const H = n(i['i05-h']);
+    const rocof = ((DP / P) * 60) / (2 * H);
+    const nadir = 60 - ((DP / P) * 60 * 1.8) / (2 * H);
+
+    let curto: string;
+    let longo: string;
+    if (nadir < 57.5) {
+      curto = 'Colapso parcial';
+      longo =
+        'Nadir abaixo de 57,5 Hz. Múltiplos estágios de ERAC e risco de colapso parcial — milhões de consumidores desligados automaticamente para salvar o restante.';
+    } else if (nadir < 58.5) {
+      curto = 'ERAC dispara';
+      longo =
+        'O afundamento cruza o primeiro estágio (~58,5 Hz): blocos de carga são cortados sem nenhum humano no circuito. O sistema sobrevive sacrificando consumo — é o desenho funcionando, não falhando.';
+    } else if (nadir < 59.5) {
+      curto = 'Severo, contido';
+      longo =
+        'Inércia + regulação primária seguram o nadir acima do ERAC; a reserva foi consumida e o CAG recompõe nos minutos seguintes. Margem curta.';
+    } else {
+      curto = 'Estabilizado';
+      longo =
+        'Excursão absorvida. A inércia limita o RoCoF, a regulação primária estanca a queda e o CAG devolve o sistema a 60,00 Hz. Rotina de operador.';
+    }
+    return { valores: { 'i05-rocof': rocof, 'i05-nadir': nadir }, veredito: `${curto} — ${longo}` };
+  },
+
+  // ── M02 · INST 08 · Perda embutida na conta ───────────────
+  // (ids internos `i06-*`)
+  // Original: inj = C / (1 − P) · perd = inj − C · custo = perd · T.
+  // O guarda `P < 1` evita divisão por zero quando o percentual chega a
+  // 100 %; acima disso o original devolve a própria medição.
+  'm02-inst-08': (i) => {
+    const C = n(i['i06-c']);
+    const P = n(i['i06-p']) / 100;
+    const T = n(i['i06-t']);
+    const inj = P < 1 ? C / (1 - P) : C;
+    const perd = inj - C;
+    return { valores: { 'i06-inj': inj, 'i06-perd': perd, 'i06-rs': perd * T } };
+  },
+
+  // ── M02 · INST 09 · Dois submercados, um fio ──────────────
+  // (ids internos `i07-*`)
+  //
+  // Original: despacha NE+SE como sistema único; se o fluxo resultante
+  // couber no limite do intercâmbio, preço único. Se saturar, resolve o SE
+  // isolado e precifica cada lado — é o mecanismo do spread de PLD.
+  // Demanda do NE é constante (DNE = 12 GW) no modelo.
+  'm02-inst-09': (i) => {
+    const PISO = 61;
+    const DNE = 12;
+    const W = n(i['i07-vento']);
+    const DSE = n(i['i07-dse']);
+    const L = n(i['i07-lim']);
+
+    const despacha = (stack: { cap: number; cost: number }[], dem: number) => {
+      let rem = dem;
+      let marg: { cap: number; cost: number } | null = null;
+      const disp: number[] = [];
+      for (const p of stack) {
+        const d = Math.min(p.cap, Math.max(0, rem));
+        disp.push(d);
+        if (d > 1e-9) marg = p;
+        rem -= d;
+      }
+      return { disp, marg, rem };
+    };
+
+    const joint = [
+      { cap: W, cost: 0 },
+      { cap: 38, cost: 160 },
+      { cap: 14, cost: 360 },
+      { cap: 8, cost: 480 },
+      { cap: 99, cost: 980 },
+    ];
+    const rj = despacha(joint, DNE + DSE);
+    const genNE = rj.disp[0] + rj.disp[3];
+    const flow = genNE - DNE;
+
+    let pne: number;
+    let pse: number;
+    let cut: number;
+    let f: number;
+    let sat: boolean;
+
+    if (Math.abs(flow) <= L + 1e-9) {
+      f = flow;
+      sat = false;
+      pne = pse = Math.max(PISO, rj.marg ? rj.marg.cost : PISO);
+      cut = W - rj.disp[0];
+    } else {
+      sat = true;
+      f = flow > 0 ? L : -L;
+      const demNE = Math.max(0, DNE + f);
+      if (demNE <= W + 1e-9) {
+        cut = W - demNE;
+        pne = PISO;
+      } else {
+        cut = 0;
+        const tneed = demNE - W;
+        pne = tneed <= 8 + 1e-9 ? 480 : 980;
+      }
+      const rse = despacha(
+        [{ cap: 38, cost: 160 }, { cap: 14, cost: 360 }, { cap: 99, cost: 980 }],
+        DSE - f,
+      );
+      pse = Math.max(PISO, rse.marg ? rse.marg.cost : PISO);
+    }
+
+    let veredito: string;
+    if (!sat)
+      veredito =
+        'Intercâmbio com folga: preço único. A usina marginal de um lado precifica os dois — os submercados se comportam como um sistema só.';
+    else if (cut > 1e-9)
+      veredito =
+        'Fio cheio + vento sobrando: corte no NE enquanto o SE despacha térmica. Os preços se separam, o gerador eólico perde receita e a disputa do constrained-off entra em cena.';
+    else if (f > 0)
+      veredito =
+        'Intercâmbio saturado: submercados separados. O NE exporta no limite físico; o SE completa com geração própria mais cara. O spread de PLD é o preço visível do congestionamento.';
+    else
+      veredito =
+        'Vento fraco: o NE importa até o limite. Com o fio saturado no sentido contrário, é o NE que fica caro enquanto o SE segue mais barato. Congestionamento não tem lado fixo.';
+
+    return { valores: { 'i07-ne': pne, 'i07-se': pse, 'i07-flow': f, 'i07-cut': cut }, veredito };
   },
 };
 

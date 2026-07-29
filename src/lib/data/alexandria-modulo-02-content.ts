@@ -49,7 +49,7 @@ import type { AulaBloco } from './alexandria-modulo-01-content';
  *  value/min/max/step, e o `kind` vira `range` porque o deslizador existe. */
 export const INSTRUMENTOS_MODULO_02: Instrument[] = [
   {
-    id: "inst-01",
+    id: "m02-inst-01",
     kind: "explorador",
     title: "Explorador · Camadas da rede",
     formula: null,
@@ -67,7 +67,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: null,
   },
   {
-    id: "inst-02",
+    id: "m02-inst-02",
     kind: "simulador",
     title: "Simulador · Perdas na transmissão",
     formula: null,
@@ -87,7 +87,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: "Modelo didático simplificado: linha trifásica, cos φ = 0,95, resistências típicas por nível de tensão (condutores em feixe), carregamento constante. <b>Não usar para dimensionamento real.</b> *Energia anual estimada com fator de utilização de 55% e valorada a R$ 250/MWh ilustrativos — a ordem de grandeza é o que importa.",
   },
   {
-    id: "inst-03",
+    id: "m02-inst-03",
     kind: "cadeia-de-transformacao",
     title: "Cadeia de transformação · por perfil",
     formula: null,
@@ -100,7 +100,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: "Percentuais ilustrativos de ordem de grandeza por trecho (transformação + condução). Os valores regulatórios reais por distribuidora são definidos pela ANEEL nos processos tarifários — sempre consultar o valor vigente antes de uso externo.",
   },
   {
-    id: "inst-04",
+    id: "m02-inst-04",
     kind: "simulador",
     title: "Simulador · Curva líquida e a rampa do fim da tarde",
     formula: null,
@@ -118,7 +118,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: "Curvas didáticas com formato típico do SIN (pico no início da noite). A operação real considera eólica, intercâmbios, sazonalidade e dias atípicos. O objetivo é um único insight: <b>quanto mais solar, mais funda a barriga do meio-dia e mais íngreme a rampa do pôr do sol</b>.",
   },
   {
-    id: "inst-05",
+    id: "m02-inst-05",
     kind: "simulador",
     title: "Simulador · Despacho por ordem de mérito",
     formula: null,
@@ -138,7 +138,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: "Maquete pedagógica com capacidades e custos <b>ilustrativos</b> (CVUs fictícios em R$/MWh; valor da água como função simplificada do armazenamento). O despacho real do ONS considera restrições elétricas, intercâmbios, inflexibilidades e reserva — nada aqui é o modelo oficial. O objetivo é fixar a <b>lógica</b>: estado dos reservatórios comanda a posição da hidro na pilha, e a usina marginal comanda o custo do sistema.",
   },
   {
-    id: "inst-06",
+    id: "m02-inst-06",
     kind: "calculadora",
     title: "Calculadora · Bateria: potência × energia",
     formula: null,
@@ -154,7 +154,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: "Duração = MWh ÷ MW, desconsiderando perdas, profundidade de descarga e degradação. É a versão sistêmica do kW × kWh do Módulo 01 — a mesma distinção, três ordens de grandeza acima.",
   },
   {
-    id: "inst-07",
+    id: "m02-inst-07",
     kind: "simulador",
     title: "Simulador · Excursão de frequência",
     formula: null,
@@ -172,7 +172,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: "Modelo didático de resposta inercial + regulação primária (parâmetros ilustrativos; limiares de ERAC simplificados). Sistemas reais têm resposta distribuída, dinâmica de tensão e proteções múltiplas. O objetivo é um único insight: <b>mesma perda, menos inércia, afundamento mais profundo</b>.",
   },
   {
-    id: "inst-08",
+    id: "m02-inst-08",
     kind: "calculadora",
     title: "Calculadora · Perda embutida na conta",
     formula: null,
@@ -189,7 +189,7 @@ export const INSTRUMENTOS_MODULO_02: Instrument[] = [
     note: "Modelo didático: injetada = consumo ÷ (1 − perdas). O rateio tarifário real segue o nível regulatório reconhecido por distribuidora e as regras de contabilização da CCEE no ACL — este instrumento mostra a <b>ordem de grandeza</b> do custo que viaja escondido dentro do preço da energia.",
   },
   {
-    id: "inst-09",
+    id: "m02-inst-09",
     kind: "simulador",
     title: "Simulador · Dois submercados, um fio",
     formula: null,

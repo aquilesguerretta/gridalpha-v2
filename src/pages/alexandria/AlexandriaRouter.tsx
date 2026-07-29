@@ -79,11 +79,25 @@ if (import.meta.env.DEV) {
 
 // ── Estado de módulo ─────────────────────────────────────────
 //
-// 'em-producao' e 'bloqueado' são estados DIFERENTES e nunca se
-// confundem visualmente:
-//   bloqueado   → o conteúdo existe, ainda não chegou a vez do aluno.
-//   em-producao → o conteúdo não existe. `totalAulas` é null e não há
-//                 número honesto a mostrar.
+// O estado é RÓTULO DE PROGRESSO, não portão. Todo módulo com conteúdo é
+// navegável; só `em-producao` não abre, porque não existe o que abrir.
+//
+//   concluido / em-andamento / desbloqueado → tem conteúdo, abre sempre.
+//   em-producao → `totalAulas` é null. Não há aula, nem número honesto.
+//
+// `'bloqueado'` continua no tipo por compatibilidade com quem faz
+// exaustão sobre ele (`ModuloNode`, `SlotModulos`), mas `estadosDaTrilha`
+// nunca mais o produz.
+//
+// POR QUE A TRAVA SAIU: a progressão sequencial ("conclua o módulo
+// anterior") dependia de um progresso que não existe — `MOCK_USER_PROGRESS`
+// é demonstração fixa, igual para toda conta, e a Alexandria ainda não
+// registra aula concluída por usuário (ver LYCEUM Wave 23). O resultado
+// prático era conteúdo real inalcançável: com o mock em 3/10 no Módulo 02,
+// tudo a partir da Aula 5 dele ficava trancado, e os Módulos 03-05 inteiros
+// também. Trancar por um progresso fictício esconde o produto sem proteger
+// nada. Quando existir progresso real por conta, a regra pode voltar —
+// aí ela estará medindo alguma coisa.
 export type EstadoModulo =
   | 'concluido'
   | 'em-andamento'
@@ -105,31 +119,41 @@ export interface ModuloComEstado {
  *  tranca a fila — ele não existe, então não pode ser pré-requisito de
  *  nada. Sem isso, um módulo sem HTML congelaria a trilha inteira. */
 export function estadosDaTrilha(modulos: CurriculumModule[]): ModuloComEstado[] {
-  let anterioresConcluidos = true;
-
   return modulos.map((modulo) => {
     if (modulo.totalAulas === null) {
-      // Não mexe em `anterioresConcluidos`: em produção não é obstáculo.
       return { modulo, estado: 'em-producao' as const, aulasFeitas: null };
     }
 
     const feitas = AULAS_CONCLUIDAS_POR_MODULO[modulo.id] ?? 0;
-    let estado: EstadoModulo;
-
-    if (feitas >= modulo.totalAulas) {
-      estado = 'concluido';
-    } else if (feitas > 0) {
-      estado = 'em-andamento';
-      anterioresConcluidos = false;
-    } else if (anterioresConcluidos) {
-      estado = 'desbloqueado';
-      anterioresConcluidos = false;
-    } else {
-      estado = 'bloqueado';
-    }
+    const estado: EstadoModulo =
+      feitas >= modulo.totalAulas ? 'concluido' : feitas > 0 ? 'em-andamento' : 'desbloqueado';
 
     return { modulo, estado, aulasFeitas: feitas };
   });
+}
+
+/** Uma posição na sequência linear de aulas de uma trilha. */
+interface PassoDaTrilha {
+  moduloId: string;
+  moduloTitulo: string;
+  numero: number;
+  total: number;
+}
+
+/** Achata a trilha numa sequência de aulas, na ordem em que se estuda.
+ *
+ *  Módulo em produção (`totalAulas: null`) não tem aula, então some da
+ *  sequência sozinho — o "próximo" pula para o módulo seguinte que tem
+ *  conteúdo, sem cair num beco. */
+export function sequenciaDaTrilha(modulos: CurriculumModule[]): PassoDaTrilha[] {
+  const passos: PassoDaTrilha[] = [];
+  for (const m of modulos) {
+    if (m.totalAulas === null) continue;
+    for (let n = 1; n <= m.totalAulas; n++) {
+      passos.push({ moduloId: m.id, moduloTitulo: m.title, numero: n, total: m.totalAulas });
+    }
+  }
+  return passos;
 }
 
 /** Trilha sugerida pelo `?trilha=` do portal BR.
@@ -277,7 +301,16 @@ function AulaRoute() {
   // Módulo 01 (Wave 4) e Módulo 02 (Wave 18) têm conteúdo; os demais caem
   // no estado "ainda não extraída", que continua sendo a verdade deles.
   const aulaReal = getAulaDoModulo(modulo.id, numero);
-  const itens = estadosDaTrilha(getModulesByTrilha(trilha.id));
+  const modulosDaTrilha = getModulesByTrilha(trilha.id);
+  const itens = estadosDaTrilha(modulosDaTrilha);
+
+  // Sequência linear da trilha inteira, para as setas de anterior/próxima.
+  // Atravessa a fronteira de módulo: a última aula do Módulo 02 leva à
+  // primeira do 03, que é como o currículo é lido de verdade.
+  const seq = sequenciaDaTrilha(modulosDaTrilha);
+  const iAtual = seq.findIndex((p) => p.moduloId === modulo.id && p.numero === numero);
+  const anterior = iAtual > 0 ? seq[iAtual - 1] : null;
+  const proxima = iAtual >= 0 && iAtual < seq.length - 1 ? seq[iAtual + 1] : null;
 
   return (
     <AlexandriaShell
@@ -334,8 +367,83 @@ function AulaRoute() {
             </span>
           </div>
         )}
+
+        <NavegacaoAula trilhaId={trilha.id} anterior={anterior} proxima={proxima} />
       </div>
     </AlexandriaShell>
+  );
+}
+
+/** Anterior / próxima ao fim da aula — a forma de percorrer o currículo
+ *  sem voltar à lista a cada passo.
+ *
+ *  Atravessa a fronteira de módulo, e por isso mostra o título do módulo
+ *  quando ele muda: passar do 02 para o 03 é mudança de assunto, e a
+ *  navegação diz isso em vez de fingir continuidade. Nas pontas da trilha
+ *  o lado correspondente some — sem botão morto. */
+function NavegacaoAula({
+  trilhaId,
+  anterior,
+  proxima,
+}: {
+  trilhaId: string;
+  anterior: PassoDaTrilha | null;
+  proxima: PassoDaTrilha | null;
+}) {
+  const navigate = useNavigate();
+  if (!anterior && !proxima) return null;
+
+  const ir = (p: PassoDaTrilha) => {
+    navigate(`/alexandria/trilha/${trilhaId}/modulo/${p.moduloId}/aula/${p.numero}`);
+    // A aula nova começa do topo. O scroller é o `<main>` do shell, não o
+    // documento — mesma restrição que a Wave 7 mediu no CTA do hero.
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  const lado = (p: PassoDaTrilha, sentido: 'anterior' | 'proxima') => (
+    <button
+      type="button"
+      onClick={() => ir(p)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '2px',
+        alignItems: sentido === 'proxima' ? 'flex-end' : 'flex-start',
+        textAlign: sentido === 'proxima' ? 'right' : 'left',
+        flex: 1,
+        maxWidth: '46%',
+        background: 'none',
+        border: 'none',
+        borderRadius: AR.none,
+        padding: 0,
+        cursor: 'pointer',
+        font: 'inherit',
+      }}
+    >
+      <span style={{ ...AT.rotulo, fontSize: '10px', color: A2.tintaMetadado }}>
+        {sentido === 'anterior' ? '← Aula anterior' : 'Próxima aula →'}
+      </span>
+      <span style={{ ...AT.corpo, fontSize: '14px', color: A.terracota, maxWidth: 'none' }}>
+        {p.moduloTitulo} · Aula {p.numero}
+      </span>
+    </button>
+  );
+
+  return (
+    <nav
+      aria-label="Navegação entre aulas"
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        gap: AS.xl,
+        paddingTop: AS.lg,
+        borderTop: `1px solid ${A.fioSobreCreme}`,
+      }}
+    >
+      {anterior ? lado(anterior, 'anterior') : <span style={{ flex: 1 }} />}
+      {proxima ? lado(proxima, 'proxima') : <span style={{ flex: 1 }} />}
+    </nav>
   );
 }
 

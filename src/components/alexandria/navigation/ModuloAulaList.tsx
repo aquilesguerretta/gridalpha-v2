@@ -135,7 +135,10 @@ function ListaReal({
           const numero = i + 1;
           const concluida = numero <= feitas;
           const atual = numero === feitas + 1 && !bloqueado;
-          const disponivel = !bloqueado && numero <= feitas + 1;
+          // Toda aula do módulo abre. `concluida` e `atual` seguem sendo
+          // rótulo de progresso — informam onde o aluno parou, não
+          // impedem de ir adiante. Ver a nota em `EstadoModulo`.
+          const disponivel = true;
           const aula = getAulaDoModulo(moduloId, numero);
 
           return (

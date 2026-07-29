@@ -2544,3 +2544,105 @@ transmissão enquanto os dois lados não concordarem**, mesmo com o banco cheio.
 - Esta seção do CLAUDE.md.
 
 Endpoint PJM, V1 e schema commitado: intocados. Migration rodada uma vez só.
+
+## LYCEUM — FIAÇÃO DO MÓDULO 02 (pós-Wave 18)
+
+**Status:** fechada. Fecha a pendência que a Wave 18 registrou: o dado
+existia e não chegava na tela. Não é wave numerada — é a tarefa derivada
+que a própria Wave 18 abriu, então fica registrada aqui.
+
+**Arquivo novo:** `src/lib/data/alexandria-curriculo.ts` — resolvedor
+único de conteúdo de aula.
+
+### Eram TRÊS consumidores com o Módulo 01 fixo, não um
+
+A Wave 18 diagnosticou o `AlexandriaRouter.tsx`. Auditando antes de
+mexer, apareceram mais dois:
+
+| arquivo | o que fixava |
+| --- | --- |
+| `AlexandriaRouter.tsx` L274 | `getAulaModulo01(...)` |
+| `AulaViewer.tsx` L36-37 | `MODULO_01_CORPO` / `MODULO_01_LEAD` |
+| `ModuloAulaList.tsx` | nem consultava — imprimia "Aula N de T" |
+
+Corrigir só o router deixaria a aula do Módulo 02 abrir com **corpo
+vazio**. Por isso a solução não foi um `if` no router e sim um índice
+central: `getAula`, `getAulaDoModulo`, `getCorpoAula`, `getLeadAula`.
+**Acrescentar o Módulo 03 agora é editar três linhas de import e três de
+agregação em UM arquivo — nenhum componente muda.** Era esse o
+acoplamento que precisava sumir, e ele estava triplicado.
+
+Trava em DEV avisa se um módulo novo entrar com id de aula repetido — o
+spread de agregação é silencioso e apagaria o corpo do anterior.
+
+### Bug real encontrado na verificação: instrumento nascia NaN
+
+Com a fiação pronta, o INST 02 abria com `Corrente total ∞`, `Perdas
+NaN`, `Perda relativa NaN`. Só passava a calcular depois que o aluno
+mexia num controle.
+
+**Causa:** `InstrumentPanel.tsx` semeava o estado inicial com
+`if (typeof f.defaultValue === 'number')`. Todo campo `kind:'select'`
+entrega **string** (`'500'` kV, `'2'` circuitos), então ficava de fora, e
+a calculadora recebia `undefined`.
+
+**Por que nunca apareceu antes:** o Módulo 01 não tem nenhum select nos
+seus sete instrumentos. O Módulo 02 tem seis. O buraco existia desde a
+Wave 4 e só um módulo com select podia expô-lo.
+
+**Correção, em três partes:**
+1. `EntradaInstrumento = number | string` no contrato das calculadoras —
+   honesto, porque `InstrumentField.defaultValue` já é `number | string`
+   no contrato da FOUNDRY. O compilador então apontou todos os pontos que
+   liam entrada crua; cada um passou por `n()` ou pelo novo `nOu()`.
+2. `nOu(v, fallback)` reproduz o `parseFloat(x) || <fallback>` dos
+   originais, onde **zero também cai no fallback** — preservado por
+   fidelidade, não por acordo. Os `|| 1` sinalizados nas Waves 4 e 18
+   continuam se comportando como na fonte.
+3. `setCampo` guarda número quando o valor é numérico e a **string crua**
+   quando não é. `Number(bruto)` cego quebraria os selects CATEGÓRICOS do
+   Módulo 02 — Explorador de camadas (`ger`/`tra`/`dis`/`con`) e Cadeia
+   por perfil (`a2`/`a4`/`bt`) virariam NaN ao primeiro clique.
+
+### Cópia que passaria a mentir
+
+Quatro textos afirmavam "Módulo 01" ou "as nove aulas" e apareceriam
+numa página do Módulo 02: as abas Referência e Transcrição do
+`AulaViewer`, o rodapé do `VideoArea` e o estado "ainda não extraída" do
+router. Generalizados sem inventar — o router agora deriva o número de
+`TOTAL_AULAS_EXTRAIDAS` e `MODULOS_COM_CONTEUDO`, nunca digitado.
+
+O rodapé da `ModuloAulaList` também era mentira nova: dizia "Os títulos
+de aula chegam com o viewer" numa lista que já os tem. Passou a declarar
+o estado real por contagem (`comTitulo === total`).
+
+### Verificação por clique real
+
+- **Lista do Módulo 02:** as 10 aulas com título e subtítulo reais.
+- **INST 02 no primeiro paint, sem tocar em nada:** 1.215,47 A · 39 MW ·
+  3,9% — **os mesmos valores da prova de fidelidade da Wave 18**. Zero
+  NaN. Trocando para 138 kV: 4.403,89 A e veredito "Inviável", que é
+  literalmente o que o texto da aula manda o aluno testar.
+  Confirmação do diagnóstico: antes da correção a perda relativa a 138 kV
+  dava 744,74% — exatamente o **dobro** de 372,37%, porque o campo
+  "circuitos em paralelo" não estava semeado e caía de 2 para 1.
+- **Select categórico** (Explorador, Aula 01): sem NaN no primeiro paint,
+  muda ao trocar de camada.
+- **Aula 03:** as 3 gravuras `red-` com `naturalWidth` 1024.
+- **Regressão Módulo 01:** INST 01 dá 50 kWh (10 kW × 5 h), e as 3
+  gravuras `fis-` da Aula 03 seguem carregando.
+
+Zero erro de console, zero overflow horizontal, 1440×900 e 1920×1080.
+
+### Registrado, não resolvido
+
+**As saídas dos instrumentos do Módulo 02 aparecem sem unidade** —
+"1.215,47" em vez de "1.215,47 A". A extração da Wave 18 pôs
+`unit: null` nos readouts porque a fonte concatena a unidade no
+JavaScript (`fb(I,0) + " A"`), não no markup. Não é invenção nem defeito
+da fiação: é dado que a fonte não expõe em atributo. Recuperá-lo exige
+parsear as concatenações do script — trabalho de extração, não de
+interface.
+
+**Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` sobre 36
+arquivos — "No findings. Surface is clean."

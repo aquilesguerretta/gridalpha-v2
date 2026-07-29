@@ -52,6 +52,13 @@ const nOu = (v: EntradaInstrumento | undefined, fallback: number): number => {
   return Number.isFinite(x) && x !== 0 ? (x as number) : fallback;
 };
 
+/** Sazonalidade de afluência hidrológica, índice mensal jan→dez.
+ *  Literal do `<script>` do Módulo 03 (`var SHAPE`), compartilhada pelos
+ *  INST 03 (bateria do Brasil) e INST 04 (reservatório × fio d'água) —
+ *  é a mesma chuva caindo nas duas simulações, que é justamente o ponto
+ *  pedagógico do comparador. */
+const SHAPE_AFLUENCIA = [1.55, 1.55, 1.45, 1.25, 0.85, 0.65, 0.55, 0.5, 0.55, 0.7, 1.0, 1.4];
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -623,6 +630,353 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
         'Vento fraco: o NE importa até o limite. Com o fio saturado no sentido contrário, é o NE que fica caro enquanto o SE segue mais barato. Congestionamento não tem lado fixo.';
 
     return { valores: { 'i07-ne': pne, 'i07-se': pse, 'i07-flow': f, 'i07-cut': cut }, veredito };
+  },
+
+  // ══════════════════════════════════════════════════════════════════
+  // MÓDULO 03 — Tecnologias de Geração (LYCEUM Wave 19)
+  //
+  // Portados do `<script>` de `alexandria_modulo03.html`. Os nove são
+  // vinculados a aula. Namespace `m03-` pelo mesmo motivo do `m02-`: a
+  // fonte reinicia a numeração `INST · NN` a cada módulo.
+  //
+  // Aqui a numeração interna BATE com o cabeçalho (INST · 04 usa `i04-*`),
+  // ao contrário do Módulo 02, onde estava embaralhada.
+  //
+  // `SHAPE` — sazonalidade de afluência (índice mensal, jan→dez) usada
+  // pelos INST 03 e 04. Literal do original.
+  // ══════════════════════════════════════════════════════════════════
+
+  // ── M03 · INST 01 · Matriz nas duas lentes ────────────────
+  // Consulta pura: o original só troca a pilha desenhada e o veredito
+  // conforme a lente. As participações são conteúdo (vivem no HTML), não
+  // cálculo — não duplicadas aqui.
+  'm03-inst-01': (i) => ({
+    valores: {},
+    veredito: String(i['i01-pills'] ?? 'cap'),
+  }),
+
+  // ── M03 · INST 02 · FC × energia anual ────────────────────
+  // Original: gwh = MW·8760·FC/100/1000 · heq = 8760·FC/100
+  //           pct = gwh / 550000 · 100   (550 TWh = consumo anual BR)
+  'm03-inst-02': (i) => {
+    const MW = n(i['i02-mw']);
+    const FC = n(i['i02-fc']);
+    const gwh = (MW * 8760 * FC) / 100 / 1000;
+    const heq = (8760 * FC) / 100;
+    const pct = (gwh / 550000) * 100;
+    const veredito =
+      FC < 35
+        ? 'Perfil de fonte variável. Nenhum é melhor: são produtos diferentes. A pergunta certa nunca é quantos MW — é quantos MWh, quando, e com que firmeza.'
+        : FC < 70
+          ? 'Faixa de hidro, eólica premium ou térmica bem despachada. Para térmica esse número não é atributo da máquina — é o diário de quantas vezes o sistema precisou dela.'
+          : 'Território de base. Só nuclear e térmicas rodando quase sempre vivem aqui.';
+    return { valores: { 'i02-gwh': gwh, 'i02-heq': heq, 'i02-pct': pct }, veredito };
+  },
+
+  // ── M03 · INST 03 · A bateria do Brasil (EAR) ─────────────
+  // Simula 12 meses: geração alvo 1 p.u./mês, estoque limitado a CAPAC=5.
+  // Devolve a EAR mínima do ano, o mês em que ocorre e quantos meses
+  // ficaram abaixo de 30%.
+  'm03-inst-03': (i) => {
+    const CAPAC = 5;
+    const ena = nOu(i['i03-ena'], 100) / 100;
+    let ear = (nOu(i['i03-ear'], 60) / 100) * CAPAC;
+    let minP = 999;
+    let minM = 0;
+    let termM = 0;
+    let deficit = 0;
+    for (let m = 0; m < 12; m++) {
+      const inflow = SHAPE_AFLUENCIA[m] * ena;
+      const gen = Math.min(1, ear + inflow);
+      if (gen < 0.999) deficit += 1 - gen;
+      ear = Math.min(CAPAC, Math.max(0, ear + inflow - gen));
+      const pct = (ear / CAPAC) * 100;
+      if (pct < minP) { minP = pct; minM = m; }
+      if (pct < 30) termM++;
+    }
+    const veredito =
+      deficit > 0.05
+        ? 'Estoque zerado: território de racionamento. A bateria do Brasil esvaziou antes da chuva voltar — é o desenho de 2001.'
+        : minP < 12
+          ? 'O desenho de 2021. O estoque não zera, mas o valor da água dispara e térmicas a CVU altíssimo rodam meses. A bateria salvou o suprimento — cobrando caro.'
+          : minP < 30
+            ? 'Ano apertado. Térmica pesada para poupar água, preço de curto prazo nervoso — o regime em que o mercado vigia o boletim de ENA toda semana.'
+            : 'Ano confortável: a bateria faz o trabalho dela. Carrega na estação úmida, descarrega na seca.';
+    return {
+      valores: { 'i03-min': minP, 'i03-mes': minM, 'i03-term': termM },
+      veredito,
+    };
+  },
+
+  // ── M03 · INST 04 · Reservatório × fio d'água ─────────────
+  // COMPARADOR — estreia do tipo. Um campo, cinco saídas: cabe no modelo.
+  // Duas usinas didáticas sob a MESMA afluência: a fio d'água gera o que
+  // o rio manda (teto na turbina); a de reservatório tenta sustentar
+  // entrega constante usando o estoque.
+  'm03-inst-04': (i) => {
+    const FIO_CAP = 1.6;
+    const RES_CAP = 4;
+    const ena = nOu(i['i04-ena'], 100) / 100;
+    let fioSum = 0;
+    let fioMin = 999;
+    let stor = 2.5;
+    let firmeMin = 999;
+    for (let m = 0; m < 12; m++) {
+      const inflow = SHAPE_AFLUENCIA[m] * ena;
+      const gFio = Math.min(FIO_CAP, inflow);
+      fioSum += gFio;
+      if (gFio < fioMin) fioMin = gFio;
+      const gRes = Math.min(1, stor + inflow);
+      stor = Math.min(RES_CAP, Math.max(0, stor + inflow - gRes));
+      if (gRes < firmeMin) firmeMin = gRes;
+    }
+    const fcFio = (fioSum / 12 / FIO_CAP) * 100;
+    const veredito =
+      firmeMin < 0.7
+        ? 'A seca venceu as duas — de jeitos diferentes. Quando até a usina-bateria falha, o que sobra é térmica, corte e crise: a firmeza tem limite, e o limite é o estoque.'
+        : fioMin / FIO_CAP < 0.25
+          ? 'Dois produtos, escancarados. A fio d’água vende energia média; a de reservatório vende a certeza — e a certeza é o que falta no sistema pós-2000.'
+          : 'Ano bom esconde a diferença. É por isso que matriz se julga no ano ruim — arraste a ENA para baixo e veja os produtos se separarem.';
+    return {
+      valores: {
+        'i04-fcfio': fcFio,
+        'i04-minfio': (fioMin / FIO_CAP) * 100,
+        'i04-firme': firmeMin * 100,
+        'i04-stk': (stor / RES_CAP) * 100,
+      },
+      veredito,
+    };
+  },
+
+  // ── M03 · INST 05 · O dia do sistema ──────────────────────
+  // Curva de carga horária fixa menos solar (senoidal 6h-18h, fator 0,78)
+  // e eólica (perfil horário WFAC). Resíduo negativo vira excedente.
+  // A rampa é medida SÓ entre 16h e 21h — janela do pôr do sol.
+  'm03-inst-05': (i) => {
+    const LOAD = [70,69,68,68,68,69,71,74,77,80,82,83,84,84,84,85,87,92,98,100,97,90,82,75,70];
+    const WFAC = [1.15,1.15,1.15,1.15,1.12,1.08,1.0,0.92,0.85,0.8,0.78,0.78,0.8,0.82,0.85,0.9,0.98,1.05,1.1,1.12,1.15,1.15,1.15,1.15,1.15];
+    const S = n(i['i05-sol']);
+    const W = n(i['i05-eol']);
+    const res: number[] = [];
+    let exc = 0;
+    let minR = 999;
+    let minH = 0;
+    for (let h = 0; h <= 24; h++) {
+      const gs = h >= 6 && h <= 18 ? S * 0.78 * Math.sin((Math.PI * (h - 6)) / 12) : 0;
+      const gw = W * WFAC[h];
+      let r = LOAD[h] - gs - gw;
+      if (r < 0) { if (h < 24) exc += -r; r = 0; }
+      res.push(r);
+      if (r < minR) { minR = r; minH = h; }
+    }
+    let rampa = 0;
+    for (let h = 16; h < 21; h++) {
+      const d = res[h + 1] - res[h];
+      if (d > rampa) rampa = d;
+    }
+    const veredito =
+      exc > 1
+        ? 'Sobra estrutural: energia sem destino no meio-dia. Preço no piso, vertimento, curtailment — e o mesmo dia ainda cobra a rampa do pôr do sol.'
+        : rampa > 9
+          ? 'Rampa pesada entre 17h e 20h. A barriga e a rampa são o mesmo fenômeno, visto de horas diferentes.'
+          : 'Dia administrável, dentro do que o parque flexível resolve sem drama. Suba a solar e veja a barriga afundar e a rampa empinar.';
+    return {
+      valores: { 'i05-min': minR, 'i05-minh': minH, 'i05-rampa': rampa, 'i05-exc': exc },
+      veredito,
+    };
+  },
+
+  // ── M03 · INST 06 · Pilha de CVU / ordem de mérito ────────
+  // Irmã do INST 05 do Módulo 02, com onze usinas em vez de dez e dois
+  // multiplicadores: valor da água (campo) e preço do gás (select, que
+  // escala GN-CC, GN-CS e GNL de uma vez).
+  'm03-inst-06': (i) => {
+    const PISO = 61;
+    const D = n(i['i06-dem']);
+    const agua = Math.round(nOu(i['i06-agua'], 150));
+    const gm = nOu(i['i06-gas'], 1);
+
+    const stack = [
+      { id: 'fio', name: "Hidro fio d'água", cap: 13, cost: 1, must: true },
+      { id: 'eol', name: 'Eólica', cap: 18, cost: 0, must: true },
+      { id: 'sol', name: 'Solar (UFV + MMGD)', cap: 16, cost: 0, must: true },
+      { id: 'nuc', name: 'Nuclear', cap: 2, cost: 30, must: true },
+      { id: 'hre', name: 'Hidro reservatório', cap: 42, cost: agua, must: false },
+      { id: 'bio', name: 'Biomassa (safra)', cap: 8, cost: 160, must: false },
+      { id: 'gcc', name: 'GN ciclo combinado', cap: 12, cost: Math.round(180 * gm), must: false },
+      { id: 'car', name: 'Carvão', cap: 2.5, cost: 280, must: false },
+      { id: 'gcs', name: 'GN ciclo simples', cap: 8, cost: Math.round(380 * gm), must: false },
+      { id: 'ole', name: 'Óleo / diesel', cap: 5, cost: 950, must: false },
+      { id: 'gnl', name: 'GNL spot', cap: 3, cost: Math.round(1300 * gm), must: false },
+    ].sort((a, b) => a.cost - b.cost);
+
+    const disp: Record<string, number> = {};
+    const mustCap = stack.filter((p) => p.must).reduce((t, p) => t + p.cap, 0);
+    let marg: { id: string; name: string; cost: number } | null = null;
+    let cut = 0;
+    let deficit = 0;
+    let cmo: number;
+
+    if (D <= mustCap) {
+      let excess = mustCap - D;
+      stack.forEach((p) => { disp[p.id] = p.must ? p.cap : 0; });
+      for (const id of ['sol', 'eol', 'fio']) {
+        const c = Math.min(excess, disp[id] ?? 0);
+        disp[id] -= c;
+        excess -= c;
+        cut += c;
+      }
+      cmo = PISO;
+    } else {
+      let rem = D;
+      stack.forEach((p) => {
+        const dd = Math.min(p.cap, rem);
+        disp[p.id] = dd;
+        if (dd > 1e-9) marg = p;
+        rem -= dd;
+      });
+      deficit = rem > 1e-6 ? rem : 0;
+      cmo = marg ? Math.max(PISO, (marg as { cost: number }).cost) : PISO;
+    }
+
+    const term = ['bio', 'gcc', 'car', 'gcs', 'ole', 'gnl']
+      .reduce((t, id) => t + (disp[id] ?? 0), 0);
+    const nomeMarg = D <= mustCap
+      ? 'Renovável (sobra)'
+      : marg ? (marg as { name: string }).name : '—';
+
+    return {
+      valores: { 'i06-cmo': cmo, 'i06-term': term, 'i06-cut': cut, 'i06-deficit': deficit },
+      veredito: nomeMarg,
+    };
+  },
+
+  // ── M03 · INST 07 · Bateria MW × MWh ──────────────────────
+  // DIMENSIONADOR — estreia do tipo. Três campos numéricos, quatro
+  // saídas: cabe no modelo sem nenhuma extensão.
+  // Original: E = P·H · carga = E/eff · perda = carga − E.
+  'm03-inst-07': (i) => {
+    const P = n(i['i07-mw']);
+    const H = n(i['i07-h']);
+    const eff = nOu(i['i07-eff'], 88) / 100;
+    const E = P * H;
+    const perda = E / eff - E;
+    const voc =
+      H < 1
+        ? 'Serviços rápidos · regulação'
+        : H <= 3
+          ? 'Ponta · arbitragem curta'
+          : 'Rampa do pôr do sol';
+    const veredito =
+      H < 1
+        ? `${voc} — tanque curto: potência sem fôlego. Vocação para frequência e suavização, o serviço que a perda de inércia valorizou. Mas não atravessa a rampa.`
+        : H <= 3
+          ? `${voc} — o formato de ponta. Desloca da barriga solar para as horas caras, pagando pedágio em calor. Bateria não gera: cobra frete temporal.`
+          : `${voc} — carrega ao meio-dia, descarrega das 17h em diante. Acima disso, o deslocamento longo é território da reversível e do reservatório.`;
+    return {
+      valores: { 'i07-mwh': E, 'i07-desl': E, 'i07-perda': perda },
+      veredito,
+    };
+  },
+
+  // ── M03 · INST 08 · Comparador de LCOE ────────────────────
+  // COMPARADOR com preset. LCOE = CAPEX·CRF/energia + O&M/energia + var,
+  // com CRF = r(1+r)^n / ((1+r)^n − 1) e energia = 8,76·FC/100 MWh/kW·ano.
+  //
+  // SINALIZADO, não corrigido: no original, clicar numa pill TAMBÉM
+  // reescreve o campo de FC com o `fc` do preset (`fcEl.value = pr.fc`).
+  // Efeito colateral que uma função pura não reproduz — aqui o FC do
+  // usuário permanece, e o preset só entra como fallback quando o campo
+  // está vazio, que é o que `parseFloat(fcEl.value) || p.fc` faz. Trocar
+  // de tecnologia sem mexer no FC portanto compara as duas no MESMO fator
+  // de capacidade, que é justamente o "teste-chave" que a nota do
+  // instrumento pede. Decisão de conteúdo se o reset deve voltar.
+  'm03-inst-08': (i) => {
+    const PRESETS: Record<string, { capex: number; fc: number; om: number; vr: number; n: number; label: string }> = {
+      solar:   { capex: 3500,  fc: 27, om: 50,  vr: 0,   n: 25, label: 'CAPEX R$ 3.500/kW · O&M R$ 50/kW·a · 25 anos' },
+      eolica:  { capex: 5500,  fc: 45, om: 80,  vr: 0,   n: 25, label: 'CAPEX R$ 5.500/kW · O&M R$ 80/kW·a · 25 anos' },
+      gas:     { capex: 4500,  fc: 45, om: 120, vr: 250, n: 25, label: 'CAPEX R$ 4.500/kW · combustível R$ 250/MWh · 25 anos' },
+      hidro:   { capex: 8000,  fc: 50, om: 90,  vr: 5,   n: 50, label: 'CAPEX R$ 8.000/kW · O&M R$ 90/kW·a · 50 anos' },
+      nuclear: { capex: 30000, fc: 88, om: 400, vr: 40,  n: 60, label: 'CAPEX R$ 30.000/kW · O&M R$ 400/kW·a · 60 anos' },
+    };
+    const tech = String(i['i08-pills'] ?? 'solar');
+    const p = PRESETS[tech] ?? PRESETS.solar;
+    const fc = nOu(i['i08-fc'], p.fc);
+    const r = nOu(i['i08-wacc'], 10) / 100;
+    const crf = (r * Math.pow(1 + r, p.n)) / (Math.pow(1 + r, p.n) - 1);
+    const energiaMWh = (8.76 * fc) / 100;
+    const lcoeCap = (p.capex * crf) / energiaMWh;
+    const lcoeOM = p.om / energiaMWh + p.vr;
+    const lcoe = lcoeCap + lcoeOM;
+
+    let veredito: string;
+    if (tech === 'gas')
+      veredito = fc < 25
+        ? 'O limite 2 em carne viva: a mesma usina que parecia razoável rodando metade do tempo agora parece um desastre — sem mudar um parafuso. O LCOE de térmica flexível é termômetro do despacho, não do projeto.'
+        : 'Arraste o FC para 15% e assista ao LCOE quase dobrar. O custo unitário do gás depende de quantas horas o resto do sistema o deixa rodar. Comparar este número com o da solar é comparar um seguro com uma commodity.';
+    else if (tech === 'nuclear')
+      veredito = 'Quase tudo é capital. Suba o WACC um ponto e veja dezenas de reais aparecerem do nada: em ativo de CAPEX dominante, juro pesa mais que engenharia.';
+    else if (tech === 'solar' || tech === 'eolica')
+      veredito = 'O número que venceu os leilões: custo quase todo de capital, combustível zero, FC ditado pelo recurso — não pelo despacho. Mas barato não é sinônimo de suficiente.';
+    else
+      veredito = 'Hidro grande didática, em 50 anos de vida: o segredo está no n do CRF. A hidro barata do Brasil já foi construída — por isso é legado, não opção de expansão.';
+
+    return {
+      valores: {
+        'i08-lcoe': lcoe,
+        'i08-cap': lcoeCap,
+        'i08-cappct': (lcoeCap / lcoe) * 100,
+        'i08-om': lcoeOM,
+      },
+      veredito,
+    };
+  },
+
+  // ── M03 · INST 09 · Quebra-cabeça sazonal ─────────────────
+  // QUEBRA-CABEÇA — estreia do tipo, e o único que exigiu decisão.
+  //
+  // A fonte usa `src-toggle-row`: QUATRO chaves booleanas independentes
+  // (`data-src`), ligadas/desligadas por clique. Não é arrastar, ordenar
+  // nem parear — é seleção múltipla. Cada chave entra como um `select` de
+  // duas opções ('on'/'off'), que o InstrumentPanel já renderiza. Nenhuma
+  // mecânica nova, nenhum componente tocado.
+  //
+  // O cálculo soma os perfis mensais ponderados das fontes LIGADAS e
+  // devolve a razão mês-fraco / mês-forte — o "encaixe" que a aula ensina.
+  'm03-inst-09': (i): ResultadoInstrumento => {
+    const PROF: Record<string, { w: number; m: number[] }> = {
+      hidro:  { w: 50, m: [155,155,145,125,85,65,55,50,55,70,100,140] },
+      eolica: { w: 15, m: [68,63,68,78,93,108,128,138,143,133,113,83] },
+      solar:  { w: 12, m: [105,100,100,95,90,90,95,105,110,110,105,95] },
+      bio:    { w: 6,  m: [20,15,25,80,130,160,170,170,160,140,110,50] },
+    };
+    const ativas = ['hidro', 'eolica', 'solar', 'bio']
+      .filter((k) => String(i[`i09-checks-${k}`] ?? 'off') === 'on');
+
+    if (ativas.length === 0) {
+      return {
+        valores: {},
+        veredito:
+          'Ligue ao menos uma fonte. Comece pela hidro sozinha — o Brasil dos anos 1990 — e adicione as outras na ordem em que o país as adicionou.',
+      };
+    }
+
+    let minV = 1e9;
+    let maxV = 0;
+    let minM = 0;
+    for (let m = 0; m < 12; m++) {
+      const s = ativas.reduce((t, k) => t + (PROF[k].w * PROF[k].m[m]) / 100, 0);
+      if (s < minV) { minV = s; minM = m; }
+      if (s > maxV) maxV = s;
+    }
+    const ratio = maxV > 0 ? (minV / maxV) * 100 : 0;
+    const veredito =
+      ratio < 40
+        ? 'Time de um jogador: era a matriz quase-só-hidro, com a diferença atravessada com reservatório e reza. Adicione a eólica e veja o vale começar a se erguer.'
+        : ratio < 55
+          ? 'O encaixe começou. O vento do 2º semestre preenche exatamente os meses em que a ENA some. Falta a peça da seca profunda — ligue a biomassa.'
+          : 'Portfólio trabalhando: o vale subiu sem ninguém construir uma usina a mais. É a complementaridade convertendo perfis em firmeza estatística.';
+    return { valores: { 'i09-ratio': ratio, 'i09-vale': minM }, veredito };
   },
 };
 

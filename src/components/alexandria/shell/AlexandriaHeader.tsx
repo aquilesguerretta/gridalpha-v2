@@ -42,8 +42,9 @@
 // desligando o listener por completo.
 
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-tokens';
+import { useAuth } from '../../../lib/auth/AuthContext';
 
 export interface AlexandriaNavItem {
   id: string;
@@ -132,6 +133,110 @@ function useEsconderAoRolar() {
   }, []);
 
   return { headerRef, escondido };
+}
+
+/** Inicial do nome, maiúscula. Nunca vazia: nome em branco cai em '—',
+ *  que é marca de campo sem valor no sistema, e não uma letra inventada. */
+function inicialDe(nome: string): string {
+  const limpo = nome.trim();
+  if (!limpo) return '—';
+  return limpo[0].toLocaleUpperCase('pt-BR');
+}
+
+/** Ponto de acesso ao Perfil — a porta que a Wave 23 não teve.
+ *
+ *  A Wave 23 construiu `/alexandria/perfil` inteiro (guarda de rota,
+ *  identidade real, ativação automática) e nenhuma superfície linkava
+ *  para lá: dava para chegar digitando a URL, e mais nada.
+ *
+ *  TRÊS ESTADOS, o vocabulário replicado do `AcessoConta` do Portal
+ *  Brasil (ARCHITECT · Identidade Wave 1) e não inventado aqui — só os
+ *  tokens mudam, de Jaguar para os da Alexandria:
+ *
+ *  · `loading` — espaço reservado que NÃO afirma nada. Enquanto
+ *    `/api/auth/me` não respondeu, dizer "Entrar" a quem tem sessão
+ *    válida é mentira de ~200ms piscando em toda carga. O próprio
+ *    `AuthContextValue` documenta isso: "ninguém deve concluir 'não
+ *    logado' — só 'ainda não sabemos'".
+ *  · sem sessão — "Entrar" em CAIXA DE FIO, nunca fio-embaixo. Essa é
+ *    a razão declarada no Portal e vale igual aqui: fio embaixo é o
+ *    vocabulário de item de nav ATIVO (ver a nav acima, com o fio
+ *    terracota), e usá-lo faria "Entrar" ler como estado — "você está
+ *    em Entrar" — em vez de ação. Retângulo de fio é o idioma de ação,
+ *    raio zero como tudo. Leva o endereço atual junto, então quem entra
+ *    daqui volta para a Alexandria, não para `/conta`.
+ *  · com sessão — círculo com a inicial.
+ *
+ *  SEM FOTO, e não é omissão: `PlatformUser` é
+ *  `{ id, email, name, authMethods, createdAt, updatedAt }` — não existe
+ *  campo de imagem. Um `<img>` apontando para nada renderiza ícone de
+ *  quebrado, então aqui é sempre inicial.
+ *
+ *  O círculo é a única exceção de raio que a identidade concede
+ *  (círculo pleno: anel de progresso, avatar). Desenhado com FIO de 1px
+ *  e não com disco preenchido, porque neste sistema profundidade vem de
+ *  fio — e em OURO, não terracota: terracota é cor de estado (em
+ *  andamento / crítico) e a Wave 17 já registrou que ela nunca é
+ *  decorativa. O mesmo ouro do fio duplo de frontispício logo acima. */
+function AcessoPerfil() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    // Reserva a largura do círculo para o header não pular quando a
+    // sessão resolve. Não desenha fio nem letra: não sabemos ainda.
+    return <span aria-hidden="true" style={{ width: '32px', height: '32px', flex: 'none' }} />;
+  }
+
+  if (!user) {
+    return (
+      <Link
+        to="/entrar"
+        state={{ de: location.pathname + location.search }}
+        style={{
+          ...AT.rotulo,
+          fontSize: '10px',
+          color: A.tintaSobreNavy,
+          textDecoration: 'none',
+          border: `1px solid ${A2.fioCampoSobreNavy}`,
+          borderRadius: AR.none,
+          padding: '5px 12px',
+          flex: 'none',
+          outlineColor: A2.ouroSobreNavy,
+          transition: `border-color ${AE.estado} ${AE.easing}`,
+        }}
+      >
+        Entrar
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      to="/alexandria/perfil"
+      aria-label={`Perfil de ${user.name}`}
+      title={user.name}
+      style={{
+        ...AT.rotulo,
+        fontSize: '12px',
+        letterSpacing: 0,          // uma letra só: tracking empurraria fora do centro
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '32px',
+        height: '32px',
+        flex: 'none',
+        color: A2.ouroSobreNavy,
+        textDecoration: 'none',
+        border: `1px solid ${A2.ouroSobreNavy}`,
+        borderRadius: AR.circulo,
+        outlineColor: A2.ouroSobreNavy,
+        transition: `color ${AE.estado} ${AE.easing}, border-color ${AE.estado} ${AE.easing}`,
+      }}
+    >
+      {inicialDe(user.name)}
+    </Link>
+  );
 }
 
 export function AlexandriaHeader({
@@ -244,6 +349,11 @@ export function AlexandriaHeader({
         })}
       </nav>
 
+      {/* Bloco direito — busca + acesso ao perfil. Agrupados num
+          container só para que o `space-between` do header continue
+          distribuindo TRÊS blocos (marca · nav · direita); soltos,
+          seriam quatro e a nav sairia do centro. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: AS.lg, flex: 'none' }}>
       {/* Busca — entrada de catálogo, não input de app. Sem ícone de lupa
           (afirmação universal de "app moderno"): um rótulo Cinzel faz o
           mesmo trabalho de anunciar a função, como o campo de busca de um
@@ -279,6 +389,9 @@ export function AlexandriaHeader({
             padding: 0,
           }}
         />
+      </div>
+
+        <AcessoPerfil />
       </div>
     </header>
   );

@@ -157,9 +157,12 @@ export const ALAYOUT = {
   // número seria inventar.
   footerHeight: '',
 
-  // Padding vertical do rodapé — o que o handoff realmente usa (L1835).
-  footerPaddingY: '26px',
-  footerPaddingX: '26px',
+  // Padding do rodapé. Reduzido de 26/26 — o rodapé virou peça de fluxo
+  // (Wave 16), não mais faixa permanente, mas ainda pesava demais por
+  // linha de conteúdo. Vertical cortado mais fundo que horizontal porque
+  // é o eixo que definia a altura da banda.
+  footerPaddingY: '16px',
+  footerPaddingX: '20px',
 } as const;
 
 /** Textura de papel — fibra irregular, nunca grade de pontos.

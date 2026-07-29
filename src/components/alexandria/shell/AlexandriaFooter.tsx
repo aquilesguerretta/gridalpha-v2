@@ -150,39 +150,24 @@ const G = {
   // apontar para lugar nenhum, que é o que ambientação deve fazer.
   // ALTURAS — acento de canto, não ilustração de destaque.
   //
-  // Calibradas contra o orçamento de faixa permanente, não escolhidas
-  // por gosto: a primeira medição deu 250px de rodapé em 1440x900,
-  // sobrando 581px de canvas. Passaram por 92/44/40/30 e depois por
-  // 66/38/34/26 antes de assentarem aqui. Uma gravura de rodapé que
-  // pede atenção está roubando-a do conteúdo — a 40px o astrolábio
-  // ancora a ponta da cartela sem virar figura.
-  astrolabio: { arquivo: 'orn-15-astrolabio.png', legenda: 'Astrolábio', altura: 40 },
+  // Reduzidas de novo (40/16/26/24 → abaixo) no pedido de encolher o
+  // rodapé inteiro: a faixa não é mais permanente (Wave 16), mas ainda
+  // pesava por linha de conteúdo. Astrolábio é quem mais perde — é
+  // acento de canto puro, o que menos custa encolher.
+  astrolabio: { arquivo: 'orn-15-astrolabio.png', legenda: 'Astrolábio', altura: 26 },
 
-  // Junto do link de Atlas. O objeto é literalmente o destino.
-  // 16px e não mais: esta gravura fica INLINE na linha do link, então
-  // qualquer altura acima da linha de texto empurra a coluna inteira e
-  // se paga em faixa permanente. A 26px a coluna de navegação virava a
-  // mais alta das quatro (135px).
+  // Junto do link de Atlas, inline na linha do texto. Não desce mais —
+  // já estava no piso de legibilidade da Wave 10 (16px); abaixo disso a
+  // gravura desaparece.
   mapa: { arquivo: 'orn-13-mapa-dobrado.png', legenda: 'Mapa dobrado', altura: 16 },
 
-  // Acento da coluna de fontes. ESCOLHIDA sobre orn-04-estante-arquivo
-  // por três razões: (1) são quatro volumes empilhados para quatro
-  // fontes primárias — a rima é numérica, não forçada; (2) a massa é
-  // horizontal e baixa, que é a proporção desta faixa, enquanto a
-  // estante é objeto alto e estreito e encolheria a nada; (3) 'fonte
-  // primária' é o documento publicado — o livro É a fonte, o gaveteiro
-  // é o continente, um nível acima do que a seção nomeia.
-  livros: { arquivo: 'orn-01-pilha-livros.png', legenda: 'Pilha de livros', altura: 26 },
+  // Acento da coluna de fontes. Ver Wave 10 para a escolha sobre
+  // orn-04-estante-arquivo — não muda aqui, só o tamanho.
+  livros: { arquivo: 'orn-01-pilha-livros.png', legenda: 'Pilha de livros', altura: 18 },
 
-  // Acento da coluna de navegação. ESCOLHIDA sobre orn-05-compasso por
-  // três razões: (1) sextante é o instrumento de NAVEGAR — mede o
-  // ângulo do astro para achar posição; compasso é de traçar em
-  // prancheta, pertence ao desenho e não à navegação; (2) densidade de
-  // traço medida no arquivo — o compasso tem 0,9% de pixels opacos
-  // contra 15,5% do sextante, e a 40px sobre navy ele vira fiapo
-  // invisível; (3) o compasso é altíssimo e estreito, o sextante é
-  // compacto e encosta bem numa coluna de links.
-  sextante: { arquivo: 'orn-11-sextante.png', legenda: 'Sextante', altura: 24 },
+  // Acento da coluna de navegação. Ver Wave 10 para a escolha sobre
+  // orn-05-compasso — não muda aqui, só o tamanho.
+  sextante: { arquivo: 'orn-11-sextante.png', legenda: 'Sextante', altura: 18 },
 } as const satisfies Record<string, Gravura>;
 
 /** Gravura decorativa. `aria-hidden` + alt vazio: é mobília, não
@@ -330,8 +315,8 @@ export function AlexandriaFooter() {
           // abria exatamente o vazio de landing page que a identidade
           // proíbe. A largura foi para as fontes, que têm razão social
           // longa e ganham em caber numa linha cada.
-          gridTemplateColumns: '0.75fr 0.7fr 1.55fr auto',
-          gap: AS.xxl,
+          gridTemplateColumns: '0.6fr 1fr 1.4fr auto',
+          gap: AS.xl,
           alignItems: 'start',
         }}
       >
@@ -345,7 +330,7 @@ export function AlexandriaFooter() {
           <span
             style={{
               ...AT.nav,
-              fontSize: '15px',
+              fontSize: '13px',
               color: A.tintaSobreNavy,
               display: 'block',
               lineHeight: 1,
@@ -360,27 +345,31 @@ export function AlexandriaFooter() {
               letterSpacing: '0.24em',
               color: A2.tintaMetadadoNavy,
               display: 'block',
-              marginTop: '5px',
+              marginTop: '4px',
             }}
           >
             Atlas vivo da energia do Brasil
           </span>
-
         </section>
 
         {/* ── 2 · NAVEGAÇÃO ─────────────────────────────────── */}
+        {/* Linha única, não coluna empilhada — era o maior driver de
+            altura da faixa (a Wave 10 já tinha medido isso e deixou
+            registrado; "fora de escopo" lá, dentro de escopo aqui, no
+            pedido explícito de encolher o rodapé). Quatro links cabem
+            numa linha só com folga em qualquer largura de canvas real. */}
         <section>
           <RotuloSecao>Navegação</RotuloSecao>
 
-          <div style={{ display: 'flex', gap: AS.md, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: AS.sm, alignItems: 'center' }}>
             <nav
               aria-label="Rodapé"
-              style={{ display: 'flex', flexDirection: 'column', gap: '5px', flex: 1, minWidth: 0 }}
+              style={{ display: 'flex', flexWrap: 'wrap', columnGap: AS.lg, rowGap: '4px', flex: 1, minWidth: 0 }}
             >
               {NAV_RODAPE.map((item) => (
                 <span
                   key={item.id}
-                  style={{ display: 'flex', alignItems: 'center', gap: AS.sm }}
+                  style={{ display: 'flex', alignItems: 'center', gap: AS.xs }}
                 >
                   <Link
                     to={item.destino}
@@ -491,8 +480,8 @@ export function AlexandriaFooter() {
           justifyContent: 'space-between',
           gap: AS.xl,
           flexWrap: 'wrap',
-          marginTop: AS.md,
-          paddingTop: AS.sm,
+          marginTop: AS.sm,
+          paddingTop: '6px',
           borderTop: `1px solid ${A.fioSobreNavy}`,
         }}
       >

@@ -75,7 +75,11 @@ export function AlexandriaShell({
         onNavegar={onNavegar}
       />
 
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      {/* `position: relative` é o que ancora o painel/backdrop/selo
+          retráteis do RailRight (Wave 16) — eles são `position: absolute`
+          e saem do cálculo de flex desta linha, mas precisam de um
+          ancestral posicionado pra saber onde "direita" e "topo" ficam. */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0, position: 'relative' }}>
         {showLeftRail && <RailLeft>{leftRailContent}</RailLeft>}
 
         {/* Canvas central creme. A fibra fica numa camada própria para

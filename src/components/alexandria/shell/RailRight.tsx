@@ -1,21 +1,41 @@
-// RailRight — sempre presente, sempre navy, sempre 300px.
+// RailRight — retrátil, sempre navy.
 //
-// Ordem das seções é FIXA e não configurável:
-//   1 Progresso · 2 Lista de aulas · 3 Próxima aula
-//   4 Conquistas · 5 Referências
+// ─────────────────────────────────────────────────────────────
+// MECÂNICA (Wave 16) — leia antes de mudar a largura de qualquer coisa
+// aqui.
 //
-// Cada seção é separada da seguinte por fio de 1px, nunca por card.
-// Blocos irmãos, não caixas empilhadas — uma borda dentro de outra
-// borda lê como formulário, não como prancha (handoff L1068).
+// O rail tem dois estados: COLAPSADO (padrão de entrada em toda página) e
+// EXPANDIDO. A decisão de mecânica, tomada vendo renderizado:
 //
-// Este arquivo é dono do CHASSI e do ESTADO VAZIO. O conteúdo populado
-// de cada slot é montado pelos componentes `Slot*` em
-// `src/pages/alexandria/AlexandriaRouter.tsx` e chega aqui pronto, como
-// `ReactNode` — a tipografia dele é definida lá, não aqui, e estilo
-// inline de filho não é sobrescritível pelo pai.
+//   A faixa colapsada (`LARGURA_COLAPSADA`, em fluxo) é a ÚNICA coisa que
+//   ocupa espaço no flexbox da linha [rail-esquerdo? · main · rail-
+//   direito]. Ela nunca muda de largura. O painel completo (300px, todas
+//   as cinco seções) é `position: absolute` dentro da linha — sai do
+//   fluxo, não conta pro flex — e desliza por cima como overlay/drawer
+//   quando expandido, em vez de empurrar o canvas.
+//
+// Por quê: um painel que expande e colapsa mudando o próprio flex-basis
+// obriga o browser a recalcular o layout do canvas A CADA FRAME da
+// animação — é o modo de falha que os brief nomeia. Com o painel como
+// overlay, só a `transform` anima (composto, sem reflow), e o flex-basis
+// da faixa fina nunca muda — o canvas nunca recalcula nada, nem durante a
+// transição, nem em repouso.
+//
+// Isso também é o que cumpre a regra de que colapsado precisa reclamar
+// ESPAÇO REAL: com a faixa fina em 64px em vez do painel de 300px, o
+// canvas ganha os 236px de volta por reflow de flexbox de verdade — medido
+// no fechamento da wave, não presumido.
+//
+// A faixa colapsada e o painel expandido usam o MESMO botão: `RailToggle`
+// fica ancorado por posição absoluta, acima dos dois (z-index mais alto),
+// e alterna entre eles. Não existem dois toggles — um clique no mesmo selo
+// abre e fecha.
+// ─────────────────────────────────────────────────────────────
 
-import type { ReactNode } from 'react';
-import { A, A2, AT, AS, AR, ALAYOUT } from '../../../design/alexandria-tokens';
+import { useEffect, useState, type ReactNode } from 'react';
+import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-tokens';
+import { MOCK_USER_PROGRESS } from '../../../lib/data/alexandria-progress-mock';
+import { RailToggle } from './RailToggle';
 
 export interface RailRightSlots {
   progresso?: ReactNode;
@@ -34,82 +54,125 @@ const SECOES: { chave: keyof RailRightSlots; rotulo: string; vazio: string }[] =
   { chave: 'referencias', rotulo: 'Referências',     vazio: 'Sem referências nesta tela' },
 ];
 
-/** Estado vazio de uma seção.
- *
- *  MEDIDO ANTES DE MUDAR (Wave 14). O computado dizia:
- *
- *    rótulo de seção .......... 11px, normal, ouro
- *    placeholder .............. 14px, ITÁLICO, #8CA0B8
- *    conteúdo populado ........ 11-12px, normal
- *
- *  Ou seja: o placeholder já era o MAIOR texto do rail. A hierarquia não
- *  quebrava por tamanho — quebrava por peso ótico. O rótulo é Cinzel
- *  caixa-alta com tracking .18em em ouro, que grita; o conteúdo era
- *  itálico na tinta mais fraca da paleta navy, que sussurra. Subir o
- *  corpo não resolveria nada e ainda deixaria o estado VAZIO maior que o
- *  estado POPULADO, que é o contrário do que a tela precisa dizer.
- *
- *  Então a correção é nas duas propriedades que realmente causavam o
- *  problema:
- *
- *  1. Itálico sai. A regra do produto reserva itálico para ênfase
- *     editorial — o lead da Apostila. Dado de estado é informação
- *     funcional e vai em romano.
- *  2. Contraste sobe de `tintaMetadadoNavy` (#8CA0B8, sem rótulo de
- *     token no handoff) para `tintaSobreNavySuave` (#A9B6C8, declarado
- *     'on-navy-muted' com 6.9:1). Passa a ser o nível de tinta
- *     secundária, não o de metadado.
- *
- *  O tamanho fica em `AT.dado` (14px) de propósito. O brief pede "nunca
- *  abaixo do corpo da Apostila", que mede 16px — mas a Apostila é
- *  superfície de leitura com medida de 68ch, e o rail é chrome de 300px.
- *  Aplicar piso de superfície de leitura ao chrome brigaria com a regra
- *  de densidade (40-60 elementos por tela). 14px já é o topo da escala
- *  de dado e 27% maior que o rótulo. */
+/** Largura da faixa em repouso. Não vem de `ALAYOUT` — é constante nova
+ *  desta wave, e `alexandria-tokens.ts` é somente-leitura aqui. Grande o
+ *  bastante para o selo de 36px com folga, pequena o bastante para o
+ *  canvas reclamar espaço de verdade. */
+const LARGURA_COLAPSADA = '64px';
+
+/** Estado vazio de uma seção. Ver histórico de medição na Wave 14 — o
+ *  problema não era tamanho, era peso ótico (itálico + baixo contraste). */
 function Placeholder({ texto }: { texto: string }) {
   return (
-    <span
-      style={{
-        ...AT.dado,
-        color: A2.tintaSobreNavySuave,
-      }}
-    >
+    <span style={{ ...AT.dado, color: A2.tintaSobreNavySuave }}>
       {texto}
     </span>
   );
 }
 
 export function RailRight({ slots = {} }: { slots?: RailRightSlots }) {
+  const [expandido, setExpandido] = useState(false);
+
+  const percentual =
+    MOCK_USER_PROGRESS.aulasTotal > 0
+      ? Math.round((MOCK_USER_PROGRESS.aulasCompleted / MOCK_USER_PROGRESS.aulasTotal) * 100)
+      : 0;
+
+  const alternar = () => setExpandido((v) => !v);
+
+  // ESC fecha — mesmo idioma de qualquer painel sobreposto. Só ouve
+  // enquanto está aberto.
+  useEffect(() => {
+    if (!expandido) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpandido(false);
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [expandido]);
+
   return (
-    <aside
-      style={{
-        width: ALAYOUT.railRight,
-        flex: `0 0 ${ALAYOUT.railRight}`,
-        background: A.navy,
-        borderLeft: `1px solid ${A.fioSobreNavy}`,
-        borderRadius: AR.none,
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {SECOES.map((secao, i) => (
-        <section
-          key={secao.chave}
-          style={{
-            padding: `${AS.lg} ${AS.xl}`,
-            // Fio entre irmãos — não no último, senão duplica com o rodapé.
-            borderBottom: i < SECOES.length - 1 ? `1px solid ${A.fioSobreNavy}` : 'none',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: AS.md,
-          }}
-        >
-          <span style={{ ...AT.rotulo, color: A2.ouroSobreNavy }}>{secao.rotulo}</span>
-          {slots[secao.chave] ?? <Placeholder texto={secao.vazio} />}
-        </section>
-      ))}
-    </aside>
+    <>
+      {/* Faixa em fluxo — a ÚNICA peça que o flexbox da linha enxerga.
+          Largura constante nos dois estados: é isto que garante reflow
+          real no colapso e zero reflow durante a animação de expandir. */}
+      <aside
+        style={{
+          width: LARGURA_COLAPSADA,
+          flex: `0 0 ${LARGURA_COLAPSADA}`,
+          background: A.navy,
+          borderLeft: `1px solid ${A.fioSobreNavy}`,
+          borderRadius: AR.none,
+        }}
+      />
+
+      {/* Clique fora fecha. Só existe montado enquanto expandido — não
+          intercepta clique nenhum com o painel fechado. */}
+      {expandido && (
+        <div
+          aria-hidden="true"
+          onClick={() => setExpandido(false)}
+          style={{ position: 'absolute', inset: 0, zIndex: 4, cursor: 'default' }}
+        />
+      )}
+
+      {/* Painel completo — overlay. `position: absolute` tira do cálculo
+          de flex da linha; só `transform` anima. */}
+      <div
+        className="alx-rail-drawer"
+        role="region"
+        aria-label="Progresso, aulas e conquistas"
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: ALAYOUT.railRight,
+          background: A.navy,
+          borderLeft: `1px solid ${A.fioSobreNavy}`,
+          borderRadius: AR.none,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 5,
+          transform: expandido ? 'translateX(0)' : 'translateX(100%)',
+          transition: `transform ${AE.hover} ${AE.easing}`,
+        }}
+      >
+        {/* Espaço reservado para o selo, que flutua por cima e não faz
+            parte deste fluxo. Sem isso a primeira seção nasce atrás dele. */}
+        <div aria-hidden="true" style={{ height: 60, flex: 'none' }} />
+
+        {SECOES.map((secao, i) => (
+          <section
+            key={secao.chave}
+            style={{
+              padding: `${AS.lg} ${AS.xl}`,
+              borderBottom: i < SECOES.length - 1 ? `1px solid ${A.fioSobreNavy}` : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: AS.md,
+            }}
+          >
+            <span style={{ ...AT.rotulo, color: A2.ouroSobreNavy }}>{secao.rotulo}</span>
+            {slots[secao.chave] ?? <Placeholder texto={secao.vazio} />}
+          </section>
+        ))}
+      </div>
+
+      {/* Selo — sempre no mesmo lugar da linha, acima dos dois estados.
+          É o único controle: abre a faixa, e dentro dela o mesmo clique
+          fecha. */}
+      <div style={{ position: 'absolute', top: AS.lg, right: '14px', zIndex: 10 }}>
+        <RailToggle percent={percentual} expanded={expandido} onClick={alternar} />
+      </div>
+
+      <style>{`
+        @media (prefers-reduced-motion: reduce) {
+          .alx-rail-drawer { transition: none !important; }
+        }
+      `}</style>
+    </>
   );
 }
 

@@ -1297,6 +1297,250 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
     };
   },
 
+
+  // ══════════════════════════════════════════════════════════════════
+  // MÓDULO 05 — Regulação e Desenho de Mercados (LYCEUM Wave 25)
+  //
+  // Portados do `<script>` de `alexandria_modulo05.html`. Seis, um por
+  // aula. Namespace `m05-` pelo mesmo motivo dos anteriores.
+  //
+  // QUATRO SAÍDAS TEXTUAIS ficam de fora de `valores` — `Record<string,
+  // number>` não as comporta e emitir índice cru sob o rótulo seria pior
+  // que omitir. Todas aparecem no veredito literal, que é o que o aluno
+  // lê: `i2-b` (grau ótimo), `i4-r` (reprodutibilidade), `i6-q`
+  // (quadrante) e `i6-r` (risco dominante). Terceira wave seguida com
+  // este padrão — ver Wave 19 (mês) e Wave 24 (usina marginal).
+  // ══════════════════════════════════════════════════════════════════
+
+  // ── M05 · INST 01 · Quando duplicar a rede fica caro ──────
+  // Original: cm(n,q,f,c) = (n·f·CRF + c·q) / q, com CRF = 0,10 fixo.
+  // `q` em consumidores (campo em mil) e `f` em R$ (campo em R$ mi).
+  'm05-inst-01': (i) => {
+    const CRF = 0.1;
+    const q = n(i['i1-q']) * 1000;
+    const f = n(i['i1-f']) * 1e6;
+    const c = n(i['i1-c']);
+    const N = n(i['i1-n']);
+    const cm = (redes: number) => (q > 0 ? (redes * f * CRF + c * q) / q : 0);
+    const cur = cm(N);
+    const one = cm(1);
+    const waste = cur - one;
+    const pct = one > 0 ? (waste / one) * 100 : 0;
+
+    let veredito: string;
+    if (N === 1)
+      veredito =
+        'Rede única. Repare quanto do custo é custo de existir a rede, e não de entregar energia: é essa proporção que define quão forte é o monopólio natural aqui.';
+    else if (pct <= 10)
+      veredito =
+        'Duplicar custa pouco a mais por consumidor. Mercado grande e custo fixo baixo — o argumento de monopólio natural é fraco aqui. Nem toda infraestrutura de rede é monopólio natural na mesma intensidade.';
+    else if (pct <= 50)
+      veredito =
+        'A duplicação já é claramente ineficiente, e nenhuma competição entre as redes recupera isso: a concorrência aqui aumenta o custo do sistema em vez de reduzi-lo. É competição pelo mercado, não no mercado.';
+    else
+      veredito =
+        'Monopólio natural forte: o custo fixo domina a estrutura, e replicar a rede desperdiça — além de espaço público, servidão e licença ambiental, que nenhuma rede replicaria mesmo querendo pagar.';
+
+    return {
+      valores: { 'i1-cm': cur, 'i1-c1': one, 'i1-w': Math.max(0, waste), 'i1-tf': N * f, 'i1-pct': pct },
+      veredito,
+    };
+  },
+
+  // ── M05 · INST 02 · Grau de separação ─────────────────────
+  // Original: conf = BC[g-1]·(1 − 0,35·f/100) · coor = BK[g-1]·(0,35 +
+  // 0,65·c/100). O grau ótimo é o de menor soma.
+  //
+  // SAÍDA TEXTUAL OMITIDA: `i2-b` é o NOME do grau ótimo
+  // ('Contábil'/'Funcional'/'Jurídica'/'Societária'), não número. Sai no
+  // veredito.
+  'm05-inst-02': (i) => {
+    const BC = [100, 68, 40, 12];
+    const BK = [6, 22, 45, 85];
+    const NOME = ['Contábil', 'Funcional', 'Jurídica', 'Societária'];
+    const G = n(i['i2-g']);
+    const C = n(i['i2-c']);
+    const F = n(i['i2-f']);
+    const calc = (g: number) => {
+      const conf = BC[g - 1] * (1 - (0.35 * F) / 100);
+      const coor = BK[g - 1] * (0.35 + (0.65 * C) / 100);
+      return { c: conf, k: coor, t: conf + coor };
+    };
+    let best = 1;
+    let bt = Infinity;
+    for (let g = 1; g <= 4; g++) {
+      const t = calc(g).t;
+      if (t < bt) { bt = t; best = g; }
+    }
+    const cur = calc(G);
+
+    let veredito: string;
+    if (G === best)
+      veredito = `Separação ${NOME[G - 1].toLowerCase()} é o ponto de menor atrito para esta combinação. O ótimo se desloca com a fiscalização — melhorar a fiscalização de acesso costuma ser mais barato que aprofundar a separação.`;
+    else if (Math.abs(G - best) === 1)
+      veredito = `Diferença pequena para a separação ${NOME[best - 1].toLowerCase()}, dentro da margem em que outros fatores decidem. ${G > best ? 'Você paga coordenação a mais para comprar uma redução de conflito que a fiscalização já entregava.' : 'Você aceita conflito residual a mais, apostando numa fiscalização que pode não se sustentar.'}`;
+    else
+      veredito = `${G > best ? 'Separação profunda demais para este contexto' : 'Separação rasa demais para este contexto'} — o menor atrito está no grau ${NOME[best - 1].toLowerCase()}. ${G > best ? 'Cortar fundo destrói coordenação sem comprar redução proporcional de conflito.' : 'A regra de acesso existe no papel e não é verificável na prática.'}`;
+
+    return { valores: { 'i2-r': cur.c, 'i2-k': cur.k, 'i2-t': cur.t }, veredito };
+  },
+
+  // ── M05 · INST 03 · Composição de contratação ─────────────
+  // Original, com SP = 200 (preço spot de referência):
+  //   soma = L + C · over = max(0, soma−100) · D = max(0, 100−soma)
+  //   com sobrecontratação: custo = (L(SP+P) + C(SP+0,35P) − over·SP·0,90)/100
+  //   sem:                  custo = (L(SP+P) + C(SP+0,35P) + D·SP)/100
+  //   sig = SP·(V/100)·((D + 0,45C)/100)·1,6 · ruim = custo + 2·sig · amp = 4·sig
+  'm05-inst-03': (i) => {
+    const SP = 200;
+    const L = n(i['i3-l']);
+    const C = n(i['i3-c']);
+    const P = n(i['i3-p']);
+    const V = n(i['i3-v']);
+    const soma = L + C;
+    const over = Math.max(0, soma - 100);
+    const D = Math.max(0, 100 - soma);
+    const custo =
+      over > 0
+        ? (L * (SP + P) + C * (SP + P * 0.35) - over * SP * 0.9) / 100
+        : (L * (SP + P) + C * (SP + P * 0.35) + D * SP) / 100;
+    const sig = SP * (V / 100) * ((D + 0.45 * C) / 100) * 1.6;
+
+    let veredito: string;
+    if (over > 0)
+      veredito =
+        'Há sobrecontratação. A sobra é revendida ao curto prazo em condição que o comprador não escolhe. Sobrecontratar não é prudência — é comprar caro para revender barato, por contrato, todo mês.';
+    else if (D === 0)
+      veredito =
+        'Cem por cento contratado: custo perfeitamente previsível e perfeitamente rígido, com amplitude zero. Qualquer queda de produção vira sobrecontratação no mês seguinte. Previsibilidade total é escolha de política de risco, não ótimo automático.';
+    else if (D <= 15)
+      veredito =
+        'Faixa em que a folga absorve variação operacional sem transformar o orçamento numa aposta direcional. O prêmio pago no contrato longo comprou redução de dispersão, não de custo.';
+    else if (D <= 35)
+      veredito =
+        'Ainda gerenciável, mas verifique se o cenário ruim cabe no limite FINANCEIRO da política de risco — e não só no limite percentual de exposição. São critérios diferentes, e atender um não garante o outro.';
+    else
+      veredito =
+        'A maior parte do custo de energia desta empresa é decidida pelo mercado de curto prazo, não por ela. Isso é posição direcional em preço de energia, assumida por quem não vive de negociar energia.';
+
+    return {
+      valores: {
+        'i3-e': custo,
+        'i3-w': custo + 2 * sig,
+        'i3-a': 4 * sig,
+        'i3-d': over > 0 ? -over : D,
+      },
+      veredito,
+    };
+  },
+
+  // ── M05 · INST 04 · Termômetro de risco de captura ────────
+  // A fonte chama de `Termômetro`, que NÃO é membro de InstrumentKind.
+  // Mapeado para `quebra-cabeca` pela mecânica: oito chaves booleanas
+  // independentes com peso, mais um campo numérico.
+  //
+  // Original: op = soma dos pesos marcados · expo = M·op/100 ·
+  // repro = 'não' se o sinal 0 estiver marcado; 'parcial' se 1 ou 2;
+  // senão 'sim'.
+  //
+  // SAÍDA TEXTUAL OMITIDA: `i4-r` (reprodutibilidade) é palavra, não
+  // número — sai no veredito.
+  'm05-inst-04': (i) => {
+    const PESOS = [22, 20, 20, 12, 12, 6, 5, 3];
+    const M = n(i['i4-m']);
+    const marcados: number[] = [];
+    let op = 0;
+    for (let k = 0; k < PESOS.length; k++) {
+      if (String(i[`i4-s${k}`] ?? 'off') === 'on') { op += PESOS[k]; marcados.push(k); }
+    }
+    const expo = (M * op) / 100;
+    const repro = marcados.includes(0)
+      ? 'não'
+      : marcados.includes(1) || marcados.includes(2)
+        ? 'parcial'
+        : 'sim';
+
+    let veredito: string;
+    if (op === 0)
+      veredito =
+        'Nenhum sinal marcado. O processo é verificável: metodologia anterior, dados disponíveis, contribuições respondidas e resultado reproduzível. Isso não significa que o resultado agrade — significa que ele pode ser contestado no mérito técnico, que é a única forma produtiva de contestar.';
+    else if (op <= 25)
+      veredito = `Reprodutibilidade: ${repro}. Os sinais presentes dificultam a verificação sem impedi-la. Encaminhamento adequado: pedido formal dos itens faltantes e registro público do pedido — não conclusão.`;
+    else if (op <= 55)
+      veredito = `Reprodutibilidade: ${repro}. O que se pode afirmar publicamente é exatamente isso — a lacuna e a materialidade. Captura é padrão institucional inferido ao longo do tempo, não diagnóstico de um ato isolado.`;
+    else
+      veredito = `Reprodutibilidade: ${repro}. Nesta faixa um terceiro competente não refaz a conta, e a decisão só pode ser aceita por confiança — que é precisamente o que a transparência regulatória existe para tornar desnecessária. A afirmação publicável continua sendo a lacuna verificada e a materialidade, nunca a imputação a instituição ou pessoa.`;
+
+    return { valores: { 'i4-n': marcados.length, 'i4-o': op, 'i4-e': expo }, veredito };
+  },
+
+  // ── M05 · INST 05 · Ciclo de revisão tarifária ────────────
+  // Original: rem = B·Wc/100 (remuneração da base) · pb0 = O + rem + Dp
+  // (Parcela B) · comp = pb0/E·1000 (R$ mi ÷ GWh → R$/MWh) ·
+  // sens = B·0,01 (efeito de +1 p.p. de WACC) · projeção de 5 anos com
+  // crescimento g = 1 + X/100.
+  'm05-inst-05': (i) => {
+    const B = n(i['i5-b']);
+    const Wc = n(i['i5-w']);
+    const O = n(i['i5-o']);
+    const Dp = n(i['i5-d']);
+    const E = n(i['i5-e']);
+    const X = n(i['i5-x']);
+    const rem = (B * Wc) / 100;
+    const pb0 = O + rem + Dp;
+    const comp = E > 0 ? (pb0 / E) * 1000 : 0;
+    const sens = B * 0.01;
+    const g = 1 + X / 100;
+    const final = pb0 * Math.pow(g, 4);
+    return {
+      valores: { 'i5-p': pb0, 'i5-c': comp, 'i5-s': sens, 'i5-f': final },
+      veredito:
+        'A Parcela B é a parte que a revisão decide. Repare no peso da remuneração da base: é ali que um ponto percentual de WACC vira dezenas de milhões por ano, sem nenhuma mudança física na rede.',
+    };
+  },
+
+  // ── M05 · INST 06 · Posição no desenho de mercado ─────────
+  // A fonte chama de `Mapa`, que NÃO é membro de InstrumentKind.
+  // Mapeado para `simulador` pela mecânica: três campos numéricos →
+  // posição e veredito, idêntico aos quatro `Simulador` do módulo.
+  //
+  // Original: xId = 15 + 0,75·H · yId = 70 − 0,35·H (posição ideal dado
+  // o peso do recurso armazenável) · coer = clamp(100 − 0,55|X−xId| −
+  // 0,45|Y−yId|, 0, 100) · dist = distância euclidiana até o Brasil
+  // (85, 45).
+  //
+  // DUAS SAÍDAS TEXTUAIS OMITIDAS: `i6-q` (quadrante) e `i6-r` (risco
+  // dominante) são rótulos, não números — saem no veredito.
+  'm05-inst-06': (i) => {
+    const X = n(i['i6-x']);
+    const Y = n(i['i6-y']);
+    const H = n(i['i6-h']);
+    const xId = 15 + 0.75 * H;
+    const yId = 70 - 0.35 * H;
+    const coer = Math.max(0, Math.min(100, 100 - 0.55 * Math.abs(X - xId) - 0.45 * Math.abs(Y - yId)));
+    const dist = Math.sqrt(Math.pow(X - 85, 2) + Math.pow(Y - 45, 2));
+
+    const quad =
+      X < 50
+        ? Y < 50 ? 'Oferta · só energia' : 'Oferta · capacidade formal'
+        : Y < 50 ? 'Custo · só energia' : 'Custo · capacidade formal';
+    const risco =
+      Y < 32 ? 'Missing money'
+      : Y > 72 ? 'Erro de projeção'
+      : X < 35 && H > 55 ? 'Coordenação intertemporal'
+      : X > 72 ? 'Opacidade metodológica'
+      : 'Custo administrativo';
+
+    let veredito: string;
+    if (coer >= 80)
+      veredito = `Quadrante: ${quad.toLowerCase()}. Configuração coerente com o peso do recurso armazenável plurianual. O risco que sobra é ${risco.toLowerCase()} — nenhum desenho elimina risco, apenas escolhe qual carregar. Saber nomear qual você escolheu é o que distingue desenho de improviso.`;
+    else if (coer >= 55)
+      veredito = `Quadrante: ${quad.toLowerCase()}. Sustentável, mas há tensão entre o desenho e o parque. Risco dominante: ${risco.toLowerCase()}.`;
+    else
+      veredito = `Quadrante: ${quad.toLowerCase()}. O desenho e o parque estão desalinhados. Risco dominante: ${risco.toLowerCase()}.`;
+
+    return { valores: { 'i6-co': coer, 'i6-d': dist }, veredito };
+  },
 };
 
 export const temCalculadora = (id: string) => id in INSTRUMENT_CALCULATORS;

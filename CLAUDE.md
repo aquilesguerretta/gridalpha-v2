@@ -2949,3 +2949,137 @@ seguem intactas.
 
 **Variáveis novas no Railway:** só `JWT_SECRET` (já setada). As cinco de
 cookie e a de TTL são opcionais — o default cobre o deploy de hoje.
+
+## ARCHITECT — IDENTIDADE DE PLATAFORMA WAVE 1
+
+**Status:** fechada. Consumidor frontend da Wave 9 do backend — contexto
+de autenticação compartilhado, telas de entrar/criar conta, perfil de
+plataforma e ativação real no clique. Construído contra a API de
+verdade desde a primeira linha; nenhum mock em nenhuma fase.
+
+### Achado da Fase 1 — o `/login` legado nunca chamou API
+
+Auditoria antes de nomear rota. A confirmação é mais forte que "não é
+conta de plataforma":
+
+| Rota legada | O que realmente faz |
+| --- | --- |
+| `/login` | Valida formato e **navega direto para `/nest`**. `// TODO: Replace with Supabase auth post-VPS migration`. Zero fetch. |
+| `/signup` → `/signup/success` | Grava `{name, email}` e `ProfileType` (trader / analyst / storage / …) em zustand + sessionStorage. Nenhuma senha sai do browser. |
+
+`authStore` não tem senha, sessão nem id — é **seleção de arquétipo do
+terminal americano**, que decide qual Nest o `GlobalShell` monta. O nome
+"auth" ali é herança, não função. Ortogonal a esta wave: aquilo escolhe
+QUAL TERMINAL você vê; isto estabelece QUEM VOCÊ É.
+
+**Rotas finais:** `/entrar` · `/criar-conta` · `/conta`. Legado
+intocado.
+
+### A decisão que a medição mudou — caminho relativo, não `BASE_URL`
+
+O cookie de sessão é `SameSite=lax` (lido do `Set-Cookie` real de
+produção). Cookie `lax` **não viaja em fetch cross-site** — provado no
+browser antes de escrever tela nenhuma:
+
+| Chamada | Por URL absoluta do Railway | Por caminho relativo |
+| --- | --- | --- |
+| `POST /api/auth/login` | 200, devolve o usuário | 200, devolve o usuário |
+| `GET /api/auth/me` em seguida | **401 `not authenticated`** | **200, mesmo email** |
+
+Com URL absoluta a sessão morreria em todo o desenvolvimento local: o
+login "funciona" e nada persiste. Caminho relativo serve os dois
+ambientes sem `if (dev)` — em dev o `server.proxy['/api']` que já
+existia no `vite.config.ts` encaminha e o browser vê mesma origem; em
+produção front e back já dividem origem. Se a topologia virar domínios
+separados (a Wave 9 registra que está indeciso), a correção é
+`SESSION_COOKIE_SAMESITE=none` no backend — não reescrita aqui.
+
+CORS confirmado credenciado: `access-control-allow-credentials: true`
+com a origem ecoada exata, não `*`.
+
+### `credentials: 'include'` — primeiro uso no projeto
+
+Grep em todo o `src/`: a única ocorrência de `credentials:` era
+`'omit'` no `services/api/client.ts`, que serve dado público de
+mercado. `authApi.ts` também **não** passa pelo `fetchEnvelope`:
+identidade devolve JSON plano, não o envelope `{meta, data, summary}`
+das Endpoints 1-15, e validar envelope onde não há envelope seria
+aplicar o contrato errado.
+
+### Anti-enumeração — provada, não só implementada
+
+Teste real no browser, dois cenários distintos:
+
+| Cenário | Mensagem exibida |
+| --- | --- |
+| Email que não existe | `Email ou senha inválidos.` |
+| Email real + senha errada | `Email ou senha inválidos.` |
+
+Strings idênticas. Existe um único `if (err.status === 401)` no
+código — nenhum ramo distingue as causas. O 409 do cadastro É
+específico de propósito: a assimetria é do backend, e a razão é real
+(no login, diferenciar entrega quais emails existem; no cadastro, a
+pessoa precisa saber que já tem conta). Verificado com o email em
+CAIXA ALTA, confirmando a normalização case-insensitive.
+
+### Defeito que só a verificação pegou
+
+Sem `noValidate`, `type="email"` aciona a validação nativa do browser,
+que **bloqueia o submit** e mostra bolha `Please include an '@'…` — em
+inglês, numa página inteiramente em português — e a nossa validação
+nunca era alcançada (`submitDisparou: false`, medido). Corrigido nos
+dois formulários; os erros agora aparecem em português ancorados nos
+campos por `aria-describedby`.
+
+### Prova de ponta a ponta, com conta nova
+
+Fluxo por clique real, `fluxo.completo.w1@gridalpha.com`:
+
+| Passo | Resultado |
+| --- | --- |
+| Criar conta pela tela | → `/conta`, nome renderizado, `0 DE 6 ATIVADOS` |
+| Sair da conta | → `/br`; `/conta` depois disso expulsa para `/entrar` |
+| Entrar de novo | → `/conta` |
+| Clicar Alexandria no Portal | rede: **`POST /api/products/alexandria/activate`**, navega para `/alexandria?trilha=brasil` |
+| Dentro de `/alexandria/trilha/…/aula/3` | `GET /api/auth/me` → 200, `products: ["alexandria"]` |
+| Voltar a `/conta` | `1 DE 6 ATIVADOS`, badge ATIVADO, "Ativado em 29 de julho de 2026" |
+
+**Reconhecimento no fundo da árvore, por leitura do CONTEXTO REACT** (não
+só do cookie): sonda temporária em `AlexandriaHome` confirmou
+`user: fluxo.completo.w1@gridalpha.com, loading: false` em `/alexandria`,
+`/alexandria/trilha/…/aula/3` e `/alexandria/glossario`. Sonda revertida
+com `git checkout`; grep confirma zero resíduo.
+
+### O que a Alexandria ainda NÃO faz
+
+Ela **não consome** o `AuthContext` — o provedor envolve `/alexandria/*`
+e o usuário é reconhecido lá dentro, mas nenhum componente dela lê isso
+ainda. Perfil da Alexandria, progresso por conta e gate de ativação são
+**wave do LYCEUM**, depois desta. Nada em `src/components/alexandria/`
+nem no `AlexandriaRouter.tsx` foi tocado.
+
+### Registrado, não resolvido
+
+- **Editar dados e recuperar senha não existem** — os endpoints não
+  foram construídos. Declarado em texto nas telas, em vez de botão ou
+  link morto.
+- **Sem Google OAuth** — `/api/auth/google/*` ausentes; o contrato
+  proíbe placeholder que finge funcionar.
+- **Logout não revoga o token** (limitação stateless da Wave 9): limpa
+  o cookie do navegador e nada mais.
+- **`us-terminal` não tem rótulo em `br-destinos.ts`** — o perfil deriva
+  "Terminal Estados Unidos" do id em vez de esconder o produto.
+- **Duas contas de teste ficaram no banco** — `architect.wave1@` e
+  `fluxo.completo.w1@`, ambas `@gridalpha.com`. Não há endpoint de
+  exclusão no contrato.
+- **`Failed to load resource: 401` no console** das telas de entrar e
+  criar conta: é o log automático do browser para qualquer 401, não
+  exceção. O código trata (`setUser(null)`, sem UI de falha).
+
+**Desvio mínimo de posse:** `ContaShell.tsx`, quarto arquivo em
+`src/pages/conta/`, com o chassi comum das três telas — a alternativa
+era triplicar o layout.
+
+**Gates:** `tsc -b` 0 erros nos arquivos da wave · `gridalpha-detect`
+"No findings. Surface is clean." · zero overflow horizontal em 1440×900
+e 1920×1080 nas três telas.

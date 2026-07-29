@@ -3083,3 +3083,45 @@ era triplicar o layout.
 **Gates:** `tsc -b` 0 erros nos arquivos da wave · `gridalpha-detect`
 "No findings. Surface is clean." · zero overflow horizontal em 1440×900
 e 1920×1080 nas três telas.
+
+### Fase extra — porta de entrada e conta antes do arquétipo
+
+A wave construiu `/entrar`, `/criar-conta` e `/conta` sem linkar de
+lugar nenhum. Fechado em duas frentes:
+
+**Portal Brasil** — `AcessoConta` no header, três estados: enquanto
+`/api/auth/me` não respondeu NÃO diz "Entrar" (seria mentira de ~200ms
+piscando para quem tem sessão); sem sessão mostra "Entrar" levando o
+destino atual; com sessão mostra "Conta · <primeiro nome>". Achado
+visual corrigido: o botão nasceu com fio ocre de 2px embaixo, que é o
+vocabulário do mercado ATIVO no `SeletorMercado` ao lado — virou caixa
+de fio de 1px, o idioma de ação, e o ocre voltou a significar só "você
+está aqui".
+
+**Landing americana** — `Sign in` → `/entrar`. `Access Terminal`
+continua indo para `/signup`, que deixou de ser formulário e virou
+`SignupGate`: sem sessão manda para `/criar-conta` e volta; com sessão
+segue direto para `/signup/profile`. Identidade primeiro, arquétipo
+depois — e um caminho só de "entrar" no header.
+
+**A lógica de arquétipo não foi tocada.** `SignupProfilePage`,
+`SignupDetailsPage` e `SignupSuccessPage` estão byte-idênticas.
+
+**Achado que definiu a implementação:** as três usam `email !== ''`
+como GUARDA DE SEQUÊNCIA (`Profile` L43, `Details` L812, `Success`
+L16) — o email nunca é renderizado, só prova "passou pela etapa 1". Um
+gate que apenas navegasse deixaria o store vazio, as três devolveriam
+para `/signup`, e `/signup` mandaria de volta: laço infinito. O gate
+semeia o store com nome e email REAIS da conta, e os guards seguem
+funcionando sem editar nenhuma das três.
+
+A tela substituída pedia nome, email e senha, validava a senha com no
+mínimo 8 caracteres e a **descartava** — `setCredentials` gravava só
+nome e email. `SignupCredentialsPage.tsx` permanece no repo porque
+`ProgressDots` mora lá e é importado pelas outras duas; o componente
+fica sem consumidor, com o motivo declarado no cabeçalho. Efeito
+colateral favorável: "STEP 2 OF 3 · PROFILE" ficou correto — a etapa 1
+continua existindo, mudou de lugar para `/criar-conta`.
+
+`/login` legado continua de pé como rota (não quebra link antigo), mas
+não é mais alcançável pelo header.

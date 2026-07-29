@@ -1,20 +1,33 @@
-// PerfilStub — estado inicial da superfície de Perfil.
+// PerfilStub — a superfície de Perfil da Alexandria.
 //
-// Não é "em breve" genérico nem pedido de desculpa: é o mesmo registro que
-// `VideoArea` e o nó de módulo em produção já usam — contorno tracejado em
-// terracota, dizendo o que vai existir ali e o que falta para existir.
+// O nome do arquivo fica: é o contrato de rota que a Wave 6 registrou, e
+// `AlexandriaRouter.tsx` não é posse desta wave. O corpo deixou de ser
+// stub na Wave 23.
 //
-// A página real é de outra wave. Aqui não tem conteúdo de perfil nenhum:
-// nem progresso, nem certificado, nem nome de aluno. Só o contrato de rota.
+// ROTA PROTEGIDA. O mecanismo NÃO é inventado aqui — é o mesmo que o
+// ARCHITECT já usa em `PerfilPlataforma.tsx`: `<Navigate to="/entrar">`
+// carregando `state={{ de: location.pathname }}`, que o `EntrarView` lê
+// (`location.state.de`) e para onde volta depois do login. Reaproveitar
+// significa que entrar pelo Perfil da Alexandria devolve ao Perfil da
+// Alexandria, não ao `/conta` genérico.
 //
-// O bloco visual é repetido nos três stubs de propósito, em vez de extraído
-// para um quarto arquivo: cada stub vai ser substituído por uma wave
-// diferente, e cada um precisa poder ser apagado sem quebrar os outros.
+// `loading === true` mostra estado de carregamento, nunca redireciona:
+// enquanto `/api/auth/me` não respondeu, ninguém pode concluir "não
+// logado" — só "ainda não sabemos". Redirecionar aí expulsaria quem TEM
+// sessão válida a cada carga de página.
 
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 
 export function PerfilStub() {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <Carregando />;
+  if (!user) return <Navigate to="/entrar" replace state={{ de: location.pathname }} />;
+
   return (
     <AlexandriaShell navAtivo="perfil">
       <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xl }}>
@@ -58,6 +71,21 @@ export function PerfilStub() {
             sem usuário por trás.
           </span>
         </div>
+      </div>
+    </AlexandriaShell>
+  );
+}
+
+/** Estado de espera enquanto `/api/auth/me` não respondeu. Monta o shell
+ *  inteiro para não haver salto de layout quando a resposta chegar. */
+function Carregando() {
+  return (
+    <AlexandriaShell navAtivo="perfil">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+        <span style={{ ...AT.rotulo, color: A.terracota }}>Perfil</span>
+        <span style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave }}>
+          Verificando sua sessão…
+        </span>
       </div>
     </AlexandriaShell>
   );

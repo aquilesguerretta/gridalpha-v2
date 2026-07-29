@@ -19,7 +19,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-tokens';
+import { A, A2, AT, AS, AE, ALAYOUT } from '../../../design/alexandria-tokens';
 import { RailToggle } from './RailToggle';
 
 export interface RailRightSlots {
@@ -77,20 +77,32 @@ export function RailRight({ slots = {} }: { slots?: RailRightSlots }) {
       )}
 
       {/* Painel — overlay flutuante. Nasce fora da tela (translateX 100%)
-          e desliza por cima do canvas; nunca é um elemento em fluxo. */}
+          e desliza por cima do canvas; nunca é um elemento em fluxo.
+
+          `borderRadius` é EXCEÇÃO explícita ao raio zero do sistema,
+          pedida direto: um painel genuinamente flutuante (inset dos
+          quatro lados, não encostado em borda nenhuma da tela) lê como
+          card "jogado ali" quando os cantos são retos — a regra de raio
+          zero foi pensada pra chrome estrutural full-bleed (header,
+          rails fixos, rodapé), não pra um objeto solto sobre o canvas.
+          Escopo: só este painel. `AR.none` continua valendo em todo o
+          resto do produto — não mudei o token. */}
       <div
         className="alx-rail-drawer"
         role="region"
         aria-label="Progresso, aulas e conquistas"
         style={{
           position: 'absolute',
-          top: AS.lg,
+          // Topo mais alto que right/bottom: reserva a faixa onde a
+          // bússola flutua por cima, sem tocar o painel. Ver o botão
+          // logo abaixo — os dois números têm que concordar.
+          top: '64px',
           right: AS.lg,
           bottom: AS.lg,
           width: ALAYOUT.railRight,
           background: A.navy,
           border: `1px solid ${A.fioSobreNavy}`,
-          borderRadius: AR.none,
+          borderRadius: '12px',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
@@ -99,10 +111,6 @@ export function RailRight({ slots = {} }: { slots?: RailRightSlots }) {
           transition: `transform ${AE.hover} ${AE.easing}`,
         }}
       >
-        {/* Espaço reservado para o botão, que flutua por cima e não faz
-            parte deste fluxo. Sem isso a primeira seção nasce atrás dele. */}
-        <div aria-hidden="true" style={{ height: 60, flex: 'none' }} />
-
         {SECOES.map((secao, i) => (
           <section
             key={secao.chave}
@@ -121,8 +129,11 @@ export function RailRight({ slots = {} }: { slots?: RailRightSlots }) {
       </div>
 
       {/* Botão — bússola flutuante, sempre no mesmo lugar da linha,
-          acima do painel. É o único controle: abre e fecha com o
-          mesmo clique. */}
+          ACIMA do painel — não por cima dele. Botão de 40px em top:16
+          termina em y=56; o painel começa em top:64. 8px de fio de
+          vazio entre os dois, de propósito: era exatamente essa
+          sobreposição meio-dentro-meio-fora que lia como "jogado ali"
+          no retorno. Único controle: abre e fecha com o mesmo clique. */}
       <div style={{ position: 'absolute', top: AS.lg, right: AS.lg, zIndex: 10 }}>
         <RailToggle expanded={expandido} onClick={alternar} />
       </div>

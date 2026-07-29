@@ -14,16 +14,30 @@
 //
 // A agulha gira 90° ao abrir — a mesma animação que revela o painel,
 // não uma segunda animação por cima dela.
+//
+// PADDING INTERNO DO PNG, MEDIDO — o arquivo carrega o glifo real
+// ocupando só ~62% do canvas de 1024×1024 (bounding box de alpha > 10
+// varrida pixel a pixel: 636×648 dentro de 1024×1024). Renderizar o
+// `<img>` do tamanho do botão deixa uma coroa de vazio transparente em
+// volta da bússola — era exatamente o "está muito pequeno" do retorno.
+// A correção não é aumentar o botão: é renderizar o `<img>` MAIOR que o
+// próprio botão e cortar o excesso em círculo (`overflow: hidden` +
+// `border-radius: 50%` no container) — o glifo passa a preencher o
+// disco de verdade, e o botão continua pequeno.
 
 import { A, AE } from '@/design/alexandria-tokens';
 
 const ICONE = '/alexandria/icones/icon-compass-simple-on-cream.png';
-const DIAMETRO = 50;
-// 32px é o piso em que a rosa dos ventos ainda lê como bússola — abaixo
-// disso as marcações finas em volta do círculo se perdem no
-// anti-aliasing e sobra só a estrela central, que lê como cruz genérica.
-// Medido no render, não escolhido de olho.
-const ICONE_TAMANHO = 32;
+
+// Pequeno, para não colidir com o painel (ver RailRight.tsx) — o
+// retorno pediu "a bola tem que ficar pequena não overlap".
+const DIAMETRO = 40;
+
+// Maior que DIAMETRO de propósito. 62% de preenchimento no arquivo
+// original significa que, pra o glifo ocupar ~78% do disco de 40px
+// (≈31px visíveis), o <img> precisa renderizar a ~50px e estourar a
+// caixa — o overflow correspondente (10px) é cortado pelo círculo.
+const ICONE_TAMANHO = 50;
 
 export interface RailToggleProps {
   expanded: boolean;
@@ -48,6 +62,9 @@ export function RailToggle({ expanded, onClick }: RailToggleProps) {
         background: A.cremePapel,
         border: `1px solid ${A.fioSobreCreme}`,
         borderRadius: '50%',
+        // Corta o excesso do <img> (que renderiza maior que o botão de
+        // propósito) numa moldura perfeitamente circular.
+        overflow: 'hidden',
         padding: 0,
         cursor: 'pointer',
       }}

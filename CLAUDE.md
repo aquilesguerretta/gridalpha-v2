@@ -2221,3 +2221,74 @@ rail esquerdo, dentro de aula): rail nasce colapsado, expande ao
 clicar, canvas reclama largura real, rodapé só aparece no fim do
 scroll. `prefers-reduced-motion` testado por `emulateMedia` — toggle
 não anima, continua funcional.
+
+## LYCEUM — REVISÃO DIRETA PÓS-WAVE 16 (rail flutuante + rodapé menor)
+
+**Status:** fechada. Não é wave numerada — pedido direto do Aquiles em
+cima do que a Wave 16 tinha acabado de fechar, então registrado aqui em
+vez de inventar um número de wave que nenhum brief emitiu.
+
+**Pedido:** "o rodape tem que ser menor e a sidebar tem que sumir
+completamente nao ficar so um sidebar faz ser um botao, pode ser uma
+bussola, tem um png no files, ao clicar tem uma animacao abrindo a
+sidebar, ela tem que ser flutuante e abre e fecha".
+
+### Sidebar — de faixa fina pra botão puro
+
+A Wave 16 tinha deixado uma faixa colapsada de 64px sempre em fluxo —
+funcionava como retrátil, mas ainda era "um sidebar", só que fino. Saiu
+por completo: `RailRight.tsx` não tem mais nenhum elemento em fluxo.
+Tudo o que resta (botão, backdrop, painel) é `position: absolute`, fora
+do cálculo de flex. O canvas reclama a largura **inteira** sempre —
+1440px em página sem rail esquerdo, medido, não 1376px como na Wave 16.
+
+O botão usa `icon-compass-simple-on-cream.png`, achado em
+`public/alexandria/icones/` — verificado por decodificação de pixel
+antes de usar (1024×1024, RGBA de verdade, canto com alpha 0). Carrega
+o próprio disco creme: a bússola só existe em variante "on-cream", e
+sem disco próprio ficaria ilegível flutuando sobre o navy do painel
+aberto. Tamanho do ícone medido no render: 26px reduzia o desenho a uma
+cruz genérica; 32px é o piso onde ainda lê como bússola.
+
+O painel (300px, cinco seções) agora é genuinamente flutuante — inset
+de 16px nos quatro lados, borda completa, não mais encostado nas bordas
+da tela. A agulha da bússola gira 90° ao abrir — a "animação abrindo a
+sidebar" que o pedido menciona é o próprio slide do painel; a rotação
+do ícone é o mesmo gesto, não uma segunda animação por cima.
+
+**Artefato de ambiente, não bug:** testes com espera curta (400-600ms)
+numa janela de automação ocluída mostravam o `transform` da transição
+travado no valor antigo, apesar do estilo inline já correto — mesma
+classe que a Wave 7 (scroll do CTA) e o ARCHITECT (View Transitions) já
+documentaram. Confirmado como artefato, não bug real: com espera de 3s
+a transição completa na posição certa (1124px); com
+`prefers-reduced-motion` (sem depender de `requestAnimationFrame`), o
+toggle é instantâneo e correto em vários ciclos, nas quatro páginas
+testadas (Biblioteca, Glossário, trilha com rail esquerdo, aula).
+Produção mantida com a transição normal.
+
+### Rodapé — 211px → 164px
+
+Medido em 1440×900, página Biblioteca. Maior alavanca: a navegação virou
+linha única em vez de coluna de 4 links empilhados — a própria Wave 10
+já tinha identificado isso como o maior driver de altura da faixa e
+deixado fora de escopo por decisão do Aquiles na época ("se ela virasse
+linha única o piso cairia para ~97px"). Dentro de escopo agora, no
+pedido explícito de encolher.
+
+Resto do corte: padding do rodapé 26/26 → 16/20px (único consumidor do
+token, seguro mudar na fonte); gravuras de acento reduzidas (astrolábio
+40→26, livros 26→18, sextante 24→18 — mapa ficou em 16, já no piso de
+legibilidade que a Wave 10 mediu); gap de grade 32→24px; régua de fecho
+com margem/padding superiores cortados; wordmark 15→13px.
+
+Não mexido: raio continua zero, fio como único recurso de separação,
+identidade das quatro colunas, contraste de texto nenhum (rótulo de
+seção ficou nos mesmos 8px / 6,8:1 que a Wave 10 já tinha medido).
+
+**Gates:** `tsc -b` — 0 erros em Alexandria. `gridalpha-detect` sobre
+`src/components/alexandria` + `src/design/alexandria-tokens.ts` — "No
+findings. Surface is clean." Testado em quatro páginas: zero `<aside>`
+em fluxo, canvas com largura idêntica colapsado/expandido, painel some
+completamente da tela ao fechar (por clique de novo, ESC, ou clique
+fora), rodapé só aparece ao fim do scroll real.

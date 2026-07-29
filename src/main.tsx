@@ -6,7 +6,7 @@ import './index.css';
 import GlobalShell from './components/GlobalShell';
 import { LandingPage } from './components/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
-import { SignupCredentialsPage } from './pages/auth/SignupCredentialsPage';
+import { SignupGate } from './pages/auth/SignupGate';
 import { SignupProfilePage } from './pages/auth/SignupProfilePage';
 import { SignupDetailsPage } from './pages/auth/SignupDetailsPage';
 import { SignupSuccessPage } from './pages/auth/SignupSuccessPage';
@@ -31,17 +31,22 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<LandingPage />} />
 
-          {/* Fluxo LEGADO do terminal americano — NÃO é conta de
-              plataforma. Auditado na Fase 1 desta wave: nunca chamou API
-              nenhuma. `/login` valida formato e navega para /nest
-              (`// TODO: Replace with Supabase auth`); `/signup/*` grava
-              arquétipo de perfil (trader / analyst / storage / …) em
-              zustand+sessionStorage. Escolhe QUAL TERMINAL você vê, não
-              QUEM você é. Intocado — as rotas de identidade são
-              /entrar, /criar-conta e /conta. */}
+          {/* Fluxo de arquétipo do terminal americano — escolhe QUAL
+              TERMINAL você vê (trader / analyst / storage / …), não QUEM
+              você é. A identidade agora vem antes dele:
+
+              `/signup` deixou de ser formulário e virou SignupGate —
+              sem sessão manda para /criar-conta e volta; com sessão
+              segue para a escolha de arquétipo. As três telas de
+              arquétipo abaixo estão INTOCADAS.
+
+              `/login` continua sendo o legado que valida formato e
+              navega para /nest sem chamar API. Não é mais alcançável
+              pelo header da landing (Sign in aponta para /entrar), mas
+              a rota fica de pé para não quebrar link antigo. */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupCredentialsPage />} />
+            <Route path="/signup" element={<SignupGate />} />
             <Route path="/signup/profile" element={<SignupProfilePage />} />
             <Route path="/signup/details" element={<SignupDetailsPage />} />
             <Route path="/signup/success" element={<SignupSuccessPage />} />

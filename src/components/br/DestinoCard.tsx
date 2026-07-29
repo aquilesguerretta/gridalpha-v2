@@ -1,10 +1,11 @@
 // DestinoCard — ARCHITECT, Portal BR Wave 2 · Jaguar.
 //
 // Cinco cards, mesma moldura e tamanho (spec §3). A hierarquia mora
-// DENTRO do card, nos dois estados confirmados por protótipo:
+// DENTRO do card, nos dois estados:
 //
-//   disponível — prévia real da interface, nas cores reais do sistema
-//                do destino. Conteúdo genuíno, não ilustração.
+//   disponível — gravura própria do destino, sobre o papel real do
+//                sistema dele (decisão direta do Aquiles — ver
+//                PreviaAlexandria abaixo).
 //   em breve   — planta baixa: retângulos vazios em traço fino ocre,
 //                sem preenchimento, desenhando via stroke-dashoffset.
 //                Sugere o layout do que existirá, sem fingir conteúdo.
@@ -17,15 +18,13 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { Link, useNavigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 
-import { J, JF, JT } from '../../design/jaguar-tokens';
+import { J, JT } from '../../design/jaguar-tokens';
 import type { DestinoBR } from '../../lib/data/br-destinos';
 
-// Cores REAIS do sistema Alexandria, literais da spec §3 ("papel
-// #F2E9D6, tinta navy #0D2340"). Hardcoded de propósito: importar de
-// alexandria-tokens.ts é proibido — a prévia cita o destino, não
-// acopla os dois sistemas.
+// Cor REAL de papel do sistema Alexandria, literal da spec §3 ("papel
+// #F2E9D6"). Hardcoded de propósito: importar de alexandria-tokens.ts
+// é proibido — a prévia cita o destino, não acopla os dois sistemas.
 const ALEXANDRIA_PAPEL = '#F2E9D6';
-const ALEXANDRIA_TINTA = '#0D2340';
 
 /** startViewTransition com checagem de suporte — mesma técnica do
  *  PortalBR; duplicado aqui de propósito (componente não importa de
@@ -347,62 +346,36 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   );
 }
 
-/** Prévia real da Alexandria — cores do sistema dela (literais da spec
- *  §3) e conteúdo genuíno do hub vivo: os itens de nav do shell, o
- *  rótulo e o título da home, e a linha de acervo. Nada ilustrativo. */
+// Gravura própria do card, salva em disco pelo Aquiles e comprimida
+// aqui do mesmo jeito que a LYCEUM trata o acervo da Alexandria
+// (pngquant --quality=65-90, isolado no scratchpad): 3,4MB → 655KB,
+// 1536×1024 preservado. Paleta indexada com tRNS — cantos
+// transparentes, mesma assinatura dos outros PNGs do acervo.
+const ALEXANDRIA_GRAVURA_SRC = '/alexandria/gravuras/alexandria-gravura.png';
+
+/** Prévia da Alexandria — decisão direta do Aquiles substituindo o
+ *  mockup de interface fake que a spec §3 original pedia ("prévia real
+ *  da interface, conteúdo genuíno, nada ilustrativo"). Aqui é o oposto
+ *  de propósito: a gravura, não a UI. object-fit: contain sobre o
+ *  papel Alexandria — mesma técnica que o Prancha da LYCEUM usa no
+ *  viewer (Wave 5): imagem nunca esticada, cantos transparentes
+ *  revelam o papel por baixo. */
 function PreviaAlexandria(): ReactNode {
-  const mono9: CSSProperties = {
-    fontFamily: JF.mono,
-    fontSize: '8px',
-    letterSpacing: '0.20em',
-    textTransform: 'uppercase',
-  };
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div
-        style={{
-          background: ALEXANDRIA_TINTA,
-          padding: '7px 14px',
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          gap: '10px',
-        }}
-      >
-        <span style={{ ...mono9, fontSize: '9px', color: ALEXANDRIA_PAPEL }}>Alexandria</span>
-        <span
-          style={{
-            ...mono9,
-            color: ALEXANDRIA_PAPEL,
-            opacity: 0.72,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            minWidth: 0,
-          }}
-        >
-          Biblioteca · Trilhas · Atlas · Glossário
-        </span>
-      </div>
-      <div
-        style={{
-          flex: 1,
-          padding: '12px 14px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          gap: '5px',
-        }}
-      >
-        {/* "Currículo" é o rótulo do hub VIVO (LYCEUM Wave 4) — a
-            prévia cita conteúdo real, e o real mudou. */}
-        <span style={{ ...mono9, color: ALEXANDRIA_TINTA, opacity: 0.6 }}>Currículo</span>
-        <span style={{ fontSize: '15px', lineHeight: 1.25, color: ALEXANDRIA_TINTA }}>
-          Atlas vivo da energia do Brasil
-        </span>
-        <span style={{ ...mono9, letterSpacing: '0.12em', color: ALEXANDRIA_TINTA, opacity: 0.55 }}>
-          17 blocos · 3 trilhas · 106 gravuras
-        </span>
-      </div>
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '8px',
+      }}
+    >
+      <img
+        src={ALEXANDRIA_GRAVURA_SRC}
+        alt="Bússola, mapa do Brasil e torre de transmissão — gravura da Alexandria"
+        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+      />
     </div>
   );
 }

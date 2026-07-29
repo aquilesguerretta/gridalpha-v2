@@ -14,6 +14,8 @@ import { AuthLayout } from './components/editorial/AuthLayout';
 import { AlexandriaHome } from './pages/alexandria/AlexandriaHome';
 import { PortalBR } from './pages/br/PortalBR';
 import { AuthProvider } from './lib/auth/AuthContext';
+import { EntrarView } from './pages/conta/EntrarView';
+import { CriarContaView } from './pages/conta/CriarContaView';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -43,6 +45,13 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/signup/details" element={<SignupDetailsPage />} />
             <Route path="/signup/success" element={<SignupSuccessPage />} />
           </Route>
+
+          {/* Identidade de plataforma (Endpoints 16-21 do backend).
+              Nomes em português: são superfícies da plataforma, cuja
+              face pública hoje é brasileira. Sem colisão com o fluxo
+              legado acima — auditado na Fase 1. */}
+          <Route path="/entrar" element={<EntrarView />} />
+          <Route path="/criar-conta" element={<CriarContaView />} />
 
           <Route path="/nest" element={<GlobalShell initialView="nest" />} />
           <Route path="/atlas" element={<GlobalShell initialView="atlas" />} />

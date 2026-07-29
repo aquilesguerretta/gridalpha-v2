@@ -2,9 +2,14 @@
 //
 //   header navy full-bleed
 //   ├─ [rail esquerdo creme, opcional, 232px]
-//   ├─ canvas creme (textura de fibra a 4%)
-//   └─ rail direito navy, 300px
-//   rodapé navy com faixa de blueprint
+//   ├─ canvas creme (textura de fibra a 4%) → conteúdo → rodapé, em fluxo
+//   └─ rail direito navy, retrátil — colapsado (64px) por padrão,
+//      painel de 300px como overlay ao expandir (Wave 16)
+//
+// O rodapé (Wave 16) não é mais faixa permanente: mora dentro do <main>,
+// última posição, e só aparece quando o usuário rola até o fim de cada
+// página. Antes disso ele era irmão desta linha inteira, sempre visível,
+// tirando altura de canvas em toda tela do produto o tempo inteiro.
 //
 // Raio zero em tudo. Sem box-shadow — profundidade vem de fio de 1px.
 // Sem Tailwind em superfície nenhuma da Alexandria.
@@ -121,12 +126,33 @@ export function AlexandriaShell({
           >
             {children}
           </div>
+
+          {/* Rodapé em FLUXO (Wave 16) — dentro do <main>, última posição,
+              depois de todo conteúdo de página. Antes ele era faixa
+              permanente fora do scroll, irmã desta linha inteira; agora só
+              aparece quando o usuário rola até o fim de verdade.
+
+              Fica FORA do wrapper de 1120px de propósito, não dentro: o
+              rodapé nasceu como banda navy full-bleed (largura da shell
+              inteira), e o wrapper de 1120px é medida de PRANCHA de
+              leitura, não do produto inteiro. Confinar o rodapé a 1120px
+              trocaria "banda full-bleed" por "rodapé de artigo", que não é
+              a identidade que a Wave 10 desenhou. Aqui ele ainda é
+              full-bleed — só que da largura do CANVAS (a coluna entre os
+              rails), não mais da shell inteira, porque agora mora dentro
+              de <main>.
+
+              `AlexandriaFooter` segue com `flex: 'none'` no próprio
+              arquivo (fora da posse desta wave — "você só move onde ele
+              mora no DOM"). Isso é inofensivo aqui: `flex` só tem efeito
+              como filho direto de um container `display: flex`, e `<main>`
+              é bloco comum. Verificado: nenhuma diferença visual entre
+              essa regra presente ou ausente nesta posição. */}
+          <AlexandriaFooter />
         </main>
 
         <RailRight slots={rightRailSlots} />
       </div>
-
-      <AlexandriaFooter />
 
       {/* prefers-reduced-motion cai para o ESTADO FINAL, nunca para
           vazio: dashoffset 0 = traço inteiro desenhado. Um leitor que

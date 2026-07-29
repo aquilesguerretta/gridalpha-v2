@@ -35,6 +35,7 @@ import { DestinoCard, PlantaBaixa } from '../../components/br/DestinoCard';
 import { FaixaIndependencia } from '../../components/br/FaixaIndependencia';
 import { PortalHero } from '../../components/br/PortalHero';
 import { SeletorMercado } from '../../components/br/SeletorMercado';
+import { AcessoConta } from '../../components/br/AcessoConta';
 
 // Medida máxima de prancha — decisão da Wave 1, mantida: 1200px.
 const MEDIDA = '1200px';
@@ -250,9 +251,17 @@ export function PortalBR() {
           <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Brasil</span>
         </div>
 
-        {/* Itens exatos de nav seguem não especificados (spec §4) —
-            só o seletor confirmado. */}
-        <SeletorMercado ativo="br" />
+        {/* Itens exatos de nav seguem não especificados (spec §4) — só
+            o seletor confirmado, mais a porta de entrada da conta, que
+            a Wave 1 de identidade construiu sem linkar de lugar nenhum. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>
+          <SeletorMercado ativo="br" />
+          <span
+            aria-hidden="true"
+            style={{ width: '1px', height: '12px', background: J.bordaDefault }}
+          />
+          <AcessoConta />
+        </div>
       </header>
 
       {/* tabIndex={0}: o documento está travado em overflow hidden e

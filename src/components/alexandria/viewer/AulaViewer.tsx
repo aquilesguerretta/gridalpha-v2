@@ -10,10 +10,7 @@
 
 import { useState } from 'react';
 import type { CurriculumAula } from '@/lib/types/alexandria';
-import {
-  MODULO_01_CORPO,
-  MODULO_01_LEAD,
-} from '@/lib/data/alexandria-modulo-01-content';
+import { getCorpoAula, getLeadAula } from '@/lib/data/alexandria-curriculo';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import { VideoArea } from './VideoArea';
 import { ApostilaPanel } from './ApostilaPanel';
@@ -33,8 +30,10 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
   // Apostila é a única com conteúdo real hoje, então é a aba inicial.
   const [aba, setAba] = useState<Aba>('apostila');
 
-  const blocos = MODULO_01_CORPO[aula.id] ?? [];
-  const lead = MODULO_01_LEAD[aula.id];
+  // Resolvido pelo id da aula, não por módulo fixo — ver
+  // `alexandria-curriculo.ts`.
+  const blocos = getCorpoAula(aula.id);
+  const lead = getLeadAula(aula.id);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xxl }}>
@@ -84,7 +83,7 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
           {aba === 'referencia' && (
             <AbaVazia
               titulo="Sem referência nesta aula"
-              corpo="O Módulo 01 reúne as fontes numa seção própria de fim de módulo (§ Ref — 'A linguagem defensável'), não por aula. Quando a extração alcançar o aparato, elas aparecem aqui."
+              corpo="Os módulos extraídos reúnem as fontes numa seção própria de fim de módulo (§ Ref), não por aula — por isso `references` está vazio em todas elas. Quando a extração alcançar o aparato, elas aparecem aqui."
             />
           )}
 
@@ -98,7 +97,7 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
           {aba === 'transcricao' && (
             <AbaVazia
               titulo="Sem transcrição"
-              corpo="Transcrição é derivada de vídeo, e nenhuma das nove aulas do Módulo 01 tem gravação. O texto da aula está na Apostila — e é a aula inteira, não um resumo."
+              corpo="Transcrição é derivada de vídeo, e nenhuma aula extraída tem gravação — os HTML de origem não trazem vídeo nenhum. O texto da aula está na Apostila, e é a aula inteira, não um resumo."
             />
           )}
         </div>

@@ -1,7 +1,8 @@
 // VideoArea — o topo do viewer.
 //
-// Nenhuma das nove aulas do Módulo 01 tem vídeo: o HTML de origem não traz
-// vídeo nenhum, e `video` é null nas nove. Isso é ESTADO REAL, não lacuna a
+// Nenhuma aula extraída tem vídeo: os HTML de origem não trazem vídeo
+// nenhum, e `video` é null em todas — verificado por medição no Módulo 01
+// (Wave 4) e no Módulo 02 (Wave 18). Isso é ESTADO REAL, não lacuna a
 // preencher. Então aqui não tem player quebrado nem retângulo vazio sem
 // explicação — tem o mesmo idioma que módulo sem aula já usa: contorno
 // tracejado em terracota, dizendo o que é e por quê.
@@ -59,7 +60,7 @@ export function VideoArea({ video }: { video: LessonVideo | null }) {
         não é resumo nem transcrição de um vídeo que existe em outro lugar.
       </span>
       <span style={{ ...AT.dado, fontSize: '11px', fontStyle: 'italic', color: A2.tintaMetadado }}>
-        Nenhuma das nove aulas do Módulo 01 tem vídeo hoje.
+        Nenhuma aula do currículo tem vídeo hoje.
       </span>
     </div>
   );

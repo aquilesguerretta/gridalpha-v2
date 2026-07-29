@@ -13,7 +13,10 @@
 
 import { useMemo, useState } from 'react';
 import type { Instrument, InstrumentField } from '@/lib/types/alexandria';
-import { INSTRUMENT_CALCULATORS } from '@/lib/data/alexandria-instrument-calculators';
+import {
+  INSTRUMENT_CALCULATORS,
+  type EntradaInstrumento,
+} from '@/lib/data/alexandria-instrument-calculators';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 
 /** O LAB 01 é comparador de dois lados. A coluna vem prefixada no rótulo
@@ -28,15 +31,24 @@ const fmt = (v: number, casas = 2) =>
   v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
 
 export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
+  // Semeia TODO campo que declara default, número ou string.
+  //
+  // Até a Wave 18 esta linha era `if (typeof f.defaultValue === 'number')`,
+  // e todo `kind:'select'` ficava de fora — porque select entrega string
+  // ('500' kV, 'ger'). O Módulo 01 não tem select nenhum, então o buraco
+  // nunca apareceu; no Módulo 02, que tem seis, o instrumento nascia com
+  // `∞` e `NaN` nas saídas e só passava a calcular depois que o aluno
+  // mexia no controle. Campo com `defaultValue: ''` (a Lei de Ohm, que
+  // começa vazia de propósito) continua fora — string vazia não é valor.
   const inicial = useMemo(() => {
-    const o: Record<string, number> = {};
+    const o: Record<string, EntradaInstrumento> = {};
     for (const f of instrumento.fields) {
-      if (typeof f.defaultValue === 'number') o[f.id] = f.defaultValue;
+      if (f.defaultValue !== '' && f.defaultValue !== undefined) o[f.id] = f.defaultValue;
     }
     return o;
   }, [instrumento]);
 
-  const [valores, setValores] = useState<Record<string, number>>(inicial);
+  const [valores, setValores] = useState<Record<string, EntradaInstrumento>>(inicial);
 
   const calc = INSTRUMENT_CALCULATORS[instrumento.id];
   const resultado = useMemo(
@@ -44,11 +56,21 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
     [calc, valores],
   );
 
+  // Guarda número quando o valor É numérico, e a string crua quando não é.
+  //
+  // `Number(bruto)` cego quebraria os selects CATEGÓRICOS do Módulo 02 — o
+  // Explorador de camadas ('ger'/'tra'/'dis'/'con') e a Cadeia por perfil
+  // ('a2'/'a4'/'bt') viravam NaN ao primeiro clique. Os selects numéricos
+  // ('500' kV, '2' circuitos) seguem chegando como número, que é o que as
+  // calculadoras esperam.
   const setCampo = (id: string, bruto: string) => {
     setValores((v) => {
       const proximo = { ...v };
       if (bruto === '') delete proximo[id];
-      else proximo[id] = Number(bruto);
+      else {
+        const comoNumero = Number(bruto);
+        proximo[id] = Number.isFinite(comoNumero) ? comoNumero : bruto;
+      }
       return proximo;
     });
   };

@@ -26,7 +26,11 @@ import { AtlasStub } from './AtlasStub';
 import { GlossarioStub } from './GlossarioStub';
 import { BibliotecaView } from './BibliotecaView';
 import { AulaViewer } from '@/components/alexandria/viewer/AulaViewer';
-import { getAulaModulo01 } from '@/lib/data/alexandria-modulo-01-content';
+import {
+  getAulaDoModulo,
+  MODULOS_COM_CONTEUDO,
+  TOTAL_AULAS_EXTRAIDAS,
+} from '@/lib/data/alexandria-curriculo';
 import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
 import type {
   CurriculumLevel,
@@ -269,9 +273,10 @@ function AulaRoute() {
     return <NaoEncontrado titulo="Aula não encontrada" />;
   }
 
-  // Conteúdo real existe só para as nove aulas do Módulo 01, extraídas na
-  // Wave 4. As demais caem no estado "ainda não extraída".
-  const aulaReal = getAulaModulo01(`${modulo.id.replace('modulo', 'aula')}-${String(numero).padStart(2, '0')}`);
+  // O catálogo é resolvido pelo módulo da aula — nada de módulo fixo aqui.
+  // Módulo 01 (Wave 4) e Módulo 02 (Wave 18) têm conteúdo; os demais caem
+  // no estado "ainda não extraída", que continua sendo a verdade deles.
+  const aulaReal = getAulaDoModulo(modulo.id, numero);
   const itens = estadosDaTrilha(getModulesByTrilha(trilha.id));
 
   return (
@@ -306,7 +311,7 @@ function AulaRoute() {
         </div>
 
         {aulaReal ? (
-          // Conteúdo real — só as nove aulas do Módulo 01 extraídas na Wave 4.
+          // Conteúdo real — Módulo 01 (Wave 4) e Módulo 02 (Wave 18).
           <AulaViewer aula={aulaReal} />
         ) : (
           <div
@@ -323,7 +328,8 @@ function AulaRoute() {
             </span>
             <span style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave, maxWidth: '58ch' }}>
               A numeração é real, mas o conteúdo desta aula ainda não foi
-              extraído da fonte. Hoje só as nove aulas do Módulo 01 têm texto,
+              extraído da fonte. Hoje {TOTAL_AULAS_EXTRAIDAS} aulas, em{' '}
+              {MODULOS_COM_CONTEUDO.length} dos dezessete módulos, têm texto,
               instrumento e exercício.
             </span>
           </div>

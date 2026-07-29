@@ -1,0 +1,81 @@
+// alexandria-curriculo.ts
+// Resolvedor único de conteúdo de aula — o índice que a interface consulta.
+//
+// POR QUE ESTE ARQUIVO EXISTE
+//
+// Antes dele, três consumidores fixavam o Módulo 01 na mão:
+//   · `AlexandriaRouter.tsx`  → `getAulaModulo01(...)`
+//   · `AulaViewer.tsx`        → `MODULO_01_CORPO` / `MODULO_01_LEAD`
+//   · `ModuloAulaList.tsx`    → nem consultava; imprimia "Aula N de T"
+//
+// O resultado era que o Módulo 02, extraído e testado na Wave 18, existia
+// no disco e não chegava na tela: a aula caía no estado "ainda não
+// extraída" e a lista mostrava título genérico.
+//
+// Com o índice centralizado aqui, acrescentar o Módulo 03 é editar as
+// três linhas de `import` e as três de agregação ABAIXO — nenhum
+// componente muda. Era esse o acoplamento que precisava sumir.
+
+import type { CurriculumAula } from '@/lib/types/alexandria';
+import {
+  MODULO_01_AULAS,
+  MODULO_01_CORPO,
+  MODULO_01_LEAD,
+  type AulaBloco,
+} from './alexandria-modulo-01-content';
+import {
+  MODULO_02_AULAS,
+  MODULO_02_CORPO,
+  MODULO_02_LEAD,
+} from './alexandria-modulo-02-content';
+
+// ── Agregação. Acrescentar módulo novo é acrescentar aqui. ─────────
+const AULAS: CurriculumAula[] = [...MODULO_01_AULAS, ...MODULO_02_AULAS];
+const CORPO: Record<string, AulaBloco[]> = { ...MODULO_01_CORPO, ...MODULO_02_CORPO };
+const LEAD: Record<string, string> = { ...MODULO_01_LEAD, ...MODULO_02_LEAD };
+
+// Os ids são únicos por construção (`aula-01-NN` × `aula-02-NN`), mas o
+// spread acima é silencioso em caso de colisão — um módulo novo com id
+// repetido apagaria o corpo do anterior sem aviso. A trava avisa em DEV.
+if (import.meta.env.DEV) {
+  const vistos = new Set<string>();
+  const duplicados = AULAS.map((a) => a.id).filter((id) => {
+    if (vistos.has(id)) return true;
+    vistos.add(id);
+    return false;
+  });
+  if (duplicados.length > 0) {
+    console.warn(
+      `[alexandria] ids de aula duplicados no catálogo: ${duplicados.join(', ')}. ` +
+        'O último módulo agregado sobrescreveu o corpo do anterior.',
+    );
+  }
+}
+
+/** `('modulo-02', 3)` → `'aula-02-03'`. A convenção de id é da fonte:
+ *  o número do módulo vive no próprio id da aula. */
+export const idDaAula = (moduloId: string, numero: number): string =>
+  `${moduloId.replace('modulo', 'aula')}-${String(numero).padStart(2, '0')}`;
+
+/** A aula extraída, ou null quando o módulo ainda não tem conteúdo. */
+export const getAula = (aulaId: string): CurriculumAula | null =>
+  AULAS.find((a) => a.id === aulaId) ?? null;
+
+/** Atalho para quem tem módulo + número em mãos (router e lista). */
+export const getAulaDoModulo = (moduloId: string, numero: number): CurriculumAula | null =>
+  getAula(idDaAula(moduloId, numero));
+
+/** Blocos de apostila. Vazio — nunca undefined — quando não há corpo. */
+export const getCorpoAula = (aulaId: string): AulaBloco[] => CORPO[aulaId] ?? [];
+
+/** Lead da aula, ou undefined quando a fonte não traz. */
+export const getLeadAula = (aulaId: string): string | undefined => LEAD[aulaId];
+
+/** Módulos com conteúdo extraído hoje — derivado, nunca digitado.
+ *  Alimenta as cópias de estado vazio, para não citarem "Módulo 01" fixo. */
+export const MODULOS_COM_CONTEUDO: string[] = [
+  ...new Set(AULAS.map((a) => a.moduleId)),
+];
+
+/** Total de aulas com corpo real, somando todos os módulos extraídos. */
+export const TOTAL_AULAS_EXTRAIDAS = AULAS.length;

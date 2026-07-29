@@ -23,9 +23,34 @@ export type ResultadoInstrumento = {
   veredito?: string;
 };
 
-export type CalculateFn = (inputs: Record<string, number>) => ResultadoInstrumento;
+/** Uma entrada de campo. String é legítima: `InstrumentField.defaultValue`
+ *  é `number | string` no contrato da FOUNDRY, e todo campo `kind:'select'`
+ *  entrega string — tanto numérica ('500' kV) quanto categórica ('ger').
+ *
+ *  Era `number` puro até a Wave 18. O Módulo 01 não tem nenhum select, por
+ *  isso o buraco nunca apareceu; o Módulo 02 tem seis, e com eles o painel
+ *  entregava `undefined` e as saídas nasciam `NaN`/`∞` até o aluno mexer
+ *  no controle. */
+export type EntradaInstrumento = number | string;
 
-const n = (v: number | undefined) => (Number.isFinite(v) ? (v as number) : 0);
+export type CalculateFn = (
+  inputs: Record<string, EntradaInstrumento>,
+) => ResultadoInstrumento;
+
+/** Coerção numérica. Campo ausente, vazio ou não-numérico vira 0 — o
+ *  mesmo que `parseFloat(x) || 0` fazia nos originais. */
+const n = (v: EntradaInstrumento | undefined): number => {
+  const x = typeof v === 'string' ? Number(v) : v;
+  return Number.isFinite(x) ? (x as number) : 0;
+};
+
+/** Reproduz o `parseFloat(x) || <fallback>` dos originais, onde ZERO
+ *  também cai no fallback. Preservado por fidelidade, não por acordo:
+ *  é o que faz campo vazio virar 1 em vez de estado de espera. */
+const nOu = (v: EntradaInstrumento | undefined, fallback: number): number => {
+  const x = typeof v === 'string' ? Number(v) : v;
+  return Number.isFinite(x) && x !== 0 ? (x as number) : fallback;
+};
 
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
@@ -47,12 +72,12 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // limpar campo alheio não foi portado. Decisão de conteúdo se deve
   // voltar.
   'inst-02': (i): ResultadoInstrumento => {
-    const V = i['i02-v'];
-    const I = i['i02-i'];
-    const R = i['i02-r'];
-    const temV = Number.isFinite(V) && V > 0;
-    const temI = Number.isFinite(I) && I > 0;
-    const temR = Number.isFinite(R) && R > 0;
+    const V = n(i['i02-v']);
+    const I = n(i['i02-i']);
+    const R = n(i['i02-r']);
+    const temV = V > 0;
+    const temI = I > 0;
+    const temR = R > 0;
     const preenchidos = [temV, temI, temR].filter(Boolean).length;
 
     if (preenchidos < 2) return { valores: {}, veredito: 'Aguardando 2 valores...' };
@@ -92,8 +117,8 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // espera. Comportamento preservado por fidelidade.
   'inst-04': (i) => {
     const E = n(i['i04-kwh']);
-    const T = i['i04-h'] || 1;
-    const Pmax = i['i04-pmax'] || 1;
+    const T = nOu(i['i04-h'], 1);
+    const Pmax = nOu(i['i04-pmax'], 1);
     const Pmed = E / T;
     const FC = Pmax > 0 ? Pmed / Pmax : 0;
 
@@ -142,7 +167,7 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   'inst-06': (i) => {
     const C = n(i['i06-cap']);
     const G = n(i['i06-gen']);
-    const T = i['i06-h'] || 1;
+    const T = nOu(i['i06-h'], 1);
     const max = C * T;
     const FC = max > 0 ? G / max : 0;
 
@@ -186,7 +211,7 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
     const lado = (p: 'a' | 'b') => {
       const D = n(i[`lab-${p}-dem`]);
-      const FP = i[`lab-${p}-fp`] || 1;
+      const FP = nOu(i[`lab-${p}-fp`], 1);
       const PCT = n(i[`lab-${p}-ponta`]) / 100;
 
       const energia = (kwh / 1000) * tarifa;
@@ -309,7 +334,7 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
       0.72, 0.7, 0.68, 0.67, 0.67, 0.68, 0.72, 0.78, 0.84, 0.88, 0.9, 0.91, 0.9,
       0.89, 0.88, 0.88, 0.9, 0.95, 1.0, 0.99, 0.95, 0.9, 0.83, 0.77, 0.72,
     ];
-    const pico = i['i08-pico'] || 95;
+    const pico = nOu(i['i08-pico'], 95);
     const S = n(i['i08-solar']);
     const cond = n(i['i08-ceu']);
     const net: number[] = [];
@@ -442,7 +467,7 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // SINALIZADO, não corrigido: o mesmo `|| 1` dos INST 04 e 06 do Módulo
   // 01 — potência vazia vira 1 MW em vez de estado de espera.
   'm02-inst-06': (i) => {
-    const P = i['i09-mw'] || 1;
+    const P = nOu(i['i09-mw'], 1);
     const E = n(i['i09-mwh']);
     const h = E / P;
     const voc =
@@ -474,7 +499,7 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // concatenado no veredito, com o rótulo curto na frente.
   'm02-inst-07': (i) => {
     const DP = n(i['i05-dp']);
-    const P = i['i05-carga'] || 1;
+    const P = nOu(i['i05-carga'], 1);
     const H = n(i['i05-h']);
     const rocof = ((DP / P) * 60) / (2 * H);
     const nadir = 60 - ((DP / P) * 60 * 1.8) / (2 * H);

@@ -4,13 +4,18 @@
 // extraído do HTML do módulo pela FOUNDRY Wave 2 com três sinais
 // independentes concordando. "Aula 3 de 9" é verdade.
 //
-// Título de aula é mock e está rotulado como tal — `CurriculumAula` não
-// tem dado real ainda. O que NÃO se faz aqui é inventar lista onde
-// `totalAulas` é null: módulo em produção mostra estado de produção, sem
-// lista fake de tamanho arbitrário.
+// Título de aula é REAL onde a extração alcançou (Módulo 01 na Wave 4,
+// Módulo 02 na Wave 18) — vem de `alexandria-curriculo.ts`, resolvido pelo
+// módulo. Onde o conteúdo ainda não existe, a linha cai para "Aula N de T",
+// que continua sendo verdade: a numeração é real mesmo sem o título.
+//
+// O que NÃO se faz aqui é inventar lista onde `totalAulas` é null: módulo
+// em produção mostra estado de produção, sem lista fake de tamanho
+// arbitrário.
 
 import { useNavigate } from 'react-router-dom';
 import type { CurriculumTrilha } from '@/lib/types/alexandria';
+import { getAulaDoModulo } from '@/lib/data/alexandria-curriculo';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import type { ModuloComEstado } from '@/pages/alexandria/AlexandriaRouter';
 
@@ -58,6 +63,7 @@ export function ModuloAulaList({ item, trilha, onAbrirAula }: ModuloAulaListProp
         <EmProducao />
       ) : (
         <ListaReal
+          moduloId={modulo.id}
           total={modulo.totalAulas}
           feitas={aulasFeitas ?? 0}
           bloqueado={estado === 'bloqueado'}
@@ -95,18 +101,26 @@ function EmProducao() {
   );
 }
 
-/** Numeração e contagem reais. Título é mock, e o rodapé diz isso. */
+/** Numeração e contagem reais; título real onde a extração alcançou. */
 function ListaReal({
+  moduloId,
   total,
   feitas,
   bloqueado,
   onAbrirAula,
 }: {
+  moduloId: string;
   total: number;
   feitas: number;
   bloqueado: boolean;
   onAbrirAula: (numero: number) => void;
 }) {
+  // Quantas linhas têm título real — decide o texto do rodapé, em vez de
+  // afirmar "os títulos chegam com o viewer" numa lista que já os tem.
+  const comTitulo = Array.from({ length: total }, (_, i) =>
+    getAulaDoModulo(moduloId, i + 1),
+  ).filter(Boolean).length;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: AS.lg }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: AS.md, flexWrap: 'wrap' }}>
@@ -122,6 +136,7 @@ function ListaReal({
           const concluida = numero <= feitas;
           const atual = numero === feitas + 1 && !bloqueado;
           const disponivel = !bloqueado && numero <= feitas + 1;
+          const aula = getAulaDoModulo(moduloId, numero);
 
           return (
             <button
@@ -160,15 +175,34 @@ function ListaReal({
 
               <span
                 style={{
-                  ...AT.corpo,
-                  fontSize: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
                   flex: 1,
                   minWidth: 0,
-                  maxWidth: 'none',
-                  color: disponivel ? A.tintaSobreCreme : A2.tintaMetadado,
                 }}
               >
-                Aula {numero} de {total}
+                <span
+                  style={{
+                    ...AT.corpo,
+                    fontSize: '14px',
+                    maxWidth: 'none',
+                    color: disponivel ? A.tintaSobreCreme : A2.tintaMetadado,
+                  }}
+                >
+                  {aula ? aula.title : `Aula ${numero} de ${total}`}
+                </span>
+                {aula?.subtitle && (
+                  <span
+                    style={{
+                      ...AT.dado,
+                      fontSize: '11px',
+                      color: A2.tintaMetadado,
+                    }}
+                  >
+                    {aula.subtitle}
+                  </span>
+                )}
               </span>
 
               <span
@@ -196,8 +230,11 @@ function ListaReal({
           paddingTop: AS.md,
         }}
       >
-        Numeração e contagem são reais, extraídas do HTML do módulo. Os títulos
-        de aula chegam com o viewer.
+        {comTitulo === total
+          ? 'Numeração, contagem e títulos são reais, extraídos do HTML do módulo.'
+          : comTitulo > 0
+            ? `Numeração e contagem são reais. ${comTitulo} de ${total} aulas já têm título extraído.`
+            : 'Numeração e contagem são reais, extraídas do HTML do módulo. Os títulos de aula chegam com a extração.'}
       </span>
     </div>
   );

@@ -16,6 +16,7 @@ import { PortalBR } from './pages/br/PortalBR';
 import { AuthProvider } from './lib/auth/AuthContext';
 import { EntrarView } from './pages/conta/EntrarView';
 import { CriarContaView } from './pages/conta/CriarContaView';
+import { PerfilPlataforma } from './pages/conta/PerfilPlataforma';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -52,6 +53,9 @@ createRoot(document.getElementById('root')!).render(
               legado acima — auditado na Fase 1. */}
           <Route path="/entrar" element={<EntrarView />} />
           <Route path="/criar-conta" element={<CriarContaView />} />
+          {/* Protegida — o próprio componente redireciona para /entrar
+              quando não há sessão, depois de `loading` resolver. */}
+          <Route path="/conta" element={<PerfilPlataforma />} />
 
           <Route path="/nest" element={<GlobalShell initialView="nest" />} />
           <Route path="/atlas" element={<GlobalShell initialView="atlas" />} />

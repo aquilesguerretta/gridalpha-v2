@@ -19,13 +19,21 @@ import { getBlocksByLevel } from './alexandria-blocks';
  *  | 01     | 19            | 9         | 10          | "Nove aulas"|
  *  | 02     | 20            | 10        | 10          | "Dez aulas" |
  *  | 03     | 20            | 10        | 10          | "Dez aulas" |
+ *  | 04     | —             | 7         | 10          | "Sete aulas"|
  *
- *  Blocos 04-17 ficam fora deste mapa de propósito — não têm HTML, e
- *  estimar seria inventar. */
+ *  O Módulo 04 não entra na coluna de `.aula` bruto porque não usa essa
+ *  marcação: a fonte dele tem vocabulário próprio (`sec-id` delimita
+ *  seção, e `class="aula"` ocorre ZERO vez). A contagem vem das 17
+ *  divisões `sec-id`, das quais 7 casam `Aula NN` e 10 são aparato —
+ *  e o § MAP anuncia "Sete aulas", concordando.
+ *
+ *  Blocos 05-17 ficam fora deste mapa de propósito — não têm HTML no
+ *  repositório, e estimar seria inventar. */
 const AULAS_POR_BLOCO: Record<string, number> = {
   'bloco-01': 9,   // Física de Energia e Eletricidade
   'bloco-02': 10,  // Como Funciona uma Rede Elétrica
   'bloco-03': 10,  // Tecnologias de Geração
+  'bloco-04': 7,   // Economia de Mercados de Energia
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

@@ -12,14 +12,16 @@
 // arquivo (medido, não presumido). As 3 sem id são Kosovo, Chipre do
 // Norte e Somalilândia — entidades sem código ISO próprio.
 //
-// ── A TABELA NUMÉRICO → ALPHA-3 ──────────────────────────────────────
-// O backend fala alpha-3; o TopoJSON fala numérico. As 174 entradas
-// abaixo foram DERIVADAS das propriedades do GeoJSON Natural Earth
-// 110m (ISO_N3 → ISO_A3, com ADM0_A3 quando ISO_A3 = -99, o defeito
-// conhecido da NE que atinge França e Noruega), não digitadas de
-// memória. Uma única correção manual: '578': 'NOR' — a NE marca o
-// ISO_N3 da Noruega como -99, mas o world-atlas carrega o id 578, e
-// 578 → NOR é a atribuição ISO 3166-1 padrão.
+// ── A TABELA NUMÉRICO → [ALPHA-3, ALPHA-2] ───────────────────────────
+// O backend fala alpha-3; o TopoJSON fala numérico; o Intl.DisplayNames
+// do browser (nome do país em pt-BR) SÓ resolve alpha-2 — medido no
+// Chrome: .of('076') devolve '076', .of('BR') devolve 'Brasil'. As 174
+// entradas abaixo foram DERIVADAS das propriedades do GeoJSON Natural
+// Earth 110m (ISO_N3 → ISO_A3/ISO_A2, com ADM0_A3 quando ISO_A3 = -99,
+// o defeito conhecido da NE), não digitadas de memória. Duas correções
+// manuais, ambas atribuições ISO 3166-1 padrão: '250': FRA/FR (a NE
+// marca o ISO_A2 da França como -99) e '578': NOR/NO (a NE marca até o
+// ISO_N3 da Noruega como -99, mas o world-atlas carrega o id 578).
 //
 // ── DIVERGÊNCIA TOPOJSON × BACKEND, MEDIDA ───────────────────────────
 // 8 polígonos com ISO sem dado no backend (TWN GRL ESH PRI NCL FLK ATF
@@ -91,6 +93,7 @@ interface Envelope<T> {
 export interface PaisFeatureProps {
   name: string;      // nome do TopoJSON (inglês, curto)
   a3: string | null; // alpha-3 via tabela; null = entidade sem ISO
+  a2: string | null; // alpha-2 — é o que o Intl.DisplayNames aceita
   n3: string | null; // id numérico original do TopoJSON
 }
 
@@ -105,39 +108,55 @@ export interface MundoAtlas {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Correspondência ISO numérico → alpha-3 (procedência no cabeçalho).
+// Correspondência ISO numérico → [alpha-3, alpha-2] (procedência no
+// cabeçalho).
 // ─────────────────────────────────────────────────────────────────────
 
-const N3_PARA_A3: Record<string, string> = {
-  '004': 'AFG', '008': 'ALB', '010': 'ATA', '012': 'DZA', '024': 'AGO', '031': 'AZE',
-  '032': 'ARG', '036': 'AUS', '040': 'AUT', '044': 'BHS', '050': 'BGD', '051': 'ARM',
-  '056': 'BEL', '064': 'BTN', '068': 'BOL', '070': 'BIH', '072': 'BWA', '076': 'BRA',
-  '084': 'BLZ', '090': 'SLB', '096': 'BRN', '100': 'BGR', '104': 'MMR', '108': 'BDI',
-  '112': 'BLR', '116': 'KHM', '120': 'CMR', '124': 'CAN', '140': 'CAF', '144': 'LKA',
-  '148': 'TCD', '152': 'CHL', '156': 'CHN', '158': 'TWN', '170': 'COL', '178': 'COG',
-  '180': 'COD', '188': 'CRI', '191': 'HRV', '192': 'CUB', '196': 'CYP', '203': 'CZE',
-  '204': 'BEN', '208': 'DNK', '214': 'DOM', '218': 'ECU', '222': 'SLV', '226': 'GNQ',
-  '231': 'ETH', '232': 'ERI', '233': 'EST', '238': 'FLK', '242': 'FJI', '246': 'FIN',
-  '250': 'FRA', '260': 'ATF', '262': 'DJI', '266': 'GAB', '268': 'GEO', '270': 'GMB',
-  '275': 'PSE', '276': 'DEU', '288': 'GHA', '300': 'GRC', '304': 'GRL', '320': 'GTM',
-  '324': 'GIN', '328': 'GUY', '332': 'HTI', '340': 'HND', '348': 'HUN', '352': 'ISL',
-  '356': 'IND', '360': 'IDN', '364': 'IRN', '368': 'IRQ', '372': 'IRL', '376': 'ISR',
-  '380': 'ITA', '384': 'CIV', '388': 'JAM', '392': 'JPN', '398': 'KAZ', '400': 'JOR',
-  '404': 'KEN', '408': 'PRK', '410': 'KOR', '414': 'KWT', '417': 'KGZ', '418': 'LAO',
-  '422': 'LBN', '426': 'LSO', '428': 'LVA', '430': 'LBR', '434': 'LBY', '440': 'LTU',
-  '442': 'LUX', '450': 'MDG', '454': 'MWI', '458': 'MYS', '466': 'MLI', '478': 'MRT',
-  '484': 'MEX', '496': 'MNG', '498': 'MDA', '499': 'MNE', '504': 'MAR', '508': 'MOZ',
-  '512': 'OMN', '516': 'NAM', '524': 'NPL', '528': 'NLD', '540': 'NCL', '548': 'VUT',
-  '554': 'NZL', '558': 'NIC', '562': 'NER', '566': 'NGA', '578': 'NOR', '586': 'PAK',
-  '591': 'PAN', '598': 'PNG', '600': 'PRY', '604': 'PER', '608': 'PHL', '616': 'POL',
-  '620': 'PRT', '624': 'GNB', '626': 'TLS', '630': 'PRI', '634': 'QAT', '642': 'ROU',
-  '643': 'RUS', '646': 'RWA', '682': 'SAU', '686': 'SEN', '688': 'SRB', '694': 'SLE',
-  '703': 'SVK', '704': 'VNM', '705': 'SVN', '706': 'SOM', '710': 'ZAF', '716': 'ZWE',
-  '724': 'ESP', '728': 'SSD', '729': 'SDN', '732': 'ESH', '740': 'SUR', '748': 'SWZ',
-  '752': 'SWE', '756': 'CHE', '760': 'SYR', '762': 'TJK', '764': 'THA', '768': 'TGO',
-  '780': 'TTO', '784': 'ARE', '788': 'TUN', '792': 'TUR', '795': 'TKM', '800': 'UGA',
-  '804': 'UKR', '807': 'MKD', '818': 'EGY', '826': 'GBR', '834': 'TZA', '840': 'USA',
-  '854': 'BFA', '858': 'URY', '860': 'UZB', '862': 'VEN', '887': 'YEM', '894': 'ZMB',
+const N3_ISO: Record<string, readonly [string, string]> = {
+  '004': ['AFG', 'AF'], '008': ['ALB', 'AL'], '010': ['ATA', 'AQ'], '012': ['DZA', 'DZ'],
+  '024': ['AGO', 'AO'], '031': ['AZE', 'AZ'], '032': ['ARG', 'AR'], '036': ['AUS', 'AU'],
+  '040': ['AUT', 'AT'], '044': ['BHS', 'BS'], '050': ['BGD', 'BD'], '051': ['ARM', 'AM'],
+  '056': ['BEL', 'BE'], '064': ['BTN', 'BT'], '068': ['BOL', 'BO'], '070': ['BIH', 'BA'],
+  '072': ['BWA', 'BW'], '076': ['BRA', 'BR'], '084': ['BLZ', 'BZ'], '090': ['SLB', 'SB'],
+  '096': ['BRN', 'BN'], '100': ['BGR', 'BG'], '104': ['MMR', 'MM'], '108': ['BDI', 'BI'],
+  '112': ['BLR', 'BY'], '116': ['KHM', 'KH'], '120': ['CMR', 'CM'], '124': ['CAN', 'CA'],
+  '140': ['CAF', 'CF'], '144': ['LKA', 'LK'], '148': ['TCD', 'TD'], '152': ['CHL', 'CL'],
+  '156': ['CHN', 'CN'], '158': ['TWN', 'TW'], '170': ['COL', 'CO'], '178': ['COG', 'CG'],
+  '180': ['COD', 'CD'], '188': ['CRI', 'CR'], '191': ['HRV', 'HR'], '192': ['CUB', 'CU'],
+  '196': ['CYP', 'CY'], '203': ['CZE', 'CZ'], '204': ['BEN', 'BJ'], '208': ['DNK', 'DK'],
+  '214': ['DOM', 'DO'], '218': ['ECU', 'EC'], '222': ['SLV', 'SV'], '226': ['GNQ', 'GQ'],
+  '231': ['ETH', 'ET'], '232': ['ERI', 'ER'], '233': ['EST', 'EE'], '238': ['FLK', 'FK'],
+  '242': ['FJI', 'FJ'], '246': ['FIN', 'FI'], '250': ['FRA', 'FR'], '260': ['ATF', 'TF'],
+  '262': ['DJI', 'DJ'], '266': ['GAB', 'GA'], '268': ['GEO', 'GE'], '270': ['GMB', 'GM'],
+  '275': ['PSE', 'PS'], '276': ['DEU', 'DE'], '288': ['GHA', 'GH'], '300': ['GRC', 'GR'],
+  '304': ['GRL', 'GL'], '320': ['GTM', 'GT'], '324': ['GIN', 'GN'], '328': ['GUY', 'GY'],
+  '332': ['HTI', 'HT'], '340': ['HND', 'HN'], '348': ['HUN', 'HU'], '352': ['ISL', 'IS'],
+  '356': ['IND', 'IN'], '360': ['IDN', 'ID'], '364': ['IRN', 'IR'], '368': ['IRQ', 'IQ'],
+  '372': ['IRL', 'IE'], '376': ['ISR', 'IL'], '380': ['ITA', 'IT'], '384': ['CIV', 'CI'],
+  '388': ['JAM', 'JM'], '392': ['JPN', 'JP'], '398': ['KAZ', 'KZ'], '400': ['JOR', 'JO'],
+  '404': ['KEN', 'KE'], '408': ['PRK', 'KP'], '410': ['KOR', 'KR'], '414': ['KWT', 'KW'],
+  '417': ['KGZ', 'KG'], '418': ['LAO', 'LA'], '422': ['LBN', 'LB'], '426': ['LSO', 'LS'],
+  '428': ['LVA', 'LV'], '430': ['LBR', 'LR'], '434': ['LBY', 'LY'], '440': ['LTU', 'LT'],
+  '442': ['LUX', 'LU'], '450': ['MDG', 'MG'], '454': ['MWI', 'MW'], '458': ['MYS', 'MY'],
+  '466': ['MLI', 'ML'], '478': ['MRT', 'MR'], '484': ['MEX', 'MX'], '496': ['MNG', 'MN'],
+  '498': ['MDA', 'MD'], '499': ['MNE', 'ME'], '504': ['MAR', 'MA'], '508': ['MOZ', 'MZ'],
+  '512': ['OMN', 'OM'], '516': ['NAM', 'NA'], '524': ['NPL', 'NP'], '528': ['NLD', 'NL'],
+  '540': ['NCL', 'NC'], '548': ['VUT', 'VU'], '554': ['NZL', 'NZ'], '558': ['NIC', 'NI'],
+  '562': ['NER', 'NE'], '566': ['NGA', 'NG'], '578': ['NOR', 'NO'], '586': ['PAK', 'PK'],
+  '591': ['PAN', 'PA'], '598': ['PNG', 'PG'], '600': ['PRY', 'PY'], '604': ['PER', 'PE'],
+  '608': ['PHL', 'PH'], '616': ['POL', 'PL'], '620': ['PRT', 'PT'], '624': ['GNB', 'GW'],
+  '626': ['TLS', 'TL'], '630': ['PRI', 'PR'], '634': ['QAT', 'QA'], '642': ['ROU', 'RO'],
+  '643': ['RUS', 'RU'], '646': ['RWA', 'RW'], '682': ['SAU', 'SA'], '686': ['SEN', 'SN'],
+  '688': ['SRB', 'RS'], '694': ['SLE', 'SL'], '703': ['SVK', 'SK'], '704': ['VNM', 'VN'],
+  '705': ['SVN', 'SI'], '706': ['SOM', 'SO'], '710': ['ZAF', 'ZA'], '716': ['ZWE', 'ZW'],
+  '724': ['ESP', 'ES'], '728': ['SSD', 'SS'], '729': ['SDN', 'SD'], '732': ['ESH', 'EH'],
+  '740': ['SUR', 'SR'], '748': ['SWZ', 'SZ'], '752': ['SWE', 'SE'], '756': ['CHE', 'CH'],
+  '760': ['SYR', 'SY'], '762': ['TJK', 'TJ'], '764': ['THA', 'TH'], '768': ['TGO', 'TG'],
+  '780': ['TTO', 'TT'], '784': ['ARE', 'AE'], '788': ['TUN', 'TN'], '792': ['TUR', 'TR'],
+  '795': ['TKM', 'TM'], '800': ['UGA', 'UG'], '804': ['UKR', 'UA'], '807': ['MKD', 'MK'],
+  '818': ['EGY', 'EG'], '826': ['GBR', 'GB'], '834': ['TZA', 'TZ'], '840': ['USA', 'US'],
+  '854': ['BFA', 'BF'], '858': ['URY', 'UY'], '860': ['UZB', 'UZ'], '862': ['VEN', 'VE'],
+  '887': ['YEM', 'YE'], '894': ['ZMB', 'ZM'],
 };
 
 // ─────────────────────────────────────────────────────────────────────
@@ -183,11 +202,13 @@ async function montarMundo(): Promise<MundoAtlas> {
   const fc = topoFeature(topo, topo.objects.countries);
   const features: PaisFeature[] = fc.features.map((f) => {
     const n3 = f.id !== undefined ? String(f.id) : null;
+    const iso = n3 ? N3_ISO[n3] : undefined;
     return {
       ...f,
       properties: {
         name: f.properties?.name ?? '—',
-        a3: n3 ? (N3_PARA_A3[n3] ?? null) : null,
+        a3: iso?.[0] ?? null,
+        a2: iso?.[1] ?? null,
         n3,
       },
     };
@@ -264,9 +285,10 @@ export function combustivelDominante(
 }
 
 /** Nome do país em pt-BR via Intl.DisplayNames (CLDR do browser, dado
- *  padrão da plataforma — não é tradução inventada). O código de
- *  região aceita o ISO NUMÉRICO (M49), que é o que o TopoJSON carrega.
- *  Fallback: nome vindo do backend, depois o do TopoJSON. */
+ *  padrão da plataforma — não é tradução inventada). Usa o ALPHA-2 da
+ *  tabela: medido no Chrome, o código numérico M49 não resolve para
+ *  país ('076' → '076'), só o alpha-2 ('BR' → 'Brasil'). Fallback:
+ *  nome vindo do backend, depois o do TopoJSON. */
 let displayNames: Intl.DisplayNames | null | undefined;
 
 export function nomePaisPt(props: PaisFeatureProps, backendName?: string): string {
@@ -277,11 +299,11 @@ export function nomePaisPt(props: PaisFeatureProps, backendName?: string): strin
       displayNames = null;
     }
   }
-  if (displayNames && props.n3) {
+  if (displayNames && props.a2) {
     try {
-      const nome = displayNames.of(props.n3);
+      const nome = displayNames.of(props.a2);
       // Intl devolve o próprio código quando não conhece a região.
-      if (nome && nome !== props.n3) return nome;
+      if (nome && nome !== props.a2) return nome;
     } catch {
       /* código fora do padrão — cai no fallback */
     }

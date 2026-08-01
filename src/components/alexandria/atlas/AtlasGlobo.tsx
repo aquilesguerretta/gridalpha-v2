@@ -19,9 +19,12 @@ import { MeshPhongMaterial, Color } from 'three';
 import { A, A2, AT, AS } from '../../../design/alexandria-tokens';
 import {
   carregarMundo,
+  combustivelDominante,
+  nomePaisPt,
   type MundoAtlas,
   type PaisFeature,
 } from '../../../lib/atlas/worldApi';
+import { PaisTooltip, type AlvoTooltip } from './PaisTooltip';
 
 // ─────────────────────────────────────────────────────────────────────
 // Curva de movimento — a MESMA cubic-bezier(0.65, 0, 0.35, 1) de
@@ -192,6 +195,18 @@ export function AtlasGlobo() {
   const corContorno = useCallback(() => A2.ouroSobreNavy, []);
   const corLateral = useCallback(() => 'rgba(0, 0, 0, 0)', []);
 
+  // ── alvo do tooltip: derivado do hover + índice O(1) por ISO ──────
+  let alvoTooltip: AlvoTooltip | null = null;
+  if (hover && mundo) {
+    const a3 = hover.properties.a3;
+    const resumo = a3 ? (mundo.porIso.get(a3) ?? null) : null;
+    alvoTooltip = {
+      nome: nomePaisPt(hover.properties, resumo?.countryName),
+      resumo,
+      dominante: resumo ? combustivelDominante(resumo.fuelMix) : null,
+    };
+  }
+
   return (
     <div
       ref={areaRef}
@@ -241,6 +256,8 @@ export function AtlasGlobo() {
           animateIn={false}
         />
       )}
+
+      <PaisTooltip alvo={alvoTooltip} areaRef={areaRef} />
     </div>
   );
 }

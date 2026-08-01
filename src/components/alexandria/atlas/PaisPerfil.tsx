@@ -141,6 +141,42 @@ export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
   const fontes = perfil?.fieldSources;
   const fonteDe = (chave: string): FonteCampo | undefined => fontes?.[chave];
 
+  // ── Consolidação de citação (Wave 28) — computada em RUNTIME, nunca
+  // presumida: os 7 campos da matriz só perdem a linha individual se a
+  // citação for byte-idêntica em todos (medido no dado real: matriz +
+  // geração total + renovável compartilham a mesma; carbono, per
+  // capita e população divergem e mantêm a própria linha). ───────────
+  const citacaoComum: string | null = (() => {
+    if (!fontes) return null;
+    const citacoes = CAMPOS_MATRIZ.map((c) => fontes[c.fonteCampo]?.sourceCitation);
+    if (citacoes.some((c) => c === undefined)) return null;
+    return citacoes.every((c) => c === citacoes[0]) ? (citacoes[0] as string) : null;
+  })();
+
+  /** Fonte individual só quando diverge da consolidada. */
+  const fonteSeDiverge = (chave: string): FonteCampo | undefined => {
+    const f = fonteDe(chave);
+    if (!f) return undefined;
+    return citacaoComum !== null && f.sourceCitation === citacaoComum ? undefined : f;
+  };
+
+  /** Rótulos pt dos campos cobertos pela citação consolidada, para o
+   *  rodapé declarar exatamente o que cobre. */
+  const rotulosCobertos: string[] = (() => {
+    if (citacaoComum === null || !fontes) return [];
+    const extras: Array<[string, string]> = [
+      [FONTE_CAMPO.renewablesShareElecPct, 'participação renovável'],
+      [FONTE_CAMPO.carbonIntensityElecGco2PerKwh, 'intensidade de carbono'],
+      [FONTE_CAMPO.energyPerCapitaKwh, 'consumo per capita'],
+      [FONTE_CAMPO.electricityGenerationTwh, 'geração total'],
+      [FONTE_CAMPO.population, 'população'],
+    ];
+    return [
+      'matriz de geração',
+      ...extras.filter(([k]) => fontes[k]?.sourceCitation === citacaoComum).map(([, r]) => r),
+    ];
+  })();
+
   return (
     <aside
       aria-label={`Perfil energético: ${nome}`}
@@ -234,7 +270,7 @@ export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
                   key={campo.chave}
                   rotulo={campo.rotulo}
                   pct={resumo.fuelMix[campo.chave]}
-                  fonte={fonteDe(campo.fonteCampo)}
+                  fonte={citacaoComum !== null ? undefined : fonteDe(campo.fonteCampo)}
                 />
               ))}
             </section>
@@ -251,7 +287,7 @@ export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
               <Indicador
                 rotulo="Renovável na eletricidade"
                 valor={fmtPct(resumo.renewablesShareElecPct)}
-                fonte={fonteDe(FONTE_CAMPO.renewablesShareElecPct)}
+                fonte={fonteSeDiverge(FONTE_CAMPO.renewablesShareElecPct)}
               />
               <Indicador
                 rotulo="Intensidade de carbono da eletricidade"
@@ -260,7 +296,7 @@ export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
                     ? '—'
                     : `${fmtNum(resumo.carbonIntensityElecGco2PerKwh, 1)} ${fonteDe(FONTE_CAMPO.carbonIntensityElecGco2PerKwh)?.unit ?? 'gCO₂eq/kWh'}`
                 }
-                fonte={fonteDe(FONTE_CAMPO.carbonIntensityElecGco2PerKwh)}
+                fonte={fonteSeDiverge(FONTE_CAMPO.carbonIntensityElecGco2PerKwh)}
               />
               <Indicador
                 rotulo="Consumo de energia primária per capita"
@@ -269,7 +305,7 @@ export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
                     ? '—'
                     : `${fmtNum(resumo.energyPerCapitaKwh, 0)} ${fonteDe(FONTE_CAMPO.energyPerCapitaKwh)?.unit ?? 'kWh'}`
                 }
-                fonte={fonteDe(FONTE_CAMPO.energyPerCapitaKwh)}
+                fonte={fonteSeDiverge(FONTE_CAMPO.energyPerCapitaKwh)}
               />
               <Indicador
                 rotulo="Geração elétrica total"
@@ -278,14 +314,29 @@ export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
                     ? '—'
                     : `${fmtNum(resumo.electricityGenerationTwh, 1)} ${fonteDe(FONTE_CAMPO.electricityGenerationTwh)?.unit ?? 'TWh'}`
                 }
-                fonte={fonteDe(FONTE_CAMPO.electricityGenerationTwh)}
+                fonte={fonteSeDiverge(FONTE_CAMPO.electricityGenerationTwh)}
               />
               <Indicador
                 rotulo="População"
                 valor={fmtNum(resumo.population)}
-                fonte={fonteDe(FONTE_CAMPO.population)}
+                fonte={fonteSeDiverge(FONTE_CAMPO.population)}
               />
             </section>
+
+            {citacaoComum !== null && (
+              <span
+                style={{
+                  ...AT.dado,
+                  fontSize: '9px',
+                  color: A2.tintaMetadado,
+                  borderTop: `1px solid ${A2.fioClaroSobreCreme}`,
+                  paddingTop: AS.sm,
+                }}
+              >
+                Fonte de {rotulosCobertos.join(', ')}:{' '}
+                {nomesDasFontes(citacaoComum)}.
+              </span>
+            )}
 
             {falhaFontes && (
               <span style={{ ...AT.dado, fontSize: '10px', fontStyle: 'italic', color: A2.tintaMetadado }}>

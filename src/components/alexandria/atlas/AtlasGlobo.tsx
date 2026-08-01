@@ -268,16 +268,17 @@ export function AtlasGlobo() {
         position: 'relative',
         width: '100%',
         height: '100%',
-        // Campo quente escuro atrás da esfera — nunca preto puro.
-        // A.tintaSobreCreme é a tinta quente do sistema (#2A2620).
-        background: A.tintaSobreCreme,
+        // Canvas TRANSPARENTE (Wave 28): a esfera repousa direto sobre
+        // o papel creme do canvas central — nenhum retângulo de fundo
+        // atrás dela, em nenhum nível de zoom.
+        background: 'transparent',
         overflow: 'hidden',
         cursor: hover ? 'pointer' : 'grab',
       }}
     >
       {erro !== null && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: AS.xl }}>
-          <p style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSobreNavy, maxWidth: '46ch', textAlign: 'center', margin: 0 }}>
+          <p style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave, maxWidth: '46ch', textAlign: 'center', margin: 0 }}>
             {erro}
           </p>
         </div>
@@ -285,7 +286,7 @@ export function AtlasGlobo() {
 
       {erro === null && (mundo === null || tamanho === null) && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ ...AT.rotulo, color: A2.ouroSobreNavy }}>Montando o globo…</span>
+          <span style={{ ...AT.rotulo, color: A.terracota }}>Montando o globo…</span>
         </div>
       )}
 
@@ -294,7 +295,7 @@ export function AtlasGlobo() {
           ref={globoRef}
           width={tamanho.w}
           height={tamanho.h}
-          backgroundColor={A.tintaSobreCreme}
+          backgroundColor="rgba(0,0,0,0)"
           showAtmosphere={false}
           globeMaterial={materialRef.current}
           onGlobeReady={aoGloboPronto}

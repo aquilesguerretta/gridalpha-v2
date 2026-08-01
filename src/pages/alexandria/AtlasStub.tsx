@@ -108,13 +108,12 @@ export function AtlasStub() {
                   style={{
                     width: '100%',
                     height: '100%',
-                    background: A.tintaSobreCreme,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  <span style={{ ...AT.rotulo, color: A2.ouroSobreNavy }}>Montando o globo…</span>
+                  <span style={{ ...AT.rotulo, color: A.terracota }}>Montando o globo…</span>
                 </div>
               }
             >

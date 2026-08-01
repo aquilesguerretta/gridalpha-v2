@@ -295,7 +295,19 @@ export function AtlasGlobo() {
     const controles = globo.controls() as unknown as {
       addEventListener: (t: string, f: () => void) => void;
       removeEventListener: (t: string, f: () => void) => void;
+      maxDistance: number;
     };
+    // Fase 4 — piso de zoom-out pelo mecanismo NATIVO da biblioteca:
+    // OrbitControls.maxDistance (three/examples/jsm/controls/
+    // OrbitControls.js, default Infinity; clamp interno em
+    // _clampDistance), que o globe.gl inicializa em globeR*100
+    // (globe.gl.mjs L549). Reescrevemos para a distância do repouso do
+    // frontispício — a roda do mouse trava EXATAMENTE no encaixe.
+    // minDistance fica intocado: é ele que permite o mergulho de hoje
+    // (globe.gl o põe rente à superfície, L548).
+    if (compRef.current) {
+      controles.maxDistance = (1 + compRef.current.altRepouso) * RAIO_CENA;
+    }
     const aoMudarCamera = () => {
       const figura = figuraRef.current;
       if (!figura) return;
@@ -359,6 +371,14 @@ export function AtlasGlobo() {
     [tamanho],
   );
   compRef.current = comp;
+
+  // Piso de zoom-out acompanha o repouso quando o palco redimensiona.
+  useEffect(() => {
+    const controles = controlesRef.current as { maxDistance?: number } | null;
+    if (controles && comp) {
+      controles.maxDistance = (1 + comp.altRepouso) * RAIO_CENA;
+    }
+  }, [comp]);
 
   // ── alvo do tooltip: derivado do hover + índice O(1) por ISO ──────
   let alvoTooltip: AlvoTooltip | null = null;

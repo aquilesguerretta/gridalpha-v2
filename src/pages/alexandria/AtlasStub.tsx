@@ -82,44 +82,34 @@ export function AtlasStub() {
           </p>
         </div>
 
-        {/* Prancha do globo: campo escuro emoldurado por fio duplo,
-            como gravura montada na página de um atlas. Profundidade
-            vem de fio, nunca de sombra. */}
+        {/* Palco do globo (Wave 28): sem moldura e sem caixa pequena —
+            a esfera é peça central da página, largura útil inteira do
+            canvas entre os rails, sobre o próprio papel creme. A
+            gravura do frontispício compõe com ela aqui dentro. */}
         <div
           style={{
-            border: `1px solid ${A.fioSobreCreme}`,
-            borderRadius: AR.none,
-            padding: '3px',
-            background: A2.cremeSuperficie,
+            width: '100%',
+            height: 'clamp(520px, 76vh, 900px)',
+            overflow: 'hidden',
           }}
         >
-          <div
-            style={{
-              border: `1px solid ${A2.fioClaroSobreCreme}`,
-              borderRadius: AR.none,
-              height: 'min(62vh, 620px)',
-              minHeight: '420px',
-              overflow: 'hidden',
-            }}
+          <Suspense
+            fallback={
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <span style={{ ...AT.rotulo, color: A.terracota }}>Montando o globo…</span>
+              </div>
+            }
           >
-            <Suspense
-              fallback={
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <span style={{ ...AT.rotulo, color: A.terracota }}>Montando o globo…</span>
-                </div>
-              }
-            >
-              <AtlasGlobo />
-            </Suspense>
-          </div>
+            <AtlasGlobo />
+          </Suspense>
         </div>
 
         {/* Legenda da prancha — contagens DERIVADAS da junção real. */}

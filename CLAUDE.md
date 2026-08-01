@@ -3774,3 +3774,177 @@ precisou mudar**, e nenhum dos sete da lista de proibição foi tocado.
 
 **Gates:** `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No
 findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 27 — ATLAS MUNDIAL, CAMADA GLOBAL
+
+**Status:** fechada. `/alexandria/atlas` deixou de ser stub — é o globo
+3D com os 188 países reais da CURSOR Wave 10, cada um com perfil
+energético verdadeiro e fonte citada por campo. Primeira superfície 3D
+do produto. **Camada Brasil (quatro submercados sobre a mesma esfera) é
+wave separada, ainda não construída** — declarado na própria página em
+contorno tracejado.
+
+**Arquivos:** `src/lib/atlas/worldApi.ts` (NOVO) ·
+`src/components/alexandria/atlas/` — AtlasGlobo, PaisTooltip,
+PaisPerfil (NOVOS) · `src/pages/alexandria/AtlasStub.tsx` (corpo
+substituído; nome fica — contrato de rota da Wave 6) ·
+`public/alexandria/geo/world-110m.json` (TopoJSON baixado) · entrada
+5247 no `.claude/launch.json`.
+
+### Fase 0 — o que a fonte oficial ensinou
+
+Estudado o repositório real (`vasturiano/react-globe.gl`): README +
+código de quatro exemplos (`choropleth-countries`,
+`custom-globe-styling`, `hollow-globe`, `countries-population`).
+Vocabulário confirmado antes de qualquer linha: `polygonsData` (GeoJSON
+features), `polygonCapColor` / `polygonStrokeColor` / `polygonSideColor`
+/ `polygonAltitude`, `onPolygonHover(poligono, anterior)`,
+`onPolygonClick`, `pointOfView({lat,lng,altitude}, ms)` via ref (SEM
+callback de término — o fim se marca por timer da mesma duração),
+`showAtmosphere` (default TRUE, `lightskyblue` — precisou ser desligada
+explicitamente), `globeMaterial` (Material Three para esfera sem textura
+de imagem), `width`/`height` numéricos (default = janela; o wrapper é
+medido por ResizeObserver). Os exemplos usam `topojson-client` para
+TopoJSON → features. Nenhuma divergência entre brief e documentação.
+`polygonLabel` (tooltip embutido) existe e NÃO foi usado — o
+`PaisTooltip` próprio dá Cinzel/Lora e ancoragem ao cursor.
+
+### Biblioteca — versão, peso e a decisão de lazy
+
+`react-globe.gl@2.38.0` → `globe.gl@2.46.1` → `three-globe@2.45.2` +
+`topojson-client@3.1.0` + `d3-geo@3.1.1` (centroide/bounds esféricos —
+trata o antimeridiano que quebraria EUA/Rússia/Fiji). O peer `three`
+deduplica no `three@0.183.1` que o projeto já tinha.
+
+**Peso marginal medido** (esbuild, react/react-dom/three
+externalizados): **601 KB raw / 193 KB gzip** — acima do teto de ~500 KB
+raw do brief SE entrasse no bundle compartilhado. E entraria: o app não
+tinha nenhum lazy-loading (auditado). Decisão do implementador, dentro
+da posse: `AtlasStub.tsx` importa `AtlasGlobo` via `React.lazy`, o que
+separa o stack inteiro num chunk próprio. **Provado no build real:**
+`AtlasGlobo-*.js` = 1.838 KB raw / 521 KB gzip (inclui o `three`, que o
+entry não carrega eager — Rollup não duplica módulo), buscado SÓ quando
+`/alexandria/atlas` abre; `polygonCapColor` tem 0 ocorrências no bundle
+de entrada e 3 no chunk. Veto limpo: `npm uninstall react-globe.gl
+topojson-client d3-geo` + revert do stub.
+
+### TopoJSON — medição e a tabela derivada
+
+`public/alexandria/geo/world-110m.json` é cópia **byte-idêntica** (MD5
+`0aa0a436…`, conferido) de `unpkg.com/world-atlas@2.0.2/countries-110m.json`
+— a distribuição TopoJSON canônica da Natural Earth 110m. Medido:
+**177 geometrias, id ISO NUMÉRICO, nenhuma propriedade alpha-3** (só
+`name`). O brief esperava alpha-3 no arquivo — não existe nesta
+distribuição; reportado como medido.
+
+Tratamento: tabela `N3_ISO` (numérico → [alpha-3, alpha-2]) com 174
+entradas **derivadas das propriedades do GeoJSON NE 110m**, não
+digitadas. O defeito `-99` da NE foi medido: França e Noruega têm
+`ISO_A3 = -99` (resolvido via `ADM0_A3`); a Noruega nem `ISO_N3` tem.
+Duas correções manuais, ambas atribuição ISO 3166-1 padrão e
+documentadas no arquivo: `250 → FRA/FR` e `578 → NOR/NO`. O
+`world-atlas` em si é limpo (França 250, Noruega 578); só Kosovo,
+Chipre do Norte e Somalilândia ficam sem id — corretamente, não têm
+código ISO.
+
+**Alpha-2 existe porque foi medido que precisava:** o
+`Intl.DisplayNames` do Chrome NÃO resolve código numérico M49 para país
+(`.of('076')` devolve `'076'`); só alpha-2 (`'BR'` → `'Brasil'`). O
+nome pt-BR de cada país vem do CLDR do browser via alpha-2 — dado
+padrão da plataforma, não tradução inventada — com fallback para o nome
+do backend e depois o do TopoJSON.
+
+### Contagem TopoJSON × backend — divergência medida e exibida
+
+| | contagem | tratamento |
+| --- | --- | --- |
+| fronteiras 1:110m | 177 | todas desenhadas |
+| com perfil no globo | 166 | junção por alpha-3, índice `Map` O(1) |
+| território sem dado | 11 (TWN GRL ESH PRI NCL FLK ATF ATA + 3 sem ISO) | desenhado; hover e perfil declaram ausência honesta, número nenhum inventado |
+| perfil sem geometria | 22 micro-Estados insulares (SGP MLT BHR MDV…) | têm dado, não têm polígono nesta escala — limitação real do 110m, declarada na página |
+
+A Antártida fica desenhada por decisão: é geografia real e o atlas de
+1890 a mostra; vira o mesmo estado sem-dado. Todas as seis contagens da
+régua de legenda são DERIVADAS da junção em runtime — nenhuma digitada.
+
+### Estética — decisões olhando renderizado
+
+- **Traço: sépia venceu o creme.** Testados os dois por screenshot. O
+  creme (#F2E9D6) lê como wireframe de dark-mode — contraste clínico. O
+  ouro-sépia (`A2.ouroSobreNavy` #CBAA6E) é o mesmo vocabulário do fio
+  duplo de frontispício da Wave 17 e lê como latão gravado.
+- **Atmosfera DESLIGADA, provado por medição de cena:** o mesh de
+  atmosfera existe com `visible: false` (traversal da cena Three). Fundo
+  em `A.tintaSobreCreme` (#2A2620) — quente escuro, nunca preto puro.
+  Zero estrela, zero gradiente decorativo, zero neon.
+- **Luz de gabinete, calibrada por pixel.** A cena nasce com ambiente π
+  e direcional 1,88 (medido via `globo.lights()`), que desenha brilho
+  lateral de render de estúdio. Diagnóstico por pixel-diff de PNG:
+  direcional 0 dá oceano perfeitamente uniforme ([9,28,53] em três
+  pontos); 1,88 dá gradiente real ([14,35,63]→[8,26,49]). Ficou 0,4 +
+  ambiente 3,4 — modelagem de esfera sob luz difusa, não estúdio. (O
+  primeiro julgamento a olho estava errado — o pixel-diff corrigiu.)
+- **Fade de hover: rAF + bezier próprio.** `polygonsTransitionDuration`
+  anima altitude, não cor; o preenchimento terracota (0,38 máx) anima em
+  180ms com a MESMA `cubic-bezier(0.65, 0, 0.35, 1)` de `AE.easing`,
+  avaliada em JS por bisseção — canvas WebGL está fora do alcance de
+  transition CSS.
+- Terra com dado leva lavagem creme 0,10; sem dado, 0,04 — a diferença
+  é legível sem gritar. Sem auto-rotação: globo de gabinete não gira
+  sozinho.
+
+### Voo de câmera e perfil
+
+Clique → `pointOfView` ao centroide (`geoCentroid`; altitude
+proporcional ao `geoBounds`, clamp [0,5, 1,6]) em **1200ms
+(`AE.desenhoLongo`, o teto travado)** → **só então** o perfil abre, por
+timer de mesma duração + 50ms. Provado por clique real: aos 600ms do
+voo o painel NÃO existe no DOM; aos 1250ms existe, com a câmera pousada
+no centroide (Brasil: −10,7/−53,2). Retorno simétrico: painel fecha no
+clique, câmera voa de volta 1200ms e pousa exatamente no repouso
+(8/−35/2,3 — lido do `pointOfView()`).
+
+Perfil: painel HTML de papel sobre a lateral direita da prancha — o
+globo continua globo ao lado. Matriz em barras HTML, renovável,
+carbono, per capita, geração, população — cada número com "Fonte:
+nomes" extraído do `fieldSources` real, unidade vinda do codebook, e o
+bloco "Fontes completas, campo a campo" com as citações integrais
+(12 campos). País sem dado abre em ausência honesta com explicação e
+retorno.
+
+### Verificação por clique real
+
+- Os três países do smoke do backend, com câmera girada até cada um:
+  **BRASIL** Hidráulica 60,2% / renovável 89,0% / 96 gCO₂ · **FRANÇA**
+  Nuclear 65,2% · **ESTADOS UNIDOS** Fóssil 59,1% — os três batendo o
+  smoke da Wave 10, nomes em pt-BR via Intl.
+- Giro por ARRASTO REAL de mouse: pov lng −35 → 54,3.
+- Groenlândia (polígono sem dado): "Sem dado disponível — fora do
+  conjunto de 188 países soberanos com perfil OWID."
+- O null real do BRA (`otherRenewablesExcBiofuelPct`) renderiza "sem
+  dado" na barra — honestidade de null exercitada de ponta a ponta.
+- Screenshots 1440×900 e 1920×1080: repouso, hover ativo, perfil
+  aberto. Zero overflow horizontal nos dois; zero erro de console além
+  do 401 conhecido de `/api/auth/me` sem sessão.
+
+### Registrado, não resolvido
+
+- **`npm run build` completo segue bloqueado** pelos erros
+  pré-existentes de Recharts em `nest/student/*` (não desta wave; o
+  mesmo estado que a ATLAS Wave 5 registrou). A prova de chunk foi por
+  `npx vite build` direto.
+- O harness de verificação expõe `window.__atlasGlobo` **só em DEV**
+  (guardado por `import.meta.env.DEV`) — mesmo espírito do
+  `window.alxSetPhase` da Wave 1; zero resíduo em produção.
+- Micro-Estados com perfil e sem polígono não são alcançáveis pelo
+  globo; uma lista/busca de países é extensão natural de wave futura.
+
+**Nota de ambiente** (quarta wave seguida): painel Browser oculto não
+compõe frames; verificação por `playwright-core` no scratchpad
+dirigindo o Chrome do sistema com `--enable-unsafe-swiftshader` (WebGL
+por software funciona — canvas real, screenshot real). Servidor próprio
+na porta 5247 (`--strictPort`), entrada nova no `.claude/launch.json`.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
+pré-existentes de Recharts) · `gridalpha-detect` sobre os 10 arquivos
+da wave — "No findings. Surface is clean."

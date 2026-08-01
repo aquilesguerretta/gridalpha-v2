@@ -3948,3 +3948,111 @@ na porta 5247 (`--strictPort`), entrada nova no `.claude/launch.json`.
 **Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
 pré-existentes de Recharts) · `gridalpha-detect` sobre os 10 arquivos
 da wave — "No findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 28 — REFINAMENTO VISUAL DO ATLAS
+
+**Status:** fechada. O globo deixou de ser caixa escura numa moldura e
+virou o frontispício do atlas: esfera navy em canvas transparente
+repousando nas mãos da gravura de Atlas, sobre o papel creme. Zoom-out
+com piso travado no enquadramento do frontispício; mergulho da Wave 27
+preservado sem regressão; citação de fonte consolidada no perfil.
+
+**Arquivos:** `AtlasGlobo.tsx` · `PaisPerfil.tsx` · `AtlasStub.tsx` +
+`public/alexandria/gravuras/grav-atlas-segurando-o-globo.png` (estava
+UNTRACKED no repo — entrou no commit da Fase 3 sem modificação de
+pixel; 2,8 MB, candidato à mesma conversão pngquant dos demais).
+
+### Fundo transparente da gravura — o preview mente, o alpha não
+
+O preview da imagem mostra um campo escuro de vinheta que parece fundo
+opaco. Decodificação de pixel: **81,1% dos pixels com alpha 0** —
+cantos, bordas e o vão entre as mãos todos transparentes; o "fundo
+escuro" é RGB residual sob alpha 0 que compositores de preview
+renderizam. A premissa do brief estava certa; o olho, errado. Mesma
+lição da luz da Wave 27: julgamento visual se confere por medição.
+
+### Composição escolhida: (a) monumental
+
+As duas variantes do brief renderizadas e comparadas:
+
+- **(b) esfera encaixada no vão (raio = vão/2): REPROVADA.** Com o
+  centro na linha das mãos, o hemisfério inferior ENGOLE cabeça,
+  braços e mãos — vira esfera esmagando um torso decapitado.
+- **(a) monumental (raio = 0,62·vão): ESCOLHIDA.** O centro sobe
+  `dy = √(r² − (vão/2)²)` acima da linha das mãos e as palmas tocam o
+  arco inferior da esfera — Atlas genuinamente a segura.
+
+A composição é PARAMÉTRICA, não pixel-ajustada: âncoras medidas na
+gravura (mãos a x=28,1%/73,9%, y≈8,7%, vão=45,8% da largura) +
+geometria de corda. Knobs finais: `larguraFig 0,73 · raioPorVao 0,62`.
+Em 1440×900 o topo da esfera corta 142px no limite do palco (a escala
+monumental do brief); em 1920×1080 ela cabe inteira (topo a −5px).
+
+### Altitude de repouso: computada por ótica, não constante
+
+O tamanho da esfera em px é função da altura do canvas e da altitude
+(fov 50°, confirmado: `asin(R/d)/tan(25°)` reproduz o K=0,344 medido na
+Wave 27 em 0,1%). A composição resolve a equação inversa: dado o raio
+do encaixe, deriva `altRepouso = 100/sin(atan(2·r·tan25°/canvasH))/100 − 1`.
+Resultado: **4,949** nas duas viewports de teste — propriedade medida,
+não coincidência: `canvasH = 2(h − centroY)` é invariante em `h` porque
+a figura ancora na base do palco, então o piso depende só da LARGURA da
+prancha (1056 nos dois casos).
+
+O canvas desce até a BASE do palco (o excesso acima é cortado pelo
+overflow) — sem isso o mergulho ficava confinado numa faixa com creme
+morto embaixo, defeito achado no render da própria Fase 3.
+
+### Piso de zoom-out: mecanismo nativo, nomeado
+
+**`OrbitControls.maxDistance`** — `three/examples/jsm/controls/
+OrbitControls.js` L133 (default `Infinity`), clamp interno em
+`_clampDistance` (L1074). O globe.gl inicializa em `globeR*100`
+(`globe.gl.mjs` L549) — era por isso que dava para afastar até a
+esfera virar ponto (altitude 33 medida). Reescrito para
+`(1 + altRepouso) · 100 = 594,9`, reaplicado em resize.
+
+**`minDistance` INTOCADO** — globe.gl o põe rente à superfície
+(`globeR + near·1,1`, L548), e é ELE que permite o mergulho de hoje.
+
+Provas por interação real: roda do mouse 14 voltas para trás →
+altitude 4,949 → 4,949 (travada no frontispício, não menor); botão
+"voltar ao globo" pousa nos mesmos 4,949; roda para FRENTE chega a
+altitude **0,0357** — câmera na superfície, olhando de dentro — o
+mergulho não regrediu.
+
+### Fade do frontispício
+
+Dirigido pela câmera, não por estado React: listener no evento
+`change` dos OrbitControls (cobre roda E o tween do `pointOfView`) lê
+a altitude e escreve `opacity` direto no `<img>`, com transição
+`AE.estado`/`AE.easing` suavizando. Mapa: 1 no repouso → 0 quando a
+altitude cruza 1,7 (acima do pouso mais fundo do voo, 1,6 — a figura
+some ANTES do mergulho terminar). Medido: repouso 1 · aos 700ms do voo
+0,45 caindo · perfil aberto 0 · retorno 1. A figura nunca aparece com
+perfil aberto porque perfil implica altitude ≤ 1,6 < 1,7.
+
+### Citação consolidada — agrupada por igualdade real
+
+Diff das 12 citações do endpoint real ANTES de mexer: **9 campos
+byte-idênticos** (os 7 da matriz + geração total + participação
+renovável — Ember ×2 + Energy Institute); carbono, per capita e
+população genuinamente divergem. A consolidação é computada em RUNTIME
+por país (igualdade de string, nunca suposição): as 7 linhas da matriz
+perdem a citação individual SÓ se todas forem idênticas; o rodapé do
+painel declara "Fonte de matriz de geração, participação renovável,
+geração total: …" com os campos cobertos derivados; os 3 divergentes
+mantêm linha própria. Antes: 12 linhas de fonte; depois: 4.
+
+### Verificação (1440×900 e 1920×1080)
+
+Canvas sem retângulo em nenhum zoom (provado no pior caso: altitude 33
+pré-piso, esfera-ponto sobre papel puro) · zoom-out por roda travado
+exatamente no repouso · retorno pousa no mesmo enquadramento · mergulho
+por roda até a superfície · figura esmaece no voo e reaparece ·
+perfil com 4 linhas de fonte (3 divergentes + 1 consolidada) · legenda
+e introdução legíveis · quatro estados fotografados nas duas viewports.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
+pré-existentes de Recharts) · `gridalpha-detect` sobre os 10 arquivos —
+"No findings. Surface is clean."

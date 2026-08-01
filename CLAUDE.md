@@ -4119,3 +4119,72 @@ que o pedido dava opção de remover foram movidas, não apagadas.
 
 **Gates:** `tsc -b` — 0 erros em Alexandria · `gridalpha-detect` — "No
 findings. Surface is clean."
+
+## LYCEUM — REVISÃO DIRETA 2 PÓS-WAVE 28 (zoom esmaece a página, globo maior)
+
+**Status:** fechada. Segundo pedido direto do Aquiles, com screenshot do
+mergulho real: a coluna lateral ficava POR CIMA do mapa (creme sobre
+navy, ilegível), o globo pequeno para a página, e estados de zoom com o
+mapa "cortado". Pedidos: "quando der zoom tudo na pagina desaparece e
+so aparece o globo, o header o foot", "aumente o tamanho da imagem e do
+globo, consecutivamente da pagina", "nao pode ter nenhuma circunstancia
+em que o mapa fica cortado", "adicione outras coisas que vc achar
+interessantes".
+
+**Arquivos:** `AtlasGlobo.tsx` · `AtlasStub.tsx`.
+
+### O que mudou
+
+- **Zoom-in esmaece a página inteira.** `AtlasGlobo` ganhou a prop
+  `aoMudarOpacidadeAmbiente`; o handler de câmera entrega a MESMA
+  opacidade do frontispício e o `AtlasStub` a aplica na coluna lateral
+  (style direto no DOM, zero re-render por frame). No mergulho restam
+  globo, header e rodapé; no retorno tudo volta.
+- **Globo maior:** `raioPorVao` 0,62 → 0,78 — a esfera domina a
+  composição e o Atlas a ergue por baixo (as palmas tocam o arco a
+  ~40° do ponto inferior). Palco mais alto (`calc(100vh − 118px)`) e
+  **full-bleed**: escapa da prancha de 1120px para a largura real do
+  `<main>`, medida por `clientWidth` (100vw causaria overflow com a
+  scrollbar do main).
+- **Pouso em cobertura:** `Composicao` ganhou `altCobertura` — a
+  altitude em que a esfera cobre o palco até o canto mais distante do
+  centro (que fica em `centroY`, não no meio). O voo de clique pousa em
+  `min(altPorTamanho, altCobertura)`: TODO clique termina com o mapa
+  preenchendo o palco de borda a borda, sem limbo nem creme. Provado
+  por pixel nos quatro cantos (o único "creme" é o painel de perfil,
+  que mora ali). O piso de zoom-out (Wave 28) cobre o outro lado; a
+  passagem transitória da roda entre os dois regimes é movimento, não
+  estado de pouso.
+- **Extras** (carta branca do pedido): ESC fecha o perfil e voa de
+  volta (idioma dos overlays do sistema); botão "← Enquadrar o globo"
+  (caixa de fio sobre papel, canto inferior esquerdo) aparece quando o
+  usuário se afasta do repouso pela roda — nunca durante voo dirigido
+  nem com perfil aberto — e some ao reenquadrar.
+
+### O bug que a linha do tempo pegou — e a lição
+
+Na primeira tentativa a câmera nascia em altitude 538 com
+`maxDistance` 53.933. Suspeitei de re-init tardio do
+three-render-objects clobberando a configuração do `onGlobeReady` — a
+teoria estava ERRADA. Linha do tempo + aritmética acharam a causa: no
+refactor de `altPorRaio` caiu a divisão final por `RAIO_CENA`, e a
+função devolvia DISTÂNCIA−1 (539,3−1=538,3) em vez de altitude (4,39);
+53.933 = (1+538,3)×100 — o próprio piso aplicando o valor errado.
+Corrigido com uma linha. A refatoração defensiva ficou mesmo assim:
+`configurarCamera()` idempotente (detecta troca de instância dos
+controles, reata o listener de 'change', reaplica piso/luz/pouso),
+chamada no ready, no resize e em janelas de assentamento
+(50/250/700/1500ms) — mais robusta contra StrictMode/HMR/init tardio,
+ainda que o vilão fosse outro.
+
+### Verificação (2000×955, o viewport do pedido)
+
+Coluna 1 → **0** no mergulho → **1** no retorno · pouso do Brasil em
+alt 0,48 cobrindo os quatro cantos (pixel-scan) · ESC fecha e volta ·
+chip aparece na roda, reenquadra em 4,39 e some · repouso full-bleed
+com esfera inteira (topo 2px) e figura completa · `tsc -b` 0 erros em
+Alexandria · detect "No findings. Surface is clean."
+
+**Nota:** a altitude de repouso agora é 4,39 (era 4,949) — mudou porque
+os knobs da composição mudaram; segue invariante ao tamanho do palco,
+pela mesma razão de forma registrada na revisão anterior.

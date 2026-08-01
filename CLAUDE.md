@@ -4056,3 +4056,66 @@ e introdução legíveis · quatro estados fotografados nas duas viewports.
 **Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
 pré-existentes de Recharts) · `gridalpha-detect` sobre os 10 arquivos —
 "No findings. Surface is clean."
+
+## LYCEUM — REVISÃO DIRETA PÓS-WAVE 28 (globo inteiro + copy lateral)
+
+**Status:** fechada. Pedido direto do Aquiles sobre a Wave 28 recém-
+fechada, com screenshot do viewport real (~2000×955) mostrando a esfera
+cortada quase pela metade: "esta cortado, quando eu do zoom a imagem tem
+que acompanhar... deixa o mapa inteiro na tela e a descricao na lateral
+para nao roubar espaco, e essas referencias embaixo tbm remove ou coloca
+no lado". Não é wave numerada — registrada aqui, mesmo idioma da revisão
+pós-Wave 16.
+
+**Arquivos:** `AtlasGlobo.tsx` · `AtlasStub.tsx`.
+
+### O corte monumental caiu
+
+A variante (a) da Wave 28 aceitava o topo da esfera cortar o limite do
+palco em viewport baixo. O veto veio do uso real: no monitor do Aquiles
+(mais largo e mais baixo que os viewports de teste) o corte comia quase
+metade da esfera. A composição agora faz FIT-TO-HEIGHT: um fator
+vertical `kVert` (corpo da figura abaixo das mãos + subida do centro +
+raio, tudo por unidade de largura da gravura) limita a largura da
+figura a `(h − margem)/kVert` — esfera + figura + pedestal SEMPRE
+inteiros, em qualquer altura de palco.
+
+### "Quando eu dou zoom a imagem tem que acompanhar"
+
+Zoom do browser = viewport CSS menor = ResizeObserver dispara = nova
+composição. O que faltava era a CÂMERA re-pousar: o effect de
+composição agora, além de atualizar `maxDistance`, reaplica
+`pointOfView` quando a câmera estava no repouso anterior (tolerância
+0,05 de altitude) — quem estava voando ou lendo perfil não é puxado.
+
+**Achado de fechamento:** a altitude de repouso é **4,949 em QUALQUER
+tamanho de palco** — não coincidência: raio da esfera e altura do
+canvas são ambos proporcionais à largura da figura em todos os
+regimes (largura-limitado E altura-limitado), então a razão que entra
+na ótica se cancela e o piso de zoom-out é uma constante universal da
+FORMA da composição (raioPorVao/vão/proporção da gravura). O
+`maxDistance = 594,9` nunca varia de verdade; o recálculo por resize
+fica como proteção caso os knobs mudem.
+
+### Título, descrição e referências na coluna lateral
+
+`AtlasStub` reorganizado: o palco ocupa `max(520px, calc(100vh −
+140px))` — o globo É a página; o rodapé vem no scroll. Eyebrow, h1
+(26px na coluna estreita), descrição, a legenda derivada (agora linhas
+empilhadas com fio, não faixa horizontal), a proveniência e a nota da
+camada Brasil moram TODOS numa coluna absoluta de 248px à esquerda,
+flutuando sobre o creme vazio ao lado da figura — `pointerEvents:
+none`, então o arrasto do globo atravessa o texto. Nada acima nem
+abaixo do palco rouba altura. Zero conteúdo removido: as referências
+que o pedido dava opção de remover foram movidas, não apagadas.
+
+### Verificação
+
+- 2000×955 (o viewport do pedido): esfera topo a 1px do palco —
+  inteira, onde antes cortava metade.
+- 1440×900: topo a 2px · 1100×700 (zoom de browser forte): topo a 4px.
+- Regressão completa em 2000×955: roda trava em 4,949 · mergulho por
+  clique com figura a 0 e perfil abrindo após o voo · 4 linhas de fonte.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria · `gridalpha-detect` — "No
+findings. Surface is clean."

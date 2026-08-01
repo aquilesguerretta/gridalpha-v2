@@ -1,9 +1,11 @@
-// AtlasGlobo — o globo 3D do Atlas Mundial (Wave 27).
+// AtlasGlobo — o globo 3D do Atlas Mundial (Wave 27; composição de
+// frontispício na Wave 28).
 //
 // Estética de instrumento científico de gabinete, 1880-1900: esfera
-// navy fosca, fronteiras em traço fino, campo quente escuro atrás.
-// Nunca gêmeo digital, nunca terminal de trading — sem atmosfera
-// brilhante (showAtmosphere DESLIGADO), sem gradiente, sem neon.
+// navy fosca em canvas TRANSPARENTE, repousando nas mãos da gravura de
+// Atlas sobre o papel creme do canvas central. Nunca gêmeo digital,
+// nunca terminal de trading — sem atmosfera brilhante (showAtmosphere
+// DESLIGADO), sem gradiente decorativo, sem neon.
 //
 // Fronteiras vêm do TopoJSON real da Natural Earth 110m servido em
 // /alexandria/geo/world-110m.json — nunca de imagem gerada. A junção
@@ -13,11 +15,11 @@
 // (~601 KB raw / 193 KB gzip) só são baixados quando /alexandria/atlas
 // abre, porque AtlasStub importa este componente via React.lazy.
 
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import { MeshPhongMaterial, Color } from 'three';
 import { geoCentroid, geoBounds } from 'd3-geo';
-import { A, A2, AT, AS } from '../../../design/alexandria-tokens';
+import { A, A2, AT, AS, AE } from '../../../design/alexandria-tokens';
 import {
   carregarMundo,
   combustivelDominante,
@@ -60,9 +62,85 @@ const OPACIDADE_HOVER = 0.38;
 // se marca por timer da mesma duração, e SÓ ENTÃO o perfil abre.
 const VOO_MS = 1200;
 
-// Pouso da câmera em repouso: Atlântico, com Brasil, África e Europa
-// visíveis no primeiro paint.
-const POV_REPOUSO = { lat: 8, lng: -35, altitude: 2.3 };
+// Direção da câmera em repouso: Atlântico, com Brasil, África e
+// Europa visíveis no primeiro paint. A ALTITUDE de repouso não é
+// constante — é computada pela composição do frontispício (Wave 28):
+// o enquadramento em que a esfera encaixa nas mãos da gravura. Esse
+// mesmo valor é o piso de zoom-out da Fase 4.
+const DIR_REPOUSO = { lat: 8, lng: -35 };
+
+// ─────────────────────────────────────────────────────────────────────
+// Frontispício (Wave 28) — gravura de Atlas ajoelhado, mãos abertas
+// onde a esfera repousa. Âncoras MEDIDAS na imagem original
+// (1536×1024, alpha 0 em 81% dos pixels — fundo transparente
+// verificado por decodificação):
+//   mão esquerda x=28,1% y=9,0% · mão direita x=73,9% y=8,4%
+//   ponto médio x=51% y≈8,7% · vão entre as mãos = 45,8% da largura
+// ─────────────────────────────────────────────────────────────────────
+const GRAV = {
+  src: '/alexandria/gravuras/grav-atlas-segurando-o-globo.png',
+  proporcao: 1024 / 1536, // altura/largura do arquivo
+  maoMeioX: 0.51,
+  maoY: 0.087,
+  vao: 0.458,
+} as const;
+
+// Botões da composição — decididos vendo renderizado (ver CLAUDE.md):
+//   larguraFig: largura da gravura como fração da largura do palco
+//   raioPorVao: raio da esfera / vão entre as mãos. Testadas as duas
+//               composições do brief: 0,5 (encaixada, centro na linha
+//               das mãos) ENGOLE cabeça, braços e mãos da figura —
+//               reprovada no render; 0,62 (monumental, palmas tocando
+//               o arco inferior, topo cortando o limite do palco em
+//               viewport baixo) é a escolhida.
+const COMPOSICAO = { larguraFig: 0.73, raioPorVao: 0.62 } as const;
+
+// Fade do frontispício no zoom-in: opacidade 1 no repouso, 0 quando a
+// altitude cruza ALT_FADE_FIM — acima do pouso mais baixo do voo
+// (alt ≤ 1,6), então a figura some ANTES do mergulho terminar.
+const ALT_FADE_FIM = 1.7;
+
+// Raio da esfera em cena (three-globe) e meia-abertura vertical da
+// câmera (fov 50°, CONFIRMADO por medição: a razão raio/altura 0,344
+// na altitude 2,3 bate com asin(R/d)/tan(fov/2) em 0,1%).
+const RAIO_CENA = 100;
+const TAN_MEIO_FOV = Math.tan((25 * Math.PI) / 180);
+
+interface Composicao {
+  imgW: number;
+  imgH: number;
+  imgLeft: number;
+  imgTop: number;
+  canvasH: number;
+  canvasTop: number;
+  /** Altitude que produz exatamente o raio do encaixe — o repouso e o
+   *  piso de zoom-out (Fase 4). */
+  altRepouso: number;
+}
+
+function comporFrontispicio(w: number, h: number): Composicao {
+  const imgW = COMPOSICAO.larguraFig * w;
+  const imgH = imgW * GRAV.proporcao;
+  const imgTop = h - imgH; // pedestal na base do palco
+  const imgLeft = w / 2 - GRAV.maoMeioX * imgW; // ponto médio das mãos no eixo da esfera
+  const maoY = imgTop + GRAV.maoY * imgH;
+  const vao = GRAV.vao * imgW;
+  const raio = COMPOSICAO.raioPorVao * vao;
+  // esfera tocando as duas palmas: centro sobe dy acima da linha das mãos
+  const dy = Math.sqrt(Math.max(0, raio * raio - (vao / 2) * (vao / 2)));
+  const centroY = maoY - dy;
+  // O canvas desce até a BASE do palco (o mergulho usa a altura
+  // inteira, sem faixa morta) e sobe simétrico acima do centro da
+  // esfera — o excesso é cortado pelo overflow do palco.
+  const canvasH = Math.max(2 * (h - centroY), 2.2 * raio);
+  const canvasTop = centroY - canvasH / 2;
+  // Ótica exata: altitude cuja distância d faz a esfera aparecer com
+  // `raio` px num canvas de canvasH px sob fov de 50°.
+  const x = (2 * raio * TAN_MEIO_FOV) / canvasH;
+  const dist = RAIO_CENA / Math.sin(Math.atan(x));
+  const altRepouso = dist / RAIO_CENA - 1;
+  return { imgW, imgH, imgLeft, imgTop, canvasH, canvasTop, altRepouso };
+}
 
 interface AnimHover {
   de: number;
@@ -92,6 +170,10 @@ export function AtlasGlobo() {
   const rafRef = useRef<number | null>(null);
   const vooRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voandoRef = useRef(false);
+  const figuraRef = useRef<HTMLImageElement | null>(null);
+  const controlesRef = useRef<{ removeEventListener: (t: string, f: () => void) => void } | null>(null);
+  const aoMudarCameraRef = useRef<(() => void) | null>(null);
+  const compRef = useRef<Composicao | null>(null);
 
   // ── dado: TopoJSON + 188 perfis, uma vez ──────────────────────────
   useEffect(() => {
@@ -149,6 +231,9 @@ export function AtlasGlobo() {
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     if (vooRef.current !== null) clearTimeout(vooRef.current);
+    if (controlesRef.current && aoMudarCameraRef.current) {
+      controlesRef.current.removeEventListener('change', aoMudarCameraRef.current);
+    }
   }, []);
 
   const aoHover = useCallback((poligono: object | null) => {
@@ -186,13 +271,15 @@ export function AtlasGlobo() {
   }, [mundo]);
 
   // ── retorno: perfil fecha no clique, câmera voa de volta —
-  //    movimento simétrico ao de entrada, mesma duração ──────────────
+  //    movimento simétrico ao de entrada, mesma duração, pousando no
+  //    MESMO enquadramento travado do frontispício ────────────────────
   const aoVoltar = useCallback(() => {
     setSelecionado(null);
     const globo = globoRef.current;
-    if (globo) {
+    const comp = compRef.current;
+    if (globo && comp) {
       voandoRef.current = true;
-      globo.pointOfView(POV_REPOUSO, VOO_MS);
+      globo.pointOfView({ ...DIR_REPOUSO, altitude: comp.altRepouso }, VOO_MS);
       vooRef.current = setTimeout(() => { voandoRef.current = false; }, VOO_MS + 50);
     }
   }, []);
@@ -200,7 +287,26 @@ export function AtlasGlobo() {
   const aoGloboPronto = useCallback(() => {
     const globo = globoRef.current;
     if (!globo) return;
-    globo.pointOfView(POV_REPOUSO, 0);
+    globo.pointOfView({ ...DIR_REPOUSO, altitude: compRef.current?.altRepouso ?? 2.3 }, 0);
+    // Fade do frontispício dirigido pela câmera: o evento 'change' dos
+    // OrbitControls cobre roda do mouse E o tween do pointOfView, então
+    // a figura esmaece em qualquer zoom-in e reaparece no retorno —
+    // sem estado React por frame, só style no <img>.
+    const controles = globo.controls() as unknown as {
+      addEventListener: (t: string, f: () => void) => void;
+      removeEventListener: (t: string, f: () => void) => void;
+    };
+    const aoMudarCamera = () => {
+      const figura = figuraRef.current;
+      if (!figura) return;
+      const alt = globo.pointOfView().altitude;
+      const teto = (compRef.current?.altRepouso ?? 2.3) * 0.97;
+      const o = Math.max(0, Math.min(1, (alt - ALT_FADE_FIM) / (teto - ALT_FADE_FIM)));
+      figura.style.opacity = o.toFixed(3);
+    };
+    controles.addEventListener('change', aoMudarCamera);
+    controlesRef.current = controles;
+    aoMudarCameraRef.current = aoMudarCamera;
     // Luz de gabinete, não de estúdio: a cena nasce com ambiente π e
     // direcional 1,88 (medido), o que desenha um brilho lateral de
     // render 3D. Um globo de 1890 é papel fosco sob luz difusa —
@@ -247,6 +353,13 @@ export function AtlasGlobo() {
   const corContorno = useCallback(() => A2.ouroSobreNavy, []);
   const corLateral = useCallback(() => 'rgba(0, 0, 0, 0)', []);
 
+  // ── composição do frontispício: derivada do tamanho medido ────────
+  const comp: Composicao | null = useMemo(
+    () => (tamanho ? comporFrontispicio(tamanho.w, tamanho.h) : null),
+    [tamanho],
+  );
+  compRef.current = comp;
+
   // ── alvo do tooltip: derivado do hover + índice O(1) por ISO ──────
   let alvoTooltip: AlvoTooltip | null = null;
   if (hover && mundo) {
@@ -290,25 +403,61 @@ export function AtlasGlobo() {
         </div>
       )}
 
-      {erro === null && mundo !== null && tamanho !== null && (
-        <Globe
-          ref={globoRef}
-          width={tamanho.w}
-          height={tamanho.h}
-          backgroundColor="rgba(0,0,0,0)"
-          showAtmosphere={false}
-          globeMaterial={materialRef.current}
-          onGlobeReady={aoGloboPronto}
-          polygonsData={mundo.features}
-          polygonAltitude={0.006}
-          polygonCapColor={corTopo}
-          polygonSideColor={corLateral}
-          polygonStrokeColor={corContorno}
-          polygonsTransitionDuration={0}
-          onPolygonHover={aoHover}
-          onPolygonClick={aoClicar}
-          animateIn={false}
+      {/* Frontispício ATRÁS do canvas: Atlas ajoelhado, mãos abertas
+          onde a esfera pousa. Sem lazy — o bug da Wave 10 provou que
+          lazy nunca dispara em container que já está na viewport. */}
+      {erro === null && comp !== null && (
+        <img
+          ref={figuraRef}
+          src={GRAV.src}
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+          style={{
+            position: 'absolute',
+            left: comp.imgLeft,
+            top: comp.imgTop,
+            width: comp.imgW,
+            height: comp.imgH,
+            // sem z-index em ninguém: a ordem do DOM (figura → canvas →
+            // tooltip → perfil) é a ordem de pintura, e PaisTooltip é
+            // intocável nesta wave
+            pointerEvents: 'none',
+            opacity: 1,
+            transition: `opacity ${AE.estado} ${AE.easing}`,
+          }}
         />
+      )}
+
+      {erro === null && mundo !== null && tamanho !== null && comp !== null && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: comp.canvasTop,
+            width: '100%',
+            height: comp.canvasH,
+          }}
+        >
+          <Globe
+            ref={globoRef}
+            width={tamanho.w}
+            height={comp.canvasH}
+            backgroundColor="rgba(0,0,0,0)"
+            showAtmosphere={false}
+            globeMaterial={materialRef.current}
+            onGlobeReady={aoGloboPronto}
+            polygonsData={mundo.features}
+            polygonAltitude={0.006}
+            polygonCapColor={corTopo}
+            polygonSideColor={corLateral}
+            polygonStrokeColor={corContorno}
+            polygonsTransitionDuration={0}
+            onPolygonHover={aoHover}
+            onPolygonClick={aoClicar}
+            animateIn={false}
+          />
+        </div>
       )}
 
       <PaisTooltip alvo={alvoTooltip} areaRef={areaRef} />

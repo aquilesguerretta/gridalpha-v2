@@ -17,9 +17,9 @@
 // /alexandria/atlas paga o chunk. Veto limpo = npm uninstall + revert
 // deste arquivo.
 
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
-import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
+import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import { carregarMundo, type MundoAtlas } from '@/lib/atlas/worldApi';
 
 const AtlasGlobo = lazy(() => import('@/components/alexandria/atlas/AtlasGlobo'));
@@ -69,6 +69,25 @@ function LinhaLegenda({ rotulo, valor }: { rotulo: string; valor: string }) {
 
 export function AtlasStub() {
   const [legenda, setLegenda] = useState<LegendaAtlas | null>(null);
+  const colunaRef = useRef<HTMLDivElement | null>(null);
+  const palcoRef = useRef<HTMLDivElement | null>(null);
+  const [larguraMain, setLarguraMain] = useState<number | null>(null);
+
+  // Full-bleed (segunda revisão): o palco escapa da prancha de 1120px
+  // e ocupa a largura inteira do <main> — no mergulho o mapa cobre a
+  // página, não uma faixa central. Medido por clientWidth (exclui a
+  // scrollbar — 100vw aqui causaria overflow horizontal).
+  useEffect(() => {
+    const palco = palcoRef.current;
+    if (!palco) return;
+    const main = palco.closest('main');
+    if (!main) return;
+    const medir = () => setLarguraMain(main.clientWidth);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(main);
+    return () => ro.disconnect();
+  }, []);
 
   // Mesma promise cacheada que o globo consome — zero busca duplicada.
   useEffect(() => {
@@ -79,11 +98,30 @@ export function AtlasStub() {
     return () => { vivo = false; };
   }, []);
 
+  // Zoom-in esmaece a página inteira (segunda revisão pós-Wave 28,
+  // pedido do Aquiles): o globo dirige a opacidade da coluna lateral
+  // pela mesma curva do frontispício — no mergulho só restam globo,
+  // header e rodapé. Style direto no DOM, zero re-render por frame.
+  const aoMudarOpacidadeAmbiente = useCallback((o: number) => {
+    const coluna = colunaRef.current;
+    if (coluna) coluna.style.opacity = o.toFixed(3);
+  }, []);
+
   return (
     <AlexandriaShell navAtivo="atlas">
-      {/* Palco em altura de viewport: 100vh − header (70) − paddings
-          da prancha. O globo é a página; o rodapé vem no scroll. */}
-      <div style={{ position: 'relative', height: 'max(520px, calc(100vh - 140px))' }}>
+      {/* Palco em altura de viewport: 100vh − header (70) − padding
+          superior da prancha. O globo é a página; o rodapé vem no
+          scroll. Altura esticada e largura full-bleed na segunda
+          revisão ("aumente o tamanho... consecutivamente da página"). */}
+      <div
+        ref={palcoRef}
+        style={{
+          position: 'relative',
+          height: 'max(520px, calc(100vh - 118px))',
+          width: larguraMain !== null ? `${larguraMain}px` : '100%',
+          marginLeft: larguraMain !== null ? `calc((100% - ${larguraMain}px) / 2)` : 0,
+        }}
+      >
         <div style={{ position: 'absolute', inset: 0 }}>
           <Suspense
             fallback={
@@ -100,22 +138,26 @@ export function AtlasStub() {
               </div>
             }
           >
-            <AtlasGlobo />
+            <AtlasGlobo aoMudarOpacidadeAmbiente={aoMudarOpacidadeAmbiente} />
           </Suspense>
         </div>
 
         {/* Coluna lateral esquerda — masthead, leitura e referências.
-            pointerEvents none: o arrasto do globo atravessa o texto. */}
+            pointerEvents none: o arrasto do globo atravessa o texto.
+            A opacidade é dirigida pela câmera do globo (esmaece no
+            zoom-in, volta no repouso). */}
         <div
+          ref={colunaRef}
           style={{
             position: 'absolute',
-            left: 0,
+            left: AS.xl,
             top: 0,
             width: '248px',
             display: 'flex',
             flexDirection: 'column',
             gap: AS.lg,
             pointerEvents: 'none',
+            transition: `opacity ${AE.estado} ${AE.easing}`,
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>

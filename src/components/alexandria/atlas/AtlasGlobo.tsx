@@ -97,7 +97,10 @@ const GRAV = {
 // do topo caiu — a composição INTEIRA (esfera + figura) agora cabe na
 // altura do palco em qualquer viewport, e o zoom do browser re-encaixa
 // sozinho via ResizeObserver + re-pouso da câmera.
-const COMPOSICAO = { larguraFig: 0.73, raioPorVao: 0.62 } as const;
+// raioPorVao subiu 0,62 → 0,78 na segunda revisão (pedido: "aumente o
+// tamanho do globo"): a esfera ganha participação na composição e as
+// mãos passam a segurar mais por baixo — o gesto de erguer.
+const COMPOSICAO = { larguraFig: 0.78, raioPorVao: 0.78 } as const;
 const MARGEM_TOPO = 10; // ar acima da esfera quando a altura limita
 
 // Fade do frontispício no zoom-in: opacidade 1 no repouso, 0 quando a
@@ -121,6 +124,10 @@ interface Composicao {
   /** Altitude que produz exatamente o raio do encaixe — o repouso e o
    *  piso de zoom-out (Fase 4). */
   altRepouso: number;
+  /** Altitude em que a esfera COBRE o palco inteiro (nenhuma borda,
+   *  nenhum creme). O voo de clique nunca pousa acima dela — "não pode
+   *  ter nenhuma circunstância em que o mapa fica cortado". */
+  altCobertura: number;
 }
 
 function comporFrontispicio(w: number, h: number): Composicao {
@@ -148,10 +155,18 @@ function comporFrontispicio(w: number, h: number): Composicao {
   const canvasTop = centroY - canvasH / 2;
   // Ótica exata: altitude cuja distância d faz a esfera aparecer com
   // `raio` px num canvas de canvasH px sob fov de 50°.
-  const x = (2 * raio * TAN_MEIO_FOV) / canvasH;
-  const dist = RAIO_CENA / Math.sin(Math.atan(x));
-  const altRepouso = dist / RAIO_CENA - 1;
-  return { imgW, imgH, imgLeft, imgTop, canvasH, canvasTop, altRepouso };
+  const altPorRaio = (raioPx: number): number => {
+    const x = (2 * raioPx * TAN_MEIO_FOV) / canvasH;
+    const dist = RAIO_CENA / Math.sin(Math.atan(x));
+    return dist / RAIO_CENA - 1; // altitude em raios de globo, não distância
+  };
+  const altRepouso = altPorRaio(raio);
+  // Cobertura: raio aparente que alcança o canto mais distante do
+  // PALCO a partir do centro da esfera (que fica em centroY, não no
+  // meio do palco) — abaixo dessa altitude não existe borda visível.
+  const raioCobertura = Math.hypot(w / 2, Math.max(centroY, h - centroY));
+  const altCobertura = altPorRaio(raioCobertura);
+  return { imgW, imgH, imgLeft, imgTop, canvasH, canvasTop, altRepouso, altCobertura };
 }
 
 interface AnimHover {
@@ -164,7 +179,14 @@ function chaveFeature(f: PaisFeature): string {
   return f.properties.a3 ?? f.properties.name;
 }
 
-export function AtlasGlobo() {
+export interface AtlasGloboProps {
+  /** Recebe a opacidade de ambiente (1 no repouso → 0 no mergulho),
+   *  na MESMA curva do fade do frontispício. É como a página esmaece
+   *  título, descrição e referências quando só o globo deve restar. */
+  aoMudarOpacidadeAmbiente?: (opacidade: number) => void;
+}
+
+export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
   const [mundo, setMundo] = useState<MundoAtlas | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [tamanho, setTamanho] = useState<{ w: number; h: number } | null>(null);
@@ -187,6 +209,10 @@ export function AtlasGlobo() {
   const aoMudarCameraRef = useRef<(() => void) | null>(null);
   const compRef = useRef<Composicao | null>(null);
   const altRepousoAnteriorRef = useRef<number | null>(null);
+  const [longeDoRepouso, setLongeDoRepouso] = useState(false);
+  const ambienteRef = useRef(aoMudarOpacidadeAmbiente);
+  ambienteRef.current = aoMudarOpacidadeAmbiente;
+  const aoVoltarRef = useRef<(() => void) | null>(null);
 
   // ── dado: TopoJSON + 188 perfis, uma vez ──────────────────────────
   useEffect(() => {
@@ -249,6 +275,17 @@ export function AtlasGlobo() {
     }
   }, []);
 
+  // ESC fecha o perfil e voa de volta — mesmo idioma dos overlays do
+  // resto do sistema (diálogo do Portal, painel do rail).
+  useEffect(() => {
+    if (selecionado === null) return;
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') aoVoltarRef.current?.();
+    };
+    window.addEventListener('keydown', aoTeclar);
+    return () => window.removeEventListener('keydown', aoTeclar);
+  }, [selecionado]);
+
   const aoHover = useCallback((poligono: object | null) => {
     const f = (poligono as PaisFeature | null) ?? null;
     setHover((anterior) => {
@@ -268,10 +305,14 @@ export function AtlasGlobo() {
     const [lng, lat] = geoCentroid(f);
     // Altitude proporcional ao tamanho do país — a Rússia não cabe no
     // enquadramento de Fiji. geoBounds em graus; clamp em [0.5, 1.6].
+    // TETO NOVO (segunda revisão): nunca pousa acima da altitude de
+    // cobertura — o mapa preenche o palco inteiro ao fim de todo voo,
+    // sem borda de esfera nem creme à mostra ("mapa cortado").
     const [[oeste, sul], [leste, norte]] = geoBounds(f);
     const spanLng = Math.abs(leste - oeste) > 180 ? 360 - Math.abs(leste - oeste) : Math.abs(leste - oeste);
     const span = Math.max(spanLng, Math.abs(norte - sul));
-    const altitude = Math.min(1.6, Math.max(0.5, span / 40));
+    const cobertura = compRef.current?.altCobertura ?? 1.6;
+    const altitude = Math.min(cobertura, Math.min(1.6, Math.max(0.5, span / 40)));
 
     setSelecionado(null); // perfil anterior sai antes do voo, não durante
     voandoRef.current = true;
@@ -288,6 +329,7 @@ export function AtlasGlobo() {
   //    MESMO enquadramento travado do frontispício ────────────────────
   const aoVoltar = useCallback(() => {
     setSelecionado(null);
+    setLongeDoRepouso(false);
     const globo = globoRef.current;
     const comp = compRef.current;
     if (globo && comp) {
@@ -296,58 +338,86 @@ export function AtlasGlobo() {
       vooRef.current = setTimeout(() => { voandoRef.current = false; }, VOO_MS + 50);
     }
   }, []);
+  aoVoltarRef.current = aoVoltar;
 
-  const aoGloboPronto = useCallback(() => {
+  // ── configuração de câmera IDEMPOTENTE (segunda revisão) ──────────
+  // Medido na linha do tempo pós-load: o three-render-objects pode
+  // recriar câmera/controles DEPOIS do onGlobeReady — o listener de
+  // 'change', o maxDistance e até o pointOfView aplicados no ready
+  // eram clobberados (câmera largada no skyRadius, alt ~538). A
+  // resposta não é acertar o timing, é ser re-aplicável: esta função
+  // detecta troca de instância dos controles, reata o listener e
+  // reaplica piso, luz e pouso. Chamada no ready, no resize e num
+  // assentamento pós-mount.
+  const configurarCamera = useCallback(() => {
     const globo = globoRef.current;
-    if (!globo) return;
-    globo.pointOfView({ ...DIR_REPOUSO, altitude: compRef.current?.altRepouso ?? 2.3 }, 0);
-    altRepousoAnteriorRef.current = compRef.current?.altRepouso ?? null;
-    // Fade do frontispício dirigido pela câmera: o evento 'change' dos
-    // OrbitControls cobre roda do mouse E o tween do pointOfView, então
-    // a figura esmaece em qualquer zoom-in e reaparece no retorno —
-    // sem estado React por frame, só style no <img>.
+    const comp = compRef.current;
+    if (!globo || !comp) return;
+
     const controles = globo.controls() as unknown as {
       addEventListener: (t: string, f: () => void) => void;
       removeEventListener: (t: string, f: () => void) => void;
       maxDistance: number;
     };
-    // Fase 4 — piso de zoom-out pelo mecanismo NATIVO da biblioteca:
-    // OrbitControls.maxDistance (three/examples/jsm/controls/
-    // OrbitControls.js, default Infinity; clamp interno em
-    // _clampDistance), que o globe.gl inicializa em globeR*100
-    // (globe.gl.mjs L549). Reescrevemos para a distância do repouso do
-    // frontispício — a roda do mouse trava EXATAMENTE no encaixe.
-    // minDistance fica intocado: é ele que permite o mergulho de hoje
-    // (globe.gl o põe rente à superfície, L548).
-    if (compRef.current) {
-      controles.maxDistance = (1 + compRef.current.altRepouso) * RAIO_CENA;
+
+    if (controlesRef.current !== controles) {
+      // instância nova (init tardio do TRO / StrictMode): reata tudo
+      if (controlesRef.current && aoMudarCameraRef.current) {
+        controlesRef.current.removeEventListener('change', aoMudarCameraRef.current);
+      }
+      // Fade do frontispício + página dirigido pela câmera: 'change'
+      // cobre roda do mouse E o tween do pointOfView — sem estado
+      // React por frame, só style direto.
+      const aoMudarCamera = () => {
+        const g = globoRef.current;
+        if (!g) return;
+        const alt = g.pointOfView().altitude;
+        const repouso = compRef.current?.altRepouso ?? 2.3;
+        const teto = repouso * 0.97;
+        const o = Math.max(0, Math.min(1, (alt - ALT_FADE_FIM) / (teto - ALT_FADE_FIM)));
+        const figura = figuraRef.current;
+        if (figura) figura.style.opacity = o.toFixed(3);
+        ambienteRef.current?.(o);
+        // botão de reenquadrar: só quando o afastamento veio da roda
+        setLongeDoRepouso(alt < repouso * 0.85 && !voandoRef.current);
+      };
+      controles.addEventListener('change', aoMudarCamera);
+      controlesRef.current = controles;
+      aoMudarCameraRef.current = aoMudarCamera;
     }
-    const aoMudarCamera = () => {
-      const figura = figuraRef.current;
-      if (!figura) return;
-      const alt = globo.pointOfView().altitude;
-      const teto = (compRef.current?.altRepouso ?? 2.3) * 0.97;
-      const o = Math.max(0, Math.min(1, (alt - ALT_FADE_FIM) / (teto - ALT_FADE_FIM)));
-      figura.style.opacity = o.toFixed(3);
-    };
-    controles.addEventListener('change', aoMudarCamera);
-    controlesRef.current = controles;
-    aoMudarCameraRef.current = aoMudarCamera;
-    // Luz de gabinete, não de estúdio: a cena nasce com ambiente π e
-    // direcional 1,88 (medido), o que desenha um brilho lateral de
-    // render 3D. Um globo de 1890 é papel fosco sob luz difusa —
-    // direcional cai para 0,4 (modelagem suave, medida por pixel:
-    // uniforme com 0, brilho de estúdio com 1,88) e o ambiente vai a
-    // 3,4 para compensar o nível.
+
+    // Fase 4 — piso de zoom-out pelo mecanismo NATIVO da biblioteca:
+    // OrbitControls.maxDistance (default Infinity; clamp interno em
+    // _clampDistance). minDistance fica intocado: é ele que permite o
+    // mergulho (globe.gl o põe rente à superfície).
+    controles.maxDistance = (1 + comp.altRepouso) * RAIO_CENA;
+
+    // Luz de gabinete, não de estúdio (medida por pixel na Wave 27).
     for (const luz of globo.lights()) {
       const l = luz as unknown as { type: string; intensity: number };
       if (l.type === 'DirectionalLight') l.intensity = 0.4;
       if (l.type === 'AmbientLight') l.intensity = 3.4;
     }
+
+    // Pouso: primeira vez, câmera fora do piso (estado clobberado),
+    // ou estava NO repouso anterior e o palco mudou de tamanho.
+    const alt = globo.pointOfView().altitude;
+    const anterior = altRepousoAnteriorRef.current;
+    const foraDoPiso = alt > comp.altRepouso + 0.05;
+    const estavaEmRepouso = anterior !== null && Math.abs(alt - anterior) < 0.05;
+    if (!voandoRef.current && (anterior === null || foraDoPiso || estavaEmRepouso)) {
+      globo.pointOfView({ ...DIR_REPOUSO, altitude: comp.altRepouso }, 0);
+    }
+    altRepousoAnteriorRef.current = comp.altRepouso;
+
     if (import.meta.env.DEV) {
       (window as unknown as Record<string, unknown>).__atlasGlobo = globo;
     }
   }, []);
+
+  const aoGloboPronto = useCallback(() => {
+    configurarCamera();
+  }, [configurarCamera]);
 
   // ── cores — tudo token, nada de neon ──────────────────────────────
   // Superfície: navy fosco. Brilho quase zero: instrumento de gabinete,
@@ -386,28 +456,16 @@ export function AtlasGlobo() {
   );
   compRef.current = comp;
 
-  // Piso de zoom-out E pouso da câmera acompanham o repouso quando o
-  // palco redimensiona (inclusive zoom do browser): se a câmera estava
-  // NO repouso antigo, re-pousa no novo — a esfera segue encaixada nas
-  // mãos em qualquer tamanho de janela. Quem estava voando ou lendo um
-  // país não é puxado.
+  // Piso, pouso e listener acompanham resize (inclusive zoom do
+  // browser) E qualquer init tardio do three-render-objects que recrie
+  // os controles: aplica já e reaplica em janelas curtas de
+  // assentamento. configurarCamera é idempotente — reaplicar é barato.
   useEffect(() => {
-    if (!comp) return;
-    const controles = controlesRef.current as { maxDistance?: number } | null;
-    if (controles) {
-      controles.maxDistance = (1 + comp.altRepouso) * RAIO_CENA;
-    }
-    const globo = globoRef.current;
-    if (globo) {
-      const alt = globo.pointOfView().altitude;
-      const anterior = altRepousoAnteriorRef.current;
-      const estavaEmRepouso = anterior !== null && Math.abs(alt - anterior) < 0.05;
-      if (!voandoRef.current && (anterior === null || estavaEmRepouso)) {
-        globo.pointOfView({ altitude: comp.altRepouso }, 0);
-      }
-    }
-    altRepousoAnteriorRef.current = comp.altRepouso;
-  }, [comp]);
+    if (mundo === null || comp === null) return;
+    configurarCamera();
+    const timers = [50, 250, 700, 1500].map((ms) => setTimeout(configurarCamera, ms));
+    return () => timers.forEach(clearTimeout);
+  }, [mundo, comp, configurarCamera]);
 
   // ── alvo do tooltip: derivado do hover + índice O(1) por ISO ──────
   let alvoTooltip: AlvoTooltip | null = null;
@@ -510,6 +568,31 @@ export function AtlasGlobo() {
       )}
 
       <PaisTooltip alvo={alvoTooltip} areaRef={areaRef} />
+
+      {/* Reenquadrar: aparece quando o usuário se afastou do repouso
+          pela roda (nunca durante voo dirigido nem com perfil aberto).
+          Caixa de fio sobre papel — o idioma de ação do sistema. */}
+      {longeDoRepouso && selecionado === null && (
+        <button
+          type="button"
+          onClick={aoVoltar}
+          style={{
+            position: 'absolute',
+            left: AS.md,
+            bottom: AS.md,
+            background: A2.cremeSuperficie,
+            border: `1px solid ${A.fioSobreCreme}`,
+            borderRadius: 0,
+            padding: `${AS.xs} ${AS.md}`,
+            cursor: 'pointer',
+            ...AT.rotulo,
+            fontSize: '9px',
+            color: A.tintaSobreCreme,
+          }}
+        >
+          ← Enquadrar o globo
+        </button>
+      )}
 
       {selecionado !== null && (
         <PaisPerfil

@@ -86,14 +86,19 @@ const GRAV = {
 } as const;
 
 // Botões da composição — decididos vendo renderizado (ver CLAUDE.md):
-//   larguraFig: largura da gravura como fração da largura do palco
+//   larguraFig: largura MÁXIMA da gravura como fração da largura do
+//               palco (a altura pode reduzir — ver comporFrontispicio)
 //   raioPorVao: raio da esfera / vão entre as mãos. Testadas as duas
 //               composições do brief: 0,5 (encaixada, centro na linha
 //               das mãos) ENGOLE cabeça, braços e mãos da figura —
-//               reprovada no render; 0,62 (monumental, palmas tocando
-//               o arco inferior, topo cortando o limite do palco em
-//               viewport baixo) é a escolhida.
+//               reprovada no render; 0,62 (palmas tocando o arco
+//               inferior) é a escolhida.
+// Revisão direta pós-Wave 28 (pedido do Aquiles): o corte monumental
+// do topo caiu — a composição INTEIRA (esfera + figura) agora cabe na
+// altura do palco em qualquer viewport, e o zoom do browser re-encaixa
+// sozinho via ResizeObserver + re-pouso da câmera.
 const COMPOSICAO = { larguraFig: 0.73, raioPorVao: 0.62 } as const;
+const MARGEM_TOPO = 10; // ar acima da esfera quando a altura limita
 
 // Fade do frontispício no zoom-in: opacidade 1 no repouso, 0 quando a
 // altitude cruza ALT_FADE_FIM — acima do pouso mais baixo do voo
@@ -119,7 +124,14 @@ interface Composicao {
 }
 
 function comporFrontispicio(w: number, h: number): Composicao {
-  const imgW = COMPOSICAO.larguraFig * w;
+  // Fator vertical da composição por unidade de largura da gravura:
+  // corpo da figura abaixo das mãos + subida do centro (dy) + raio.
+  // É o que permite ajustar a largura para a composição INTEIRA caber
+  // na altura h — globo nunca cortado.
+  const rFrac = COMPOSICAO.raioPorVao * GRAV.vao;
+  const dyFrac = Math.sqrt(Math.max(0, rFrac * rFrac - (GRAV.vao / 2) * (GRAV.vao / 2)));
+  const kVert = GRAV.proporcao * (1 - GRAV.maoY) + dyFrac + rFrac;
+  const imgW = Math.min(COMPOSICAO.larguraFig * w, (h - MARGEM_TOPO) / kVert);
   const imgH = imgW * GRAV.proporcao;
   const imgTop = h - imgH; // pedestal na base do palco
   const imgLeft = w / 2 - GRAV.maoMeioX * imgW; // ponto médio das mãos no eixo da esfera
@@ -174,6 +186,7 @@ export function AtlasGlobo() {
   const controlesRef = useRef<{ removeEventListener: (t: string, f: () => void) => void } | null>(null);
   const aoMudarCameraRef = useRef<(() => void) | null>(null);
   const compRef = useRef<Composicao | null>(null);
+  const altRepousoAnteriorRef = useRef<number | null>(null);
 
   // ── dado: TopoJSON + 188 perfis, uma vez ──────────────────────────
   useEffect(() => {
@@ -288,6 +301,7 @@ export function AtlasGlobo() {
     const globo = globoRef.current;
     if (!globo) return;
     globo.pointOfView({ ...DIR_REPOUSO, altitude: compRef.current?.altRepouso ?? 2.3 }, 0);
+    altRepousoAnteriorRef.current = compRef.current?.altRepouso ?? null;
     // Fade do frontispício dirigido pela câmera: o evento 'change' dos
     // OrbitControls cobre roda do mouse E o tween do pointOfView, então
     // a figura esmaece em qualquer zoom-in e reaparece no retorno —
@@ -372,12 +386,27 @@ export function AtlasGlobo() {
   );
   compRef.current = comp;
 
-  // Piso de zoom-out acompanha o repouso quando o palco redimensiona.
+  // Piso de zoom-out E pouso da câmera acompanham o repouso quando o
+  // palco redimensiona (inclusive zoom do browser): se a câmera estava
+  // NO repouso antigo, re-pousa no novo — a esfera segue encaixada nas
+  // mãos em qualquer tamanho de janela. Quem estava voando ou lendo um
+  // país não é puxado.
   useEffect(() => {
+    if (!comp) return;
     const controles = controlesRef.current as { maxDistance?: number } | null;
-    if (controles && comp) {
+    if (controles) {
       controles.maxDistance = (1 + comp.altRepouso) * RAIO_CENA;
     }
+    const globo = globoRef.current;
+    if (globo) {
+      const alt = globo.pointOfView().altitude;
+      const anterior = altRepousoAnteriorRef.current;
+      const estavaEmRepouso = anterior !== null && Math.abs(alt - anterior) < 0.05;
+      if (!voandoRef.current && (anterior === null || estavaEmRepouso)) {
+        globo.pointOfView({ altitude: comp.altRepouso }, 0);
+      }
+    }
+    altRepousoAnteriorRef.current = comp.altRepouso;
   }, [comp]);
 
   // ── alvo do tooltip: derivado do hover + índice O(1) por ISO ──────

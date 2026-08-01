@@ -1,15 +1,21 @@
-// AtlasStub — Atlas Mundial de Energia (Wave 27).
+// AtlasStub — Atlas Mundial de Energia (Wave 27; frontispício e
+// composição de página na Wave 28 + revisão direta).
 //
 // O nome do arquivo fica: é o contrato de rota da Wave 6, e o
-// AlexandriaRouter (fora da posse) importa daqui. O corpo deixou de
-// ser stub — é a página real do globo.
+// AlexandriaRouter (fora da posse) importa daqui.
+//
+// Revisão direta pós-Wave 28 (pedido do Aquiles): o globo inteiro na
+// tela — o palco ocupa a altura útil do viewport, e título, descrição
+// e referências saem de cima/baixo para a COLUNA LATERAL esquerda,
+// flutuando sobre o creme vazio ao lado da figura. Nada rouba altura
+// do frontispício.
 //
 // O globo é carregado via React.lazy DE PROPÓSITO: react-globe.gl +
 // three-globe pesam ~601 KB raw (193 KB gzip) e o app não tem nenhum
 // outro lazy-loading — sem esta fronteira, o stack Three entraria no
 // bundle que TODA página da plataforma baixa. Com ela, só quem abre
-// /alexandria/atlas paga o chunk. Decisão registrada no relatório da
-// wave; veto limpo = npm uninstall + revert deste arquivo.
+// /alexandria/atlas paga o chunk. Veto limpo = npm uninstall + revert
+// deste arquivo.
 
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
@@ -41,13 +47,22 @@ function derivarLegenda(mundo: MundoAtlas): LegendaAtlas {
   };
 }
 
-function CelulaLegenda({ rotulo, valor }: { rotulo: string; valor: string }) {
+function LinhaLegenda({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xs, minWidth: 0 }}>
-      <span style={{ ...AT.rotulo, fontSize: '9px', letterSpacing: '0.15em', color: A2.tintaMetadado }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        gap: AS.md,
+        borderBottom: `1px solid ${A2.fioClaroSobreCreme}`,
+        padding: `${AS.xs} 0`,
+      }}
+    >
+      <span style={{ ...AT.rotulo, fontSize: '8px', letterSpacing: '0.13em', color: A2.tintaMetadado }}>
         {rotulo}
       </span>
-      <span style={{ ...AT.dado, color: A.tintaSobreCreme }}>{valor}</span>
+      <span style={{ ...AT.dado, fontSize: '13px', color: A.tintaSobreCreme }}>{valor}</span>
     </div>
   );
 }
@@ -66,33 +81,10 @@ export function AtlasStub() {
 
   return (
     <AlexandriaShell navAtivo="atlas">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xl }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
-          <span style={{ ...AT.rotulo, color: A.terracota }}>Atlas</span>
-          <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>
-            Atlas Mundial de Energia
-          </h1>
-          <p style={{ ...AT.corpo, fontSize: '15px', color: A.tintaSuave, margin: 0 }}>
-            Cada país soberano com seu perfil elétrico real — matriz de
-            geração, participação renovável, intensidade de carbono —
-            extraído do Our World in Data, com fonte citada por campo.
-            Gire a esfera com o mouse; pare o cursor sobre um país para
-            a leitura rápida, e clique para voar até ele e abrir o
-            perfil completo.
-          </p>
-        </div>
-
-        {/* Palco do globo (Wave 28): sem moldura e sem caixa pequena —
-            a esfera é peça central da página, largura útil inteira do
-            canvas entre os rails, sobre o próprio papel creme. A
-            gravura do frontispício compõe com ela aqui dentro. */}
-        <div
-          style={{
-            width: '100%',
-            height: 'clamp(520px, 76vh, 900px)',
-            overflow: 'hidden',
-          }}
-        >
+      {/* Palco em altura de viewport: 100vh − header (70) − paddings
+          da prancha. O globo é a página; o rodapé vem no scroll. */}
+      <div style={{ position: 'relative', height: 'max(520px, calc(100vh - 140px))' }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
           <Suspense
             fallback={
               <div
@@ -112,56 +104,71 @@ export function AtlasStub() {
           </Suspense>
         </div>
 
-        {/* Legenda da prancha — contagens DERIVADAS da junção real. */}
-        {legenda !== null && (
-          <div
-            style={{
-              display: 'flex',
-              gap: AS.xl,
-              flexWrap: 'wrap',
-              borderTop: `1px solid ${A.fioSobreCreme}`,
-              borderBottom: `1px solid ${A.fioSobreCreme}`,
-              padding: `${AS.md} 0`,
-            }}
-          >
-            <CelulaLegenda rotulo="Perfis soberanos" valor={String(legenda.perfisSemGeometria + legenda.comPerfil)} />
-            <CelulaLegenda rotulo="Ano de referência" valor={legenda.ano} />
-            <CelulaLegenda rotulo="Fronteiras 1:110m" valor={String(legenda.fronteiras)} />
-            <CelulaLegenda rotulo="Com perfil no globo" valor={String(legenda.comPerfil)} />
-            <CelulaLegenda rotulo="Território sem dado" valor={String(legenda.semDado)} />
-            <CelulaLegenda rotulo="Perfil sem geometria" valor={String(legenda.perfisSemGeometria)} />
-          </div>
-        )}
-
-        {/* Proveniência + limitações reais, declaradas na página. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
-          <span style={{ ...AT.dado, fontSize: '12px', color: A2.tintaMetadado }}>
-            Fronteiras: Natural Earth 1:110m (TopoJSON world-atlas, cópia
-            byte-idêntica). Perfis: Our World in Data — Ember, Energy
-            Institute, EIA. Território desenhado sem perfil (Taiwan,
-            Groenlândia, Antártida…) declara ausência no cursor — nenhum
-            número é inventado. Micro-Estados insulares têm perfil mas
-            não têm geometria nesta escala.
-          </span>
-        </div>
-
-        {/* Camada Brasil: wave separada, ainda não construída. Mesmo
-            registro de produção do sistema inteiro. */}
+        {/* Coluna lateral esquerda — masthead, leitura e referências.
+            pointerEvents none: o arrasto do globo atravessa o texto. */}
         <div
           style={{
-            border: `1px dashed ${A.terracota}`,
-            borderRadius: AR.none,
-            padding: `${AS.md} ${AS.lg}`,
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '248px',
             display: 'flex',
             flexDirection: 'column',
-            gap: AS.xs,
+            gap: AS.lg,
+            pointerEvents: 'none',
           }}
         >
-          <span style={{ ...AT.rotulo, fontSize: '9px', color: A.terracota }}>Em produção</span>
-          <span style={{ ...AT.dado, fontSize: '12px', color: A.tintaSuave }}>
-            Camada Brasil — os quatro submercados do SIN sobre esta mesma
-            esfera — é wave separada, ainda não construída.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+            <span style={{ ...AT.rotulo, color: A.terracota }}>Atlas</span>
+            <h1 style={{ ...AT.h1, fontSize: '26px', lineHeight: 1.25, color: A.tintaSobreCreme, margin: 0 }}>
+              Atlas Mundial de Energia
+            </h1>
+            <p style={{ ...AT.corpo, fontSize: '13px', lineHeight: 1.6, color: A.tintaSuave, margin: 0 }}>
+              Cada país soberano com seu perfil elétrico real — matriz de
+              geração, participação renovável, intensidade de carbono —
+              extraído do Our World in Data, com fonte citada por campo.
+              Gire a esfera com o mouse; pare o cursor sobre um país
+              para a leitura rápida, e clique para voar até ele.
+            </p>
+          </div>
+
+          {/* Legenda da prancha — contagens DERIVADAS da junção real. */}
+          {legenda !== null && (
+            <div style={{ display: 'flex', flexDirection: 'column', borderTop: `1px solid ${A.fioSobreCreme}` }}>
+              <LinhaLegenda rotulo="Perfis soberanos" valor={String(legenda.perfisSemGeometria + legenda.comPerfil)} />
+              <LinhaLegenda rotulo="Ano de referência" valor={legenda.ano} />
+              <LinhaLegenda rotulo="Fronteiras 1:110m" valor={String(legenda.fronteiras)} />
+              <LinhaLegenda rotulo="Com perfil no globo" valor={String(legenda.comPerfil)} />
+              <LinhaLegenda rotulo="Território sem dado" valor={String(legenda.semDado)} />
+              <LinhaLegenda rotulo="Perfil sem geometria" valor={String(legenda.perfisSemGeometria)} />
+            </div>
+          )}
+
+          <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.55, color: A2.tintaMetadado }}>
+            Fronteiras: Natural Earth 1:110m (TopoJSON, cópia
+            byte-idêntica). Perfis: Our World in Data — Ember, Energy
+            Institute, EIA. Território sem perfil declara ausência no
+            cursor — nenhum número é inventado. Micro-Estados insulares
+            têm perfil mas não têm geometria nesta escala.
           </span>
+
+          {/* Camada Brasil: wave separada, ainda não construída. */}
+          <div
+            style={{
+              border: `1px dashed ${A.terracota}`,
+              borderRadius: AR.none,
+              padding: `${AS.sm} ${AS.md}`,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: AS.xs,
+            }}
+          >
+            <span style={{ ...AT.rotulo, fontSize: '8px', color: A.terracota }}>Em produção</span>
+            <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.5, color: A.tintaSuave }}>
+              Camada Brasil — os quatro submercados do SIN sobre esta
+              mesma esfera — é wave separada, ainda não construída.
+            </span>
+          </div>
         </div>
       </div>
     </AlexandriaShell>

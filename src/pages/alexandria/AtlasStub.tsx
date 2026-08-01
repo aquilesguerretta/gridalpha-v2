@@ -76,7 +76,9 @@ export function AtlasStub() {
             Cada país soberano com seu perfil elétrico real — matriz de
             geração, participação renovável, intensidade de carbono —
             extraído do Our World in Data, com fonte citada por campo.
-            Gire a esfera com o mouse; pare o cursor sobre um país.
+            Gire a esfera com o mouse; pare o cursor sobre um país para
+            a leitura rápida, e clique para voar até ele e abrir o
+            perfil completo.
           </p>
         </div>
 

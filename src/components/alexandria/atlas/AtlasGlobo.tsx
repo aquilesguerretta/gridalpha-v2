@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import { MeshPhongMaterial, Color } from 'three';
+import { geoCentroid, geoBounds } from 'd3-geo';
 import { A, A2, AT, AS } from '../../../design/alexandria-tokens';
 import {
   carregarMundo,
@@ -23,8 +24,10 @@ import {
   nomePaisPt,
   type MundoAtlas,
   type PaisFeature,
+  type PaisResumo,
 } from '../../../lib/atlas/worldApi';
 import { PaisTooltip, type AlvoTooltip } from './PaisTooltip';
+import { PaisPerfil } from './PaisPerfil';
 
 // ─────────────────────────────────────────────────────────────────────
 // Curva de movimento — a MESMA cubic-bezier(0.65, 0, 0.35, 1) de
@@ -52,6 +55,11 @@ function bezierAlexandria(p: number): number {
 const FADE_MS = 180; // dentro da janela 150-200ms do brief
 const OPACIDADE_HOVER = 0.38;
 
+// Duração do voo de câmera: AE.desenhoLongo (1200ms), o teto já
+// travado do sistema. pointOfView não tem callback de término — o fim
+// se marca por timer da mesma duração, e SÓ ENTÃO o perfil abre.
+const VOO_MS = 1200;
+
 // Pouso da câmera em repouso: Atlântico, com Brasil, África e Europa
 // visíveis no primeiro paint.
 const POV_REPOUSO = { lat: 8, lng: -35, altitude: 2.3 };
@@ -71,6 +79,10 @@ export function AtlasGlobo() {
   const [erro, setErro] = useState<string | null>(null);
   const [tamanho, setTamanho] = useState<{ w: number; h: number } | null>(null);
   const [hover, setHover] = useState<PaisFeature | null>(null);
+  const [selecionado, setSelecionado] = useState<{
+    feature: PaisFeature;
+    resumo: PaisResumo | null;
+  } | null>(null);
   const [, tick] = useReducer((c: number) => c + 1, 0);
 
   const areaRef = useRef<HTMLDivElement | null>(null);
@@ -78,6 +90,8 @@ export function AtlasGlobo() {
   const animsRef = useRef(new Map<string, AnimHover>());
   const opacidadesRef = useRef(new Map<string, number>());
   const rafRef = useRef<number | null>(null);
+  const vooRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voandoRef = useRef(false);
 
   // ── dado: TopoJSON + 188 perfis, uma vez ──────────────────────────
   useEffect(() => {
@@ -134,6 +148,7 @@ export function AtlasGlobo() {
 
   useEffect(() => () => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    if (vooRef.current !== null) clearTimeout(vooRef.current);
   }, []);
 
   const aoHover = useCallback((poligono: object | null) => {
@@ -144,6 +159,43 @@ export function AtlasGlobo() {
       return f;
     });
   }, [iniciarFade]);
+
+  // ── clique → voo de câmera → SÓ ENTÃO o perfil abre. Navegar antes
+  //    do movimento terminar cortaria a sensação de voar até lá. ─────
+  const aoClicar = useCallback((poligono: object) => {
+    const f = poligono as PaisFeature;
+    const globo = globoRef.current;
+    if (!mundo || !globo || voandoRef.current) return;
+
+    const [lng, lat] = geoCentroid(f);
+    // Altitude proporcional ao tamanho do país — a Rússia não cabe no
+    // enquadramento de Fiji. geoBounds em graus; clamp em [0.5, 1.6].
+    const [[oeste, sul], [leste, norte]] = geoBounds(f);
+    const spanLng = Math.abs(leste - oeste) > 180 ? 360 - Math.abs(leste - oeste) : Math.abs(leste - oeste);
+    const span = Math.max(spanLng, Math.abs(norte - sul));
+    const altitude = Math.min(1.6, Math.max(0.5, span / 40));
+
+    setSelecionado(null); // perfil anterior sai antes do voo, não durante
+    voandoRef.current = true;
+    globo.pointOfView({ lat, lng, altitude }, VOO_MS);
+    vooRef.current = setTimeout(() => {
+      voandoRef.current = false;
+      const a3 = f.properties.a3;
+      setSelecionado({ feature: f, resumo: a3 ? (mundo.porIso.get(a3) ?? null) : null });
+    }, VOO_MS + 50);
+  }, [mundo]);
+
+  // ── retorno: perfil fecha no clique, câmera voa de volta —
+  //    movimento simétrico ao de entrada, mesma duração ──────────────
+  const aoVoltar = useCallback(() => {
+    setSelecionado(null);
+    const globo = globoRef.current;
+    if (globo) {
+      voandoRef.current = true;
+      globo.pointOfView(POV_REPOUSO, VOO_MS);
+      vooRef.current = setTimeout(() => { voandoRef.current = false; }, VOO_MS + 50);
+    }
+  }, []);
 
   const aoGloboPronto = useCallback(() => {
     const globo = globoRef.current;
@@ -211,7 +263,7 @@ export function AtlasGlobo() {
     <div
       ref={areaRef}
       role="img"
-      aria-label="Globo interativo com o perfil energético de 188 países soberanos. Passe o cursor sobre um país para o resumo."
+      aria-label="Globo interativo com o perfil energético de 188 países soberanos. Passe o cursor sobre um país para o resumo; clique para voar até ele e abrir o perfil completo."
       style={{
         position: 'relative',
         width: '100%',
@@ -253,11 +305,21 @@ export function AtlasGlobo() {
           polygonStrokeColor={corContorno}
           polygonsTransitionDuration={0}
           onPolygonHover={aoHover}
+          onPolygonClick={aoClicar}
           animateIn={false}
         />
       )}
 
       <PaisTooltip alvo={alvoTooltip} areaRef={areaRef} />
+
+      {selecionado !== null && (
+        <PaisPerfil
+          nome={nomePaisPt(selecionado.feature.properties, selecionado.resumo?.countryName)}
+          isoA3={selecionado.feature.properties.a3}
+          resumo={selecionado.resumo}
+          aoVoltar={aoVoltar}
+        />
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ from app.routers import (
     ai,
     ancillary,
     atlas,
+    atlas_world,
     auth,
     energy,
     fuel_mix,
@@ -78,6 +79,9 @@ app.include_router(infra_router)  # /api/infra/* (Wave 7 static infrastructure)
 # Wave 9 platform identity — one account per person, activation per product.
 app.include_router(auth.router)  # /api/auth/*
 app.include_router(products.router)  # /api/products/*
+
+# Wave 10 world atlas — real Our World in Data country energy profiles.
+app.include_router(atlas_world.router)  # /api/atlas/world/*
 
 
 @app.get("/health")

@@ -2950,6 +2950,96 @@ seguem intactas.
 **Variáveis novas no Railway:** só `JWT_SECRET` (já setada). As cinco de
 cookie e a de TTL são opcionais — o default cobre o deploy de hoje.
 
+## CURSOR WAVE 10 — ATLAS MUNDIAL DE ENERGIA (OWID)
+
+**Status:** fechada. Base de dado real para o globo do Atlas mundial da
+Alexandria — um perfil de energia por país, real, com fonte citada por
+campo. Migration aditiva, roteador novo, zero linha tocada nas Waves 7-9.
+
+**Fonte:** [Our World in Data — energy dataset](https://github.com/owid/energy-data).
+A URL do codebook no brief (`owid-public.owid.io/.../owid-energy-codebook.csv`)
+dá 404 — o codebook só existe no espelho do GitHub,
+`raw.githubusercontent.com/owid/energy-data/master/owid-energy-codebook.csv`.
+A URL do JSON de dados do brief está correta.
+
+### Fase 1 — dois achados reais, medidos antes de qualquer schema
+
+**12 campos escolhidos**, não as 130 colunas do dataset (o brief dizia 134;
+o OWID revisou o dataset desde então — reportado como medido, não corrigido
+pra bater com o brief): `population`, `electricity_generation`,
+`renewables_share_elec`, `carbon_intensity_elec`, `energy_per_capita`,
+`fossil_share_elec`, `nuclear_share_elec`, `hydro_share_elec`,
+`wind_share_elec`, `solar_share_elec`, `biofuel_share_elec`,
+`other_renewables_share_elec_exc_biofuel`. Justificativa e citação completa
+por campo em `docs/v2-backend-contract.md` § "World energy atlas (Wave 10)"
+e em `app/db/models/country_energy.py::FIELD_DEFINITIONS`, copiadas literais
+do codebook — nenhuma citação inventada.
+
+**Ano de referência: 2023, não o mais recente do dataset.** Os campos de
+eletricidade (Ember) chegam a 2024 pra maioria dos 188 países soberanos, mas
+`energy_per_capita` (EIA/Energy Institute) só completa 100% do conjunto
+soberano em 2023 — uma defasagem real de um ano. Contagem de países com os
+12 campos simultaneamente preenchidos: **161/188 (86%) em 2023** contra
+**55/188 (29%) em 2024**. 2023 é o ano mais recente com dado completo pra
+maioria, e é isso que ficou no `year` de toda linha — nenhum campo é
+retroalimentado de um ano diferente pra "completar" a linha, o que
+misturaria vintage dentro do mesmo snapshot.
+
+### Contagem: 188 países, não ~195
+
+314 entidades no dataset, 220 com `iso_code`. Critério aplicado: Estado-
+membro da ONU ou observador permanente (Palestina presente; Vaticano
+ausente — o OWID não tem dado de energia dele, soberano ou não). Excluídas
+32 entidades com `iso_code` que não são soberanas: Porto Rico, Hong Kong,
+Macau, Bermudas, Guam, Guiana Francesa, Groenlândia, Gibraltar, Taiwan (não
+é membro da ONU desde 1971), Saara Ocidental, Antártida e mais 21 — lista
+completa com motivo em
+`app/scripts/ingest_owid_energy.py::NON_SOVEREIGN_ISO3`. O gap real de 7
+para 195 vem principalmente de Taiwan e de territórios do Pacífico/Caribe
+que o dataset também rastreia com código ISO.
+
+### Schema — aditivo, migration `0003_country_energy`
+
+`country_energy_profile` (`iso_code` UNIQUE, `country_name`, `year`, os 12
+campos, `updated_at`) + `country_energy_field_source` (`field_name` PK,
+`source_citation`, `unit` — um registro por campo ingerido, nunca
+inventado). Todos os 12 campos de métrica são NULLABLE — honestidade de
+null em vez de zero inventado, mesmo idioma que a Alexandria já usa em
+conteúdo de currículo, aplicado aqui a dado de mercado. 27 dos 188 países
+têm pelo menos um campo null em 2023 — a maior causa isolada é
+`other_renewables_share_elec_exc_biofuel` (26 países, inclusive economias
+grandes como Brasil, Canadá, China e Índia — o Ember não decompõe essa
+categoria quase-zero pra todo país).
+
+### Ingestão — `app/scripts/ingest_owid_energy.py`
+
+188 linhas em `country_energy_profile`, 12 em `country_energy_field_source`.
+Upsert por `iso_code`/`field_name` — reexecutar é idempotente.
+
+### Endpoints — `app/routers/atlas_world.py`
+
+`GET /api/atlas/world/countries` (lista os 188, perfil resumido) e
+`GET /api/atlas/world/countries/{iso}` (perfil completo + `fieldSources` com
+unidade e citação por campo). Envelope canônico `{meta, data, summary}` —
+mesma convenção dos endpoints de infraestrutura (Waves 7-9), não a de auth,
+porque isto é dado de referência de mercado. Sem bbox, sem paginação — ~188
+linhas cabem inteiras. `404` pra ISO fora do conjunto ingerido, `422` pra
+ISO malformado (não tem 3 letras).
+
+### Smoke test — local (TestClient contra o banco real) e produção (HTTPS)
+
+Ambos batendo 200 com os mesmos números: 188 países, Brasil 88,995%
+renovável / 60,159% hidro / 96,26 gCO₂/kWh, França 65,195% nuclear, EUA
+59,106% fóssil, Japão 70,169% fóssil — todos plausíveis contra conhecimento
+real de cada matriz elétrica. `fieldSources` com 12 entradas em cada
+resposta de país, todas com `unit` e `sourceCitation` preenchidos.
+Verificação de regressão: `GET /api/infra/batteries` (Wave 8) segue 200
+depois do deploy — nenhuma tabela ou rota das Waves 7-9 foi tocada.
+
+**Gates:** migration `0003_country_energy` aplicada sobre `0002_identity`
+sem tocar as tabelas de infraestrutura/identidade. Deploy no Railway
+(`gridalpha-v2-production`) verificado por HTTPS real depois do push.
+
 ## ARCHITECT — IDENTIDADE DE PLATAFORMA WAVE 1
 
 **Status:** fechada. Consumidor frontend da Wave 9 do backend — contexto

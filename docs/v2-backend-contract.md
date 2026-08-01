@@ -814,11 +814,166 @@ address that already exists under another method.
 
 ---
 
+## World energy atlas (Wave 10)
+
+Real per-country energy profiles for the Alexandria world Atlas globe.
+Source: [Our World in Data energy dataset](https://github.com/owid/energy-data)
+— `owid-energy-data.json` for values, `owid-energy-codebook.csv` for units and
+source citations. Neither file is checked into the repo; the ingest script
+downloads fresh on every run. **Note:** the brief's codebook URL
+(`owid-public.owid.io/.../owid-energy-codebook.csv`) 404s — the codebook only
+exists on the GitHub mirror,
+`https://raw.githubusercontent.com/owid/energy-data/master/owid-energy-codebook.csv`.
+The JSON data URL from the brief is correct.
+
+Two envelope-shaped endpoints, no bbox, no pagination — the whole set is
+~188 rows and fits in one response.
+
+### `GET /api/atlas/world/countries`
+
+Lists every ingested country with a summarized profile.
+
+```json
+{
+  "meta": {
+    "timestamp": "2026-08-01T12:39:16Z",
+    "source": "our-world-in-data-energy",
+    "data_age_seconds": 0,
+    "count": 188,
+    "year": "2023"
+  },
+  "data": [
+    {
+      "isoCode": "BRA",
+      "countryName": "Brazil",
+      "year": 2023,
+      "population": 211140731,
+      "electricityGenerationTwh": 708.12,
+      "renewablesShareElecPct": 88.995,
+      "carbonIntensityElecGco2PerKwh": 96.26,
+      "energyPerCapitaKwh": 18252.027,
+      "fuelMix": {
+        "fossilPct": 8.958,
+        "nuclearPct": 2.048,
+        "hydroPct": 60.159,
+        "windPct": 13.529,
+        "solarPct": 7.15,
+        "biofuelPct": 8.157,
+        "otherRenewablesExcBiofuelPct": null
+      }
+    }
+  ],
+  "summary": "188 sovereign countries with a 2023 energy profile from Our World in Data."
+}
+```
+
+### `GET /api/atlas/world/countries/{iso}`
+
+One country, full profile plus a citation and unit for every field.
+`iso` is a 3-letter ISO 3166-1 alpha-3 code (case-insensitive; `422` if not
+3 letters, `404` if not in the ingested set). Response `data` is the same
+shape as a list item plus `fieldSources`:
+
+```json
+{
+  "fieldSources": {
+    "renewables_share_elec": {
+      "unit": "%",
+      "sourceCitation": "Ember - Yearly Electricity Data Europe (2026) [https://ember-energy.org/data/yearly-electricity-data/]; Ember - Yearly Electricity Data (2026) [https://ember-energy.org/data/yearly-electricity-data/]; Energy Institute - Statistical Review of World Energy (2025) [https://www.energyinst.org/statistical-review/]"
+    }
+  }
+}
+```
+
+`fieldSources` keys are the raw OWID column names (snake_case), not the
+camelCase response keys — deliberate, so a field's citation is traceable
+back to the exact codebook row it came from without a translation table.
+
+### Field selection (Fase 1 of the wave)
+
+12 columns chosen out of the dataset's 130 (the brief said 134; OWID has
+revised the dataset since, reported as measured):
+
+| Field | Role | Unit |
+| --- | --- | --- |
+| `population` | context for interpreting per-capita figures | people |
+| `electricity_generation` | total generation | TWh |
+| `renewables_share_elec` | renewable participation | % |
+| `carbon_intensity_elec` | carbon intensity | gCO₂eq/kWh |
+| `energy_per_capita` | consumption per capita (primary energy, not just electricity) | kWh/person |
+| `fossil_share_elec` | fuel mix — fossil | % |
+| `nuclear_share_elec` | fuel mix — nuclear | % |
+| `hydro_share_elec` | fuel mix — hydro | % |
+| `wind_share_elec` | fuel mix — wind | % |
+| `solar_share_elec` | fuel mix — solar | % |
+| `biofuel_share_elec` | fuel mix — biofuel | % |
+| `other_renewables_share_elec_exc_biofuel` | fuel mix — other renewables (geothermal/wave/tidal), **excludes** bioenergy so it never double-counts against `biofuel_share_elec` | % |
+
+Deliberately excluded: per-fuel sub-splits of fossil (coal/oil/gas shares)
+and the `*_share_energy` (primary-energy-basis) variants — the brief asks
+for the aggregated matrix, and the `*_share_energy` fields have materially
+worse country coverage (Energy Institute-only, ~90 countries) than the
+`*_share_elec` fields used here (Ember-sourced, full sovereign set).
+Bilateral trade and country border geometry are out of scope by the brief's
+own instruction.
+
+### Reference year: 2023, not the newest year in the dataset
+
+Measured, not assumed. The electricity-mix fields (Ember) reach 2024 for
+most of the 188 sovereign countries, but `energy_per_capita` (EIA / Energy
+Institute) only reaches 100% coverage of the sovereign set at **2023** — one
+calendar year behind. Countries with all 12 fields populated simultaneously,
+by year:
+
+| Year | Countries fully populated |
+| --- | --- |
+| 2024 | 55 / 188 (29%) |
+| 2023 | 161 / 188 (86%) |
+| 2022 | 162 / 188 (86%) |
+
+2023 is the most recent year with complete data for the majority of
+countries — the real lag the brief asked to be reported instead of presumed.
+The 27 countries still missing a field at 2023 are mostly missing
+`other_renewables_share_elec_exc_biofuel` (26 countries, including large
+economies like Brazil, Canada, China, and India — Ember does not break out
+this near-zero category for every country) or are small states with partial
+Ember coverage (Lesotho, Tuvalu, Micronesia) or Ukraine (disrupted reporting).
+Every row uses the same year uniformly — no field is silently backfilled
+from a different year, which would mix vintages inside one supposed
+snapshot.
+
+### Country count: 188, not ~195
+
+The OWID dataset carries 314 entities; 220 have an `iso_code`. Of those, 32
+are non-sovereign territories, dependencies, disputed territories, or
+defunct entities that still carry an ISO code — Puerto Rico, Hong Kong,
+Macao, Bermuda, Guam, French Guiana, Greenland, Gibraltar, Taiwan (not a UN
+member since 1971), Western Sahara, and 22 more. The full exclusion list
+with reasons lives in
+`app/scripts/ingest_owid_energy.py::NON_SOVEREIGN_ISO3`. The remaining 188
+are UN member states or permanent observer states (Palestine is present;
+Vatican is absent — OWID has no energy data for it at all, sovereign or
+not). The 7-country gap from ~195 is real, not a bug — mainly Taiwan plus a
+handful of Pacific/Caribbean territories the dataset also tracks under an
+ISO code.
+
+### Refresh
+
+```bash
+py -3 -m alembic upgrade head          # once, for the schema
+py -3 -m app.scripts.ingest_owid_energy
+```
+
+Upserts on `iso_code`, so re-running is idempotent.
+
+---
+
 ## Versioning
 
 This contract is version `1.0` (Wave 5). Wave 7 adds Endpoints 13–15
-(infrastructure viewport APIs) and Wave 9 adds Endpoints 16–21 (platform
-identity) additively under the same version.
+(infrastructure viewport APIs), Wave 9 adds Endpoints 16–21 (platform
+identity), and Wave 10 adds the world energy atlas endpoints
+(`/api/atlas/world/*`) additively under the same version.
 Additive changes (new fields in `meta` or `data`) remain non-breaking.
 Field renames or removals require a new version doc and coordinated
 frontend update.

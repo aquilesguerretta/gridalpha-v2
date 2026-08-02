@@ -164,7 +164,6 @@ export const INSTRUMENTOS_MODULO_06: Instrument[] = [
       { id: "i2-cb", label: "Cobertura", unit: null },
       { id: "i2-rp", label: "Custo de reposição", unit: null },
       { id: "i2-pc", label: "Poder de compra da receita", unit: null },
-      { id: "i2-a5", label: "Anos até cair a 50%", unit: null },
     ],
     note: null,
   },
@@ -201,7 +200,6 @@ export const INSTRUMENTOS_MODULO_06: Instrument[] = [
     ],
     outputs: [
       { id: "i4-ct", label: "Corte necessário", unit: null },
-      { id: "i4-ms", label: "Meses até o limite", unit: null },
       { id: "i4-qm", label: "Queda mensal sem corte", unit: null },
     ],
     note: null,

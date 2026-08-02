@@ -114,6 +114,65 @@ const mi = (v: number) => {
   return 'R$ ' + Math.round(v).toLocaleString('pt-BR');
 };
 
+
+import { MODULO_06_TRAUMA_CICATRIZ } from './alexandria-modulo-06-content';
+
+/** ── Constantes e helpers do Módulo 06 ──────────────────────
+ *
+ *  Literais do <script> da fonte. O Módulo 06 é de HISTÓRIA: boa parte
+ *  das saídas dele é qualitativa, e por isso vários instrumentos têm
+ *  menos entradas em `valores` do que readouts na tela. O veredito —
+ *  que é string — carrega o resto, exatamente como o original faz. */
+const M06_BASE = 11;      // consumo mensal de referência do INST 04
+const M06_FLOOR = 15;     // nível abaixo do qual o sistema é inoperável
+const M06_RES = 5;        // reserva sobre o piso
+const M06_R = 0.10;       // remuneração real do INST 02
+
+/** As três arquiteturas do INST 05. A fonte inicia em `cur=0`, e o
+ *  seletor de regime é um segmentado que não foi extraído como campo —
+ *  o único campo do instrumento é o horizonte. */
+const M06_REG = [
+  { n: '1962–1993 · estatal integrado', F0: 45, S0: 28 },
+  { n: '1995–2003 · reforma em transição', F0: 88, S0: 12 },
+  { n: '2004– · híbrido', F0: 58, S0: 58 },
+];
+
+const m06Falta = (F0: number, h: number) => F0 * Math.pow(Math.max(0, 1 - h / 7), 1.6);
+const m06Sobra = (S0: number, h: number) => S0 * Math.pow(clamp06(h / 6, 0, 1), 1.4);
+const clamp06 = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
+
+/** Escada de limiares do ACL, literal do `thr()` da fonte, no ramo
+ *  padrão (Grupo A, fonte convencional): quem podia migrar, e a partir
+ *  de que carga, em cada ano. */
+function m06Limiar(ano: number): number {
+  if (ano >= 2024) return 0;
+  if (ano >= 2023) return 500;
+  if (ano >= 2022) return 1000;
+  if (ano >= 2021) return 1500;
+  if (ano >= 2020) return 2000;
+  if (ano >= 2019) return 2500;
+  if (ano >= 1996) return 3000;
+  return -1;
+}
+function m06Norma(ano: number): string {
+  if (ano >= 2024) return 'Port. Norm. 50/2022';
+  if (ano >= 2021) return 'Portaria MME 465/2019';
+  if (ano >= 2019) return 'Portaria MME 514/2018';
+  if (ano >= 1996) return 'Lei 9.074/1995';
+  return 'sem previsão à época';
+}
+const m06Elegivel = (ano: number, kW: number) => {
+  const t = m06Limiar(ano);
+  return t >= 0 && kW >= t;
+};
+
+const pct = (v: number, d = 1) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }) + '%';
+const mmi = (v: number) =>
+  Math.abs(v) >= 1000
+    ? 'R$ ' + (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' bi'
+    : 'R$ ' + v.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' mi';
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -1541,6 +1600,243 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
     return { valores: { 'i6-co': coer, 'i6-d': dist }, veredito };
   },
+
+  // ══════════════════════════════════════════════════════════
+  // MÓDULO 06 — História do Setor Elétrico Brasileiro
+  //
+  // PORTADOS do <script> de `alexandria_modulo06.html`. Sete de aula:
+  // o `Inst · 01` (Linha do tempo) vive no § MAP, fora de aula, e não
+  // tem cálculo — só navegação entre 14 marcos.
+  // ══════════════════════════════════════════════════════════
+
+  // ── m06 INST 02 · a erosão do custo histórico ─────────────
+  // Custo histórico corrigido por inflação composta, com uma parcela
+  // indexada a moeda estrangeira (câmbio somado à inflação). A cobertura
+  // é o inverso do fator — é o que mostra a tarifa perdendo aderência ao
+  // custo de reposição sem ninguém decidir nada.
+  'm06-inst-02': (i) => {
+    const Hh = n(i['i2-h-n']);
+    const I = n(i['i2-i-n']);
+    const N = n(i['i2-n-n']);
+    const Mm = n(i['i2-m-n']);
+    const C = n(i['i2-c-n']);
+    const fator = (nn: number) =>
+      (1 - Mm / 100) * Math.pow(1 + I / 100, nn) + (Mm / 100) * Math.pow(1 + (I + C) / 100, nn);
+    const f = fator(N);
+    const cb = 1 / f;
+    const rep = Hh * f;
+    const pc = (M06_R * Hh) / Math.pow(1 + I / 100, N);
+    // 'Anos até cair a 50%' é TEXTO na fonte ('12 anos' / '> 60 anos'),
+    // então fica fora de `valores` e só aparece no veredito.
+    let a5 = '> 60 anos';
+    for (let k = 1; k <= 60; k++) {
+      if (1 / fator(k) < 0.5) { a5 = k + ' anos'; break; }
+    }
+    return {
+      valores: { 'i2-cb': cb * 100, 'i2-rp': rep, 'i2-pc': pc },
+      veredito: ((): string => {
+    if (cb>=0.90) return `Cobertura de ${pct(cb*100)}. Nesta combinação, remunerar pelo custo histórico ainda sustenta a reposição do ativo: a diferença entre valor nominal reconhecido e custo de repor é pequena o bastante para não travar decisão de investimento. É por isso que o regime é impecável em moeda estável — e por isso ele não pareceu problemático quando foi desenhado.`;
+    if (cb>=0.65) return `Cobertura de ${pct(cb*100)} após ${N} anos. A erosão já é perceptível e começa a aparecer como adiamento de expansão, não como recusa explícita. Repare que a queda é composta: cada ano adicional custa mais que o anterior, e ela cruza os 50% em ${a5}.`;
+    if (cb>=0.35) return `Cobertura de ${pct(cb*100)}. A receita reconhecida remunera menos de dois terços do que seria necessário para repor o mesmo ativo. Neste território, expandir deixa de fazer sentido econômico para quem já está na concessão, e o capital novo simplesmente não aparece — sem que nenhuma regra tenha proibido nada. É exatamente o mecanismo que secou o investimento privado entre 1934 e os anos 1940.`;
+    return `Cobertura de ${pct(cb*100)}: o regime deixou de ser regulação de preço e virou expropriação econômica de fato, ainda que não de direito. Com ${Mm}% do equipamento importado e câmbio ${C} pontos acima da inflação, o custo de reposição multiplicou por ${num(f,1)} enquanto a receita ficou nominalmente parada. Nenhum operador expande nessas condições, e a escassez resultante aparece com o atraso típico de uma obra — cinco a dez anos depois da decisão que a causou.`;
+      })(),
+    };
+  },
+
+  // ── m06 INST 03 · como se forma uma dívida intrassetorial ──
+  // Autofinanciamento limitado pela tarifa, captação limitada por teto,
+  // e o que sobra vira dívida com outra empresa do próprio setor — que
+  // não aparece como dívida financeira de ninguém.
+  'm06-inst-03': (i) => {
+    const I = n(i['i3-i-n']);
+    const T = n(i['i3-t-n']);
+    const S = n(i['i3-s-n']);
+    const C = n(i['i3-c-n']);
+    const Y = n(i['i3-y-n']);
+    const autofin = Math.min(I, I * 0.55 * (T / 100));
+    const need = Math.max(0, I - autofin);
+    const captado = Math.min(need, I * 0.5);
+    const naopago = Math.max(0, need - captado);
+    const s = S / 100;
+    const g = C / 100;
+    let df = 0;
+    let di = 0;
+    for (let t = 1; t <= Y; t++) {
+      df += captado * (s * Math.pow(1 + g, Y - t) + (1 - s));
+      di += naopago;
+    }
+    return {
+      valores: {
+        'i3-af': I > 0 ? (autofin / I) * 100 : 0,
+        'i3-df': df,
+        'i3-di': di,
+        'i3-rt': I > 0 ? (df + di) / I : 0,
+      },
+      veredito: ((): string => {
+    if (naopago<=0.001 && T>=100) return `A tarifa cobre integralmente o custo do serviço e a empresa autofinancia ${pct(autofin/I*100,0)} do investimento exigido; o restante é captado dentro do teto de endividamento e nada vira conta não paga. É a única configuração do modelo estatal que se sustenta no tempo — e é exatamente a configuração que a política macroeconômica dos anos 1980 tornou impossível.`;
+    if (naopago<=0.001) return `Sem inadimplência dentro do setor, mas com passivo financeiro acumulado de ${num(df,0)} — ${num(df/I,1)} vezes o investimento anual. Com câmbio ${C} pontos acima da inflação e ${S}% do funding em moeda estrangeira, o serviço dessa dívida cresce mais rápido que a receita, ainda que hoje o caixa feche. É a antessala do problema, não a ausência dele.`;
+    if (di/I<=2) return `A tarifa em ${T}% do custo do serviço deixa ${num(naopago,0)} por ano sem funding, e em ${Y} anos isso vira ${num(di,0)} de obrigações não honradas dentro do próprio setor — além de ${num(df,0)} de dívida financeira. Como todas as empresas pertencem ao mesmo dono, isso não produz falência: produz saldo contábil. O sintoma não aparece no balanço, aparece na obra que não começa.`;
+    return `Passivo total de ${num(df+di,0)}, ou ${num((df+di)/I,1)} vezes o investimento anual, dos quais ${num(di,0)} são conta simplesmente não paga entre empresas. Nesta faixa o fluxo financeiro do setor deixa de ser legível: ninguém consegue dizer com precisão quem deve quanto a quem, e nenhuma empresa pode ser avaliada — nem para venda, nem para recapitalização pública. É o estado em que o setor chegou a 1993, e é por isso que a reforma começou por um encontro de contas.`;
+      })(),
+    };
+  },
+
+  // ── m06 INST 04 · termômetro do racionamento ──────────────
+  // Balanço de energia num período seco: quanto do consumo precisa ser
+  // cortado para o armazenamento não furar o piso operativo.
+  //
+  // 'Termômetro' NÃO é membro de InstrumentKind, e o tipo é
+  // somente-leitura. Mapeado para 'simulador' pela mecânica (campos
+  // numéricos → readouts), com o título literal preservado na tela.
+  'm06-inst-04': (i) => {
+    const E = n(i['i4-e-n']);
+    const A = n(i['i4-a-n']);
+    const Mg = n(i['i4-m-n']);
+    const T = n(i['i4-t-n']);
+    const extra = Math.max(0, 8 - Mg) * 0.25;
+    const bruto = M06_BASE + extra;
+    const aporte = M06_BASE * (A / 100);
+    const d = bruto - aporte;
+    const usable = Math.max(0, E - (M06_FLOOR + M06_RES));
+    const permitido = T > 0 ? usable / T : 0;
+    const r = clamp06(1 - (permitido + aporte) / bruto, 0, 1);
+    // 'Meses até o limite' e 'Nível final sem corte' são TEXTO na fonte
+    // ('não atinge', 'já abaixo', 'esgotado'): não há onde guardá-los em
+    // , e o veredito literal do original já os narra.
+    return {
+      valores: { 'i4-ct': r * 100, 'i4-qm': d },
+      veredito: ((): string => {
+    if (r<=0.0005) return `Nenhum corte necessário. Com afluência em ${A}% da média e ${Mg}% de margem firme, o sistema atravessa os ${T} meses e ainda encerra o período seco com folga sobre o limite operacional. Repare que a margem firme faz parte do resultado: ela é o que permite poupar reservatório sem tocar na demanda.`;
+    if (r<=0.08) return `Corte de ${pct(r*100,1)}. É a faixa em que resposta voluntária, campanha de eficiência e ajuste de contrato ainda dão conta — sem programa compulsório. Mas note quanto disso depende da margem firme: com ${Mg}% de capacidade não hidráulica, quase todo o esforço de poupar reservatório está sendo pedido ao consumidor em vez de ser feito pelo parque gerador.`;
+    if (r<=0.20) return `Corte de ${pct(r*100,1)} — território de programa compulsório com meta, bônus e sobretarifa. Foi aproximadamente aqui que 2001 pousou. O que essa configuração revela não é seca: é margem. Com armazenamento em ${E}% e apenas ${Mg}% de capacidade firme não hidráulica, uma afluência de ${A}% da média já basta para exigir corte, e uma afluência assim está dentro do universo que qualquer planejamento deveria comportar.`;
+    if (r<=0.40) return `Corte de ${pct(r*100,1)}. Nesta profundidade o programa deixa de ser gestão de demanda e passa a redesenhar a produção industrial do país: turnos, contratos de fornecimento, cadeia produtiva inteira. O impacto macroeconômico é da ordem de pontos de PIB, e a distribuição é desigual — quem tem flexibilidade se ajusta, quem não tem, para.`;
+    return `Corte de ${pct(r*100,1)}: acima de quarenta por cento, redução voluntária ou tarifada não entrega, e o sistema passa a depender de interrupção programada — que é outra coisa, com outro custo e outra consequência jurídica. Neste ponto o diagnóstico já não é sobre o período seco em curso, e sim sobre uma decisão de expansão que deixou de ser tomada anos antes.`;
+      })(),
+    };
+  },
+
+  // ── m06 INST 05 · comparador de arquiteturas ──────────────
+  // Risco de faltar cai com o horizonte de contratação; risco de sobrar
+  // sobe. O ponto de menor atrito se DESLOCA conforme a arquitetura —
+  // é esse o argumento da aula.
+  'm06-inst-05': (i) => {
+    const Hh = n(i['i5-h-n']);
+    const R = M06_REG[0];   // a fonte inicia em cur=0
+    const f = m06Falta(R.F0, Hh);
+    const s = m06Sobra(R.S0, Hh);
+    const t = f + s;
+    let best = 0;
+    let bt = 1e9;
+    for (let k = 0; k <= 6; k++) {
+      const tt = m06Falta(R.F0, k) + m06Sobra(R.S0, k);
+      if (tt < bt - 1e-9) { bt = tt; best = k; }
+    }
+    const pre = 'Regime ' + R.n + '. ';
+    return {
+      valores: { 'i5-rf': f, 'i5-rs': s, 'i5-rt': t },
+      veredito: ((): string => {
+    if (Hh===best) return `${pre}Horizonte de ${Hh} ano(s) é o ponto de menor atrito para esta arquitetura: risco de faltar em ${num(f,0)} e de sobrar em ${num(s,0)}. Repare que o ótimo se desloca com o regime — o mesmo horizonte que é prudente numa arquitetura é caro demais em outra, porque o que muda é quanto o resto do desenho já protege contra subinvestimento.`;
+    if (Hh<best) return `${pre}Horizonte de ${Hh} ano(s) contra ${best} de menor atrito. Você está aceitando risco de faltar em ${num(f,0)} para economizar risco de sobrar. Numa arquitetura em que o financiamento da expansão depende de contrato longo, encurtar o horizonte não reduz custo — apenas transfere a incerteza para o investidor, que a devolve no preço do leilão ou simplesmente não aparece.`;
+    return `${pre}Horizonte de ${Hh} ano(s), acima dos ${best} de menor atrito. O risco de faltar já está em ${num(f,0)}, baixo, e o de sobrar em ${num(s,0)} — e sobra também é custo, pago pelo mesmo consumidor que a antecedência deveria proteger. É o trade-off que a arquitetura de 2004 assumiu conscientemente ao trocar risco de racionamento por risco de sobrecontratação.`;
+      })(),
+    };
+  },
+
+  // ── m06 INST 06 · o efeito de uma liminar num rateio ──────
+  // Rateio é sistema fechado: o que um agente deixa de pagar por decisão
+  // judicial não some — é redistribuído entre os demais, o que aumenta a
+  // inadimplência do ciclo seguinte. Três ciclos, com teto de 85%.
+  'm06-inst-06': (i) => {
+    const D = n(i['i6-d-n']);
+    const P = n(i['i6-p-n']);
+    const G = n(i['i6-g-n']);
+    const N = n(i['i6-n-n']);
+    const gar = (D * G) / 100;
+    const p1 = P;
+    const f1 = Math.max(0, (D * p1) / 100 - gar);
+    const p2 = Math.min(85, p1 + 30 * (D > 0 ? f1 / D : 0));
+    const f2 = Math.max(0, (D * p2) / 100 - gar);
+    const p3 = Math.min(85, p2 + 30 * (D > 0 ? f2 / D : 0));
+    const f3 = Math.max(0, (D * p3) / 100 - gar);
+    const acum = f1 + f2 + f3;
+    const tx = D > 0 ? (D - f1) / D : 0;
+    const perda = N > 0 ? f1 / N : 0;
+    return {
+      valores: { 'i6-tx': tx * 100, 'i6-fa': f1, 'i6-pm': perda, 'i6-ac': acum },
+      veredito: ((): string => {
+    if (f1<=0.001) return `Nenhuma falta no ciclo: as garantias disponíveis, em ${pct(G,0)} do devido, cobrem integralmente a parcela protegida por decisão judicial. Os credores recebem cem por cento. É esta a configuração em que o rateio funciona como projetado — e note quanto ela depende de a proteção judicial ser pequena em relação às garantias, e não do mérito da disputa.`;
+    if (tx>=0.95) return `Recebimento de ${pct(tx*100,1)}. O corte é pequeno, mas o mecanismo já está operando: ${mmi(f1)} que alguém devia entram no caixa como zero e saem do bolso de quem não tinha nada a ver com a disputa. Em três ciclos, mantido o padrão de contágio, o acumulado chega a ${mmi(acum)}.`;
+    if (tx>=0.80) return `Recebimento de ${pct(tx*100,1)}, com ${mmi(perda)} de perda média por credor no ciclo. A partir daqui a decisão racional de cada agente prejudicado é buscar a própria proteção judicial — e é exatamente por isso que a parcela protegida sobe para ${pct(p2,0)} no ciclo seguinte e ${pct(p3,0)} no terceiro. A liquidação deixa de ser contabilidade e vira disputa.`;
+    return `Recebimento de ${pct(tx*100,1)}: o sistema de rateio está quebrado como mecanismo de liquidação. Com ${mmi(acum)} retidos em três ciclos, o preço de curto prazo deixa de ser um sinal econômico e passa a ser uma pretensão contábil. Nenhuma decisão judicial individual criou isso — cada uma delas foi razoável no seu próprio processo. O resultado agregado é que a arquitetura de liquidação não tem fundo garantidor dimensionado para absorver proteção judicial em escala, e a solução, historicamente, teve de ser legislativa.`;
+      })(),
+    };
+  },
+
+  // ── m06 INST 07 · linha da abertura do ACL ────────────────
+  // ZERO saída numérica, e isso é fiel: as quatro saídas da fonte são
+  // texto (situação, limiar, norma habilitante, ano de elegibilidade).
+  // É um instrumento de consulta regulatória — o veredito literal
+  // carrega a leitura inteira.
+  'm06-inst-07': (i) => {
+    const Yr = n(i['i7-y-n']);
+    const K = n(i['i7-k-n']);
+    const t = m06Limiar(Yr);
+    let first = '—';
+    for (let k = 1995; k <= 2028; k++) {
+      if (m06Elegivel(k, K)) { first = String(k); break; }
+    }
+    // A fonte tem dois toggles (grupo A/baixa tensão e convencional/
+    // incentivada) que NÃO são <input> no markup — são botões cujo
+    // estado vive só no script, e por isso não viraram InstrumentField.
+    // Portados no ramo PADRÃO, que é onde a fonte inicia: grupo=0,
+    // fonte=0. Os ramos de baixa tensão e de fonte incentivada existem
+    // no original e ficam registrados aqui como não alcançáveis por
+    // esta porta.
+    const grupo: number = 0;
+    const fonte: number = 0;
+    // Assinatura preservada do original — os vereditos a chamam com os
+    // três argumentos, e o ramo padrão ignora grupo/fonte.
+    const norma = (ano: number, _g: number, _f: number) => m06Norma(ano);
+    const gtxt = grupo === 1 ? 'baixa tensão' : 'Grupo A';
+    const ftxt = fonte === 1 ? 'fonte incentivada' : 'energia convencional';
+    const ok = m06Elegivel(Yr, K);
+    const folga = t === 0 ? 0 : K / t;
+    return {
+      valores: {},
+      // Só o ramo GRUPO A entra. O original aninha os vereditos em
+      // `if(grupo===1){…} else {…}`, e os três do ramo de baixa tensão
+      // são inalcançáveis por esta porta — o toggle de grupo não é campo.
+      veredito: ((): string => {
+    if (t < 0) return `Em ${Yr} não existia figura de consumidor livre para ${ftxt}. A elegibilidade nasce com a Lei nº 9.074/1995 e passa a valer, na prática, a partir de 1996 — e mesmo então com requisitos combinados de carga e tensão. Antes disso, todo consumidor era cativo da concessionária da sua área, sem exceção.`;
+    if (t === 0) return `Elegível em ${Yr}, e sem depender da carga: desde 1º de janeiro de 2024 todo consumidor do ${gtxt} pode contratar ${ftxt} de qualquer fornecedor autorizado, sem exigência de carga mínima. Estimativas de associação setorial apontam cerca de 165 mil empresas que se tornaram aptas nesse momento — é este o marco que cria o mercado endereçável de um produto independente de inteligência energética no Brasil.`;
+    if (ok) return `Elegível em ${Yr}: com ${num(K,0)} kW, a unidade está ${num(folga,1)} vez(es) acima do limiar de ${num(t,0)} kW vigente pela ${norma(Yr,grupo,fonte)}. Vale a pergunta que o §Caso faz: se ela é elegível há anos e não migrou, isso foi decisão consciente ou omissão herdada? A resposta muda completamente o diagnóstico.`;
+    return `Não elegível em ${Yr}: o limiar vigente é de ${num(t,0)} kW pela ${norma(Yr,grupo,fonte)}, e a unidade tem ${num(K,0)} kW. Faltam ${num(t-K,0)} kW. Deslize o ano para a direita e observe em que degrau a escada desce abaixo da carga — essa data é o momento exato em que esta unidade entrou no mercado endereçável, e ${(first==='—'?'ela não é alcançada dentro do horizonte legal conhecido para este perfil.':('ela é '+first+'.'))}`;
+      })(),
+    };
+  },
+
+  // ── m06 INST 08 · mapa trauma → cicatriz ──────────────────
+  // Onze pressões históricas. Mecânica da fonte é seleção única num
+  // grid gerado por script; aqui vira um `select`, que é o primitivo
+  // equivalente que o painel já renderiza. As quatro saídas são texto
+  // puro, então a cadeia inteira vai no veredito.
+  'm06-inst-08': (i) => {
+    const T = MODULO_06_TRAUMA_CICATRIZ;
+    const cur = clamp06(Math.trunc(n(i['i8-sel'])), 0, T.length - 1);
+    const it = T[cur];
+    const cadeia =
+      `${it.periodo} · ${it.titulo}\n` +
+      `Problema revelado: ${it.problema}\n` +
+      `Resposta institucional: ${it.resposta}\n` +
+      `Cicatriz que opera hoje: ${it.cicatriz}\n` +
+      `Risco novo em troca: ${it.riscoNovo}`;
+    const fecho = ((): string => {
+    if (cur===T.length-1) return `Marco ${(cur+1)} de ${T.length}. Este é o único da lista cuja cicatriz ainda não terminou de se formar — e é exatamente por isso que ele é o mais valioso comercialmente. Todos os outros dez você usa para explicar por que o setor é como é; este você usa para explicar por que existe uma janela agora.`;
+    return `Marco ${(cur+1)} de ${T.length}. Percorra os quatro quadros na ordem e repare que o quarto nunca é vazio: nenhuma resposta institucional deste bloco eliminou um risco — todas trocaram um risco por outro, mais administrável. Saber nomear o risco novo é o que separa quem entende o setor de quem decorou a linha do tempo.`;
+    })();
+    return { valores: {}, veredito: cadeia + '\n\n' + fecho };
+  },
+
 };
 
 export const temCalculadora = (id: string) => id in INSTRUMENT_CALCULATORS;

@@ -1,8 +1,11 @@
 # Mapa de Domínio e Revisão Espaçada da Alexandria
 
 **Status:** contrato normativo de produto
+
 **Unidade central:** `competência × lente`
+
 **Escopo:** regra pedagógica e semântica para implementação futura
+
 **Fora de escopo:** schema, SQL, migration, endpoint, nome definitivo de evento, componente, tela ou algoritmo numérico
 
 ## 1. Finalidade e força normativa

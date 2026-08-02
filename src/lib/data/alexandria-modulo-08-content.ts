@@ -27,7 +27,7 @@
 // virou um `titulo` (nome + tag da fonte) mais uma `tabela` de duas
 // colunas. Com a correção, 130 → 146 blocos.
 //
-// ── INSTRUMENTOS: NÃO PORTADOS NESTA WAVE ─────────────────────
+// ── INSTRUMENTOS: SÓ O INST · 04 PORTADO (LYCEUM Wave 34) ─────
 // A fonte tem ONZE `<div class="inst">` — um no § MAP (fora de aula) e
 // dez de aula, com as Aulas 01, 02 e 03 tendo dois cada. TODOS geram
 // campos e dados por script (o markup traz só containers vazios), e
@@ -35,23 +35,23 @@
 // 4.8k a 21.5k chars.
 //
 // O `Inst · 04` ("Reconstrutor de matriz · desenhe as duas pizzas de
-// memória") é MECÂNICA NOVA no sistema, e a própria fonte declara: "é
+// memória") era MECÂNICA NOVA no sistema — a própria fonte declara: "é
 // o único do sistema Alexandria que exige que você PRODUZA a resposta
-// antes de ver a correção". Tem 6 campos numéricos (% por fonte), duas
-// rodadas (capacidade / geração), um `ref` de gabarito embutido e
-// `tol: 3`; o botão "Corrigir esta rodada" só então compara.
+// antes de ver a correção". A Wave 34 construiu o modo de correção sob
+// demanda no `InstrumentPanel` (campo `correcaoSobDemanda` no contrato)
+// e portou ESTE instrumento, autorizado pelo Aquiles como exceção
+// pontual à posse da wave. O toggle de rodada da fonte virou DOIS
+// instrumentos empilhados (Rodada 1 · Capacidade, Rodada 2 · Geração) —
+// "primeiro em capacidade, depois em geração" expresso em layout; cada
+// um com seu "Corrigir esta rodada", referência e calculadora próprias.
+// O painel de referência EDITÁVEL da fonte (details "abra só depois de
+// tentar") não foi portado: aqui a referência vive em código e
+// atualizar é editar `M08_INST04_REF`; a proveniência foi preservada
+// no note visível.
 //
-// Isso NÃO é reproduzível pelo `InstrumentPanel` atual, que calcula ao
-// vivo por `useMemo` sobre os valores — o resultado apareceria enquanto
-// o aluno digita, destruindo exatamente o que o instrumento existe para
-// fazer. Reproduzir a fase de ocultação exige tocar
-// `InstrumentPanel.tsx`, que é NUNCA MODIFICAR, e é decisão de produto,
-// não de extração.
-//
-// Por isso `instruments: []` nas sete aulas. A extração dos onze fica
-// para wave dedicada, junto com a decisão sobre a mecânica de duas
-// fases. O conteúdo de apostila, os exercícios e as gravuras estão
-// completos e verificados.
+// Os OUTROS DEZ instrumentos seguem não portados (`instruments: []`
+// nas demais aulas) — pendência registrada, escopo travado pelo
+// próprio Aquiles nesta wave.
 //
 // ── GRAVURA: 2 de 8, e o prefixo do catálogo só casa em parte ──
 // A biblioteca `mat-` é de CARGA INDUSTRIAL (correia de mineração,
@@ -71,8 +71,101 @@
 // ── video: null, MEDIDO ───────────────────────────────────────
 // Zero <video>, <iframe>, youtube, vimeo e .mp4 no arquivo inteiro.
 
-import type { CurriculumAula, LessonActivity } from '@/lib/types/alexandria';
+import type { CurriculumAula, Instrument, LessonActivity } from '@/lib/types/alexandria';
 import type { AulaBloco } from './alexandria-modulo-01-content';
+
+// ── INST · 04 — referência e tolerância, literais do <script> (I4.ref /
+// I4.tol). Exportadas porque a calculadora importa DAQUI (mesma direção
+// que MODULO_06_TRAUMA_CICATRIZ) — uma fonte de verdade só, sem cópia
+// que possa divergir. Chaves já no id de campo do painel.
+// Proveniência (da própria fonte): balanço energético nacional, relatório
+// síntese, ano-base 2025, publicado em junho de 2026; consulta 1º de
+// agosto de 2026.
+export const M08_INST04_REF: Record<'cap' | 'ger', Record<string, number>> = {
+  cap: { 'i4-hid': 42.2, 'i4-sol': 24.8, 'i4-eol': 13.3, 'i4-bio': 6.7, 'i4-fos': 12.2, 'i4-nuc': 0.8 },
+  ger: { 'i4-hid': 51.7, 'i4-sol': 11.4, 'i4-eol': 15.0, 'i4-bio': 8.1, 'i4-fos': 11.8, 'i4-nuc': 2.0 },
+};
+export const M08_INST04_TOL = 3;
+
+/** As seis fontes na ordem declarada da fonte (`I4.fontes`) — a ordem
+ *  importa: a checagem de "ordem das fontes" itera nesta sequência. */
+export const M08_INST04_FONTES: { id: string; nome: string }[] = [
+  { id: 'i4-hid', nome: 'Hidrelétrica' },
+  { id: 'i4-sol', nome: 'Solar' },
+  { id: 'i4-eol', nome: 'Eólica' },
+  { id: 'i4-bio', nome: 'Biomassa' },
+  { id: 'i4-fos', nome: 'Térmica fóssil' },
+  { id: 'i4-nuc', nome: 'Nuclear' },
+];
+
+const i4Campos = () =>
+  M08_INST04_FONTES.map((f) => ({
+    id: f.id,
+    label: f.nome,
+    unit: '% da pizza',
+    kind: 'number' as const,
+    defaultValue: '' as const, // nasce vazio na fonte (placeholder "—")
+    min: 0,
+    max: 100,
+    step: 0.1,
+  }));
+
+const i4Saidas = [
+  { id: 'i4-acertos', label: 'Fontes dentro da tolerância', unit: 'de 6' },
+  { id: 'i4-err', label: 'Erro absoluto total', unit: 'pp' },
+  { id: 'i4-soma', label: 'Sua soma', unit: '%' },
+];
+
+// Textos literais da fonte. O intro vai na rodada 1; o disclaimer e a
+// proveniência fecham a rodada 2 — o conjunto aparece exatamente uma vez
+// no par, em ordem de leitura. A quarta leitura do original ("Ordem das
+// fontes · Correta/Incorreta") é TEXTO e não cabe em `valores` — o
+// veredito a carrega, mesma limitação registrada nas Waves 19/24/25/29.
+const I4_INTRO =
+  'Este é o instrumento que atende diretamente o critério de domínio, e é o único do sistema Alexandria que exige que você <b>produza</b> a resposta antes de ver a correção. Sem consultar as fichas acima: estime a fatia de cada fonte, primeiro em capacidade, depois em geração. O instrumento devolve o erro por fonte, o erro total e o diagnóstico do seu viés.';
+const I4_RODADA_CAP =
+  '<b>Rodada de capacidade instalada.</b> Estime a fatia de cada fonte na potência nominal instalada, no conceito amplo — incluindo geração distribuída e autoprodução. Pense em tamanho de parque, não em energia produzida.';
+const I4_RODADA_GER =
+  '<b>Rodada de geração efetiva.</b> Agora estime a fatia de cada fonte na energia efetivamente produzida ao longo de um ano. Se você repetir os mesmos números da rodada anterior, vai errar sistematicamente — e o padrão do erro é exatamente o que o instrumento existe para revelar.';
+const I4_DISC =
+  'Didático/ilustrativo. A tolerância de acerto é de 3 pontos percentuais por fonte, escolhida porque abaixo disso o exercício vira decoreba de decimal, que é exatamente o que este módulo não quer treinar. O que conta é a ordem e a ordem de grandeza.';
+const I4_PROV =
+  '<b>Fonte da referência:</b> balanço energético nacional, relatório síntese, ano-base 2025, publicado em junho de 2026, complementado pelo anuário estatístico de energia elétrica do mesmo ciclo. <b>Consulta:</b> 1º de agosto de 2026.';
+
+const M08_INST_04: Instrument[] = [
+  {
+    id: 'm08-inst-04-cap',
+    kind: 'reconstrutor',
+    title: 'Reconstrutor de matriz · desenhe as duas pizzas de memória — 1 · Capacidade instalada',
+    formula: null,
+    fields: i4Campos(),
+    outputs: i4Saidas,
+    note: `${I4_INTRO}<br><br>${I4_RODADA_CAP}`,
+    correcaoSobDemanda: {
+      botaoRotulo: 'Corrigir esta rodada',
+      referencia: M08_INST04_REF.cap,
+      tolerancia: M08_INST04_TOL,
+      normalizar: { rotulo: 'Normalizar para 100%', alvo: 100 },
+      zerarRotulo: 'Zerar',
+    },
+  },
+  {
+    id: 'm08-inst-04-ger',
+    kind: 'reconstrutor',
+    title: 'Reconstrutor de matriz · desenhe as duas pizzas de memória — 2 · Geração efetiva',
+    formula: null,
+    fields: i4Campos(),
+    outputs: i4Saidas,
+    note: `${I4_RODADA_GER}<br><br>${I4_DISC}<br><br>${I4_PROV}`,
+    correcaoSobDemanda: {
+      botaoRotulo: 'Corrigir esta rodada',
+      referencia: M08_INST04_REF.ger,
+      tolerancia: M08_INST04_TOL,
+      normalizar: { rotulo: 'Normalizar para 100%', alvo: 100 },
+      zerarRotulo: 'Zerar',
+    },
+  },
+];
 
 export const MODULO_08_LEAD: Record<string, string> = {
   'aula-08-01': "Esta aula não tem um único número decorável, e isso é intencional. Ela ensina as três perguntas que você faz antes de aceitar qualquer estatística de matriz — e quem as faz automaticamente nunca mais cita o número errado na conversa errada.",
@@ -376,7 +469,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    // Inst · 04 da fonte, nas duas rodadas — ver o bloco M08_INST_04 acima.
+    instruments: M08_INST_04,
   },
   {
     id: 'aula-08-03',

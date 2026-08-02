@@ -15,9 +15,11 @@ import { useMemo, useState } from 'react';
 import type { Instrument, InstrumentField } from '@/lib/types/alexandria';
 import {
   INSTRUMENT_CALCULATORS,
+  type CalculateFn,
   type EntradaInstrumento,
+  type ResultadoInstrumento,
 } from '@/lib/data/alexandria-instrument-calculators';
-import { A, A2, AT, AS, AR } from '@/design/alexandria-tokens';
+import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 
 /** O LAB 01 é comparador de dois lados. A coluna vem prefixada no rótulo
  *  ("Fábrica A · Demanda máxima"), porque `InstrumentField` não tem campo
@@ -29,6 +31,10 @@ function separaColuna(label: string): { coluna: string | null; texto: string } {
 
 const fmt = (v: number, casas = 2) =>
   v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+
+/** O `f1` da fonte do Módulo 08: uma casa fixa, vírgula. Usado só na
+ *  comparação do modo de correção sob demanda. */
+const umaCasa = (v: number) => (Math.round(v * 10) / 10).toFixed(1).replace('.', ',');
 
 export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
   // Semeia TODO campo que declara default, número ou string.
@@ -50,11 +56,90 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
 
   const [valores, setValores] = useState<Record<string, EntradaInstrumento>>(inicial);
 
-  const calc = INSTRUMENT_CALCULATORS[instrumento.id];
+  // ── Modo de correção sob demanda — LYCEUM Wave 34 ────────────────
+  // Quando `correcaoSobDemanda` existe, NADA calcula ao vivo: o resultado
+  // só nasce no clique do botão e congela ali (`revelado` é snapshot, não
+  // deriva de `valores`). Instrumento sem o campo segue o caminho de
+  // sempre — o useMemo abaixo é o mesmo de antes para os 54 existentes.
+  const correcao = instrumento.correcaoSobDemanda;
+  const [revelado, setRevelado] = useState<{
+    produzido: Record<string, number>;
+    completo: boolean;
+    resultado: ResultadoInstrumento;
+  } | null>(null);
+
+  // Tipado como possivelmente ausente — id sem calculadora registrada é
+  // estado real (indexação de Record não garante a chave).
+  const calc: CalculateFn | undefined = INSTRUMENT_CALCULATORS[instrumento.id];
   const resultado = useMemo(
-    () => (calc ? calc(valores) : { valores: {} as Record<string, number> }),
-    [calc, valores],
+    () =>
+      correcao
+        ? { valores: {} as Record<string, number> }
+        : calc
+          ? calc(valores)
+          : { valores: {} as Record<string, number> },
+    [calc, correcao, valores],
   );
+
+  /** Corrige com um conjunto explícito de valores — o clique usa o estado
+   *  atual; o normalizar usa o registro recém-reescalado, porque setState
+   *  é assíncrono e a fonte corrige com os valores novos. */
+  const corrigir = (v: Record<string, EntradaInstrumento>) => {
+    if (!correcao) return;
+    const produzido: Record<string, number> = {};
+    let completo = true;
+    for (const id of Object.keys(correcao.referencia)) {
+      const bruto = v[id];
+      const num = typeof bruto === 'string' ? Number(bruto) : bruto;
+      if (num === undefined || !Number.isFinite(num)) {
+        completo = false;
+        continue;
+      }
+      // Mesmo clamp que a fonte aplica na entrada — a comparação exibida
+      // e a calculadora leem o mesmo valor.
+      const campo = instrumento.fields.find((f) => f.id === id);
+      const lo = campo?.min ?? -Infinity;
+      const hi = campo?.max ?? Infinity;
+      produzido[id] = Math.min(hi, Math.max(lo, num));
+    }
+    setRevelado({
+      produzido,
+      completo,
+      resultado: calc ? calc(v) : { valores: {} },
+    });
+  };
+
+  /** Reescala os campos da referência para somarem `alvo` e corrige em
+   *  seguida — literal da fonte (`i4inputs(); i4check()`), incluindo o
+   *  arredondamento a uma casa (`Math.round(v/s*1000)/10`) e o no-op
+   *  quando a soma é zero. */
+  const normalizar = () => {
+    if (!correcao?.normalizar) return;
+    const ids = Object.keys(correcao.referencia);
+    const soma = ids.reduce((a, id) => {
+      const num = Number(valores[id]);
+      return a + (Number.isFinite(num) ? num : 0);
+    }, 0);
+    if (soma <= 0) return;
+    const alvo = correcao.normalizar.alvo;
+    const novo: Record<string, EntradaInstrumento> = { ...valores };
+    for (const id of ids) {
+      const num = Number(valores[id]);
+      novo[id] = Math.round(((Number.isFinite(num) ? num : 0) / soma) * alvo * 10) / 10;
+    }
+    setValores(novo);
+    corrigir(novo);
+  };
+
+  const zerar = () => {
+    if (!correcao) return;
+    setValores((v) => {
+      const novo = { ...v };
+      for (const id of Object.keys(correcao.referencia)) delete novo[id];
+      return novo;
+    });
+    setRevelado(null);
+  };
 
   // Guarda número quando o valor É numérico, e a string crua quando não é.
   //
@@ -76,10 +161,13 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
   };
 
   // Campos que a própria calculadora resolveu (Lei de Ohm preenche a
-  // incógnita) aparecem no campo, em vez de só no veredito.
+  // incógnita) aparecem no campo, em vez de só no veredito. Em modo de
+  // correção sob demanda esse eco NÃO acontece — imprimiria a resposta
+  // dentro do campo enquanto o aluno digita.
   const mostrado = (f: InstrumentField) => {
     const doUsuario = valores[f.id];
     if (doUsuario !== undefined) return String(doUsuario);
+    if (correcao) return '';
     const resolvido = resultado.valores[f.id];
     return resolvido === undefined ? '' : String(Math.round(resolvido * 1000) / 1000);
   };
@@ -133,6 +221,24 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
           </div>
         )}
 
+        {/* Em modo de correção sob demanda a nota é INSTRUÇÃO ("estime sem
+            consultar as fichas") e vem antes dos campos — o aluno precisa
+            dela antes de produzir, não depois. Só neste modo; nos demais
+            instrumentos a nota segue no rodapé, como sempre. */}
+        {correcao && instrumento.note && (
+          <p
+            style={{
+              ...AT.corpo,
+              fontSize: '12.5px',
+              lineHeight: 1.6,
+              margin: 0,
+              maxWidth: 'none',
+              color: A2.tintaMetadado,
+            }}
+            dangerouslySetInnerHTML={{ __html: instrumento.note }}
+          />
+        )}
+
         {/* Campos. Comparador de dois lados vira duas colunas. */}
         {colunas.length > 0 ? (
           <>
@@ -180,7 +286,7 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
           <CamposGrade campos={instrumento.fields} mostrado={mostrado} setCampo={setCampo} />
         )}
 
-        {colunas.length === 0 && instrumento.outputs.length > 0 && (
+        {!correcao && colunas.length === 0 && instrumento.outputs.length > 0 && (
           <Saidas saidas={instrumento.outputs} valores={resultado.valores} />
         )}
 
@@ -203,7 +309,19 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
           </p>
         )}
 
-        {instrumento.note && (
+        {correcao && (
+          <CorrecaoBloco
+            correcao={correcao}
+            campos={instrumento.fields}
+            saidas={instrumento.outputs}
+            revelado={revelado}
+            onCorrigir={() => corrigir(valores)}
+            onNormalizar={correcao.normalizar ? normalizar : undefined}
+            onZerar={correcao.zerarRotulo ? zerar : undefined}
+          />
+        )}
+
+        {!correcao && instrumento.note && (
           <p
             style={{
               ...AT.corpo,
@@ -218,6 +336,183 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
         )}
       </div>
     </section>
+  );
+}
+
+/** O bloco de correção sob demanda — LYCEUM Wave 34. Botões de ação e,
+ *  depois do clique, a comparação campo a campo (produzido × referência ×
+ *  desvio, com a tolerância aplicada), as leituras da calculadora e o
+ *  veredito. O snapshot congela até o próximo clique — fiel à fonte. */
+function CorrecaoBloco({
+  correcao,
+  campos,
+  saidas,
+  revelado,
+  onCorrigir,
+  onNormalizar,
+  onZerar,
+}: {
+  correcao: NonNullable<Instrument['correcaoSobDemanda']>;
+  campos: InstrumentField[];
+  saidas: { id: string; label: string; unit: string | null }[];
+  revelado: {
+    produzido: Record<string, number>;
+    completo: boolean;
+    resultado: ResultadoInstrumento;
+  } | null;
+  onCorrigir: () => void;
+  onNormalizar?: () => void;
+  onZerar?: () => void;
+}) {
+  // Ordem e rótulo dos campos vêm da declaração do instrumento, não das
+  // chaves da referência — a fonte itera `I4.fontes` na ordem declarada.
+  const comparaveis = campos.filter((f) => f.id in correcao.referencia);
+  const temSaidas =
+    revelado !== null && Object.keys(revelado.resultado.valores).length > 0;
+
+  const botaoBase: React.CSSProperties = {
+    ...AT.rotulo,
+    fontSize: '10px',
+    background: 'none',
+    borderRadius: AR.none,
+    padding: `${AS.xs} ${AS.md}`,
+    cursor: 'pointer',
+    transition: `color ${AE.estado} ${AE.easing}, border-color ${AE.estado} ${AE.easing}`,
+  };
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: AS.lg,
+        borderTop: `1px solid ${A2.fioClaroSobreCreme}`,
+        paddingTop: AS.md,
+      }}
+    >
+      <div style={{ display: 'flex', gap: AS.md, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={onCorrigir}
+          style={{ ...botaoBase, color: A.terracota, border: `1px solid ${A.terracota}` }}
+        >
+          {correcao.botaoRotulo}
+        </button>
+        {onNormalizar && (
+          <button
+            type="button"
+            onClick={onNormalizar}
+            style={{
+              ...botaoBase,
+              color: A2.tintaMetadado,
+              border: `1px solid ${A2.fioClaroSobreCreme}`,
+            }}
+          >
+            {correcao.normalizar?.rotulo}
+          </button>
+        )}
+        {onZerar && (
+          <button
+            type="button"
+            onClick={onZerar}
+            style={{
+              ...botaoBase,
+              color: A2.tintaMetadado,
+              border: `1px solid ${A2.fioClaroSobreCreme}`,
+            }}
+          >
+            {correcao.zerarRotulo}
+          </button>
+        )}
+      </div>
+
+      {revelado?.completo && (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {comparaveis.map((f, i) => {
+            const prod = revelado.produzido[f.id] ?? 0;
+            const ref = correcao.referencia[f.id];
+            const d = prod - ref;
+            const dentro = Math.abs(d) <= correcao.tolerancia;
+            // Largura do desvio como na fonte: min(50, |d|/30*50)% de cada
+            // metade da barra, a partir do centro.
+            const w = Math.min(50, (Math.abs(d) / 30) * 50);
+            const cor = dentro ? A.oliva : A.terracota;
+            return (
+              <div
+                key={f.id}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(110px, 1fr) 2fr auto',
+                  alignItems: 'center',
+                  gap: AS.md,
+                  padding: `${AS.sm} 0`,
+                  borderTop: i > 0 ? `1px solid ${A2.fioClaroSobreCreme}` : 'none',
+                }}
+              >
+                <span style={{ ...AT.dado, fontSize: '12px', color: A.tintaSuave }}>
+                  {separaColuna(f.label).texto}
+                </span>
+                <div
+                  style={{
+                    position: 'relative',
+                    height: '10px',
+                    background: A.cremePapel,
+                    border: `1px solid ${A2.fioClaroSobreCreme}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: '50%',
+                      top: 0,
+                      bottom: 0,
+                      width: '1px',
+                      background: A2.fioColunaSobreCreme,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '2px',
+                      bottom: '2px',
+                      background: dentro ? A2.fioColunaSobreCreme : A.terracota,
+                      ...(d >= 0
+                        ? { left: '50%', width: `${w}%` }
+                        : { right: '50%', width: `${w}%` }),
+                    }}
+                  />
+                </div>
+                <span style={{ ...AT.dado, fontSize: '12px', color: cor, textAlign: 'right' }}>
+                  {umaCasa(prod)} × {umaCasa(ref)} · {d >= 0 ? '+' : '−'}
+                  {umaCasa(Math.abs(d))} pp
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {temSaidas && <Saidas saidas={saidas} valores={revelado.resultado.valores} />}
+
+      {revelado?.resultado.veredito && (
+        <div
+          style={{
+            ...AT.corpo,
+            fontSize: '13px',
+            lineHeight: 1.55,
+            margin: 0,
+            maxWidth: 'none',
+            color: A.tintaSuave,
+            borderTop: `1px solid ${A2.fioClaroSobreCreme}`,
+            paddingTop: AS.md,
+          }}
+          // O veredito da fonte carrega <b> e <br> — mesmo idioma do `note`,
+          // que já renderiza HTML da fonte. Só neste modo; o veredito dos
+          // instrumentos ao vivo segue texto puro.
+          dangerouslySetInnerHTML={{ __html: revelado.resultado.veredito }}
+        />
+      )}
+    </div>
   );
 }
 

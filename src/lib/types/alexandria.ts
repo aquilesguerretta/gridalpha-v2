@@ -258,7 +258,15 @@ export type InstrumentKind =
   | 'explorador'
   | 'cadeia-de-transformacao'
   | 'dimensionador'
-  | 'quebra-cabeca';
+  | 'quebra-cabeca'
+  /** Décimo membro — LYCEUM Wave 34, Módulo 08 Inst · 04 ("Reconstrutor
+   *  de matriz"). Mecânica genuinamente nova que nenhum dos 9 cobria: o
+   *  aluno PRODUZ a resposta e só então vê a correção (a fonte declara
+   *  "é o único do sistema Alexandria que exige que você produza a
+   *  resposta antes de ver a correção"). Requer `correcaoSobDemanda`.
+   *  Pendência: refletir no catálogo `docs/alexandria/instrument-taxonomy.md`
+   *  (posse FOUNDRY). */
+  | 'reconstrutor';
 
 export interface InstrumentField {
   id: string;
@@ -282,6 +290,40 @@ export interface InstrumentOutput {
   unit: string | null;
 }
 
+/** Modo de correção sob demanda — LYCEUM Wave 34.
+ *
+ *  Capacidade OPCIONAL, ativada só por instrumento que declare precisar
+ *  dela. Quando presente, o `InstrumentPanel` NÃO calcula ao vivo: as
+ *  saídas e o veredito ficam ocultos até o aluno clicar no botão de
+ *  correção, e o resultado revelado CONGELA até o próximo clique (fiel
+ *  à fonte do Inst · 04 do Módulo 08, onde editar um campo não re-roda
+ *  a checagem). Instrumento SEM este campo se comporta exatamente como
+ *  antes — os 54 já portados não mudam.
+ *
+ *  `referencia` é o gabarito por id de campo — na fonte, `I4.ref`, com
+ *  proveniência citada no próprio instrumento (balanço energético
+ *  nacional, ano-base 2025). `tolerancia` é o `I4.tol` (3 pontos
+ *  percentuais por fonte). Nova tentativa é permitida sem limite —
+ *  confirmado no script da fonte, onde nada tranca após `i4check()`. */
+export interface CorrecaoSobDemanda {
+  /** Rótulo literal do botão de correção na fonte ('Corrigir esta rodada'). */
+  botaoRotulo: string;
+  /** Gabarito por id de campo. A comparação campo a campo (produzido ×
+   *  referência × desvio, com a tolerância aplicada) é renderizada pelo
+   *  painel; leituras derivadas (acertos, erro total, ordem, viés) são
+   *  da calculadora do instrumento, como todo cálculo do sistema. */
+  referencia: Record<string, number>;
+  /** Tolerância de acerto por campo, na unidade do campo. */
+  tolerancia: number;
+  /** Botão opcional de normalização proporcional — reescala os campos da
+   *  referência para somarem `alvo`, e re-roda a correção em seguida
+   *  (comportamento literal da fonte: `i4inputs(); i4check()`). */
+  normalizar?: { rotulo: string; alvo: number };
+  /** Botão opcional de zerar — limpa os campos da referência e o
+   *  resultado revelado. */
+  zerarRotulo?: string;
+}
+
 export interface Instrument {
   id: string;                      // 'inst-01', 'lab-01' — mantém convenção da fonte
   kind: InstrumentKind;
@@ -292,6 +334,9 @@ export interface Instrument {
   fields: InstrumentField[];
   outputs: InstrumentOutput[];
   note: string | null;             // texto de contexto, se existir na fonte
+  /** Ver doc de `CorrecaoSobDemanda`. Ausente em todos os instrumentos
+   *  exceto os que a fonte declara como produzir-antes-de-corrigir. */
+  correcaoSobDemanda?: CorrecaoSobDemanda;
 }
 
 // ─── Glossário (LYCEUM Wave 8) ──────────────────────────────────────────

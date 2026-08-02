@@ -193,6 +193,102 @@ function explorar07(chave: string, sel: unknown): string {
   return `${it.rotulo}\n\n${it.corpo}`;
 }
 
+// ── Módulo 08 · INST 04 — Reconstrutor de matriz (LYCEUM Wave 34) ──
+//
+// PORTADO do `i4check()` da fonte, não rederivado; confrontado contra
+// transliteração independente do script original (DOM shimado) antes de
+// entrar. Referência e tolerância vêm do arquivo de conteúdo
+// (`M08_INST04_REF` / `M08_INST04_TOL`) — fonte de verdade única, mesma
+// direção de import que MODULO_06_TRAUMA_CICATRIZ.
+//
+// O veredito carrega <b> e <br> da fonte, verbatim — o painel renderiza
+// HTML SÓ no modo de correção sob demanda. A leitura "Ordem das fontes ·
+// Correta/Incorreta" é texto e não cabe em `valores`; o veredito a narra
+// (mesma limitação das Waves 19/24/25/29). Caso "faltando": a fonte
+// limpa o readout e mostra só o aviso — aqui `valores: {}` produz o
+// mesmo efeito (o painel esconde saídas vazias).
+import {
+  M08_INST04_REF,
+  M08_INST04_TOL,
+  M08_INST04_FONTES,
+} from './alexandria-modulo-08-content';
+
+/** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
+ *  os números de `valores` saem crus e o painel formata. */
+const f1m08 = (x: number) => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
+
+/** `clamp` da fonte: não-finito cai no MÍNIMO (comportamento literal). */
+const clampM08 = (v: EntradaInstrumento, a: number, b: number) => {
+  const x = Number(v);
+  if (!Number.isFinite(x)) return a;
+  return Math.min(b, Math.max(a, x));
+};
+
+function i4checkM08(
+  rodada: 'cap' | 'ger',
+  i: Record<string, EntradaInstrumento>,
+): ResultadoInstrumento {
+  const ref = M08_INST04_REF[rodada];
+  const pal: Record<string, number> = {};
+  let faltando = 0;
+  for (const f of M08_INST04_FONTES) {
+    const bruto = i[f.id];
+    // Campo vazio não vira 0: a fonte distingue ausente de zero
+    // (`pal[f.k] === undefined` → faltando).
+    if (bruto === undefined || bruto === '') { faltando++; continue; }
+    pal[f.id] = clampM08(bruto, 0, 100);
+  }
+  if (faltando > 0) {
+    return {
+      valores: {},
+      veredito: `<b>Faltam ${faltando} estimativa${faltando > 1 ? 's' : ''}.</b> Preencha todas as seis antes de corrigir. Chutar é parte do exercício: o objetivo não é acertar, é descobrir em que direção você erra — e para isso o instrumento precisa de todas as fatias.`,
+    };
+  }
+  const soma = M08_INST04_FONTES.reduce((a, f) => a + pal[f.id], 0);
+  let errTotal = 0;
+  let acertos = 0;
+  const superest: string[] = [];
+  const subest: string[] = [];
+  for (const f of M08_INST04_FONTES) {
+    const d = pal[f.id] - ref[f.id];
+    errTotal += Math.abs(d);
+    if (Math.abs(d) <= M08_INST04_TOL) acertos++;
+    else if (d > 0) superest.push(f.nome);
+    else subest.push(f.nome);
+  }
+  const ordPal = [...M08_INST04_FONTES].sort((a, b) => pal[b.id] - pal[a.id]).map((f) => f.id).join(',');
+  const ordRef = [...M08_INST04_FONTES].sort((a, b) => ref[b.id] - ref[a.id]).map((f) => f.id).join(',');
+  const ordemOk = ordPal === ordRef;
+  let msg: string;
+  if (Math.abs(soma - 100) > 8) {
+    msg = `<b>A soma das suas fatias é ${f1m08(soma)}%, não 100%.</b> Antes de qualquer diagnóstico de conteúdo, corrija isso — uma pizza que não fecha em cem por cento não é uma estimativa da matriz, é uma lista de palpites independentes. Use o botão de normalizar e observe como as fatias se reorganizam: essa reorganização já ensina metade do exercício, porque mostra quais fontes você estava inflando sem perceber.`;
+  } else if (ordemOk && acertos === 6) {
+    msg = `<b>Reconstrução correta.</b> Ordem certa e todas as seis fatias dentro da tolerância de ${M08_INST04_TOL} pontos. Isso é o critério oficial de domínio deste bloco cumprido para a pizza de ${rodada === 'cap' ? 'capacidade' : 'geração'}. Faça a outra rodada e, ao terminar, explique em voz alta cada troca de posição entre as duas — é a explicação, não o acerto, que consolida.`;
+  } else if (ordemOk) {
+    msg = `<b>Ordem correta, com ${6 - acertos} fatia${6 - acertos > 1 ? 's' : ''} fora da tolerância.</b> Isso é aprovação no critério que importa. A ordem e a ordem de grandeza são conhecimento durável; o decimal tem prazo de validade de um ano e você deve consultá-lo, não decorá-lo. Se quiser fechar o exercício por completo, revise apenas as fontes marcadas em vermelho — mas não gaste tempo memorizando os valores exatos.`;
+  } else {
+    msg = `<b>A ordem das fontes está incorreta.</b> Esse é o erro que importa neste bloco, e é bem mais grave que errar decimal. A ordem é o que você usa numa conversa sem consultar nada, e é o que impede a frase indefensável do tipo "a segunda maior fonte do Brasil". Refaça esta rodada olhando as fichas da Aula 02, com atenção especial ao fator de capacidade de cada fonte — é ele que determina a posição em cada uma das duas pizzas.`;
+  }
+  if (superest.length || subest.length) {
+    msg += '<br><br><b>Diagnóstico do seu viés.</b> ';
+    if (superest.length) msg += 'Você superestimou: ' + superest.join(', ') + '. ';
+    if (subest.length) msg += 'Você subestimou: ' + subest.join(', ') + '. ';
+    if (rodada === 'cap' && subest.indexOf('Térmica fóssil') >= 0) {
+      msg += 'Subestimar a térmica em capacidade é o viés mais comum e tem causa identificável: como ela gera pouco em ano bom, a intuição a encolhe. Ela é maior do que parece justamente porque existe para os anos ruins — capacidade que raramente é usada continua sendo capacidade.';
+    }
+    if (rodada === 'ger' && superest.indexOf('Solar') >= 0) {
+      msg += 'Superestimar a solar em geração é o segundo viés mais comum. Ela é a fonte mais visível, a que mais aparece em notícia e a que mais cresce em potência, e essa saliência empurra a estimativa de energia para cima. O corretivo é lembrar que o recurso só existe durante parte do dia.';
+    }
+    if (rodada === 'ger' && subest.indexOf('Hidrelétrica') >= 0) {
+      msg += 'Subestimar a hidrelétrica em geração costuma vir de exposição excessiva à narrativa de expansão renovável variável. A hidro perdeu participação por diluição, não por encolhimento: a fatia caiu porque a pizza cresceu.';
+    }
+  }
+  return {
+    valores: { 'i4-acertos': acertos, 'i4-err': errTotal, 'i4-soma': soma },
+    veredito: msg,
+  };
+}
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -1957,6 +2053,10 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   'm07-inst-09': (i) => ({ valores: {}, veredito: explorar07('09', i['i9-sel']) }),
   // ── m07 INST 10 · calendário institucional ──
   'm07-inst-10': (i) => ({ valores: {}, veredito: explorar07('10', i['i10-sel']) }),
+
+  // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
+  'm08-inst-04-cap': (i) => i4checkM08('cap', i),
+  'm08-inst-04-ger': (i) => i4checkM08('ger', i),
 
 };
 

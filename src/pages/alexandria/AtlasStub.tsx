@@ -17,7 +17,7 @@
 // /alexandria/atlas paga o chunk. Veto limpo = npm uninstall + revert
 // deste arquivo.
 
-import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import { carregarMundo, type MundoAtlas } from '@/lib/atlas/worldApi';
@@ -79,6 +79,27 @@ export function AtlasStub() {
   const entrarImersivo = useCallback(() => setImersivo(true), []);
   const sairImersivo = useCallback(() => setImersivo(false), []);
 
+  // Fade de troca de modo (revisão 4): `fixed` ↔ `relative` não é
+  // animável, e o salto seco de layout (o centro do globo pula ~127px)
+  // era o que fazia a saída por ESC parecer "rusty". O novo estado
+  // ENTRA por fade — o palco nasce transparente no frame da troca e
+  // sobe a 1 com AE.hover, escondendo o salto enquanto a câmera já
+  // está voando (as duas coisas partem no mesmo gesto agora).
+  const [trocandoModo, setTrocandoModo] = useState(false);
+  const primeiroRender = useRef(true);
+  useLayoutEffect(() => {
+    if (primeiroRender.current) {
+      primeiroRender.current = false;
+      return;
+    }
+    setTrocandoModo(true);
+    let id2 = 0;
+    const id1 = requestAnimationFrame(() => {
+      id2 = requestAnimationFrame(() => setTrocandoModo(false));
+    });
+    return () => { cancelAnimationFrame(id1); cancelAnimationFrame(id2); };
+  }, [imersivo]);
+
   // Full-bleed (segunda revisão): o palco escapa da prancha de 1120px
   // e ocupa a largura inteira do <main> — no mergulho o mapa cobre a
   // página, não uma faixa central. Medido por clientWidth (exclui a
@@ -121,22 +142,24 @@ export function AtlasStub() {
           revisão ("aumente o tamanho... consecutivamente da página"). */}
       <div
         ref={palcoRef}
-        style={
-          imersivo
+        style={{
+          ...(imersivo
             ? {
                 // tela cheia: cobre header, rodapé e a página inteira
-                position: 'fixed',
+                position: 'fixed' as const,
                 inset: 0,
                 zIndex: 60,
                 background: A.cremePapel,
               }
             : {
-                position: 'relative',
+                position: 'relative' as const,
                 height: 'max(520px, calc(100vh - 118px))',
                 width: larguraMain !== null ? `${larguraMain}px` : '100%',
                 marginLeft: larguraMain !== null ? `calc((100% - ${larguraMain}px) / 2)` : 0,
-              }
-        }
+              }),
+          opacity: trocandoModo ? 0 : 1,
+          transition: trocandoModo ? 'none' : `opacity ${AE.hover} ${AE.easing}`,
+        }}
       >
         <div style={{ position: 'absolute', inset: 0 }}>
           <Suspense

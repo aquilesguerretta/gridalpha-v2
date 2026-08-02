@@ -1385,6 +1385,472 @@ export const ALEXANDRIA_GLOSSARIO: GlossaryTerm[] = [
       "Weighted Average Cost of Capital — o custo médio ponderado do capital que desconta os fluxos do projeto. Em ativos de CAPEX dominante, é a variável mais pesada do LCOE: cada ponto de WACC vale mais que qualquer otimização de engenharia — a matemática que condenou Angra 3.",
     aulaIds: [],
   },
+
+  // ── Modulo 04 (Wave 34) ──────────────────────────────
+  {
+    id: "gl-m04-custo-fixo",
+    term: "Custo fixo",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Custo que existe independentemente de a usina gerar: investimento, serviço da dívida, depreciação, seguros, conexão e equipe mínima. Define quanto o ativo precisa faturar no ano para não destruir valor, mas não influencia a decisão de despachar hoje.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-custo-variavel",
+    term: "Custo variável",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Custo que cresce com a geração, dominado por combustível em usinas térmicas e praticamente ausente em solar e eólica. É o que entra na ordem de mérito e, portanto, o que determina se a usina roda.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-custo-marginal",
+    term: "Custo marginal",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Custo de produzir um megawatt-hora adicional a partir da condição atual do sistema. Único dos três custos que forma preço de curto prazo.",
+    aulaIds: ["aula-04-01"],
+  },
+  {
+    id: "gl-m04-custo-medio",
+    term: "Custo médio",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Custo total dividido pela energia gerada no período. Útil para avaliar desempenho histórico de um ativo e enganoso para decidir despacho, porque embute custo fixo já afundado.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-cvu",
+    term: "CVU",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Custo Variável Unitário declarado de uma usina térmica, em R$/MWh, segundo regra regulatória. É a informação que posiciona a usina na fila de despacho centralizado.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-ordem-de-merito",
+    term: "Ordem de mérito",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Ordenação dos recursos de geração por custo variável crescente, do mais barato ao mais caro, até que a demanda seja atendida. É a espinha dorsal do despacho econômico e da formação de preço.",
+    aulaIds: ["aula-04-01"],
+  },
+  {
+    id: "gl-m04-usina-marginal",
+    term: "Usina marginal",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Última usina necessária para atender a demanda em determinado instante. Seu custo define o custo marginal do sistema e, por consequência, o preço de curto prazo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-margem-inframarginal",
+    term: "Margem inframarginal",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Diferença entre o preço formado e o custo próprio de uma usina que gerou abaixo da margem. É a receita com a qual usinas de baixo custo variável recuperam seu custo fixo num mercado que remunera apenas energia.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-cmo",
+    term: "CMO",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Custo Marginal de Operação — custo de atender uma unidade adicional de carga, obtido pela otimização do sistema considerando disponibilidade, restrições e valor futuro da água. É o insumo direto do PLD.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-valor-da-agua",
+    term: "Valor da água",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Custo de oportunidade de usar hoje a água armazenada em vez de preservá-la para o futuro. Não é desembolso, é decisão intertemporal — e é o que posiciona a hidráulica na ordem de mérito num sistema hidrotérmico.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-despacho-centralizado",
+    term: "Despacho centralizado",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Modelo em que o operador determina a geração de cada usina por otimização de custo do sistema, e não por cruzamento de lances de preço dos agentes. É o modelo brasileiro e a razão de o preço ser calculado, não negociado.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-efeito-ordem-de-merito",
+    term: "Efeito ordem de mérito",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Redução do preço de curto prazo causada pela entrada de geração de custo marginal baixo, que desloca a curva de oferta e empurra a usina marginal para uma posição mais barata. O preço cai porque a margem mudou, não porque a fonte nova é barata.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-heat-rate",
+    term: "Heat rate",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Quantidade de combustível necessária por unidade de energia gerada. Mede a eficiência de uma térmica e explica boa parte da diferença de custo variável entre duas usinas que queimam o mesmo combustível.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-curva-de-oferta",
+    term: "Curva de oferta",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Representação da capacidade disponível ordenada por custo marginal crescente. Cruzá-la com a demanda produz o preço; deslocá-la para a direita reduz o preço sem que nenhum custo tenha mudado.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-demanda-flexivel",
+    term: "Demanda flexível",
+    unit: "Formação de preço e despacho",
+    definition:
+      "Carga capaz de reduzir ou deslocar consumo em resposta a sinal econômico ou a despacho. Compete com geração na formação do preço, mas seu custo marginal é o custo de oportunidade da produção não realizada — em geral alto.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-pld",
+    term: "PLD",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Preço de Liquidação das Diferenças. Preço que valora o descasamento entre energia contratada e energia efetivamente medida, apurado por hora e por submercado. Não é o preço da energia contratada nem o preço da conta de luz.",
+    aulaIds: ["aula-04-02", "aula-04-06"],
+  },
+  {
+    id: "gl-m04-pldmin",
+    term: "PLDmin",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Piso regulatório do PLD, fixado anualmente pela ANEEL e correspondente ao maior valor entre a TEO e a TEO Itaipu. Impede que o preço vá a zero mesmo em situação de sobreoferta severa.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-pldmax-horario",
+    term: "PLDmax horário",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Teto aplicável a cada hora individualmente, referenciado no custo variável das térmicas mais caras representadas na programação da operação.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-pldmax-estrutural",
+    term: "PLDmax estrutural",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Teto aplicável à média do período. Os valores horários do dia são ajustados para que a média o respeite, preservando o formato da curva de preços ao longo das 24 horas.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-submercado",
+    term: "Submercado",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Região de referência para preço e contabilização. São quatro: Sudeste/Centro-Oeste, Sul, Nordeste e Norte. Preços diferentes entre eles indicam restrição de intercâmbio.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-acoplamento",
+    term: "Acoplamento",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Situação em que os limites de intercâmbio não estão saturados e os preços dos submercados convergem. O descolamento é o sinal de que a rede, e não a economia, passou a determinar o preço local.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-liquidacao",
+    term: "Liquidação",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Processo de apuração e pagamento das diferenças entre contratado e medido no mercado de curto prazo, conduzido pela CCEE segundo as regras de comercialização vigentes.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-exposicao",
+    term: "Exposição",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Volume, em MWh, não coberto por contrato e portanto valorado ao preço de curto prazo. É a variável que transforma volatilidade de preço em variação de caixa — e a única sobre a qual o consumidor tem controle direto.",
+    aulaIds: ["aula-04-06"],
+  },
+  {
+    id: "gl-m04-ena",
+    term: "ENA",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Energia Natural Afluente. Energia equivalente à vazão que chega aos aproveitamentos hidrelétricos, comparada à média de longo termo. É o fluxo que entra no sistema.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-ear",
+    term: "EAR",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Energia Armazenada. Energia equivalente ao volume útil disponível nos reservatórios. É o estoque — e é a variável que o modelo protege quando o fluxo decepciona.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-periodo-umido-e-seco",
+    term: "Período úmido e seco",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Ciclo hidrológico anual do sistema brasileiro: aproximadamente dezembro a abril recompõe reservatórios, maio a novembro consome estoque. Um período úmido frustrado eleva o preço antes do período seco começar, porque o modelo antecipa.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-preco-spot",
+    term: "Preço spot",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Preço de curto prazo de uma commodity. No mercado elétrico brasileiro, essa função é cumprida pelo PLD, com a diferença de que ele é calculado por modelo e não formado por negociação.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-curva-forward",
+    term: "Curva forward",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Conjunto de preços negociados hoje para entrega futura. Reflete a expectativa do mercado somada ao prêmio de risco cobrado por quem carrega a incerteza — por isso pode divergir bastante do spot corrente.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-premio-de-risco",
+    term: "Prêmio de risco",
+    unit: "Curto prazo, liquidação e hidrologia",
+    definition:
+      "Diferença entre o preço de um contrato futuro e o valor esperado do preço spot no mesmo período. É o que o vendedor cobra para assumir a incerteza no lugar do comprador, e é a razão econômica de o contrato existir.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-ppa",
+    term: "PPA",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Power Purchase Agreement — contrato de compra e venda de energia de médio ou longo prazo que define preço, volume, prazo e condições comerciais, alocando riscos explicitamente entre vendedor e comprador.",
+    aulaIds: ["aula-04-05"],
+  },
+  {
+    id: "gl-m04-ppa-fisico",
+    term: "PPA físico",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Contrato associado à entrega e ao registro do montante de energia entre as partes. Substitui suprimento e é o formato padrão de contratação industrial no mercado livre brasileiro.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-ppa-financeiro",
+    term: "PPA financeiro",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Contrato que liquida apenas a diferença entre o preço contratado e um preço de referência. Funciona como proteção de preço e não coloca energia física na planta — o comprador continua precisando de suprimento.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-contrato-por-diferenca",
+    term: "Contrato por diferença",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Estrutura em que as partes liquidam contra um preço de exercício: se o mercado fica abaixo, uma paga; se fica acima, a outra compensa. É a forma financeira mais pura de travar preço.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-ppa-virtual",
+    term: "PPA virtual",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Contrato financeiro vinculado a um projeto renovável específico, em que o comprador não recebe fisicamente aquela energia mas liquida diferenças e normalmente recebe os atributos ambientais associados.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-modulacao",
+    term: "Modulação",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Distribuição horária do volume contratado. É a cláusula que determina se o contrato acompanha o perfil real de consumo ou entrega energia nas horas erradas.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-sazonalizacao",
+    term: "Sazonalização",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Distribuição mensal do volume contratado. Crítica para consumidores com ciclo definido — safra, irrigação, refrigeração, mineração sazonal — cujo consumo anual está certo mas mal distribuído.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-contrato-flat",
+    term: "Contrato flat",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Contrato com volume uniforme em todos os períodos. Simples de precificar e frequentemente inadequado, porque quase nenhuma planta industrial consome de forma uniforme.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-flexibilidade",
+    term: "Flexibilidade",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Banda percentual dentro da qual o consumo pode variar sem penalidade contratual. Banda larga custa mais caro no preço e vale mais quando a produção é volátil; banda estreita transfere o risco de volume ao comprador.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-take-or-pay",
+    term: "Take-or-pay",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Obrigação de pagar um volume mínimo mesmo sem consumi-lo. Protege a receita do vendedor e converte queda de produção em custo morto para o comprador.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-sobrecontratacao",
+    term: "Sobrecontratação",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Situação em que o volume contratado excede o consumo medido, gerando sobra liquidada ao preço de curto prazo — tipicamente baixo, porque as causas da queda de consumo e da queda de preço costumam ser as mesmas.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-indexacao",
+    term: "Indexação",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Mecanismo contratual de reajuste do preço ao longo do tempo, por índice de inflação, câmbio ou fórmula híbrida. Determina o custo total do contrato mais do que o preço de partida.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-change-in-law",
+    term: "Change in law",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Cláusula que define como mudanças regulatórias, tributárias ou setoriais afetam preço e obrigações. Em setor tão regulado quanto o elétrico brasileiro, é cláusula estrutural e não formalidade jurídica.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-lastro",
+    term: "Lastro",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Respaldo físico ou comercial exigido para que um agente possa vender energia. Vender sem lastro suficiente é infração de regra de mercado, não apenas risco comercial.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-acr",
+    term: "ACR",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Ambiente de Contratação Regulada, no qual distribuidoras contratam energia por leilão para atender consumidores cativos, que pagam tarifa regulada e não escolhem fornecedor.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-acl",
+    term: "ACL",
+    unit: "Contratos, cláusulas e ambientes",
+    definition:
+      "Ambiente de Contratação Livre, no qual consumidores elegíveis negociam diretamente preço, prazo, fonte, indexação e condições comerciais, assumindo em troca a gestão do próprio portfólio e da própria exposição.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-capacidade",
+    term: "Capacidade",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Disponibilidade de potência, medida em MW. Responde à pergunta \"quem estará disponível quando o sistema precisar\" — e não à pergunta de quanto foi produzido.",
+    aulaIds: ["aula-04-03"],
+  },
+  {
+    id: "gl-m04-energia",
+    term: "Energia",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Produção ou consumo ao longo do tempo, medido em MWh. Responde à pergunta \"quanto foi produzido\" e é o produto que praticamente todo mercado remunera bem.",
+    aulaIds: ["aula-04-03"],
+  },
+  {
+    id: "gl-m04-missing-money",
+    term: "Missing money",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Insuficiência estrutural da receita de energia para remunerar a capacidade necessária à confiabilidade do sistema, causada por tetos de preço, raridade dos eventos de escassez e inaceitabilidade política de preços extremos.",
+    aulaIds: ["aula-04-03"],
+  },
+  {
+    id: "gl-m04-energy-only",
+    term: "Energy-only",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Desenho de mercado que remunera principalmente energia, dependendo de margens inframarginais e de preços de escassez para financiar capacidade. Funciona em teoria e exige tetos altos ou nulos para funcionar na prática.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-preco-de-escassez",
+    term: "Preço de escassez",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Elevação deliberada do preço em momentos de oferta insuficiente, com a função de remunerar disponibilidade e sinalizar necessidade de investimento. Economicamente eficiente e politicamente difícil de sustentar.",
+    aulaIds: ["aula-04-03"],
+  },
+  {
+    id: "gl-m04-valor-da-energia-nao-suprida",
+    term: "Valor da energia não suprida",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Estimativa do custo econômico de não atender uma carga. Varia por ordens de grandeza entre uma residência e um processo industrial contínuo, e é a referência conceitual para calibrar preço de escassez.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-reserva-de-capacidade",
+    term: "Reserva de capacidade",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Produto de disponibilidade contratado para segurança de suprimento, desacoplado da entrega de energia. O vencedor se compromete a estar disponível, e é remunerado por isso independentemente de gerar.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-lrcap",
+    term: "LRCAP",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Leilão de Reserva de Capacidade na forma de Potência. Instrumento brasileiro de contratação de disponibilidade, realizado de forma pontual em vez de por mercado permanente de capacidade.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-leilao-reverso",
+    term: "Leilão reverso",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Disputa em que os vendedores competem reduzindo preço até que a quantidade demandada seja atendida. Substitui a negociação bilateral por competição pública quando o comprador é regulado.",
+    aulaIds: ["aula-04-04"],
+  },
+  {
+    id: "gl-m04-preco-de-corte",
+    term: "Preço de corte",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Preço do último lance aceito num leilão reverso. Coincide com o preço médio apenas quando o edital liquida por preço uniforme; quando liquida por lance individual, a média fica abaixo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-revenue-stacking",
+    term: "Revenue stacking",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Combinação de múltiplas fontes de receita sobre o mesmo ativo — energia, capacidade, serviços ancilares, redução de demanda, atributos. É o que viabiliza projetos que nenhuma dessas receitas pagaria sozinha.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-risco-de-base",
+    term: "Risco de base",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Diferença entre o preço da referência contratual ou do instrumento de proteção e o preço da exposição efetiva. Aparece tipicamente como descasamento de submercado, e é o risco que sobra depois que todos os outros foram tratados.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m04-canibalizacao",
+    term: "Canibalização",
+    unit: "Capacidade, leilões, risco e métrica",
+    definition:
+      "Redução do preço capturado por uma fonte causada pela concentração da geração dessa mesma fonte nas mesmas horas. Explica por que o valor marginal de um projeto cai conforme a penetração da tecnologia cresce na região.",
+    aulaIds: [],
+  },
 ];
 
 /** Verbetes em que a aula aparece — para a página da aula referenciar. */

@@ -5405,3 +5405,144 @@ sem tocar componente nenhum.
 `src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
 desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."
 Index conferido vazio antes de cada `git add` — sem vazamento nesta wave.
+
+## LYCEUM — ALEXANDRIA WAVE 35 — ATLAS ANALÍTICO
+
+**Status:** fechada. O Atlas deixa de ser enciclopédia navegável e vira
+instrumento analítico — coloração por métrica, filtro por matriz
+dominante, rankings e comparador. **Zero ingestão nova:** tudo deriva
+dos 12 campos que a CURSOR Wave 10 já trouxe.
+
+**Arquivos:** `src/lib/atlas/atlasDerivacoes.ts` (NOVO) ·
+`atlas/AtlasControles.tsx` (NOVO) · `atlas/ComparadorPaises.tsx`
+(NOVO) · `AtlasGlobo.tsx` (recebe cor e filtro por prop) ·
+`AtlasStub.tsx` (compõe).
+
+### A distinção que rege a wave: intensidade ≠ emissão total
+
+`carbonIntensityElecGco2PerKwh` é gCO₂ **por kWh**. Emissão absoluta
+exige multiplicar pela geração — número DERIVADO, não medido.
+
+A prova de que a distinção importa saiu do próprio dado. Os dois
+rankings **não têm nenhum país em comum**:
+
+| ranking | top 5 |
+| --- | --- |
+| intensidade (gCO₂/kWh) | TKM 1306 · UZB 1113 · BHR 903 · BRN 895 · BWA 854 |
+| emissão derivada (Mt) | CHN 5513 · USA 1671 · IND 1368 · RUS 522 · JPN 496 |
+
+Turcomenistão lidera intensidade e não aparece perto do topo de emissão
+absoluta. Se a interface tratasse os dois com o mesmo peso, ensinaria
+errado.
+
+**Como a interface honra isso:** `emissaoTotalAproximada` devolve
+`derivado: true` junto com a fórmula — o campo existe para não haver
+como exibir o número sem saber que é calculado. Na tela, a métrica leva
+um losango (◆) e um bloco tracejado em terracota com a fórmula
+literal: «Não vem da fonte: é calculado aqui como intensidade de
+carbono (gCO₂/kWh) × geração elétrica (TWh) ÷ 1.000». Emissão derivada
+NÃO entra no comparador — comparar países por um número calculado no
+meio de uma tabela de valores medidos apagaria justamente essa
+distinção; o lugar dela é o ranking, onde a fórmula está ao lado.
+
+### Ausência nunca vira zero — medido, não presumido
+
+Sondagem no endpoint real antes de escrever qualquer escala:
+
+| campo | nulos (de 188) |
+| --- | --- |
+| `energyPerCapitaKwh`, `population` | 0 |
+| `electricityGenerationTwh` | 3 |
+| `renewablesShareElecPct`, `carbonIntensityElecGco2PerKwh` | 4 |
+| `fuelMix.*` | 4–7, exceto `otherRenewables…` com **26** |
+
+**4 países (LSO, FSM, TUV, UKR) não declaram matriz nenhuma.**
+`corDoPais` devolve `COR_SEM_DADO` com `semDado: true` para eles em
+TODOS os modos — verificado por pixel do screenshot: UKR fica em
+`20,38,63` sob matriz, intensidade e renovável, enquanto BRA passa por
+`13,35,64` → `217,198,174` → `79,92,57`. Nunca entra na rampa.
+
+O ranking exclui quem não declara e **reporta a contagem** («4 países
+ficam de fora por não declararem o campo») — um top-10 silencioso sobre
+184 de 188 mentiria por omissão. A legenda da escala traz a hachura de
+ausência rotulada «sem dado — não é zero».
+
+### Coloração e filtro
+
+Quatro modos: nenhum (estado da Wave 27) · matriz dominante · intensidade
+· renovável. Paleta do sistema, nunca arco-íris: fóssil na tinta escura,
+nuclear em terracota, hidráulica em navy, solar em ouro, biocombustível
+em oliva. As duas escalas contínuas são rampas de duas cores (creme →
+terracota para carbono; creme → oliva para renovável), com faixas
+medidas no dado real (intensidade 0–1306, mediana 451).
+
+**Geração NÃO virou escala de cor**, por medição: mediana 14,4 TWh
+contra máximo 9.456 — fator 650×. Escala linear deixaria 180 países na
+mesma cor. O ranking serve melhor a essa métrica, e é onde ela está.
+
+**Filtro esmaece, nunca some.** País fora do filtro cai para
+`rgba(242,233,214,0.03)` mas continua desenhado, com o contorno ouro
+visível — confirmado por varredura de pixels (5 pixels de contorno
+atravessando a América do Sul com o filtro eólico ativo, que exclui o
+Brasil). Sumir país de um mapa mundial confundiria geografia com dado.
+
+Descoberta de contagem: **solar e biocombustível dominam ZERO países**
+(fóssil 121 · hidro 49 · nuclear 7 · eólica 5 · outras renováveis 2 ·
+sem matriz 4). As categorias aparecem no filtro com contagem 0 em vez
+de serem escondidas — a ausência é informação.
+
+### Comparador
+
+Dois ou três países lado a lado: matriz completa (7 fontes) + renovável,
+intensidade, geração, per capita e população. Campo `null` mostra «não
+declara» em itálico — nunca zero, nunca célula vazia. Citação
+consolidada no rodapé quando idêntica entre os países, individual
+quando diverge (mesmo padrão do `PaisPerfil`, com a função replicada
+localmente porque aquele arquivo é NUNCA MODIFICAR nesta wave).
+
+**A seleção não é mecanismo novo:** entra pelo mesmo caminho do clique
+no globo, da busca e do ranking. `AtlasGlobo` ganhou `pedidoDeVoo`
+(com nonce, para pedir o mesmo país duas vezes) e `aoSelecionarPais`;
+tudo desemboca em `voarAtePais`, o mesmo movimento de sempre.
+
+### Fronteira lazy preservada — build real
+
+`polygonCapColor`: **0 ocorrências no bundle de entrada, 3 no chunk**.
+`pathsData`: idem. `AtlasGlobo-*.js` continua em chunk próprio
+(1.846 KB). A camada de derivação FICA no entry por design — são
+funções puras sem Three, e o painel lateral precisa delas antes do
+globo carregar.
+
+### Ajuste de consistência achado na verificação
+
+O ranking mostrava «United States» enquanto tooltip, perfil e
+comparador diziam «Estados Unidos» — o backend devolve `countryName` em
+inglês, e só o `nomePaisPt` (CLDR do browser via alpha-2) traduz.
+Corrigido nos dois lugares novos.
+
+### Verificação
+
+Coluna lateral passou a 1.601px de conteúdo num palco de 837px —
+ganhou scroll próprio, com o cabeçalho mantendo `pointerEvents: none`
+para o arrasto do globo continuar atravessando o texto de leitura.
+
+Por clique real, 1440×900 e 1920×1080: cada modo de coloração muda os
+pixels do globo · filtro eólico esmaece o Brasil sem apagar o contorno ·
+ranking de geração (China 9.456,5) bate com o perfil individual do
+mesmo país · emissão derivada com marca e fórmula visíveis · três
+países lado a lado com matrizes distintas (fóssil 64,8% / 59,1% /
+78,2%) e «não declara» onde a fonte não declara · zero overflow
+horizontal.
+
+**Gates:** `tsc -b` — 0 erros em Alexandria (seguem só os
+pré-existentes de Recharts em `nest/student/*`) · `gridalpha-detect` —
+"No findings. Surface is clean."
+
+### Registrado, não resolvido
+
+- **Emissão derivada não aparece no comparador**, por decisão de rigor
+  (acima). Se um dia fizer sentido, precisa de tratamento visual que a
+  separe das linhas medidas.
+- **Rankings são top-8 fixos** — sem paginação nem "ver todos".
+- **Filtro é de uma fonte por vez**; combinar critérios (ex.: renovável
+  > 50% E geração > 100 TWh) seria uma wave de consulta, não de filtro.

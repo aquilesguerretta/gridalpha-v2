@@ -4643,3 +4643,84 @@ M04 e M05 com zero (como devem). 1440×900.
 **7 pré-existentes** fora dela, todos em
 `src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
 desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."
+
+## LYCEUM — REVISÃO DIRETA 5 PÓS-WAVE 28 (zoom contínuo entre os modos)
+
+**Status:** fechada. Pedido do Aquiles sobre a troca de modo: "o globo
+nao cresce e o header vai desaparecendo, nao é smooth, ele so pisca e
+parece que mudamos de pagina... eu gostaria de poder ver o globo
+aumentando junto com a mao do atlas, como se estivessemos dando zoom
+mesmo".
+
+**Arquivos:** `AtlasGlobo.tsx` · `AtlasStub.tsx`.
+
+### O diagnóstico: só a câmera animava
+
+Nas revisões anteriores a altitude animava, mas **o palco e a figura
+saltavam** e um fade cobria o salto — daí a leitura de "piscar / trocar
+de página". Três coisas precisavam virar um movimento só.
+
+### 1. Canvas ÚNICO para os dois modos
+
+Antes o canvas tinha altura diferente em cada modo (955 no imersivo,
+1178 na página), o que obrigava a compensar a altitude na troca (o
+inchaço de 23% da revisão 4). Agora `canvasComum()` calcula um canvas
+que cobre o palco dos DOIS modos a partir do centro da esfera de cada
+um; ele nunca redimensiona na transição. Com o canvas constante, a
+relação altitude→raio é a mesma nos dois modos: **o globo cresce só
+pelo movimento de câmera, e não existe mais salto a compensar** — a
+função `raioPorAlt` da revisão 4 saiu, junto com toda a lógica de
+continuidade.
+
+O que muda entre os modos é só a POSIÇÃO do canvas dentro do palco
+(`canvasTop`/`canvasLeft`), para o centro da esfera cair onde a
+composição manda: na base, nas mãos (página); no meio da tela
+(imersivo).
+
+### 2. As três animações na mesma curva e duração
+
+`MODO_MS = 900` rege simultaneamente:
+- **palco** — `top/left/width/height` por transição CSS
+- **figura e canvas** — `left/top/width/height` por transição CSS
+- **altitude** — animada em rAF com `bezierAlexandria`, que é a
+  avaliação em JS do MESMO `cubic-bezier(0.65, 0, 0.35, 1)` de
+  `AE.easing`
+
+A constante vive no `AtlasStub` e vai por prop: importá-la do
+`AtlasGlobo` puxaria o chunk lazy para o bundle de entrada.
+
+### 3. A troca em dois tempos (o que faltava)
+
+`fixed` ↔ `relative` não é animável. A sequência agora é:
+1. o palco vira FIXO no retângulo que já ocupa — mesmo pixel, nada
+   anima, nada salta (um espaçador reserva o lugar no fluxo);
+2. no frame seguinte, **modo + retângulo mudam no MESMO commit**, com
+   as transições já acesas;
+3. ao chegar, se o destino era a página, volta ao fluxo em coordenadas
+   idênticas.
+
+O passo 2 é o conserto real: na primeira tentativa o modo mudava um
+frame ANTES de `animandoModo` acender, então a figura saltava
+667→1150 px sem transição enquanto o resto animava. Medido antes e
+depois.
+
+### Prova: raio e figura crescem juntos (2000×955)
+
+| | raio do globo | largura da figura |
+| --- | --- | --- |
+| entrada | 235 → 271 → 317 → 360 → 383 → **393** | 667 → 686 → 908 → 1060 → 1122 → **1150** |
+| saída | 393 → 373 → 276 → 248 → **235** | 1150 → 1110 → 847 → 729 → **667** |
+
+O centro acompanha na mesma curva (350 → 371 → 414 → 470 → 478 na
+entrada). Nenhum degrau em nenhuma das três séries — é um zoom, não uma
+troca de tela.
+
+### Verificação
+
+Ciclo funcional completo intacto: roda abre o imersivo · busca "franca"
+voa com perfil · ESC fecha o perfil e reenquadra · ESC sai para a
+página · clique num país da página abre o modo e voa. Repouso da página
+idêntico ao anterior (alt 4,4 · raio 235 · esfera topo a 1px). `tsc -b`
+0 erros em Alexandria · `gridalpha-detect` "No findings. Surface is
+clean." · `vite build` confirma a fronteira lazy preservada
+(`AtlasGlobo-*.js` em chunk próprio, 1.846 KB).

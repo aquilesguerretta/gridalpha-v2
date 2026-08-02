@@ -4874,3 +4874,67 @@ da Trilha 1 e o Módulo 06 — todos com suas gravuras carregando.
 **7 pré-existentes** fora dela, em
 `src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
 desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."
+
+## LYCEUM — REVISÃO DIRETA 6 PÓS-WAVE 28 (sem giro, zoom de país, crescimento antes do voo)
+
+**Status:** fechada. Três defeitos que sobreviveram à revisão 5, todos
+apontados pelo Aquiles vendo o produto rodar.
+
+**Arquivo:** `AtlasGlobo.tsx`.
+
+### 1. O "spike" ao sair — era um giro forçado
+
+"quando eu fecho ele nao volta normal, ele gira o globo para o Brasil
+ficar no meio, tem um spike e uma mudanca repentina."
+
+Achado por leitura, confirmado por medição: ao fim de cada transição,
+`configurarCamera()` reaplicava `pointOfView({ ...DIR_REPOUSO, ... })`
+— e `DIR_REPOUSO` carrega lat/lng. Ou seja, o pouso do modo **girava o
+globo de volta para o Atlântico**, onde quer que o usuário estivesse.
+O mesmo valia para o botão "voltar ao globo" do perfil.
+
+Agora **só o primeiro pouso escolhe a direção**; depois disso mexemos
+apenas na ALTITUDE. Onde o usuário deixou o globo é dele — nós só
+afastamos. Provado: girando para a Ásia (lng 105) antes de sair, a
+longitude fica em 105 durante toda a saída e no repouso da página
+(antes voltaria a −35).
+
+### 2. Zoom de país fundo demais — o teto de cobertura era o culpado
+
+"está dando muito zoom quando escolhemos um pais, tem que ser menos."
+
+O teto de COBERTURA da revisão 2 (`min(altCobertura, …)`) forçava TODO
+pouso do modo imersivo à mesma altitude rasa — medido **0,52** — porque
+a cobertura é sempre menor que o cálculo por tamanho do país. Efeito
+colateral: o tamanho relativo do país deixava de importar (Fiji e
+Rússia pousavam igual) e o país sumia debaixo da câmera.
+
+O teto saiu. A faixa passou de `[0,5 … 1,6]` com divisor 40 para
+`[0,9 … 1,8]` com divisor 50: o Brasil agora pousa em **0,9** (era
+0,52) e a França em **1,28** (era 0,52) — país grande na tela, com a
+curvatura do globo e os vizinhos ainda visíveis em volta.
+
+### 3. "Não cresce, só sobe" ao clicar num país da página
+
+O clique guardava o voo como pendente e, ao trocar de modo, partia
+DIRETO para o país. O crescimento nas mãos e o voo aconteciam ao mesmo
+tempo, e o voo (muito mais longo) atropelava o crescimento: a figura
+crescia por baixo de um globo que já tinha ido embora.
+
+Agora são dois tempos explícitos. Medido no clique sobre o Brasil:
+
+| fase | tempo | altitude | raio | figura |
+| --- | --- | --- | --- | --- |
+| 1 · cresce nas mãos | 0 → 880ms | 4,40 → 2,23 | 235 → 393 | 667 → 1150 |
+| 2 · voa até o país | 990 → 1870ms | 2,23 → 0,90 | 393 → 677 | 1150 (parada) |
+
+Na fase 1 a longitude não se mexe (−35 fixa): é zoom puro, com a figura
+crescendo junto. Só depois a câmera viaja.
+
+### Verificação
+
+Suíte funcional completa intacta: roda abre o imersivo · busca "franca"
+voa e abre o perfil (agora em alt 1,28) · ESC fecha o perfil e
+reenquadra · ESC sai para a página · clique da página faz as duas fases.
+`tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No findings.
+Surface is clean."

@@ -12,6 +12,7 @@ from app.db.base import Base
 from app.db.models import country_energy as _country_energy  # noqa: F401 — register models
 from app.db.models import infrastructure as _infra  # noqa: F401
 from app.db.models import product_access as _product_access  # noqa: F401
+from app.db.models import progress as _progress  # noqa: F401
 from app.db.models import user as _user  # noqa: F401
 
 config = context.config

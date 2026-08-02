@@ -1,9 +1,15 @@
 """Per-account learning progress (Cursor Wave 11).
 
-POST /api/progress/events — record a real event (log + derived caches)
+POST /api/progress/events            — record a real event (log + derived caches)
+GET  /api/progress/me                — this account's raw progress facts
+GET  /api/progress/aulas/{aula_id}   — this account's status for one lesson
 
-Plain JSON response, mirroring Wave 9's ``/api/products/{id}/activate``
-shape (it reports what just happened, not a market/reference read).
+The write endpoint returns plain JSON, mirroring Wave 9's
+``/api/products/{id}/activate`` shape (it reports what just happened, not
+a market/reference read). The two read endpoints use the canonical
+{meta, data, summary} envelope, same convention as the market and
+infrastructure endpoints — this is reference data about the user, not
+identity, and identity is the only domain Wave 9 kept on plain JSON.
 
 Every response here returns entity ids exactly as the caller sent them —
 never a computed "3 of 9 lessons" or "42% of the level". The backend does
@@ -13,7 +19,7 @@ belongs to the frontend, against what it already knows.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Path, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -21,7 +27,8 @@ from app.db.models.progress import EVENT_TYPES
 from app.db.models.user import User
 from app.db.session import get_db
 from app.services.auth_service import get_current_user
-from app.services.progress_service import record_event
+from app.services.envelope import build_envelope
+from app.services.progress_service import get_aula_status, get_progress_summary, record_event
 
 router = APIRouter(prefix="/api/progress", tags=["progress"])
 
@@ -84,3 +91,41 @@ def post_event(
         payload["badgeAlreadyAwarded"] = recorded.badge_already_awarded
 
     return payload
+
+
+@router.get("/me")
+def get_me(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    summary = get_progress_summary(db, user.id)
+    return build_envelope(
+        meta={"source": "progress-event-log", "data_age_seconds": 0},
+        data=summary,
+        summary=(
+            f"{len(summary['aulasConcluidas'])} lesson(s) concluded, "
+            f"{len(summary['aulasEmAndamento'])} in progress, "
+            f"{len(summary['badges'])} badge(s), "
+            f"{summary['streak']['atual']}-day streak."
+        ),
+    )
+
+
+@router.get("/aulas/{aula_id}")
+def get_aula(
+    aula_id: str = Path(..., min_length=1, max_length=500),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    aula_status = get_aula_status(db, user.id, aula_id)
+    if aula_status is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"no progress recorded for aula '{aula_id}'",
+        )
+    data = _aula_status_payload(aula_status)
+    return build_envelope(
+        meta={"source": "progress-event-log", "data_age_seconds": 0},
+        data=data,
+        summary=f"aula '{aula_id}' — {data['status']}.",
+    )

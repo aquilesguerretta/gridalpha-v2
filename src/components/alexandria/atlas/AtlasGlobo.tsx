@@ -28,6 +28,12 @@ import {
   type PaisFeature,
   type PaisResumo,
 } from '../../../lib/atlas/worldApi';
+import {
+  corDoPais,
+  passaNoFiltro,
+  type FiltroFonte,
+  type ModoCor,
+} from '../../../lib/atlas/atlasDerivacoes';
 import { PaisTooltip, type AlvoTooltip } from './PaisTooltip';
 import { PaisPerfil } from './PaisPerfil';
 import { BuscaPais } from './BuscaPais';
@@ -299,6 +305,20 @@ export interface AtlasGloboProps {
   animandoModo: boolean;
   /** Duração do zoom entre modos — a mesma do palco no AtlasStub. */
   duracaoModo?: number;
+  /** Coloração e filtro (Wave 35) vêm decididos de fora: o globo
+   *  DESENHA, não escolhe. Quem escolhe é o AtlasControles, na coluna
+   *  lateral, e o Stub costura os dois. */
+  modoCor?: ModoCor;
+  filtro?: FiltroFonte;
+  /** Pedido de voo vindo de FORA do globo (ranking, comparador). O
+   *  `nonce` é o que permite pedir o mesmo país duas vezes seguidas.
+   *  Reusa `voarAtePais` — o mesmo movimento do clique e da busca,
+   *  nunca um segundo mecanismo de seleção. */
+  pedidoDeVoo?: { iso: string; nonce: number } | null;
+  /** Avisa quem está de fora qual país foi selecionado — pelo clique
+   *  no globo, pela busca ou pelo pedido acima. É como o comparador
+   *  recebe seleção sem duplicar a mecânica. */
+  aoSelecionarPais?: (iso: string) => void;
   aoEntrarImersivo?: () => void;
   aoSairImersivo?: () => void;
 }
@@ -310,6 +330,10 @@ export function AtlasGlobo({
   dimImersivo,
   animandoModo,
   duracaoModo = MODO_MS_PADRAO,
+  modoCor = 'nenhum',
+  filtro = null,
+  pedidoDeVoo = null,
+  aoSelecionarPais,
   aoEntrarImersivo,
   aoSairImersivo,
 }: AtlasGloboProps) {
@@ -338,6 +362,8 @@ export function AtlasGlobo({
   const ambienteRef = useRef(aoMudarOpacidadeAmbiente);
   ambienteRef.current = aoMudarOpacidadeAmbiente;
   const aoVoltarRef = useRef<(() => void) | null>(null);
+  const selecionarRef = useRef(aoSelecionarPais);
+  selecionarRef.current = aoSelecionarPais;
   const entrarImersivoRef = useRef(aoEntrarImersivo);
   entrarImersivoRef.current = aoEntrarImersivo;
   const sairImersivoRef = useRef(aoSairImersivo);
@@ -454,6 +480,7 @@ export function AtlasGlobo({
       voandoRef.current = false;
       const a3 = f.properties.a3;
       setSelecionado({ feature: f, resumo: a3 ? (mundo.porIso.get(a3) ?? null) : null });
+      if (a3) selecionarRef.current?.(a3);
     }, VOO_MS + 50);
   }, [mundo]);
 
@@ -469,6 +496,16 @@ export function AtlasGlobo({
     }
     voarAtePais(f);
   }, [mundo, voarAtePais]);
+
+  // Pedido de voo vindo de fora (ranking, comparador): resolve o ISO
+  // para a feature e entra pelo MESMO caminho do clique — inclusive
+  // abrindo o modo imersivo quando ainda estamos na página.
+  useEffect(() => {
+    if (!pedidoDeVoo || !mundo) return;
+    const alvo = mundo.features.find((f) => f.properties.a3 === pedidoDeVoo.iso);
+    if (alvo) aoClicar(alvo);
+    // `nonce` é o que permite pedir o mesmo país duas vezes seguidas
+  }, [pedidoDeVoo, mundo, aoClicar]);
 
   // ── retorno: perfil fecha no clique, câmera voa de volta —
   //    movimento simétrico ao de entrada, mesma duração, pousando no
@@ -685,16 +722,28 @@ export function AtlasGlobo({
     });
   }
 
-  // Preenchimento de topo: terra com dado ganha lavagem de creme um
-  // grau mais forte que terra sem dado — a diferença é legível mas
-  // não grita. Hover soma terracota (A.terracota #A8462A) com a
-  // opacidade animada — cor de ESTADO, nunca glow.
+  // Preenchimento de topo. Ordem de precedência, de cima para baixo:
+  //
+  //   1. HOVER — terracota animada. Cor de ESTADO, nunca glow, e vence
+  //      qualquer coloração analítica: o cursor precisa dizer onde
+  //      está mesmo com o globo pintado por métrica.
+  //   2. FILTRADO FORA (Wave 35) — esmaece para uma lavagem quase
+  //      transparente, MAS continua desenhado, com contorno visível.
+  //      Sumir país de um mapa mundial confundiria geografia com dado.
+  //   3. COLORAÇÃO por métrica — delegada a `corDoPais`, que devolve
+  //      hachura de ausência (nunca o extremo frio da rampa) quando o
+  //      país não declara o campo.
   const corTopo = (obj: object): string => {
     const f = obj as PaisFeature;
     const o = opacidadesRef.current.get(chaveFeature(f)) ?? 0;
     if (o > 0.004) return `rgba(168, 70, 42, ${(o * OPACIDADE_HOVER).toFixed(3)})`;
-    const temDado = f.properties.a3 !== null && (mundo?.porIso.has(f.properties.a3) ?? false);
-    return temDado ? 'rgba(242, 233, 214, 0.10)' : 'rgba(242, 233, 214, 0.04)';
+
+    const a3 = f.properties.a3;
+    const pais = a3 ? (mundo?.porIso.get(a3) ?? null) : null;
+
+    if (!passaNoFiltro(pais, filtro)) return 'rgba(242, 233, 214, 0.03)';
+
+    return corDoPais(pais, modoCor).cor;
   };
 
   // Contorno: ouro-sépia sobre navy (A2.ouroSobreNavy) — decidido

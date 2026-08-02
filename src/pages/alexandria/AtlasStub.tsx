@@ -21,6 +21,8 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import { carregarMundo, type MundoAtlas } from '@/lib/atlas/worldApi';
+import type { FiltroFonte, ModoCor } from '@/lib/atlas/atlasDerivacoes';
+import { AtlasControles } from '@/components/alexandria/atlas/AtlasControles';
 
 const AtlasGlobo = lazy(() => import('@/components/alexandria/atlas/AtlasGlobo'));
 
@@ -82,6 +84,14 @@ interface Ret {
 
 export function AtlasStub() {
   const [legenda, setLegenda] = useState<LegendaAtlas | null>(null);
+  // O mundo já carregado, para os controles derivarem sem refazer
+  // busca — `carregarMundo` tem cache de módulo, então é a MESMA
+  // promise que o globo consome.
+  const [mundo, setMundo] = useState<MundoAtlas | null>(null);
+  // Estado analítico (Wave 35): quem decide é aqui, o globo só desenha.
+  const [modoCor, setModoCor] = useState<ModoCor>('nenhum');
+  const [filtro, setFiltro] = useState<FiltroFonte>(null);
+  const [pedidoDeVoo, setPedidoDeVoo] = useState<{ iso: string; nonce: number } | null>(null);
   const colunaRef = useRef<HTMLDivElement | null>(null);
   const espacadorRef = useRef<HTMLDivElement | null>(null);
   // Modo imersivo (revisão 3): o palco vira overlay FIXO por cima de
@@ -174,7 +184,7 @@ export function AtlasStub() {
   useEffect(() => {
     let vivo = true;
     carregarMundo()
-      .then((m) => { if (vivo) setLegenda(derivarLegenda(m)); })
+      .then((m) => { if (vivo) { setLegenda(derivarLegenda(m)); setMundo(m); } })
       .catch(() => { /* o globo declara o erro; a legenda só se omite */ });
     return () => { vivo = false; };
   }, []);
@@ -251,6 +261,9 @@ export function AtlasStub() {
                 dimImersivo={dimJanela}
                 animandoModo={animandoModo}
                 duracaoModo={MODO_MS}
+                modoCor={modoCor}
+                filtro={filtro}
+                pedidoDeVoo={pedidoDeVoo}
                 aoEntrarImersivo={entrarImersivo}
                 aoSairImersivo={sairImersivo}
               />
@@ -268,14 +281,22 @@ export function AtlasStub() {
             left: AS.xl,
             top: 0,
             width: '248px',
+            // Com o painel analítico da Wave 35 a coluna passa da
+            // altura do palco (medido: 1571px de conteúdo em 837px de
+            // palco). Rola por dentro, e por isso precisa de ponteiro —
+            // o cabeçalho abaixo devolve `none` para o arrasto do globo
+            // continuar atravessando o texto de leitura.
+            maxHeight: '100%',
+            overflowY: 'auto',
+            paddingRight: AS.sm,
             display: 'flex',
             flexDirection: 'column',
             gap: AS.lg,
-            pointerEvents: 'none',
+            pointerEvents: 'auto',
             transition: `opacity ${AE.estado} ${AE.easing}`,
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm, pointerEvents: 'none' }}>
             <span style={{ ...AT.rotulo, color: A.terracota }}>Atlas</span>
             <h1 style={{ ...AT.h1, fontSize: '26px', lineHeight: 1.25, color: A.tintaSobreCreme, margin: 0 }}>
               Atlas Mundial de Energia
@@ -299,6 +320,19 @@ export function AtlasStub() {
               <LinhaLegenda rotulo="Território sem dado" valor={String(legenda.semDado)} />
               <LinhaLegenda rotulo="Perfil sem geometria" valor={String(legenda.perfisSemGeometria)} />
             </div>
+          )}
+
+          {/* Painel analítico (Wave 35) — coloração, filtro e rankings,
+              todos derivados dos 12 campos já ingeridos. */}
+          {mundo !== null && (
+            <AtlasControles
+              mundo={mundo}
+              modoCor={modoCor}
+              aoMudarModoCor={setModoCor}
+              filtro={filtro}
+              aoMudarFiltro={setFiltro}
+              aoEscolherPais={(iso) => setPedidoDeVoo({ iso, nonce: Date.now() })}
+            />
           )}
 
           <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.55, color: A2.tintaMetadado }}>

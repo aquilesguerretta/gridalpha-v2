@@ -433,15 +433,19 @@ export function AtlasGlobo({
 
     const [lng, lat] = geoCentroid(f);
     // Altitude proporcional ao tamanho do país — a Rússia não cabe no
-    // enquadramento de Fiji. geoBounds em graus; clamp em [0.5, 1.6].
-    // Teto (segunda revisão): nunca pousa acima da altitude de
-    // cobertura — o mapa preenche o palco inteiro ao fim de todo voo,
-    // sem borda de esfera nem creme à mostra ("mapa cortado").
+    // enquadramento de Fiji. geoBounds em graus.
+    //
+    // Faixa afrouxada na revisão 6 ("está dando muito zoom quando
+    // escolhemos um país, tem que ser menos"): o teto de COBERTURA da
+    // revisão 2 forçava TODO pouso do imersivo à mesma altitude rasa
+    // (~0,52 medido) porque ela é sempre menor que o cálculo por
+    // tamanho — o país sumia debaixo da câmera e o tamanho relativo
+    // deixava de importar. O teto sai; a faixa [0,9 … 1,8] deixa o
+    // país grande com o globo ainda legível em volta.
     const [[oeste, sul], [leste, norte]] = geoBounds(f);
     const spanLng = Math.abs(leste - oeste) > 180 ? 360 - Math.abs(leste - oeste) : Math.abs(leste - oeste);
     const span = Math.max(spanLng, Math.abs(norte - sul));
-    const cobertura = compRef.current?.altCobertura ?? 1.6;
-    const altitude = Math.min(cobertura, Math.min(1.6, Math.max(0.5, span / 40)));
+    const altitude = Math.min(1.8, Math.max(0.9, span / 50));
 
     setSelecionado(null); // perfil anterior sai antes do voo, não durante
     voandoRef.current = true;
@@ -476,7 +480,9 @@ export function AtlasGlobo({
     const comp = compRef.current;
     if (globo && comp) {
       voandoRef.current = true;
-      globo.pointOfView({ ...DIR_REPOUSO, altitude: comp.altRepouso }, VOO_MS);
+      // só afasta — sem girar de volta para o Atlântico. O país que o
+      // usuário estava lendo continua no centro.
+      globo.pointOfView({ altitude: comp.altRepouso }, VOO_MS);
       vooRef.current = setTimeout(() => { voandoRef.current = false; }, VOO_MS + 50);
     }
   }, []);
@@ -577,12 +583,20 @@ export function AtlasGlobo({
     // ou estava NO repouso anterior e o palco mudou de tamanho.
     // Suspenso durante transição de modo — o voo da transição é quem
     // leva a câmera ao repouso novo, animado, não um snap.
+    //
+    // SÓ o primeiro pouso escolhe a direção (Atlântico). Depois disso
+    // mexemos apenas na ALTITUDE: reaplicar lat/lng aqui GIRAVA o globo
+    // de volta ao Atlântico ao fim de cada transição — era o "spike"
+    // que o Aquiles via ao sair do modo imersivo vendo outro país.
+    // Onde o usuário deixou o globo é dele; nós só afastamos.
     const alt = globo.pointOfView().altitude;
     const anterior = altRepousoAnteriorRef.current;
     const foraDoPiso = alt > comp.altRepouso + 0.05;
     const estavaEmRepouso = anterior !== null && Math.abs(alt - anterior) < 0.05;
-    if (!voandoRef.current && !transicaoModoRef.current && (anterior === null || foraDoPiso || estavaEmRepouso)) {
+    if (anterior === null) {
       globo.pointOfView({ ...DIR_REPOUSO, altitude: comp.altRepouso }, 0);
+    } else if (!voandoRef.current && !transicaoModoRef.current && (foraDoPiso || estavaEmRepouso)) {
+      globo.pointOfView({ altitude: comp.altRepouso }, 0);
     }
     altRepousoAnteriorRef.current = comp.altRepouso;
 
@@ -615,16 +629,13 @@ export function AtlasGlobo({
       return;
     }
 
+    // Clique num país da página: o zoom nas mãos acontece PRIMEIRO, e
+    // só depois a câmera voa até o país (revisão 6). Antes o voo partia
+    // junto com a troca de modo e atropelava o crescimento: o globo
+    // saltava direto para o enquadramento do país, e a figura crescendo
+    // por baixo virava um detalhe imperceptível — "não cresce, só sobe".
     const pendente = vooPendenteRef.current;
     vooPendenteRef.current = null;
-    if (pendente) {
-      // clique que abriu o modo: o voo até o país JÁ é o movimento da
-      // transição — nada de dois voos em sequência
-      transicaoModoRef.current = false;
-      voarAtePais(pendente);
-      configurarCamera();
-      return;
-    }
 
     const altInicio = globo.pointOfView().altitude;
     const altFim = comp.altRepouso;
@@ -648,6 +659,13 @@ export function AtlasGlobo({
       } else {
         voandoRef.current = false;
         transicaoModoRef.current = false;
+        if (pendente) {
+          // o globo terminou de crescer nas mãos — agora sim voa até o
+          // país, em movimento próprio e legível
+          voarAtePais(pendente);
+          configurarCamera();
+          return;
+        }
         configurarCamera(); // restaura o piso definitivo do modo
       }
     };

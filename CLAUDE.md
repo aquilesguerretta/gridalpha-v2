@@ -4188,3 +4188,65 @@ Alexandria · detect "No findings. Surface is clean."
 **Nota:** a altitude de repouso agora é 4,39 (era 4,949) — mudou porque
 os knobs da composição mudaram; segue invariante ao tamanho do palco,
 pela mesma razão de forma registrada na revisão anterior.
+
+## LYCEUM — REVISÃO DIRETA 3 PÓS-WAVE 28 (modo imersivo Google Earth)
+
+**Status:** fechada. Terceiro pedido direto do Aquiles, com screenshot
+do Google Earth como referência: "quando eu desse zoom no mapa ele
+abrisse e o header e o rodape sumissem", "quando a gnt clique nele vire
+tipo essa plataforma do google earth com o planeta perto o suficiente
+para ficar grande mas sem ser cortado", "com essa barra de busca e
+outras futuras ferramentas".
+
+**Arquivos:** `AtlasGlobo.tsx` · `AtlasStub.tsx` · `BuscaPais.tsx`
+(NOVO).
+
+### O modo
+
+O Atlas agora tem dois modos. **Página** (entrada): o frontispício da
+Wave 28, com coluna lateral. **Imersivo**: o palco vira overlay
+`position: fixed` cobrindo header, rodapé e página inteira — o
+AlexandriaShell NÃO é tocado; o globo continua montado no mesmo nó
+(nada recarrega, a câmera não perde estado). Geometria própria no
+imersivo: esfera CENTRADA, canvas = viewport, repouso no maior raio
+que cabe INTEIRO (0,43·altura, limitado pela largura) — o enquadramento
+Google Earth: grande, nunca cortado. Piso de zoom-out do modo = esse
+enquadramento (mesmo `OrbitControls.maxDistance`); mergulho segue livre.
+
+**Entradas:** roda para dentro a partir do repouso da página (cruzar
+92% da altitude de repouso abre o modo) OU clique em país — que guarda
+o voo como pendente, expande o palco e só então voa (130ms de
+assentamento). **Saídas:** ESC em camadas (perfil aberto → fecha;
+senão → sai do modo) e botão "← Página do atlas". Toda transição de
+modo voa animada (700ms) para o repouso do modo novo; o snap do
+`configurarCamera` fica suspenso durante a transição
+(`transicaoModoRef`) para não matar o movimento.
+
+### Busca de país (`BuscaPais.tsx`)
+
+Campo sem caixa — fio embaixo, o padrão ⌘K do handoff — no topo do
+modo imersivo. Acento-insensível sobre nome pt-BR (Intl), nome do
+backend e código ISO; resultados em cartão de papel (máx. 8), Enter
+escolhe o primeiro, ESC limpa sem sair do modo (stopPropagation). Só
+países com geometria — os 22 micro-Estados sem polígono seguem de
+fora, limitação registrada. Escolher = o MESMO `aoClicar` do globo:
+voa e abre o perfil. "Outras futuras ferramentas" viram um chip
+tracejado honesto ("mais ferramentas em produção") — nada finge
+existir.
+
+### Fade de ambiente no imersivo
+
+O repouso imersivo (~1,6–1,7) fica abaixo do limiar de fade da página
+e a fórmula inverteria o sinal (denominador negativo) — no modo
+imersivo a opacidade de figura + coluna é FORÇADA a zero; na saída, a
+curva normal reassume e tudo volta com o voo.
+
+### Verificação (2000×955, medida por estado)
+
+página alt 4,39 → **roda abre**: palco 0..955 full, header coberto,
+busca presente, alt 1,69, esfera topo 73 / fundo 882 — inteira e
+dominante → **busca "franca"** → "França · FRA" → Enter → alt 0,36
+(cobertura) + perfil → **ESC 1** fecha perfil e reenquadra (1,69,
+segue imersivo) → **ESC 2** sai (header de volta, 4,39, frontispício)
+→ **clique no Brasil da página** abre o modo + voa + perfil. `tsc -b`
+0 erros em Alexandria · detect "No findings. Surface is clean."

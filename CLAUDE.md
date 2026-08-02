@@ -5076,3 +5076,96 @@ reais do backend, não um mock de teste.
 - **`getAulaStatus` (Endpoint 24)** está no cliente, sem consumidor
   nesta wave — a resposta de `POST /events` já carrega `aulaStatus`,
   então nenhum ponto construído aqui precisou de uma segunda leitura.
+
+## FOUNDRY — ALEXANDRIA WAVE 4 — CATÁLOGO DE INSTRUMENTO
+
+**Status:** fechada. Não é extração — é auditoria e consolidação. Sete
+módulos extraídos pelo LYCEUM (Waves 4, 18, 19, 24, 25, 29, 30)
+encontraram catorze nomes de instrumento fora dos 9 membros de
+`InstrumentKind`, cada mapeamento documentado em prosa espalhada por
+sete seções diferentes deste arquivo. Esta wave lê o tipo real, audita
+os 54 instrumentos extraídos dos Módulos 01-07 e consolida a decisão
+num catálogo único e consultável.
+
+**Arquivo novo:** `docs/alexandria/instrument-taxonomy.md`.
+**Modificado:** `src/lib/types/alexandria.ts` — só um comentário acima
+de `InstrumentKind` apontando pro documento. Nenhum membro do union
+type mudou.
+
+### `InstrumentKind` real, lido antes de presumir
+
+9 membros, confirmados por leitura direta do arquivo, não por
+reconstrução de memória: `calculadora · controles · laboratorio ·
+simulador · comparador · explorador · cadeia-de-transformacao ·
+dimensionador · quebra-cabeca`. Idênticos aos que a Wave 2 já tinha
+generalizado — nenhuma mudança desde então.
+
+### Veredito: os 9 permaneceram suficientes
+
+Auditados os sete arquivos de conteúdo, instrumento a instrumento. **54
+extraídos como `Instrument` real** (53 de aula + 1 órfão, `lab-01` do
+Módulo 01) — mais 2 mencionados em comentário mas nunca materializados
+como dado, porque não têm campo nem saída a modelar (`Linha do tempo`
+do Módulo 06, `Mapa institucional` do Módulo 07 — ambos "chips
+clicáveis, sem cálculo"). Nenhuma mecânica genuinamente nova apareceu:
+todo instrumento com nome fora do enum (Mesa de hedge, Termômetro ×2,
+Mapa ×2, Linha da abertura, Comparador de instrumentos jurídicos) tinha
+mecânica que já existia sob outro rótulo. **`InstrumentKind` não foi
+generalizado por esta wave.**
+
+### O caso "Mapa" — resolvido por leitura, não presumido
+
+Pergunta específica do brief: "Mapa" no Módulo 5 (mecânica documentada:
+simulador) e no Módulo 6 (nunca detalhada por escrito) — mesma
+mecânica ou não? Lidos os dois arquivos de conteúdo reais:
+
+- **Módulo 05 — "Mapa · Posição no desenho de mercado"**
+  (`m05-inst-06`, `simulador`): 3 campos numéricos em `range` → 5
+  saídas (quadrante, coerência, distância, risco, veredito). Simulação
+  paramétrica contínua — mover um slider desloca posição num plano de
+  dois eixos.
+- **Módulo 06 — "Mapa trauma → cicatriz regulatória"** (`m06-inst-08`,
+  `explorador`): 1 campo `select` de 11 opções → zero saída numérica;
+  a seleção revela um par histórico de um array de dados separado
+  (`MODULO_06_TRAUMA_CICATRIZ`). Consulta discreta — sem eixo
+  contínuo, sem posição, sem veredito computado.
+
+**Não são a mesma mecânica.** Confirma o padrão que "Termômetro" já
+demonstrava (Módulo 5: 8 chaves booleanas com peso, `quebra-cabeca`;
+Módulo 6: 4 campos numéricos de balanço, `simulador`) — nome de
+instrumento repetido não garante mesma mecânica, e ambos os casos
+ficam registrados no catálogo como o exemplo vivo do risco que ele
+existe para prevenir.
+
+### Nuance adicional, registrada e não revertida
+
+Dentro do próprio Módulo 07, "Comparador de instrumentos jurídicos"
+(`comparador`) tem a MESMA forma de campo que os seis `explorador` do
+módulo — um `select` só, zero saída numérica. A distinção entre os
+dois `kind` não vem da forma, vem da intenção da fonte (compara N
+itens lado a lado vs. explora um catálogo). Não é erro da Wave 30 —
+é confirmação de que "forma idêntica" também não é atalho seguro para
+decidir `kind`; fica documentado no catálogo ao lado do risco inverso
+("nome idêntico, mecânica diferente").
+
+### Contagem — reconciliada contra o que cada wave já reportou
+
+| Módulo | Wave | Na fonte | Extraído | De aula | Fora de aula |
+| --- | --- | --- | --- | --- | --- |
+| 01 | 4 | 7 | 7 | 6 | 1 |
+| 02 | 18 | 9 | 9 | 9 | 0 |
+| 03 | 19 | 9 | 9 | 9 | 0 |
+| 04 | 24 | 7 | 7 | 7 | 0 |
+| 05 | 25 | 6 | 6 | 6 | 0 |
+| 06 | 29 | 8 | 7 | 7 | 1 |
+| 07 | 30 | 10 | 9 | 9 | 1 |
+
+Zero divergência contra os números que cada wave já tinha fechado.
+Tally por `kind` dos 54 extraídos: calculadora 8 · controles 1 ·
+laboratorio 1 · simulador 27 · comparador 4 · explorador 9 ·
+cadeia-de-transformacao 1 · dimensionador 1 · quebra-cabeca 2.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos desta wave (seguem só os 7
+pré-existentes de Recharts em `nest/student/{ProjectSandbox,
+SandboxTrading}`, não desta wave). `gridalpha-detect` sobre o arquivo
+modificado — "No findings. Surface is clean."

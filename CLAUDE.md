@@ -5713,7 +5713,21 @@ arquivo de outra sessão entrou em commit nenhum.
 - Os **dez instrumentos restantes do Módulo 08** seguem não portados —
   escopo travado pelo próprio Aquiles nesta wave.
 - `instrument-taxonomy.md` ainda não reflete o 10º kind (posse FOUNDRY).
-- Os três defeitos pré-existentes da regressão (chips criados).
+- ~~Os três defeitos pré-existentes da regressão~~ — **fechados em
+  seguida, pedido direto do Aquiles** (commits `0645995` + `e296cb8`):
+  (1) os 11 rótulos do `m06-inst-08` agora DERIVAM de
+  `MODULO_06_TRAUMA_CICATRIZ` no formato período · título do chip da
+  fonte — verificado por clique, marco 5 → veredito acompanha;
+  (2) `ehDiagrama` ancorado em `id === 'inst-05'` — o INST 05 do M01
+  segue desenhando o triângulo (933 kVA · 0,86 · 31°) e os exploradores
+  M06/M07 pararam de mostrar o espúrio;
+  (3) o veredito ao vivo renderiza HTML da fonte (mesmo idioma do
+  `note`) — negrito real nos m07-inst-04/06; auditados TODOS os
+  vereditos antes da troca (extração de literais + campos de dado
+  citados): nenhum `<` fora das tags intencionais, veredito plano
+  renderiza idêntico (M02 conferido byte a byte). Varredura playwright
+  de console nas seis páginas tocadas: zero erro — os "duplicate key"
+  vistos no painel eram buffer velho do glossário PRÉ-fix de ordenação.
 - Glossário do **Módulo 09** (Wave 37 paralela) não extraído — o brief
   desta wave cobria 2-8; os exercícios soltos do M09 JÁ aparecem nos
   Recursos, o § Lex dele não.

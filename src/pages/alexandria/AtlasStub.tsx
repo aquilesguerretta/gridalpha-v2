@@ -20,9 +20,10 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
-import { carregarMundo, type MundoAtlas } from '@/lib/atlas/worldApi';
+import { carregarMundo, nomePaisPt, type MundoAtlas } from '@/lib/atlas/worldApi';
 import type { FiltroFonte, ModoCor } from '@/lib/atlas/atlasDerivacoes';
 import { AtlasControles } from '@/components/alexandria/atlas/AtlasControles';
+import { ComparadorPaises } from '@/components/alexandria/atlas/ComparadorPaises';
 
 const AtlasGlobo = lazy(() => import('@/components/alexandria/atlas/AtlasGlobo'));
 
@@ -92,6 +93,28 @@ export function AtlasStub() {
   const [modoCor, setModoCor] = useState<ModoCor>('nenhum');
   const [filtro, setFiltro] = useState<FiltroFonte>(null);
   const [pedidoDeVoo, setPedidoDeVoo] = useState<{ iso: string; nonce: number } | null>(null);
+  // Comparação: o país "selecionado" vem do MESMO caminho de sempre
+  // (clique no globo, busca, ranking) — o comparador só acumula uma
+  // lista curta a partir dele, sem inventar segundo mecanismo.
+  const [selecionado, setSelecionado] = useState<string | null>(null);
+  const [comparados, setComparados] = useState<string[]>([]);
+
+  /** Nome em pt-BR pelo ISO — mesma função do tooltip e do perfil,
+   *  para o comparador não dizer "United States" ao lado de um
+   *  perfil que diz "Estados Unidos". */
+  const nomeDe = useCallback(
+    (iso: string, nomeDoBackend: string) => {
+      const f = mundo?.features.find((x) => x.properties.a3 === iso);
+      return f ? nomePaisPt(f.properties, nomeDoBackend) : nomeDoBackend;
+    },
+    [mundo],
+  );
+
+  const adicionarAComparacao = useCallback((iso: string) => {
+    setComparados((atual) =>
+      atual.includes(iso) || atual.length >= 3 ? atual : [...atual, iso],
+    );
+  }, []);
   const colunaRef = useRef<HTMLDivElement | null>(null);
   const espacadorRef = useRef<HTMLDivElement | null>(null);
   // Modo imersivo (revisão 3): o palco vira overlay FIXO por cima de
@@ -264,6 +287,7 @@ export function AtlasStub() {
                 modoCor={modoCor}
                 filtro={filtro}
                 pedidoDeVoo={pedidoDeVoo}
+                aoSelecionarPais={setSelecionado}
                 aoEntrarImersivo={entrarImersivo}
                 aoSairImersivo={sairImersivo}
               />
@@ -335,6 +359,84 @@ export function AtlasStub() {
             />
           )}
 
+          {/* Comparação: acumula a partir do país selecionado — o
+              mesmo que o clique no globo, a busca e o ranking já
+              produzem. Nunca uma segunda mecânica de seleção. */}
+          {mundo !== null && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: AS.sm,
+                borderTop: `1px solid ${A.fioSobreCreme}`,
+                paddingTop: AS.sm,
+                pointerEvents: 'auto',
+              }}
+            >
+              <span style={{ ...AT.rotulo, fontSize: '8px', letterSpacing: '0.13em', color: A2.tintaMetadado }}>
+                Comparar países
+              </span>
+
+              <button
+                type="button"
+                disabled={selecionado === null || comparados.includes(selecionado) || comparados.length >= 3}
+                onClick={() => selecionado && adicionarAComparacao(selecionado)}
+                style={{
+                  background: 'none',
+                  border: `1px solid ${selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? A.fioSobreCreme : A2.fioClaroSobreCreme}`,
+                  borderRadius: 0,
+                  padding: `${AS.xs} ${AS.sm}`,
+                  cursor: selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? 'pointer' : 'default',
+                  textAlign: 'left',
+                  ...AT.dado,
+                  fontSize: '11px',
+                  color: selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? A.tintaSobreCreme : A2.tintaMetadado,
+                }}
+              >
+                {selecionado === null
+                  ? 'Clique num país para selecioná-lo'
+                  : comparados.includes(selecionado)
+                    ? `${nomeDe(selecionado, mundo.porIso.get(selecionado)?.countryName ?? selecionado)} já está na comparação`
+                    : comparados.length >= 3
+                      ? 'Máximo de três países'
+                      : `+ Comparar ${nomeDe(selecionado, mundo.porIso.get(selecionado)?.countryName ?? selecionado)}`}
+              </button>
+
+              {comparados.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {comparados.map((iso) => (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() => setComparados((a) => a.filter((x) => x !== iso))}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: AS.sm,
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: `1px solid ${A2.fioClaroSobreCreme}`,
+                        padding: '2px 0',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <span style={{ ...AT.dado, fontSize: '11px', color: A.tintaSobreCreme }}>
+                        {nomeDe(iso, mundo.porIso.get(iso)?.countryName ?? iso)}
+                      </span>
+                      <span style={{ ...AT.dado, fontSize: '9px', color: A2.tintaMetadado }}>remover</span>
+                    </button>
+                  ))}
+                  {comparados.length === 1 && (
+                    <span style={{ ...AT.dado, fontSize: '9px', color: A2.tintaMetadado }}>
+                      Escolha ao menos mais um país para a tabela abrir.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.55, color: A2.tintaMetadado }}>
             Fronteiras: Natural Earth 1:110m (TopoJSON, cópia
             byte-idêntica). Perfis: Our World in Data — Ember, Energy
@@ -361,6 +463,18 @@ export function AtlasStub() {
             </span>
           </div>
         </div>
+
+        {/* Tabela de comparação: abre com dois países, some ao fechar.
+            Fica ancorada na base do palco, fora da coluna estreita —
+            três colunas de números não cabem em 248px. */}
+        {comparados.length >= 2 && (
+          <ComparadorPaises
+            isos={comparados}
+            nomeDe={nomeDe}
+            aoRemover={(iso) => setComparados((a) => a.filter((x) => x !== iso))}
+            aoFechar={() => setComparados([])}
+          />
+        )}
         </div>
       </div>
     </AlexandriaShell>

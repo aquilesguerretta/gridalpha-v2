@@ -15,9 +15,10 @@
 
 import { useNavigate } from 'react-router-dom';
 import type { CurriculumTrilha } from '@/lib/types/alexandria';
-import { getAulaDoModulo } from '@/lib/data/alexandria-curriculo';
+import { getAulaDoModulo, MODULOS_COM_CONTEUDO } from '@/lib/data/alexandria-curriculo';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import type { ModuloComEstado } from '@/pages/alexandria/AlexandriaRouter';
+import { RecursosDoModulo } from './RecursosDoModulo';
 
 interface ModuloAulaListProps {
   item: ModuloComEstado;
@@ -70,6 +71,10 @@ export function ModuloAulaList({ item, trilha, onAbrirAula }: ModuloAulaListProp
           onAbrirAula={onAbrirAula}
         />
       )}
+
+      {/* Exercícios soltos e instrumentos de aparato — Wave 34, Fase C.
+          Módulo sem nenhum dos dois não renderiza nada aqui. */}
+      <RecursosDoModulo moduloId={modulo.id} />
     </div>
   );
 }
@@ -94,8 +99,10 @@ function EmProducao() {
         não foram escritas. Não há contagem a mostrar — o número de aulas será
         conhecido quando o conteúdo existir, e estimá-lo agora seria invenção.
       </span>
+      {/* Derivado do resolvedor, nunca digitado — a versão anterior dizia
+          "Três dos dezessete" fixo, verdade na Wave 6 e falsa desde a 19. */}
       <span style={{ ...AT.dado, fontSize: '12px', fontStyle: 'italic', color: A2.tintaMetadado }}>
-        Três dos dezessete módulos têm conteúdo escrito hoje.
+        {MODULOS_COM_CONTEUDO.length} dos dezessete módulos têm conteúdo escrito hoje.
       </span>
     </div>
   );

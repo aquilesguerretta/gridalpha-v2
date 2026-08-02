@@ -176,7 +176,13 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
     (c): c is string => c !== null,
   );
 
-  const ehDiagrama = instrumento.formula === null && instrumento.outputs.length === 0;
+  // Ancorado no ID, não em "formula null + zero saídas": a heurística
+  // antiga foi desenhada para o INST 05 do Módulo 01, mas casava também
+  // com os exploradores de saída vazia dos Módulos 06-07 — todos
+  // desenhavam um Triângulo de Potência espúrio (0 kVA / FP 1 / 0°)
+  // desde as Waves 29/30. O diagrama lê `tri-*` da calculadora do
+  // inst-05; ele é DAQUELE instrumento, não de uma classe de forma.
+  const ehDiagrama = instrumento.id === 'inst-05';
 
   return (
     <section
@@ -304,9 +310,14 @@ export function InstrumentPanel({ instrumento }: { instrumento: Instrument }) {
               borderTop: `1px solid ${A2.fioClaroSobreCreme}`,
               paddingTop: AS.md,
             }}
-          >
-            {resultado.veredito}
-          </p>
+            // HTML da fonte, como o `note` logo abaixo e o modo de correção
+            // sob demanda já fazem. Era texto puro, e os vereditos de
+            // m07-inst-04/06 mostravam "<b>…</b>" cru na tela desde a Wave
+            // 30. Auditados os ~54 vereditos antes da troca: nenhum carrega
+            // "<" fora das tags intencionais — texto sem tag renderiza
+            // idêntico ao que era.
+            dangerouslySetInnerHTML={{ __html: resultado.veredito }}
+          />
         )}
 
         {correcao && (

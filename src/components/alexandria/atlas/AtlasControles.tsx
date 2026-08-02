@@ -17,7 +17,7 @@
 
 import { useMemo, useState } from 'react';
 import { A, A2, AT, AS, AE } from '../../../design/alexandria-tokens';
-import { fmtNum, type MundoAtlas } from '../../../lib/atlas/worldApi';
+import { fmtNum, nomePaisPt, type MundoAtlas } from '../../../lib/atlas/worldApi';
 import {
   COR_FONTE,
   COR_SEM_DADO,
@@ -156,6 +156,20 @@ export function AtlasControles({
   const [metricaRank, setMetricaRank] = useState<ChaveMetrica>('geracao');
 
   const paises = useMemo(() => [...mundo.porIso.values()], [mundo]);
+  /** Nome em pt-BR — o mesmo do tooltip, do perfil e do comparador.
+   *  Sem isto o ranking diria "United States" numa interface que em
+   *  todo o resto diz "Estados Unidos". */
+  const nomePt = useMemo(() => {
+    const porIso = new Map(
+      mundo.features
+        .filter((f) => f.properties.a3 !== null)
+        .map((f) => [f.properties.a3 as string, f.properties]),
+    );
+    return (iso: string, doBackend: string) => {
+      const props = porIso.get(iso);
+      return props ? nomePaisPt(props, doBackend) : doBackend;
+    };
+  }, [mundo]);
   const contagens = useMemo(() => contarPorDominante(paises), [paises]);
   const ranking = useMemo(() => rankearPor(paises, metricaRank, 8), [paises, metricaRank]);
   const metrica = metricaPorChave(metricaRank);
@@ -296,7 +310,7 @@ export function AtlasControles({
                   {l.posicao}
                 </span>
                 <span style={{ ...AT.dado, fontSize: '11px', flex: 1, color: A.tintaSobreCreme }}>
-                  {l.pais.countryName}
+                  {nomePt(l.pais.isoCode, l.pais.countryName)}
                 </span>
                 <span style={{ ...AT.dado, fontSize: '11px', color: A.tintaSuave, whiteSpace: 'nowrap' }}>
                   {fmtNum(l.valor, metrica.casas)}

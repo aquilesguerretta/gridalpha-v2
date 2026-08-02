@@ -21,9 +21,11 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth/AuthContext';
 import type { PlatformUser } from '@/lib/auth/authApi';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
-import { MOCK_BADGE_PROGRESS, MOCK_USER_PROGRESS } from '@/lib/data/alexandria-progress-mock';
+import { getMyProgress, type MyProgress } from '@/lib/progress/progressApi';
+import { getAula, TOTAL_AULAS_EXTRAIDAS } from '@/lib/data/alexandria-curriculo';
 import { ALEXANDRIA_BADGES } from '@/lib/data/alexandria-badges';
-import { getTrilhaByLevel } from '@/lib/data/alexandria-trilhas';
+import { getTrilhaByLevel, getModuleById } from '@/lib/data/alexandria-trilhas';
+import type { CurriculumAula, Badge } from '@/lib/types/alexandria';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 
 /** O id de `alexandria` no catálogo canônico que o backend serve em
@@ -197,18 +199,98 @@ function IdentidadeSecao({
   );
 }
 
-// ── Progresso — MOCK, e a tela diz isso ────────────────────────────
+// ── Progresso — real, LYCEUM Wave 31 ───────────────────────────────
+//
+// Fecha a frase que ficou pendurada desde a Wave 23 ("sua identidade é
+// real, seu percurso ainda não"): o backend passou a ter tabela própria
+// (CURSOR Wave 11), então esta seção lê `GET /api/progress/me` em vez do
+// mock que alimentava o rail direito desde a FOUNDRY Wave 3.
+//
+// O backend devolve fato cru — `aulaIds`, nunca "X de Y" — de propósito
+// (contrato, §"Per-account learning progress"): não tem tabela de aula
+// nem de módulo. A junção contra o catálogo é feita aqui, e só sobre
+// aulaIds que `getAula` reconhece — o que já restringe estritamente a
+// módulos extraídos (nenhum módulo com `totalAulas: null` chega a ter
+// entrada em `alexandria-curriculo.ts`), então o "nunca contra
+// denominador desconhecido" da wave sai de graça dessa restrição
+// estrutural, não de um filtro adicional inventado aqui.
 function ProgressoSecao() {
-  const p = MOCK_USER_PROGRESS;
-  const conquistados = MOCK_BADGE_PROGRESS.filter((b) => b.status === 'conquistado');
+  const [dado, setDado] = useState<MyProgress | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  const [falhou, setFalhou] = useState(false);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    getMyProgress(ctrl.signal)
+      .then((d) => setDado(d))
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setFalhou(true);
+      })
+      .finally(() => setCarregando(false));
+    return () => ctrl.abort();
+  }, []);
+
+  if (carregando) {
+    return (
+      <Secao rotulo="Progresso na Alexandria">
+        <span style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave }}>
+          Carregando seu progresso…
+        </span>
+      </Secao>
+    );
+  }
+
+  if (falhou || !dado) {
+    return (
+      <Secao rotulo="Progresso na Alexandria">
+        <div
+          style={{
+            border: `1px dashed ${A.terracota}`,
+            borderRadius: AR.none,
+            padding: AS.lg,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: AS.xs,
+          }}
+        >
+          <span style={{ ...AT.rotulo, color: A.terracota }}>Não foi possível carregar</span>
+          <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
+            O progresso não respondeu agora. Recarregue a página para tentar
+            de novo — a identidade e a Apostila continuam funcionando
+            normalmente enquanto isso.
+          </p>
+        </div>
+      </Secao>
+    );
+  }
+
+  const concluidas = dado.aulasConcluidas
+    .map((id) => getAula(id))
+    .filter((a): a is CurriculumAula => a !== null);
+  const emAndamento = dado.aulasEmAndamento
+    .map((id) => getAula(id))
+    .filter((a): a is CurriculumAula => a !== null);
+
   const porId = new Map(ALEXANDRIA_BADGES.map((b) => [b.id, b]));
+  const badgesConquistados = dado.badges
+    .map((b) => ({ awardedAt: b.awardedAt, badge: porId.get(b.badgeId) }))
+    .filter((b): b is { awardedAt: string; badge: Badge } => b.badge !== undefined);
 
   const numeros: [string, string][] = [
-    ['Aulas concluídas', `${p.aulasCompleted} de ${p.aulasTotal} confirmadas`],
-    ['Nível 1', `${p.byLevel[1]}%`],
-    ['Insígnias', `${p.badgesEarned} de ${p.badgesTotal}`],
-    ['Sequência', `${p.studyStreakDays} dias`],
+    ['Aulas concluídas', `${concluidas.length} de ${TOTAL_AULAS_EXTRAIDAS} confirmadas`],
+    ['Aulas em andamento', `${emAndamento.length}`],
+    ['Insígnias', `${badgesConquistados.length} de ${ALEXANDRIA_BADGES.length}`],
+    [
+      'Sequência',
+      dado.streak.maior > dado.streak.atual
+        ? `${dado.streak.atual} dia(s) · recorde ${dado.streak.maior}`
+        : `${dado.streak.atual} dia(s)`,
+    ],
   ];
+
+  const semNenhumEvento =
+    concluidas.length === 0 && emAndamento.length === 0 && badgesConquistados.length === 0;
 
   return (
     <Secao rotulo="Progresso na Alexandria">
@@ -238,67 +320,123 @@ function ProgressoSecao() {
         ))}
       </div>
 
-      {conquistados.length > 0 && (
+      {emAndamento.length > 0 && <ListaDeAulas titulo="Em andamento" aulas={emAndamento} />}
+
+      {badgesConquistados.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ ...AT.rotulo, fontSize: '10px', color: A2.tintaMetadado, paddingBottom: AS.sm }}>
             Insígnias conquistadas
           </span>
-          {conquistados.map((c, i) => {
-            const badge = porId.get(c.badgeId);
-            if (!badge) return null;
-            return (
-              <div
-                key={c.badgeId}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  padding: `${AS.sm} 0`,
-                  borderTop: i > 0 ? `1px solid ${A2.fioClaroSobreCreme}` : 'none',
-                }}
-              >
-                <span style={{ ...AT.corpo, fontSize: '14px', color: A.oliva }}>
-                  {badge.name} · +{badge.expReward} XP
-                </span>
-                <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.45, color: A.tintaSuave }}>
-                  {badge.criterion}
-                </span>
-              </div>
-            );
-          })}
+          {badgesConquistados.map((c, i) => (
+            <div
+              key={c.badge.id}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+                padding: `${AS.sm} 0`,
+                borderTop: i > 0 ? `1px solid ${A2.fioClaroSobreCreme}` : 'none',
+              }}
+            >
+              <span style={{ ...AT.corpo, fontSize: '14px', color: A.oliva }}>
+                {c.badge.name} · +{c.badge.expReward} XP
+              </span>
+              <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.45, color: A.tintaSuave }}>
+                {c.badge.criterion}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* A nota honesta. O progresso acima é o mesmo mock que alimenta o
-          rail direito desde a FOUNDRY Wave 3 — não é desta conta, e a
-          página não finge que é. Persistir de verdade é wave de backend;
-          simular com localStorage seria ilusão presa a um aparelho, que
-          contradiz a própria ideia de conta que atravessa dispositivo. */}
-      <div
-        style={{
-          border: `1px dashed ${A.terracota}`,
-          borderRadius: AR.none,
-          padding: AS.lg,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: AS.xs,
-        }}
-      >
-        <span style={{ ...AT.rotulo, color: A.terracota }}>Ainda não é o seu progresso</span>
-        <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
-          Os números acima são de demonstração, iguais para toda conta. A
-          Alexandria ainda não registra aula concluída por usuário — sua
-          identidade é real, seu percurso ainda não. Rastreamento persistente
-          por conta depende de endpoint de progresso no backend.
-        </p>
-      </div>
+      {/* A concessão de badge não tem regra implementada em lugar nenhum
+          hoje (nenhuma wave emite `badge_conquistado`) — então esta lista
+          fica vazia para toda conta real até essa lógica existir. Registrado
+          como pendência sem dono, não resolvido nesta wave. */}
+
+      {semNenhumEvento && (
+        <div
+          style={{
+            border: `1px dashed ${A.terracota}`,
+            borderRadius: AR.none,
+            padding: AS.lg,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: AS.xs,
+          }}
+        >
+          <span style={{ ...AT.rotulo, color: A.terracota }}>Comece por aqui</span>
+          <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
+            Nenhum progresso registrado ainda nesta conta. O rastreamento é
+            real — abra qualquer aula de uma trilha e o registro acontece
+            sozinho a partir da leitura.
+          </p>
+        </div>
+      )}
     </Secao>
   );
 }
 
+/** Lista de aulas com link direto — usada para "em andamento". Resolve a
+ *  rota pelo catálogo (`getModuleById`), nunca digitada. */
+function ListaDeAulas({ titulo, aulas }: { titulo: string; aulas: CurriculumAula[] }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <span style={{ ...AT.rotulo, fontSize: '10px', color: A2.tintaMetadado, paddingBottom: AS.sm }}>
+        {titulo}
+      </span>
+      {aulas.map((a, i) => {
+        const modulo = getModuleById(a.moduleId);
+        const rotulo = `${modulo?.title ?? a.moduleId} · Aula ${a.number} — ${a.title}`;
+        const linkStyle = {
+          ...AT.corpo,
+          fontSize: '14px',
+          color: A.terracota,
+          textDecoration: 'none',
+        } as const;
+        return (
+          <div
+            key={a.id}
+            style={{
+              padding: `${AS.sm} 0`,
+              borderTop: i > 0 ? `1px solid ${A2.fioClaroSobreCreme}` : 'none',
+            }}
+          >
+            {modulo ? (
+              <Link
+                to={`/alexandria/trilha/${modulo.trilhaId}/modulo/${modulo.id}/aula/${a.number}`}
+                style={linkStyle}
+              >
+                {rotulo}
+              </Link>
+            ) : (
+              <span style={linkStyle}>{rotulo}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Certificado — bloqueado, com a razão real ──────────────────────
+//
+// Correção de leitura desta wave: o texto original dizia "3 dos 5
+// módulos" e "os dois restantes seguem sem conteúdo extraído" — verdade
+// no fechamento da Wave 2, falso desde a Wave 25 (Trilha 1 fechou com os
+// 5 módulos confirmados, `totalAulasPartial: false`). Corrigido para
+// derivar do catálogo em vez de repetir dígitos que já divergiram uma
+// vez. A razão do bloqueio muda de "denominador desconhecido" (não é
+// mais verdade) para "ainda não cruza contra progresso real" — que É
+// verdade: esta wave conecta o registro por aula, não a checagem de
+// trilha completa para emissão de certificado. Registrado, não
+// resolvido.
 function CertificadoSecao() {
   const t1 = getTrilhaByLevel(1);
+  const totalModulos = t1?.moduleIds.length ?? 0;
+  const modulosComFonte =
+    t1?.moduleIds.filter((id) => getModuleById(id)?.totalAulas !== null).length ?? 0;
+
   return (
     <Secao rotulo="Certificado">
       <div
@@ -312,13 +450,24 @@ function CertificadoSecao() {
         }}
       >
         <span style={{ ...AT.rotulo, color: A.terracota }}>Nível 1 · indisponível</span>
-        <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
-          O certificado de nível exige a trilha inteira, e a Trilha 1 ainda
-          não tem tamanho conhecido: {t1?.totalAulas ?? 0} aulas estão
-          confirmadas em 3 dos 5 módulos, e os dois restantes seguem sem
-          conteúdo extraído. Emitir certificado sobre um denominador
-          desconhecido seria certificar o que ninguém mediu.
-        </p>
+        {t1?.totalAulasPartial ? (
+          <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
+            O certificado de nível exige a trilha inteira, e a Trilha 1 ainda
+            não tem tamanho conhecido: {t1?.totalAulas ?? 0} aulas estão
+            confirmadas em {modulosComFonte} dos {totalModulos} módulos, e os
+            demais seguem sem conteúdo extraído. Emitir certificado sobre um
+            denominador desconhecido seria certificar o que ninguém mediu.
+          </p>
+        ) : (
+          <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
+            A Trilha 1 fechou com denominador conhecido — {t1?.totalAulas ?? 0}{' '}
+            aulas confirmadas nos {totalModulos} módulos. O que falta agora é
+            cruzar isso contra o progresso real desta conta para decidir
+            quando emitir: esta wave conecta o registro por aula, não essa
+            checagem de trilha completa. Fica registrado como a próxima
+            pendência do Certificado.
+          </p>
+        )}
       </div>
     </Secao>
   );

@@ -4169,6 +4169,1000 @@ export const ALEXANDRIA_GLOSSARIO: GlossaryTerm[] = [
       "Fusão, aquisição, incorporação ou associação sujeita à análise concorrencial quando preenchidos os critérios legais de notificação. Consumar antes da aprovação obrigatória é <em>gun jumping</em>.",
     aulaIds: [],
   },
+
+  // ── Modulo 08 (Wave 34) ──────────────────────────────
+  {
+    id: "gl-m08-capacidade-instalada",
+    term: "Capacidade instalada",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Potência nominal agregada dos equipamentos aptos a gerar, medida em MW ou GW numa data de referência. É estoque, não fluxo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-capacidade-fiscalizada",
+    term: "Capacidade fiscalizada",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Potência efetivamente verificada e registrada pela agência reguladora, que pode divergir da outorgada.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-capacidade-outorgada",
+    term: "Capacidade outorgada",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Potência autorizada no ato de outorga, que precede e frequentemente excede a capacidade em operação.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-geracao-efetiva",
+    term: "Geração efetiva",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Energia produzida e medida ao longo de um período, expressa em MWh, GWh ou TWh.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-geracao-bruta",
+    term: "Geração bruta",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Energia produzida nos terminais do gerador, antes do consumo de serviços auxiliares da própria usina.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-geracao-liquida",
+    term: "Geração líquida",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Geração bruta menos o consumo interno da usina em bombas, ventiladores e sistemas de controle.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-mw",
+    term: "MW",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Megawatt. Unidade de potência — mede capacidade de entrega instantânea.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-mwh",
+    term: "MWh",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Megawatt-hora. Unidade de energia — mede quantidade acumulada num período.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-mwmed",
+    term: "MWmed",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Megawatt médio. Energia do período dividida pelo número de horas do período; converte energia em potência equivalente constante.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-twh",
+    term: "TWh",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Terawatt-hora. Um bilhão de quilowatt-hora; unidade padrão de geração anual nacional.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-gw",
+    term: "GW",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Gigawatt. Mil megawatts; unidade padrão de capacidade instalada nacional.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-tep",
+    term: "tep",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Tonelada equivalente de petróleo. Unidade da matriz energética, usada para somar fontes de naturezas diferentes.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-matriz-eletrica",
+    term: "Matriz elétrica",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Composição da eletricidade gerada, importada e consumida no país, por fonte.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-matriz-energetica",
+    term: "Matriz energética",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Composição de toda a energia usada na economia, incluindo combustíveis de transporte e calor industrial.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-oferta-interna-de-energia-eletrica",
+    term: "Oferta interna de energia elétrica",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Toda a geração nacional somada ao saldo líquido de importação; é a base sobre a qual se calcula a renovabilidade elétrica.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-oferta-interna-de-energia",
+    term: "Oferta interna de energia",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Equivalente para a matriz energética completa, expressa em tep.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-consumo-final",
+    term: "Consumo final",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Energia efetivamente entregue ao uso, deduzidas perdas e consumo próprio do setor energético.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-recorte",
+    term: "Recorte",
+    unit: "Grandezas, unidades e universos",
+    definition:
+      "Conjunto formado por universo, data-base e método adotados numa estatística. É o eixo invisível de toda comparação numérica.",
+    aulaIds: ["aula-08-01"],
+  },
+  {
+    id: "gl-m08-fator-de-capacidade",
+    term: "Fator de capacidade",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Razão entre a geração verificada no período e a geração máxima teórica à potência nominal no mesmo período.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-fator-de-capacidade-potencial",
+    term: "Fator de capacidade potencial",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Mesmo cálculo, mas somando à geração verificada a geração frustrada por restrição; a diferença para o realizado mede a exposição a corte.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-fator-de-carga",
+    term: "Fator de carga",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Razão entre demanda média e demanda máxima de um consumidor ou de um sistema num período.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-disponibilidade",
+    term: "Disponibilidade",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Percentual do tempo ou da potência em que o equipamento estava tecnicamente apto a operar.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-indisponibilidade-programada",
+    term: "Indisponibilidade programada",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Parada prevista para manutenção ou reabastecimento.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-indisponibilidade-forcada",
+    term: "Indisponibilidade forçada",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Parada não prevista, por falha.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-despachabilidade",
+    term: "Despachabilidade",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Capacidade de alterar a geração quando solicitado, dentro dos limites de rampa e de operação.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-inflexibilidade",
+    term: "Inflexibilidade",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Condição contratual ou técnica que obriga uma usina a gerar independentemente da ordem econômica.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-flexibilidade",
+    term: "Flexibilidade",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Capacidade de alterar produção ou consumo em resposta à necessidade do sistema.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-rampa",
+    term: "Rampa",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Variação de potência por unidade de tempo exigida do conjunto de recursos.",
+    aulaIds: ["aula-08-03"],
+  },
+  {
+    id: "gl-m08-potencia-firme",
+    term: "Potência firme",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Contribuição confiável de um recurso ao atendimento nas horas críticas, sob determinado nível de confiança.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-garantia-fisica",
+    term: "Garantia física",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Parâmetro regulatório-comercial de contribuição de um empreendimento ao suprimento; não é promessa de geração anual.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-reserva",
+    term: "Reserva",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Capacidade mantida disponível para responder a desvio de previsão e a contingência.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-servicos-ancilares",
+    term: "Serviços ancilares",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Serviços prestados ao sistema além da energia — controle de frequência, controle de tensão, reserva e recomposição.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-intensidade-de-carbono",
+    term: "Intensidade de carbono",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Emissões associadas a cada unidade de energia elétrica gerada, tipicamente em kg de CO₂ equivalente por MWh.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-data-de-entrada-em-operacao-comercial",
+    term: "Data de entrada em operação comercial",
+    unit: "Métricas de utilização e desempenho",
+    definition:
+      "Marco a partir do qual a usina passa a operar comercialmente; determina o denominador correto do fator de capacidade anual.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-geracao-centralizada",
+    term: "Geração centralizada",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Usina de escala conectada à rede de transmissão ou de distribuição em instalação dedicada, sob relacionamento operacional com o operador.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-geracao-distribuida",
+    term: "Geração distribuída",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Geração conectada próxima à carga, sob regras específicas de conexão e compensação.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-micro-e-minigeracao-distribuida",
+    term: "Micro e minigeração distribuída",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Modalidade de geração distribuída de pequeno porte, conectada à rede de distribuição e não despachada centralmente.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-autoproducao",
+    term: "Autoprodução",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Geração para consumo próprio do produtor, no próprio sítio ou em empreendimento remoto.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-autoproducao-nao-injetada",
+    term: "Autoprodução não injetada",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Parcela da autoprodução consumida no local sem transitar pela rede; entra em alguns universos estatísticos e não em outros.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-cogeracao",
+    term: "Cogeração",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Produção conjunta de vapor e eletricidade a partir do mesmo processo, típica em sucroenergia e em papel e celulose.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-bioeletricidade",
+    term: "Bioeletricidade",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Eletricidade gerada a partir de biomassa; agregação que pode diferir da rubrica \"biomassa\" conforme a base estatística.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-bagaco-de-cana",
+    term: "Bagaço de cana",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Principal combustível da bioeletricidade brasileira, com disponibilidade atrelada à safra.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-licor-preto",
+    term: "Licor preto",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Subproduto da produção de celulose usado como combustível em cogeração industrial.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-ciclo-combinado",
+    term: "Ciclo combinado",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Arranjo termelétrico que aproveita o calor residual da turbina a gás; mais eficiente e mais adequado a operação prolongada.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-ciclo-simples",
+    term: "Ciclo simples",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Arranjo termelétrico de resposta mais rápida e menor eficiência, adequado a atendimento de ponta e rampa.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-usina-a-fio-d-agua",
+    term: "Usina a fio d'água",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Hidrelétrica com capacidade de armazenamento pequena em relação à vazão; gera conforme a afluência.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-usina-com-reservatorio",
+    term: "Usina com reservatório",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Hidrelétrica capaz de armazenar água e deslocar geração no tempo, entre horas, meses ou anos.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-pequena-central-hidreletrica",
+    term: "Pequena central hidrelétrica",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Empreendimento hidrelétrico de porte reduzido, com regime regulatório próprio.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-central-geradora-hidreletrica",
+    term: "Central geradora hidrelétrica",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Empreendimento hidrelétrico de porte ainda menor, com exigências simplificadas.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-repotenciacao",
+    term: "Repotenciação",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Aumento de capacidade de usina existente por substituição ou modernização de equipamento.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-sistema-de-armazenamento-em-baterias",
+    term: "Sistema de armazenamento em baterias",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Recurso de resposta rápida capaz de deslocar energia dentro do dia e prestar serviços ao sistema.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-bombeamento-reversivel",
+    term: "Bombeamento reversível",
+    unit: "Fontes de geração no agregado",
+    definition:
+      "Armazenamento hidráulico que eleva água para um reservatório superior em horas de excedente.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-energia-natural-afluente",
+    term: "Energia natural afluente",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Conversão das vazões que chegam aos aproveitamentos em energia equivalente; é grandeza de fluxo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-media-de-longo-termo",
+    term: "Média de longo termo",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Valor histórico esperado da afluência para determinado mês e subsistema; é a régua contra a qual a afluência é lida.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-energia-armazenada",
+    term: "Energia armazenada",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Equivalente energético da água disponível nos reservatórios; é grandeza de estoque.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-volume-util",
+    term: "Volume útil",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Parcela operável do armazenamento de um reservatório, entre os níveis mínimo e máximo operativos.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-reservatorio-equivalente-de-energia",
+    term: "Reservatório equivalente de energia",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Representação agregada dos reservatórios de um subsistema como um único estoque energético.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-periodo-umido",
+    term: "Período úmido",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Estação de maiores afluências, variável por bacia; no Sudeste/Centro-Oeste vai tipicamente de novembro a abril.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-periodo-seco",
+    term: "Período seco",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Estação de menores afluências, complementar ao período úmido da mesma bacia.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-deplecionamento",
+    term: "Deplecionamento",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Redução do nível de armazenamento ao longo do tempo, típica do período seco.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-vazao-minima",
+    term: "Vazão mínima",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Defluência obrigatória por licença ambiental, navegação ou abastecimento; é uma das origens do piso de geração.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-defluencia",
+    term: "Defluência",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Vazão liberada por um aproveitamento, turbinada ou vertida.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-vertimento",
+    term: "Vertimento",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Água liberada sem passar pela turbina; vertimento turbinável é energia perdida.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-uso-multiplo-da-agua",
+    term: "Uso múltiplo da água",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Conjunto de finalidades concorrentes — abastecimento, irrigação, navegação, controle de cheia — que condicionam a operação hidrelétrica.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-diversidade-hidrologica",
+    term: "Diversidade hidrológica",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Descorrelação entre regimes de bacias distantes, que a integração nacional existe para aproveitar.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-piso-de-geracao-hidraulica",
+    term: "Piso de geração hidráulica",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Nível mínimo de geração hidrelétrica abaixo do qual o sistema não opera, por requisitos ambientais, elétricos e de máquina.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-mecanismo-de-realocacao-de-energia",
+    term: "Mecanismo de realocação de energia",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Arranjo que compartilha a geração hidrelétrica entre participantes para reduzir a exposição à hidrologia individual.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-fator-de-ajuste-do-mecanismo",
+    term: "Fator de ajuste do mecanismo",
+    unit: "Hidrologia e armazenamento",
+    definition:
+      "Razão entre a geração agregada alocável e a garantia física do conjunto de participantes.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-sistema-interligado-nacional",
+    term: "Sistema Interligado Nacional",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Rede que integra geração e consumo da maior parte do território brasileiro sob operação coordenada.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-sistema-isolado",
+    term: "Sistema isolado",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Sistema elétrico não conectado ao sistema interligado, atendido por geração local.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-submercado",
+    term: "Submercado",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Zona de contabilização e de formação de preço delimitada por restrições estruturais de transmissão.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-subsistema",
+    term: "Subsistema",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Recorte elétrico usado na operação e no planejamento, definido por topologia; nem sempre coincide com submercado.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-rede-basica",
+    term: "Rede Básica",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Conjunto de instalações de transmissão de interesse sistêmico, conforme critérios de tensão e função definidos em regulação.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-rede-basica-de-fronteira",
+    term: "Rede Básica de Fronteira",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Instalações de transformação na interface entre a Rede Básica e as redes de distribuição.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-demais-instalacoes-de-transmissao",
+    term: "Demais instalações de transmissão",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Instalações de transmissão que não integram a Rede Básica e atendem interesse restrito.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-intercambio",
+    term: "Intercâmbio",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Fluxo líquido de potência entre subsistemas.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-limite-de-intercambio",
+    term: "Limite de intercâmbio",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Máximo fluxo admissível entre subsistemas sem violar critérios de segurança e estabilidade.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-limite-de-exportacao",
+    term: "Limite de exportação",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Restrição sobre o quanto uma região pode injetar no restante do sistema num dado instante.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-corrente-continua-em-alta-tensao",
+    term: "Corrente contínua em alta tensão",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Tecnologia de transmissão para grandes blocos a longa distância, com controle de fluxo e menor perda relativa.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-bipolo",
+    term: "Bipolo",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Arranjo de transmissão em corrente contínua com dois polos; sua perda é contingência de grande magnitude.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-estacao-conversora",
+    term: "Estação conversora",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Instalação que converte entre corrente alternada e contínua nas extremidades de um elo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-compensador-sincrono",
+    term: "Compensador síncrono",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Equipamento rotativo que fornece suporte dinâmico de potência reativa e contribui para a estabilidade de tensão.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-estabilidade-de-tensao",
+    term: "Estabilidade de tensão",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Capacidade do sistema de manter tensões aceitáveis após distúrbio; fator limitante do escoamento em regiões com alta penetração de fontes conectadas por inversor.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-recurso-conectado-por-inversor",
+    term: "Recurso conectado por inversor",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Fonte cuja interface com a rede é eletrônica, e não uma máquina síncrona; altera o comportamento dinâmico do sistema.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-contingencia",
+    term: "Contingência",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Perda de um ou mais elementos da rede, contra a qual a operação é planejada.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-contrato-de-uso-do-sistema-de-transmissao",
+    term: "Contrato de uso do sistema de transmissão",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Instrumento que assegura ao agente o direito de uso da rede; sua assinatura é indicador de expansão provável.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-margem-de-conexao",
+    term: "Margem de conexão",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Capacidade remanescente para conectar nova geração ou nova carga num ponto da rede.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-leilao-de-transmissao",
+    term: "Leilão de transmissão",
+    unit: "Sistema, submercados e transmissão",
+    definition:
+      "Certame pelo qual se outorga a construção e operação de instalações, com receita anual permitida como variável de disputa.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-corte-de-geracao",
+    term: "Corte de geração",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Redução, limitação ou interrupção determinada da produção de uma usina disponível.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-restricao-por-confiabilidade",
+    term: "Restrição por confiabilidade",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Corte motivado por limite de carregamento, tensão, estabilidade ou contingência.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-restricao-por-razao-energetica",
+    term: "Restrição por razão energética",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Corte motivado por oferta instantânea superior à carga somada aos pisos de geração; não se resolve com transmissão.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-indisponibilidade-externa",
+    term: "Indisponibilidade externa",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Corte decorrente de falha ou manutenção em instalação necessária ao escoamento; é a categoria com mecanismo de ressarcimento definido.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-geracao-frustrada",
+    term: "Geração frustrada",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Energia que a usina teria produzido e não produziu por determinação de corte.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-carga",
+    term: "Carga",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Potência elétrica demandada pelo sistema ou por um consumidor num instante ou período.",
+    aulaIds: ["aula-08-06"],
+  },
+  {
+    id: "gl-m08-carga-liquida",
+    term: "Carga líquida",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Carga observada pelo operador após subtração da geração que ele não comanda, sobretudo a distribuída.",
+    aulaIds: ["aula-08-03"],
+  },
+  {
+    id: "gl-m08-carga-supervisionada",
+    term: "Carga supervisionada",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Demanda observada no escopo de supervisão do operador, distinta do consumo final da sociedade.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-demanda-maxima",
+    term: "Demanda máxima",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Maior valor de potência verificado num período; é o que dimensiona adequação de potência.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-patamar-horario",
+    term: "Patamar horário",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Faixa de horas com comportamento típico de carga e de geração solar; a operação brasileira trabalha com quatro.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-inversao-de-fluxo",
+    term: "Inversão de fluxo",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Circulação de energia da rede de distribuição para níveis superiores, decorrente de alta penetração de geração local.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-observabilidade",
+    term: "Observabilidade",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Grau em que o operador consegue medir e conhecer o estado dos recursos conectados.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-controlabilidade",
+    term: "Controlabilidade",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Grau em que o operador consegue comandar a alteração de produção ou consumo de um recurso.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-rateio-dos-cortes",
+    term: "Rateio dos cortes",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Critério de distribuição do ônus da restrição entre os agentes; objeto de discussão regulatória em curso.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-recurso-energetico-distribuido",
+    term: "Recurso energético distribuído",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Conjunto de geração, armazenamento e carga flexível conectados na distribuição.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-resposta-da-demanda",
+    term: "Resposta da demanda",
+    unit: "Restrição de geração e operação horária",
+    definition:
+      "Alteração voluntária do consumo em função de sinal de preço ou de necessidade do sistema.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-concessionaria-de-distribuicao",
+    term: "Concessionária de distribuição",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Empresa outorgada para prestar o serviço público de distribuição em área delimitada, com exclusividade e obrigações regulatórias.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-permissionaria",
+    term: "Permissionária",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Agente de distribuição sob regime de permissão, tipicamente de menor porte.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-cooperativa-de-eletrificacao-rural",
+    term: "Cooperativa de eletrificação rural",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Entidade regularizada como permissionária do serviço público de distribuição.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-area-de-concessao",
+    term: "Área de concessão",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Território em que a concessionária detém exclusividade e obrigação de atendimento.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-caducidade",
+    term: "Caducidade",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Extinção antecipada da concessão por falta grave do concessionário, mediante processo administrativo com contraditório.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-duracao-equivalente-de-interrupcao",
+    term: "Duração equivalente de interrupção",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Tempo médio, por unidade consumidora, em que o fornecimento esteve interrompido no período.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-frequencia-equivalente-de-interrupcao",
+    term: "Frequência equivalente de interrupção",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Número médio de interrupções por unidade consumidora no período.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-indicadores-individuais-de-continuidade",
+    term: "Indicadores individuais de continuidade",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Duração, frequência e maior interrupção contínua apuradas para a unidade consumidora específica.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-perdas-tecnicas",
+    term: "Perdas técnicas",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Energia dissipada fisicamente em condutores, transformadores e equipamentos.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-perdas-nao-tecnicas",
+    term: "Perdas não técnicas",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Energia perdida por furto, fraude e erro de medição, cadastro ou faturamento.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-perda-regulatoria",
+    term: "Perda regulatória",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Nível de perda reconhecido na tarifa como eficiente; o excedente é absorvido pela concessionária.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-unidade-consumidora",
+    term: "Unidade consumidora",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Ponto individualizado de entrega de energia, com medição e faturamento próprios.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-classe-de-consumo",
+    term: "Classe de consumo",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Categoria de consumidor por finalidade de uso — residencial, industrial, comercial, rural, poder público, serviço público e iluminação pública.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-ambiente-de-contratacao-regulada",
+    term: "Ambiente de contratação regulada",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Ambiente em que o consumidor é suprido pela distribuidora sob tarifa regulada.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-ambiente-de-contratacao-livre",
+    term: "Ambiente de contratação livre",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Ambiente em que o consumidor negocia diretamente sua energia com fornecedores.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-consumo-na-rede",
+    term: "Consumo na rede",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Consumo suprido através das redes de distribuição, excluindo autoprodução consumida no local.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-setor-eletrointensivo",
+    term: "Setor eletrointensivo",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Segmento industrial em que a eletricidade representa parcela expressiva do custo de produção.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-balanco-energetico-nacional",
+    term: "Balanço energético nacional",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Contabilidade anual da oferta, transformação e consumo de energia no país, com ano-base no ano anterior.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-anuario-estatistico-de-energia-eletrica",
+    term: "Anuário estatístico de energia elétrica",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Publicação anual com dados de consumo, consumidores, demanda, carga, preços e tarifas.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m08-plano-decenal-de-expansao",
+    term: "Plano decenal de expansão",
+    unit: "Distribuição, consumo e bases de dados",
+    definition:
+      "Estudo indicativo, e não determinativo, das perspectivas de expansão do setor energético em horizonte de dez anos.",
+    aulaIds: [],
+  },
 ];
 
 /** Verbetes em que a aula aparece — para a página da aula referenciar. */

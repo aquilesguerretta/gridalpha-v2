@@ -1047,11 +1047,18 @@ Derivation per `eventType`:
 
 | `eventType` | Effect |
 | --- | --- |
-| `aula_iniciada` | Upserts `aula_status` — `status='em_andamento'`; `started_at` is set only if not already set (`COALESCE`, first-open time, not most recent). Re-sending this against an already-`concluido` lesson reverts its status to `em_andamento` — the brief specifies the upsert unconditionally, and no "don't downgrade" rule was invented. |
+| `aula_iniciada` | Upserts `aula_status` — `status='em_andamento'` for a new row or a row not yet `concluido`; `started_at` is set only if not already set (`COALESCE`, first-open time, not most recent). **Never downgrades** an already-`concluido` row — post-close fix, see below. |
 | `aula_concluida` | Upserts `aula_status` — `status='concluido'`; `completed_at` is overwritten unconditionally (deliberate asymmetry vs. `started_at` — the brief's wording qualifies only the latter). |
 | `badge_conquistado` | Upserts `badge_award` via `ON CONFLICT DO NOTHING` — idempotent, same pattern as Wave 9's `activate`. |
 | `instrumento_usado`, `exercicio_respondido` | Log-only. No derived table touched. |
 | *(every event type)* | Recomputes `study_streak` in one atomic `INSERT … ON CONFLICT DO UPDATE`, comparing the stored `last_active_date` to `CURRENT_DATE` at the database clock: same day → no change; exactly one day ago → `current_streak_days += 1`; more than one day ago (or first event ever) → resets to 1. `longest_streak_days` tracks the running max. |
+
+**Post-close fix:** the first cut of `aula_iniciada` set `status='em_andamento'`
+unconditionally, which reverted an already-`concluido` lesson back to
+in-progress on a mere revisit. Corrected so `aula_iniciada` never
+downgrades a `concluido` row — deliberately reverting a completion for
+real (e.g. re-extracted content invalidates prior progress) would need
+its own explicit event type, out of scope here.
 
 ### ENDPOINT 23 — My progress
 

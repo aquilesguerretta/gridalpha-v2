@@ -3151,6 +3151,36 @@ intermediárias de commit. Nenhum endpoint das Waves 7-10 foi verificado
 com regressão nesta wave especificamente porque nenhum arquivo deles foi
 tocado — só leitura de `user.py`, conforme a posse declarada.
 
+### Correção pós-fechamento — `aula_iniciada` não rebaixa mais `concluido`
+
+**Status:** fechada. Não faz parte do relatório original da wave — é
+correção pedida depois, sobre um efeito colateral real que o próprio
+relatório de fechamento já tinha registrado como "conhecido, não
+corrigido".
+
+O primeiro corte de `aula_iniciada` setava `status='em_andamento'` sem
+condição no `ON CONFLICT`, então revisitar uma aula já `concluida`
+apagava progresso real de volta pra "em andamento" — efeito colateral
+acidental de um clique de reabrir aula, não decisão de produto de
+ninguém.
+
+**Correção em `_mark_aula_iniciada` (`app/services/progress_service.py`):**
+o `SET status = ...` do upsert virou um `CASE` — se o status atual da
+linha já for `concluido`, mantém `concluido`; senão, escreve
+`em_andamento` (linha nova ou linha ainda não concluída). `started_at`
+continua com o mesmo `COALESCE` de antes, intocado. Reverter uma
+conclusão de propósito (ex.: conteúdo reextraído invalida progresso
+anterior) segue fora de escopo — precisaria de um evento explícito
+próprio, não efeito colateral de `aula_iniciada`.
+
+**Smoke test re-executado com o caso específico coberto:**
+`aula_concluida` → `aula_iniciada` de novo na mesma aula → `status`
+continua `concluido`, `completedAt` não muda. 41 asserções, 0 falha
+(as 39 originais da Fase 5 + as 2 novas desta correção).
+
+**Gates:** `py -3 -c "from app.main import app"` importa limpo. Nenhuma
+outra tabela ou endpoint tocado.
+
 ## ARCHITECT — IDENTIDADE DE PLATAFORMA WAVE 1
 
 **Status:** fechada. Consumidor frontend da Wave 9 do backend — contexto

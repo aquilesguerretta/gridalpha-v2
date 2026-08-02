@@ -15,12 +15,19 @@ Two asymmetries are deliberate, both read literally off the Wave 11 brief:
   brief's wording only qualifies ``started_at`` with "se ainda não
   existir"; ``completed_at`` carries no such qualifier. A lesson can be
   reopened and re-completed, and ``completed_at`` tracks the latest time
-  that happened. One side effect worth flagging: re-sending
-  ``aula_iniciada`` against an already-``concluido`` lesson reverts its
-  status to ``em_andamento`` — the brief specifies the upsert
-  unconditionally, and downgrading status is a business rule this wave
-  was not asked to invent. Whoever wires the real "resume a finished
-  lesson" UX decides whether the frontend should even send that event.
+  that happened.
+
+POST-CLOSE FIX (not part of the original Wave 11 delivery): the first
+cut of ``aula_iniciada`` set ``status='em_andamento'`` unconditionally,
+which reverted an already-``concluido`` lesson back to in-progress on a
+mere revisit — real completed progress erased by re-opening a lesson.
+``aula_iniciada`` now never downgrades a ``concluido`` row: the CASE in
+``_mark_aula_iniciada`` keeps the existing status when it is already
+``concluido`` and only writes ``em_andamento`` for a new row or a row
+that was not yet ``concluido``. Deliberately reverting a completion for
+real (e.g. re-extracted content invalidates prior progress) needs its
+own explicit event type — out of scope here, and never an accidental
+side effect of the student just opening the lesson again.
 
 Badge award is idempotent by construction (``ON CONFLICT DO NOTHING``),
 identical in shape to Wave 9's product activation. WHEN a badge should be
@@ -39,7 +46,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from sqlalchemy import func, select, text
+from sqlalchemy import case, func, select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -104,7 +111,12 @@ def _mark_aula_iniciada(db: Session, user_id: uuid.UUID, aula_id: str, now: date
     stmt = stmt.on_conflict_do_update(
         index_elements=["user_id", "aula_id"],
         set_={
-            "status": "em_andamento",
+            # Never downgrade a completed lesson back to in-progress just
+            # because it was opened again — see module docstring.
+            "status": case(
+                (AulaStatus.status == "concluido", AulaStatus.status),
+                else_=stmt.excluded.status,
+            ),
             # First time this lesson was opened, not the most recent.
             "started_at": func.coalesce(AulaStatus.started_at, stmt.excluded.started_at),
             "updated_at": func.now(),

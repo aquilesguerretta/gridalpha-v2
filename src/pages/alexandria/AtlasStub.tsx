@@ -17,12 +17,18 @@
 // /alexandria/atlas paga o chunk. Veto limpo = npm uninstall + revert
 // deste arquivo.
 
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import { carregarMundo, type MundoAtlas } from '@/lib/atlas/worldApi';
 
 const AtlasGlobo = lazy(() => import('@/components/alexandria/atlas/AtlasGlobo'));
+
+// Duração do zoom entre a página e o modo imersivo. Vive AQUI (e vai
+// por prop) porque importar do AtlasGlobo puxaria o chunk lazy para o
+// bundle de entrada. A mesma constante rege o palco, a figura e a
+// altitude da câmera — as três precisam ser solidárias.
+const MODO_MS = 900;
 
 interface LegendaAtlas {
   fronteiras: number;
@@ -67,54 +73,102 @@ function LinhaLegenda({ rotulo, valor }: { rotulo: string; valor: string }) {
   );
 }
 
+interface Ret {
+  top: number;
+  left: number;
+  w: number;
+  h: number;
+}
+
 export function AtlasStub() {
   const [legenda, setLegenda] = useState<LegendaAtlas | null>(null);
   const colunaRef = useRef<HTMLDivElement | null>(null);
-  const palcoRef = useRef<HTMLDivElement | null>(null);
-  const [larguraMain, setLarguraMain] = useState<number | null>(null);
+  const espacadorRef = useRef<HTMLDivElement | null>(null);
   // Modo imersivo (revisão 3): o palco vira overlay FIXO por cima de
   // header e rodapé — o shell nem é tocado; ao sair, tudo volta. O
   // globo continua montado no mesmo nó, então nada recarrega.
   const [imersivo, setImersivo] = useState(false);
-  const entrarImersivo = useCallback(() => setImersivo(true), []);
-  const sairImersivo = useCallback(() => setImersivo(false), []);
+  // Retângulo do palco quando ele está FIXO (durante a animação e no
+  // imersivo). null = palco no fluxo, dentro do espaçador.
+  const [retFixo, setRetFixo] = useState<Ret | null>(null);
+  const [animandoModo, setAnimandoModo] = useState(false);
+  const [dimPagina, setDimPagina] = useState<Ret | null>(null);
+  const [dimJanela, setDimJanela] = useState({ w: 0, h: 0 });
+  const [larguraMain, setLarguraMain] = useState<number | null>(null);
+  const temporizadorRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fade de troca de modo (revisão 4): `fixed` ↔ `relative` não é
-  // animável, e o salto seco de layout (o centro do globo pula ~127px)
-  // era o que fazia a saída por ESC parecer "rusty". O novo estado
-  // ENTRA por fade — o palco nasce transparente no frame da troca e
-  // sobe a 1 com AE.hover, escondendo o salto enquanto a câmera já
-  // está voando (as duas coisas partem no mesmo gesto agora).
-  const [trocandoModo, setTrocandoModo] = useState(false);
-  const primeiroRender = useRef(true);
-  useLayoutEffect(() => {
-    if (primeiroRender.current) {
-      primeiroRender.current = false;
-      return;
-    }
-    setTrocandoModo(true);
-    let id2 = 0;
-    const id1 = requestAnimationFrame(() => {
-      id2 = requestAnimationFrame(() => setTrocandoModo(false));
-    });
-    return () => { cancelAnimationFrame(id1); cancelAnimationFrame(id2); };
-  }, [imersivo]);
-
-  // Full-bleed (segunda revisão): o palco escapa da prancha de 1120px
-  // e ocupa a largura inteira do <main> — no mergulho o mapa cobre a
-  // página, não uma faixa central. Medido por clientWidth (exclui a
-  // scrollbar — 100vw aqui causaria overflow horizontal).
+  // Geometria do palco no modo página (o espaçador reserva o lugar no
+  // fluxo, mesmo quando o palco está fixo) e da janela.
   useEffect(() => {
-    const palco = palcoRef.current;
-    if (!palco) return;
-    const main = palco.closest('main');
-    if (!main) return;
-    const medir = () => setLarguraMain(main.clientWidth);
+    const el = espacadorRef.current;
+    if (!el) return;
+    const main = el.closest('main');
+    const medir = () => {
+      const r = el.getBoundingClientRect();
+      setDimPagina({ top: r.top, left: r.left, w: r.width, h: r.height });
+      setDimJanela({ w: window.innerWidth, h: window.innerHeight });
+      if (main) setLarguraMain(main.clientWidth);
+    };
     medir();
     const ro = new ResizeObserver(medir);
-    ro.observe(main);
-    return () => ro.disconnect();
+    ro.observe(el);
+    if (main) ro.observe(main);
+    main?.addEventListener('scroll', medir, { passive: true });
+    window.addEventListener('resize', medir);
+    return () => {
+      ro.disconnect();
+      main?.removeEventListener('scroll', medir);
+      window.removeEventListener('resize', medir);
+    };
   }, []);
+
+  // ── Zoom entre os modos (revisão 5) ───────────────────────────────
+  // `fixed` ↔ `relative` não é animável, então a troca acontece em três
+  // tempos: o palco vira FIXO no retângulo que já ocupa (invisível),
+  // no frame seguinte anima para o retângulo de destino, e ao chegar
+  // volta ao fluxo se o destino era a página. Enquanto isso a figura e
+  // a altitude da câmera animam na mesma curva e duração — o globo
+  // cresce nas mãos que crescem junto, em vez de piscar.
+  const trocarModo = useCallback((paraImersivo: boolean) => {
+    const el = espacadorRef.current;
+    if (!el) return;
+    if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
+
+    const rEsp = el.getBoundingClientRect();
+    const retPagina: Ret = { top: rEsp.top, left: rEsp.left, w: rEsp.width, h: rEsp.height };
+    const retJanela: Ret = { top: 0, left: 0, w: window.innerWidth, h: window.innerHeight };
+
+    // 1. fixa o palco no retângulo que JÁ ocupa, sem trocar de modo:
+    //    mesmo pixel na tela, nada anima, nada salta.
+    setRetFixo(paraImersivo ? retPagina : retJanela);
+
+    // 2. no frame seguinte, TUDO muda no mesmo commit e com as
+    //    transições acesas — modo (que redefine a figura e a posição
+    //    do canvas), retângulo do palco e, no effect do globo, a
+    //    altitude. Um movimento só. Trocar o modo junto com o retângulo
+    //    é o que faltava: antes a figura saltava 667→1150 no frame em
+    //    que o modo mudava, porque as transições só acendiam depois.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setAnimandoModo(true);
+        setImersivo(paraImersivo);
+        setRetFixo(paraImersivo ? retJanela : retPagina);
+      });
+    });
+
+    // 3. ao chegar, a página volta ao fluxo (coordenadas idênticas)
+    temporizadorRef.current = setTimeout(() => {
+      setAnimandoModo(false);
+      if (!paraImersivo) setRetFixo(null);
+    }, MODO_MS + 80);
+  }, []);
+
+  useEffect(() => () => {
+    if (temporizadorRef.current) clearTimeout(temporizadorRef.current);
+  }, []);
+
+  const entrarImersivo = useCallback(() => trocarModo(true), [trocarModo]);
+  const sairImersivo = useCallback(() => trocarModo(false), [trocarModo]);
 
   // Mesma promise cacheada que o globo consome — zero busca duplicada.
   useEffect(() => {
@@ -136,32 +190,44 @@ export function AtlasStub() {
 
   return (
     <AlexandriaShell navAtivo="atlas">
-      {/* Palco em altura de viewport: 100vh − header (70) − padding
-          superior da prancha. O globo é a página; o rodapé vem no
-          scroll. Altura esticada e largura full-bleed na segunda
-          revisão ("aumente o tamanho... consecutivamente da página"). */}
+      {/* Espaçador: reserva no fluxo a altura do palco da página, para
+          nada colapsar quando o palco está fixo (durante o zoom e no
+          modo imersivo). É também de onde sai a geometria do modo
+          página — medida real, não estimada. */}
       <div
-        ref={palcoRef}
+        ref={espacadorRef}
         style={{
-          ...(imersivo
-            ? {
-                // tela cheia: cobre header, rodapé e a página inteira
-                position: 'fixed' as const,
-                inset: 0,
-                zIndex: 60,
-                background: A.cremePapel,
-              }
-            : {
-                position: 'relative' as const,
-                height: 'max(520px, calc(100vh - 118px))',
-                width: larguraMain !== null ? `${larguraMain}px` : '100%',
-                marginLeft: larguraMain !== null ? `calc((100% - ${larguraMain}px) / 2)` : 0,
-              }),
-          opacity: trocandoModo ? 0 : 1,
-          transition: trocandoModo ? 'none' : `opacity ${AE.hover} ${AE.easing}`,
+          position: 'relative',
+          height: 'max(520px, calc(100vh - 118px))',
+          // full-bleed pela largura real do <main> (clientWidth exclui
+          // a scrollbar — 100vw aqui causaria overflow horizontal)
+          width: larguraMain !== null ? `${larguraMain}px` : '100%',
+          marginLeft: larguraMain !== null ? `calc((100% - ${larguraMain}px) / 2)` : 0,
         }}
       >
-        <div style={{ position: 'absolute', inset: 0 }}>
+        {/* Palco: no fluxo (absoluto dentro do espaçador) quando em
+            repouso na página; FIXO com retângulo animado durante o
+            zoom e no imersivo. As quatro coordenadas animam na mesma
+            curva e duração da câmera e da figura. */}
+        <div
+          style={{
+            ...(retFixo
+              ? {
+                  position: 'fixed' as const,
+                  top: retFixo.top,
+                  left: retFixo.left,
+                  width: retFixo.w,
+                  height: retFixo.h,
+                  zIndex: 60,
+                }
+              : { position: 'absolute' as const, inset: 0 }),
+            background: imersivo ? A.cremePapel : 'transparent',
+            overflow: 'hidden',
+            transition: animandoModo
+              ? `top ${MODO_MS}ms ${AE.easing}, left ${MODO_MS}ms ${AE.easing}, width ${MODO_MS}ms ${AE.easing}, height ${MODO_MS}ms ${AE.easing}, background ${MODO_MS}ms ${AE.easing}`
+              : 'none',
+          }}
+        >
           <Suspense
             fallback={
               <div
@@ -177,14 +243,19 @@ export function AtlasStub() {
               </div>
             }
           >
-            <AtlasGlobo
-              aoMudarOpacidadeAmbiente={aoMudarOpacidadeAmbiente}
-              imersivo={imersivo}
-              aoEntrarImersivo={entrarImersivo}
-              aoSairImersivo={sairImersivo}
-            />
+            {dimPagina !== null && dimJanela.h > 0 && (
+              <AtlasGlobo
+                aoMudarOpacidadeAmbiente={aoMudarOpacidadeAmbiente}
+                imersivo={imersivo}
+                dimPagina={{ w: dimPagina.w, h: dimPagina.h }}
+                dimImersivo={dimJanela}
+                animandoModo={animandoModo}
+                duracaoModo={MODO_MS}
+                aoEntrarImersivo={entrarImersivo}
+                aoSairImersivo={sairImersivo}
+              />
+            )}
           </Suspense>
-        </div>
 
         {/* Coluna lateral esquerda — masthead, leitura e referências.
             pointerEvents none: o arrasto do globo atravessa o texto.
@@ -255,6 +326,7 @@ export function AtlasStub() {
               mesma esfera — é wave separada, ainda não construída.
             </span>
           </div>
+        </div>
         </div>
       </div>
     </AlexandriaShell>

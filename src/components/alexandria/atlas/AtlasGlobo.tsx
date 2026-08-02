@@ -63,6 +63,13 @@ const OPACIDADE_HOVER = 0.38;
 // se marca por timer da mesma duração, e SÓ ENTÃO o perfil abre.
 const VOO_MS = 1200;
 
+// Duração do zoom entre os modos página ↔ imersivo. Vem por prop do
+// AtlasStub (que não pode importar deste módulo sem quebrar a
+// fronteira lazy do chunk), e a MESMA constante alimenta a transição
+// CSS do palco, da figura e a animação de altitude — as três precisam
+// ser solidárias para o movimento ler como um zoom só.
+const MODO_MS_PADRAO = 900;
+
 // Direção da câmera em repouso: Atlântico, com Brasil, África e
 // Europa visíveis no primeiro paint. A ALTITUDE de repouso não é
 // constante — é computada pela composição do frontispício (Wave 28):
@@ -139,19 +146,18 @@ const GRADE: Array<Array<[number, number]>> = (() => {
 const RAIO_CENA = 100;
 const TAN_MEIO_FOV = Math.tan((25 * Math.PI) / 180);
 
-/** Raio aparente da esfera, em px, para uma altitude e uma altura de
- *  canvas. Inverso de `altPorRaio` — as duas juntas são o que permite
- *  trocar de modo sem o globo mudar de tamanho no salto (revisão 4). */
-function raioPorAlt(alt: number, canvasH: number): number {
-  const ang = Math.asin(1 / (1 + alt));
-  return (Math.tan(ang) * canvasH) / (2 * TAN_MEIO_FOV);
-}
-
 /** Altitude que faz a esfera aparecer com `raioPx` num canvas de
- *  `canvasH` px, sob fov de 50°. */
+ *  `canvasH` px, sob fov de 50°. Com o canvas único da revisão 5 esta
+ *  é a única conversão necessária: a mesma altitude rende o mesmo
+ *  tamanho nos dois modos, então não há salto a compensar. */
 function altPorRaio(raioPx: number, canvasH: number): number {
   const x = (2 * raioPx * TAN_MEIO_FOV) / canvasH;
   return 1 / Math.sin(Math.atan(x)) - 1;
+}
+
+export interface DimPalco {
+  w: number;
+  h: number;
 }
 
 interface Composicao {
@@ -159,8 +165,13 @@ interface Composicao {
   imgH: number;
   imgLeft: number;
   imgTop: number;
-  canvasH: number;
+  /** Posição do canvas COMUM relativa a este palco. O canvas tem o
+   *  mesmo tamanho nos dois modos (revisão 5) — é só a janela que se
+   *  abre e a câmera que se aproxima. */
   canvasTop: number;
+  canvasLeft: number;
+  raio: number;
+  esferaCentroY: number;
   /** Altitude que produz exatamente o raio do encaixe — o repouso e o
    *  piso de zoom-out (Fase 4). */
   altRepouso: number;
@@ -170,21 +181,58 @@ interface Composicao {
   altCobertura: number;
 }
 
-function comporFrontispicio(w: number, h: number, imersivo: boolean): Composicao {
-  // ── raio da esfera em repouso, por modo ──────────────────────────
-  // PÁGINA: a composição INTEIRA (esfera + figura + pedestal) cabe na
-  // altura — kVert é o fator vertical por unidade de largura da
-  // gravura (corpo abaixo das mãos + subida do centro + raio).
-  // IMERSIVO: o maior planeta que cabe inteiro com margem — o
-  // enquadramento Google Earth. Aqui a figura NÃO limita nada: ela é
-  // escalada a partir do raio e o corpo sangra para fora da tela.
+/** Raio da esfera em repouso, por modo — não depende do canvas.
+ *  PÁGINA: a composição INTEIRA (esfera + figura + pedestal) cabe na
+ *  altura; kVert é o fator vertical por unidade de largura da gravura.
+ *  IMERSIVO: o maior planeta que cabe inteiro com margem. */
+function raioDeRepouso(dim: DimPalco, imersivo: boolean): number {
   const rFrac = COMPOSICAO.raioPorVao * GRAV.vao;
   const dyFrac = Math.sqrt(Math.max(0, rFrac * rFrac - (GRAV.vao / 2) * (GRAV.vao / 2)));
   const kVert = GRAV.proporcao * (1 - GRAV.maoY) + dyFrac + rFrac;
-  const larguraFigPagina = Math.min(COMPOSICAO.larguraFig * w, (h - MARGEM_TOPO) / kVert);
-  const raio = imersivo
-    ? Math.min(0.43 * h, 0.46 * w)
-    : COMPOSICAO.raioPorVao * GRAV.vao * larguraFigPagina;
+  const larguraFig = Math.min(COMPOSICAO.larguraFig * dim.w, (dim.h - MARGEM_TOPO) / kVert);
+  return imersivo
+    ? Math.min(0.43 * dim.h, 0.46 * dim.w)
+    : COMPOSICAO.raioPorVao * GRAV.vao * larguraFig;
+}
+
+/** Centro da esfera dentro do palco daquele modo. */
+function centroDeRepouso(dim: DimPalco, imersivo: boolean, raio: number): number {
+  if (imersivo) return dim.h / 2;
+  const vao = raio / COMPOSICAO.raioPorVao;
+  const imgH = (vao / GRAV.vao) * GRAV.proporcao;
+  const dy = Math.sqrt(Math.max(0, raio * raio - (vao / 2) * (vao / 2)));
+  return dim.h - imgH + GRAV.maoY * imgH - dy;
+}
+
+/** Canvas ÚNICO para os dois modos (revisão 5): grande o bastante para
+ *  cobrir o palco de qualquer um deles a partir do centro da esfera
+ *  correspondente. Com o canvas constante, a relação altitude→raio não
+ *  muda entre os modos — então o globo cresce só pelo movimento de
+ *  câmera, sem nenhum salto de tamanho na troca, e o canvas nunca
+ *  redimensiona durante a transição. */
+export function canvasComum(dimPagina: DimPalco, dimImersivo: DimPalco): DimPalco {
+  let meiaAltura = 0;
+  let meiaLargura = 0;
+  for (const [dim, imersivo] of [
+    [dimPagina, false],
+    [dimImersivo, true],
+  ] as Array<[DimPalco, boolean]>) {
+    const raio = raioDeRepouso(dim, imersivo);
+    const centro = centroDeRepouso(dim, imersivo, raio);
+    meiaAltura = Math.max(meiaAltura, centro, dim.h - centro);
+    meiaLargura = Math.max(meiaLargura, dim.w / 2);
+  }
+  return { w: Math.ceil(2 * meiaLargura), h: Math.ceil(2 * meiaAltura) };
+}
+
+function comporFrontispicio(
+  dim: DimPalco,
+  imersivo: boolean,
+  canvas: DimPalco,
+): Composicao {
+  const w = dim.w;
+  const h = dim.h;
+  const raio = raioDeRepouso(dim, imersivo);
 
   // ── a gravura, derivada do raio ──────────────────────────────────
   // Em ambos os modos a geometria é a MESMA relação: o vão entre as
@@ -200,24 +248,27 @@ function comporFrontispicio(w: number, h: number, imersivo: boolean): Composicao
   // centro da esfera: base da composição na página; meio da tela no
   // imersivo (planeta centrado, como o Google Earth)
   const dy = Math.sqrt(Math.max(0, raio * raio - (vao / 2) * (vao / 2)));
-  const esferaCentroY = imersivo ? h / 2 : h - imgH + GRAV.maoY * imgH - dy;
+  const esferaCentroY = centroDeRepouso(dim, imersivo, raio);
   const maoY = esferaCentroY + dy;                    // linha das palmas
   const imgTop = maoY - GRAV.maoY * imgH;             // topo da gravura
   const imgLeft = w / 2 - GRAV.maoMeioX * imgW;       // meio das mãos no eixo
 
-  // MODO PÁGINA: o canvas desce até a BASE do palco (o mergulho usa a
-  // altura inteira, sem faixa morta) e sobe simétrico acima do centro
-  // da esfera — o excesso é cortado pelo overflow do palco.
-  // MODO IMERSIVO: canvas = palco inteiro.
-  const canvasH = imersivo ? h : Math.max(2 * (h - esferaCentroY), 2.2 * raio);
-  const canvasTop = esferaCentroY - canvasH / 2;
-  const altRepouso = altPorRaio(raio, canvasH);
+  // O canvas é o MESMO nos dois modos — só a sua posição dentro do
+  // palco muda, para o centro da esfera cair onde a composição manda.
+  const canvasTop = esferaCentroY - canvas.h / 2;
+  const canvasLeft = w / 2 - canvas.w / 2;
+  const altRepouso = altPorRaio(raio, canvas.h);
   // Cobertura: raio aparente que alcança o canto mais distante do
   // PALCO a partir do centro da esfera — abaixo dessa altitude não
   // existe borda visível.
   const raioCobertura = Math.hypot(w / 2, Math.max(esferaCentroY, h - esferaCentroY));
-  const altCobertura = altPorRaio(raioCobertura, canvasH);
-  return { imgW, imgH, imgLeft, imgTop, canvasH, canvasTop, altRepouso, altCobertura };
+  const altCobertura = altPorRaio(raioCobertura, canvas.h);
+  return {
+    imgW, imgH, imgLeft, imgTop,
+    canvasTop, canvasLeft,
+    raio, esferaCentroY,
+    altRepouso, altCobertura,
+  };
 }
 
 interface AnimHover {
@@ -238,14 +289,32 @@ export interface AtlasGloboProps {
   /** Modo imersivo (revisão 3): palco em tela cheia, sem header nem
    *  rodapé, planeta no enquadramento Google Earth + barra de busca. */
   imersivo: boolean;
+  /** Geometria do palco em CADA modo — o Stub conhece as duas, e é o
+   *  que permite compor sem depender do tamanho intermediário durante
+   *  a animação de zoom (revisão 5). */
+  dimPagina: DimPalco;
+  dimImersivo: DimPalco;
+  /** Ligado durante a troca de modo: acende as transições CSS da
+   *  figura e do canvas, para o globo e as mãos crescerem juntos. */
+  animandoModo: boolean;
+  /** Duração do zoom entre modos — a mesma do palco no AtlasStub. */
+  duracaoModo?: number;
   aoEntrarImersivo?: () => void;
   aoSairImersivo?: () => void;
 }
 
-export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersivo, aoSairImersivo }: AtlasGloboProps) {
+export function AtlasGlobo({
+  aoMudarOpacidadeAmbiente,
+  imersivo,
+  dimPagina,
+  dimImersivo,
+  animandoModo,
+  duracaoModo = MODO_MS_PADRAO,
+  aoEntrarImersivo,
+  aoSairImersivo,
+}: AtlasGloboProps) {
   const [mundo, setMundo] = useState<MundoAtlas | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [tamanho, setTamanho] = useState<{ w: number; h: number } | null>(null);
   const [hover, setHover] = useState<PaisFeature | null>(null);
   const [selecionado, setSelecionado] = useState<{
     feature: PaisFeature;
@@ -277,20 +346,9 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
   // configurarCamera fica suspenso até o voo de transição assentar
   const imersivoRef = useRef(imersivo);
   const transicaoModoRef = useRef(false);
-  /** Raio aparente da esfera (px) no instante em que o modo troca. A
-   *  altura do canvas muda entre os modos, então a MESMA altitude
-   *  produz tamanhos diferentes: sem compensar, o globo inchava 23% no
-   *  primeiro frame (medido) — o grosso da "animação rusty". */
-  const raioAntesRef = useRef<number | null>(null);
   if (imersivoRef.current !== imersivo) {
     imersivoRef.current = imersivo;
     transicaoModoRef.current = true;
-    const globoAtual = globoRef.current;
-    const compAntigo = compRef.current;
-    raioAntesRef.current =
-      globoAtual && compAntigo
-        ? raioPorAlt(globoAtual.pointOfView().altitude, compAntigo.canvasH)
-        : null;
   }
   /** país clicado ainda no modo página — o voo dispara depois que o
    *  palco expande e a composição imersiva assenta */
@@ -305,21 +363,6 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
         if (vivo) setErro('Não foi possível carregar os perfis energéticos agora. Recarregue a página para tentar de novo.');
       });
     return () => { vivo = false; };
-  }, []);
-
-  // ── medida do palco: o canvas WebGL precisa de width/height
-  //    numéricos; medimos o wrapper com ResizeObserver ───────────────
-  useEffect(() => {
-    const el = areaRef.current;
-    if (!el) return;
-    const medir = () => {
-      const r = el.getBoundingClientRect();
-      setTamanho({ w: Math.round(r.width), h: Math.round(r.height) });
-    };
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    return () => ro.disconnect();
   }, []);
 
   // ── fade de hover: rAF + bezier próprio ───────────────────────────
@@ -448,12 +491,19 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
   // detecta troca de instância dos controles, reata o listener e
   // reaplica piso, luz e pouso. Chamada no ready, no resize e num
   // assentamento pós-mount.
-  // ── composição: derivada do tamanho medido + modo. Declarada antes
-  //    de todo o bloco de câmera porque é dela que saem o pouso, o
-  //    piso de zoom e a geometria do canvas. ─────────────────────────
-  const comp: Composicao | null = useMemo(
-    () => (tamanho ? comporFrontispicio(tamanho.w, tamanho.h, imersivo) : null),
-    [tamanho, imersivo],
+  // ── composição (revisão 5) ────────────────────────────────────────
+  // O canvas é ÚNICO para os dois modos, então a relação altitude→raio
+  // é a mesma nos dois: o globo cresce só pelo movimento de câmera, e
+  // não há nenhum salto de tamanho na troca. A composição vem das
+  // dimensões declaradas de cada modo, nunca do palco intermediário —
+  // durante o zoom, quem interpola é a transição CSS.
+  const canvas = useMemo(
+    () => canvasComum(dimPagina, dimImersivo),
+    [dimPagina, dimImersivo],
+  );
+  const comp: Composicao = useMemo(
+    () => comporFrontispicio(imersivo ? dimImersivo : dimPagina, imersivo, canvas),
+    [imersivo, dimPagina, dimImersivo, canvas],
   );
   compRef.current = comp;
 
@@ -545,63 +595,65 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
     configurarCamera();
   }, [configurarCamera]);
 
-  // ── transição de modo: o voo começa NO MESMO gesto da troca de
-  //    layout (revisão 4). Antes havia 130ms de espera, e o resultado
-  //    era o salto seco do palco primeiro e o movimento depois — parte
-  //    da "animação rusty" que o Aquiles viu ao dar ESC. A outra parte,
-  //    maior, era o globo INCHAR 23% no frame da troca (medido): a
-  //    altura do canvas muda entre os modos, então a mesma altitude
-  //    rende tamanhos diferentes. Agora a câmera parte da altitude que
-  //    reproduz o raio anterior, e o movimento é contínuo. ───────────
+  // ── transição de modo = ZOOM CONTÍNUO (revisão 5) ─────────────────
+  // O pedido: "poder ver o globo aumentando junto com a mão do atlas,
+  // como se estivéssemos dando zoom mesmo". Antes, só a câmera animava:
+  // o palco e a figura SALTAVAM e um fade cobria o salto, o que lia
+  // como piscar/trocar de página.
+  //
+  // Agora nada salta. O canvas é único, então a altitude sozinha
+  // controla o tamanho do globo; a figura e o recorte do palco animam
+  // por transição CSS com AE.easing; e a altitude é animada aqui com a
+  // MESMA curva (`bezierAlexandria` é a avaliação em JS do mesmo
+  // cubic-bezier) e a mesma duração. As três coisas são um movimento
+  // só — o globo cresce nas mãos que crescem junto.
   useEffect(() => {
     if (!transicaoModoRef.current) return;
     const globo = globoRef.current;
-    const area = areaRef.current;
-    if (!globo || !comp || !area) return;
-
-    // O ResizeObserver não atualiza `tamanho` no mesmo commit em que o
-    // palco troca de geometria — medido: a composição chegava aqui com
-    // a ALTURA ANTIGA e a compensação saía errada por 14%. Este effect
-    // roda a cada comp novo e só age quando o estado já bate com o DOM
-    // real; enquanto não bater, espera o próximo.
-    const rect = area.getBoundingClientRect();
-    if (Math.abs(rect.height - (tamanho?.h ?? -1)) > 1) return;
-
-    const raioAntes = raioAntesRef.current;
-    raioAntesRef.current = null;
-    const controles = controlesRef.current as { maxDistance?: number } | null;
-    if (raioAntes !== null) {
-      // Continuidade de tamanho: a câmera parte da altitude que
-      // reproduz o MESMO raio aparente de antes da troca, já no canvas
-      // novo — o globo não salta, só começa a se mover.
-      const altInicio = altPorRaio(raioAntes, comp.canvasH);
-      // o piso do modo novo pode ser mais baixo que a altitude de
-      // continuidade (é o caso ao ENTRAR no imersivo): afrouxa durante
-      // o voo, e o configurarCamera restaura no fim
-      if (controles) {
-        controles.maxDistance = (1 + Math.max(altInicio, comp.altRepouso) + 0.5) * RAIO_CENA;
-      }
-      globo.pointOfView({ altitude: altInicio }, 0);
+    if (!globo) {
+      transicaoModoRef.current = false;
+      return;
     }
 
     const pendente = vooPendenteRef.current;
     vooPendenteRef.current = null;
-    voandoRef.current = true;
     if (pendente) {
-      // clique que abriu o modo: o voo até o país já é o movimento da
+      // clique que abriu o modo: o voo até o país JÁ é o movimento da
       // transição — nada de dois voos em sequência
       transicaoModoRef.current = false;
       voarAtePais(pendente);
       configurarCamera();
       return;
     }
-    globo.pointOfView({ ...DIR_REPOUSO, altitude: comp.altRepouso }, VOO_MS);
-    vooRef.current = setTimeout(() => {
-      voandoRef.current = false;
-      transicaoModoRef.current = false;
-      configurarCamera(); // restaura o piso definitivo do modo
-    }, VOO_MS + 50);
-  }, [imersivo, comp, tamanho, voarAtePais, configurarCamera]);
+
+    const altInicio = globo.pointOfView().altitude;
+    const altFim = comp.altRepouso;
+    // o piso do modo de destino pode ser menor que a altitude atual
+    // (é o caso ao ENTRAR no imersivo): afrouxa durante o zoom, e o
+    // configurarCamera restaura no pouso
+    const controles = controlesRef.current as { maxDistance?: number } | null;
+    if (controles) {
+      controles.maxDistance = (1 + Math.max(altInicio, altFim) + 0.5) * RAIO_CENA;
+    }
+
+    voandoRef.current = true;
+    const t0 = performance.now();
+    let raf = 0;
+    const passo = () => {
+      const p = Math.min(1, (performance.now() - t0) / duracaoModo);
+      const alt = altInicio + (altFim - altInicio) * bezierAlexandria(p);
+      globo.pointOfView({ altitude: alt }, 0);
+      if (p < 1) {
+        raf = requestAnimationFrame(passo);
+      } else {
+        voandoRef.current = false;
+        transicaoModoRef.current = false;
+        configurarCamera(); // restaura o piso definitivo do modo
+      }
+    };
+    raf = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(raf);
+  }, [imersivo, comp, voarAtePais, configurarCamera]);
 
   // ── cores — tudo token, nada de neon ──────────────────────────────
   // Superfície: navy fosco. Brilho quase zero: instrumento de gabinete,
@@ -684,7 +736,7 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
         </div>
       )}
 
-      {erro === null && (mundo === null || tamanho === null) && (
+      {erro === null && mundo === null && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ ...AT.rotulo, color: A.terracota }}>Montando o globo…</span>
         </div>
@@ -692,8 +744,10 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
 
       {/* Frontispício ATRÁS do canvas: Atlas ajoelhado, mãos abertas
           onde a esfera pousa. Sem lazy — o bug da Wave 10 provou que
-          lazy nunca dispara em container que já está na viewport. */}
-      {erro === null && comp !== null && (
+          lazy nunca dispara em container que já está na viewport.
+          Largura e posição animam na MESMA curva e duração do zoom de
+          câmera (revisão 5): as mãos crescem junto com o globo. */}
+      {erro === null && (
         <img
           ref={figuraRef}
           src={GRAV.src}
@@ -711,25 +765,30 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
             // intocável nesta wave
             pointerEvents: 'none',
             opacity: 1,
-            transition: `opacity ${AE.estado} ${AE.easing}`,
+            transition: animandoModo
+              ? `left ${duracaoModo}ms ${AE.easing}, top ${duracaoModo}ms ${AE.easing}, width ${duracaoModo}ms ${AE.easing}, height ${duracaoModo}ms ${AE.easing}, opacity ${AE.estado} ${AE.easing}`
+              : `opacity ${AE.estado} ${AE.easing}`,
           }}
         />
       )}
 
-      {erro === null && mundo !== null && tamanho !== null && comp !== null && (
+      {erro === null && mundo !== null && (
         <div
           style={{
             position: 'absolute',
-            left: 0,
+            left: comp.canvasLeft,
             top: comp.canvasTop,
-            width: '100%',
-            height: comp.canvasH,
+            width: canvas.w,
+            height: canvas.h,
+            transition: animandoModo
+              ? `top ${duracaoModo}ms ${AE.easing}, left ${duracaoModo}ms ${AE.easing}`
+              : 'none',
           }}
         >
           <Globe
             ref={globoRef}
-            width={tamanho.w}
-            height={comp.canvasH}
+            width={canvas.w}
+            height={canvas.h}
             backgroundColor="rgba(0,0,0,0)"
             showAtmosphere={false}
             globeMaterial={materialRef.current}

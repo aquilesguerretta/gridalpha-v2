@@ -30,7 +30,14 @@ import { getBlocksByLevel } from './alexandria-blocks';
  *  do 05 desenha um mapa com seis cartões, um por aula, e os seis títulos
  *  batem 1:1 com os `<h3>` da fonte. LYCEUM Waves 24 e 25.
  *
- *  Blocos 06-17 ficam fora deste mapa de propósito — não têm HTML no
+ *  | 06     | —             | 6         | 10          | "Seis aulas"|
+ *
+ *  O Módulo 06 usa o MESMO vocabulário abreviado dos 04-05 (medido antes
+ *  de escolher extrator: `class="aula"` ocorre zero vez). São 16 seções
+ *  `sec-id` — 6 casam `Aula NN`, 10 são aparato — e o § MAP anuncia
+ *  "Seis aulas". LYCEUM Wave 29.
+ *
+ *  Blocos 07-17 ficam fora deste mapa de propósito — não têm HTML no
  *  repositório, e estimar seria inventar. */
 const AULAS_POR_BLOCO: Record<string, number> = {
   'bloco-01': 9,   // Física de Energia e Eletricidade
@@ -38,6 +45,9 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   'bloco-03': 10,  // Tecnologias de Geração
   'bloco-04': 7,   // Economia de Mercados de Energia
   'bloco-05': 6,   // Regulação e Desenho de Mercados
+  // Primeiro bloco do Nível 2 / track 'brasil' — a Trilha 2 deixa de
+  // ter contagem desconhecida e passa a 6 aulas em 1 de 7 módulos.
+  'bloco-06': 6,   // História do Setor Elétrico Brasileiro
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

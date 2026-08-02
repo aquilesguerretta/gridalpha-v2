@@ -879,6 +879,512 @@ export const ALEXANDRIA_GLOSSARIO: GlossaryTerm[] = [
       "Custo de oportunidade de turbinar água hoje em vez de guardá-la para o futuro — calculado pela cadeia NEWAVE/DECOMP/DESSEM, não declarado por agente. É o que posiciona a hidroeletricidade na ordem de mérito e, na maior parte das horas, o que efetivamente precifica o Brasil.",
     aulaIds: ["aula-02-05"],
   },
+
+  // ── Modulo 03 (Wave 34) ──────────────────────────────
+  {
+    id: "gl-m03-aerogerador",
+    term: "Aerogerador",
+    unit: "Eólica",
+    definition:
+      "O conjunto turbina eólica completo: rotor (pás + cubo), nacele (multiplicadora ou acionamento direto, gerador, controle) e torre. As máquinas modernas onshore passam de 100 m de altura de cubo e diâmetros de rotor acima de 150 m — altura e área existem por causa do cubo da velocidade.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-afluencia",
+    term: "Afluência",
+    unit: "Hidro",
+    definition:
+      "A vazão de água que chega a um aproveitamento hidrelétrico num período. É a \"receita\" física da usina: o fio d'água a converte imediatamente; o reservatório escolhe entre turbinar e estocar.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-arbitragem-de-energia",
+    term: "Arbitragem (de energia)",
+    unit: "Armazenamento",
+    definition:
+      "Comprar (carregar) energia na hora barata e vender (descarregar) na hora cara. É a aplicação clássica da bateria de 2–4 horas: barriga solar do meio-dia → rampa do fim da tarde. O valor capturado é o spread entre as horas, menos as perdas do ciclo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-autoproducao",
+    term: "Autoprodução",
+    unit: "Regulatório",
+    definition:
+      "Regime em que o consumidor gera (ou participa de geração) para consumo próprio, com tratamento regulatório e de encargos específico. Os desenhos e limiares de enquadramento — inclusive por participação societária em usina remota — mudaram nos últimos anos: item permanente de verificação vigente antes de qualquer estudo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-bagaco-de-cana",
+    term: "Bagaço de cana",
+    unit: "Biomassa",
+    definition:
+      "Resíduo fibroso da moagem da cana, queimado em caldeiras de cogeração no setor sucroenergético. Combustível \"grátis\" do ponto de vista da usina (subproduto), disponível no calendário da safra — abril a novembro no Centro-Sul.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-balbina",
+    term: "Balbina",
+    unit: "História",
+    definition:
+      "UHE no Amazonas (anos 1980) que virou o anti-exemplo do setor: área alagada enorme para potência pequena. Trauma formativo citado em todo debate de licenciamento — parte da explicação de por que o país migrou para o fio d'água.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-bess",
+    term: "BESS",
+    unit: "Armazenamento",
+    definition:
+      "Battery Energy Storage System — sistema de armazenamento por baterias, tipicamente lítio (química LFP dominante), com inversores e controle. Definido por dois números independentes: potência (MW) e energia (MWh).",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-canibalizacao",
+    term: "Canibalização",
+    unit: "Economia",
+    definition:
+      "Erosão do preço capturado por uma fonte variável à medida que sua própria penetração cresce: cada novo MW solar gera nas mesmas horas dos anteriores, derrubando o preço justamente quando a fonte produz. Custo médio em queda com receita unitária em queda mais rápida — o limite nº 3 do LCOE.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-capex",
+    term: "CAPEX",
+    unit: "Economia",
+    definition:
+      "Capital expenditure — o investimento de construção do ativo. Nas fontes da Família 1 (hidro, eólica, solar, nuclear) domina o custo total; anualizado pelo CRF, é o numerador principal do LCOE.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-ccc",
+    term: "CCC",
+    unit: "Encargo",
+    definition:
+      "Conta de Consumo de Combustíveis — encargo setorial que socializa nacionalmente o sobrecusto da geração (majoritariamente a diesel/óleo) dos sistemas isolados. O mecanismo do \"paradoxo amazônico\": todo consumidor do SIN ajuda a pagar a energia mais cara do país.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-cgh",
+    term: "CGH",
+    unit: "Hidro",
+    definition:
+      "Central Geradora Hidrelétrica — aproveitamento hidrelétrico de pequeno porte (até 5 MW), com registro simplificado na ANEEL. Junto das PCHs, compõe a hidreletricidade de pequena escala do país.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-ciclo-combinado",
+    term: "Ciclo combinado",
+    unit: "Térmica",
+    definition:
+      "Configuração em que o calor de exaustão da turbina a gás gera vapor para uma segunda turbina. Eficiência de 55–60% — o melhor rendimento térmico do portfólio — em troca de partida mais lenta e CAPEX maior. Vocação: rodar muitas horas.",
+    aulaIds: ["aula-03-06"],
+  },
+  {
+    id: "gl-m03-ciclo-simples",
+    term: "Ciclo simples",
+    unit: "Térmica",
+    definition:
+      "Turbina a gás em ciclo aberto: queima, gira, exausta. Eficiência de 35–40%, partida em minutos, CAPEX baixo. Vocação: ponta, emergência, flexibilidade — a máquina que cobra caro por hora e barato por existir.",
+    aulaIds: ["aula-03-06"],
+  },
+  {
+    id: "gl-m03-cogeracao",
+    term: "Cogeração",
+    unit: "Térmica",
+    definition:
+      "Produção combinada de eletricidade e calor útil de processo a partir do mesmo combustível. É o desenho padrão da biomassa sucroenergética: a caldeira fornece vapor à usina de açúcar/etanol e o excedente vira eletricidade exportada.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-crf",
+    term: "CRF",
+    unit: "Finanças",
+    definition:
+      "Capital Recovery Factor — fator que converte um investimento em parcelas anuais equivalentes dada uma taxa (WACC) e uma vida útil: CRF = r(1+r)ⁿ / ((1+r)ⁿ − 1). Com r = 10% e n = 25 anos, ≈ 0,11 — cada real de CAPEX \"custa\" 11 centavos por ano.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-curtailment",
+    term: "Curtailment",
+    unit: "Operação",
+    definition:
+      "Corte de geração renovável disponível por restrição de escoamento ou excesso sistêmico — energia de custo zero desperdiçada por falta de fio ou de demanda. Cresceu no NE com o boom eólico-solar; quem arca com o custo segue em disputa regulatória.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-curva-de-potencia",
+    term: "Curva de potência",
+    unit: "Eólica",
+    definition:
+      "O gráfico potência × velocidade do vento de cada modelo de turbina: zero até o cut-in (~3 m/s), subida cúbica até a nominal (~12 m/s), platô de potência cheia até o cut-out (~25 m/s), desligamento acima. O documento que casa máquina com sítio.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-cut-in-cut-out",
+    term: "Cut-in / cut-out",
+    unit: "Eólica",
+    definition:
+      "Velocidades de vento de partida (~3 m/s) e de desligamento por segurança (~25 m/s) de um aerogerador. Entre elas, a máquina extrai energia seguindo a curva de potência.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-cvu",
+    term: "CVU",
+    unit: "Despacho",
+    definition:
+      "Custo Variável Unitário — o custo declarado e homologado de gerar 1 MWh adicional numa térmica, dominado pelo combustível (preço × heat rate) mais O&M variável. Ordena a pilha de despacho e, na margem, forma o preço de curto prazo.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-densidade-energetica",
+    term: "Densidade energética",
+    unit: "Física",
+    definition:
+      "Energia contida por unidade de massa ou volume do combustível. O extremo é o urânio: uma pastilha equivale a toneladas de carvão — a razão física do CVU baixíssimo e do CAPEX altíssimo da nuclear.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-despachabilidade",
+    term: "Despachabilidade",
+    unit: "Atributo",
+    definition:
+      "Capacidade de gerar sob comando do operador, não sob condição do recurso. Combina controlabilidade, velocidade de resposta e duração sustentável (limitada pelo estoque: água, combustível, carga da bateria). O atributo que separa as famílias do portfólio.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-ear",
+    term: "EAR",
+    unit: "Hidro",
+    definition:
+      "Energia Armazenada — quanto de energia equivalente existe estocado nos reservatórios, publicado diariamente pelo ONS por subsistema, em % da capacidade máxima. O indicador antecedente do humor do preço e da bandeira.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-eficiencia-de-ciclo-round-trip",
+    term: "Eficiência de ciclo (round-trip)",
+    unit: "Armazenamento",
+    definition:
+      "Razão entre a energia descarregada e a energia consumida para carregar uma bateria — 85–90% típico em lítio. O \"pedágio\" da viagem no tempo: perde-se energia para ganhar deslocamento temporal.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-ena",
+    term: "ENA",
+    unit: "Hidro",
+    definition:
+      "Energia Natural Afluente — a afluência convertida em energia equivalente, geralmente expressa em % da média de longo termo (MLT). É a \"chuva em MWh\": o dial que o INST·03 manipula e que o mercado acompanha semanalmente.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-energia-firme-firmeza",
+    term: "Energia firme / firmeza",
+    unit: "Atributo",
+    definition:
+      "Capacidade de sustentar entrega nas condições críticas — a estiagem, a noite sem vento, o pico. O atributo escasso do sistema moderno: abundância de energia média com escassez de firmeza é o resumo da matriz pós-fio d'água.",
+    aulaIds: ["aula-03-03"],
+  },
+  {
+    id: "gl-m03-fator-de-capacidade",
+    term: "Fator de capacidade",
+    unit: "Métrica",
+    definition:
+      "Energia gerada ÷ (potência instalada × horas do período). A lente que converte MW de manchete em MWh de realidade: ~50–55% hidro, 40–55% eólica NE, 25–30% solar com tracker, 85–90% nuclear, e — para térmicas — o diário do despacho, não atributo da máquina.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-fio-b",
+    term: "Fio B",
+    unit: "Tarifa",
+    definition:
+      "Parcela da TUSD que remunera os ativos da própria distribuidora. Virou protagonista na MMGD: a Lei 14.300 instituiu sua cobrança gradual dos novos sistemas compensados — o \"pedágio\" pela rede que o prosumidor usa como bateria virtual.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-fio-d-agua",
+    term: "Fio d'água",
+    unit: "Hidro",
+    definition:
+      "Hidrelétrica sem reservatório de regularização relevante: gera conforme a vazão chega. Trade-off deliberado — menos área alagada, menos firmeza. O padrão das grandes usinas brasileiras pós-2000 (Belo Monte, Jirau, Santo Antônio).",
+    aulaIds: ["aula-03-03"],
+  },
+  {
+    id: "gl-m03-fissao-nuclear",
+    term: "Fissão nuclear",
+    unit: "Nuclear",
+    definition:
+      "Quebra controlada de núcleos pesados (urânio-235) liberando calor, que gera vapor e move turbina. Tecnicamente, a nuclear é uma térmica cujo combustível tem densidade energética extrema — daí CVU baixo e CAPEX dominante.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-garantia-fisica",
+    term: "Garantia física",
+    unit: "Regulatório",
+    definition:
+      "O lastro de energia que cada usina pode comercializar, calculado pelo MME/EPE a partir da contribuição da usina ao suprimento em condições críticas. Distinta do FC verificado: é métrica regulatória de contratação, não de operação. Protagonista no Bloco de mercados.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-gnl",
+    term: "GNL",
+    unit: "Térmica",
+    definition:
+      "Gás Natural Liquefeito — gás resfriado para transporte marítimo, regaseificado em terminais. Dá flexibilidade de suprimento ao preço do mercado global: foi o GNL spot que empurrou CVUs acima de R$ 1.000/MWh na crise de 2021.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-gsf",
+    term: "GSF",
+    unit: "Hidro · preview",
+    definition:
+      "Generation Scaling Factor — razão entre a geração hidráulica efetiva e a garantia física do conjunto de usinas do mecanismo de rateio hidrológico. GSF abaixo de 1 = risco hidrológico virando exposição financeira dos geradores. Tratamento completo no Bloco de mercados.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-heat-rate",
+    term: "Heat rate",
+    unit: "Térmica",
+    definition:
+      "Quanta energia de combustível a máquina consome por MWh elétrico gerado — o inverso da eficiência. Multiplicado pelo preço do combustível, dá o coração do CVU: a térmica como conversor de preço de combustível em preço de energia.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-inercia-sincrona",
+    term: "Inércia síncrona",
+    unit: "Estabilidade",
+    definition:
+      "Energia cinética das massas girantes acopladas à rede (hidro, térmicas, nuclear), que amortece variações de frequência nos primeiros segundos de um desbalanço. Eólica e solar conectam por inversores e não a fornecem nativamente — o desafio de estabilidade do Módulo 02 que o portfólio precisa repor.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-inflexibilidade",
+    term: "Inflexibilidade",
+    unit: "Despacho",
+    definition:
+      "Geração mínima obrigatória de uma usina, por restrição técnica ou contratual (take-or-pay de combustível). Térmica inflexível roda mesmo sem mérito econômico, deslocando fonte mais barata — sobrecusto que vira encargo (ESS).",
+    aulaIds: ["aula-03-06"],
+  },
+  {
+    id: "gl-m03-itaipu",
+    term: "Itaipu",
+    unit: "Âncora",
+    definition:
+      "UHE binacional Brasil–Paraguai no rio Paraná: 14 GW, vinte unidades, historicamente na casa de 8–10% do consumo elétrico brasileiro (número vivo, varia com hidrologia). O símbolo da era dos grandes reservatórios — embora seja, a rigor, usina com regularização limitada que depende da cascata a montante.",
+    aulaIds: ["aula-03-02"],
+  },
+  {
+    id: "gl-m03-lei-14-300-2022",
+    term: "Lei 14.300/2022",
+    unit: "Regulatório",
+    definition:
+      "O marco legal da micro e minigeração distribuída: consolidou o SCEE, garantiu transição para sistemas existentes e instituiu a cobrança gradual do Fio B dos novos. O divisor de águas do boom de telhado brasileiro.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-lei-15-097-2025",
+    term: "Lei 15.097/2025",
+    unit: "Regulatório",
+    definition:
+      "O marco legal da geração eólica offshore no Brasil: regime de outorga de áreas marítimas. Sancionada com vetos a dispositivos alheios ao tema (\"jabutis\") cujo destino no Congresso é item vivo de acompanhamento.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-lcoe",
+    term: "LCOE",
+    unit: "Economia",
+    definition:
+      "Levelized Cost of Energy — custo total da vida útil descontado ÷ energia total descontada, em R$/MWh. Régua útil entre projetos da mesma natureza; perigosa entre famílias diferentes. Quatro limites: ignora atributos, FC térmico circular, cega ao valor temporal, ignora integração.",
+    aulaIds: ["aula-03-10"],
+  },
+  {
+    id: "gl-m03-lrcap",
+    term: "LRCAP",
+    unit: "Leilão",
+    definition:
+      "Leilão de Reserva de Capacidade — certame que contrata potência (MW) disponível, não energia. A edição 2026 – Armazenamento (Portaria MME 136/2026) é a estreia das baterias: certames em 2 e 4/dez/2026, contratos de 15 anos, suprimento a partir de ago/2028 (vivo — verificar).",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-mlt",
+    term: "MLT",
+    unit: "Hidro",
+    definition:
+      "Média de Longo Termo — a média histórica de afluências usada como referência. \"ENA a 75% da MLT\" = chove(u) três quartos do normal; é a linguagem padrão dos boletins hidrológicos.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-mmgd",
+    term: "MMGD",
+    unit: "Solar",
+    definition:
+      "Micro (até 75 kW) e Minigeração Distribuída (acima disso, até os limites legais por modalidade): geração junto à carga, compensada via SCEE. A \"usina invisível\" — dezenas de GW que aparecem ao operador como redução de carga, competindo contra a tarifa cheia de varejo.",
+    aulaIds: ["aula-03-05"],
+  },
+  {
+    id: "gl-m03-micrositing",
+    term: "Micrositing",
+    unit: "Eólica",
+    definition:
+      "Posicionamento fino de cada aerogerador dentro do parque. Como a potência cresce com o cubo da velocidade, diferenças locais pequenas de vento viram diferenças grandes de energia — engenharia de detalhe que vale fortunas.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-must-run",
+    term: "Must-run",
+    unit: "Despacho",
+    definition:
+      "Geração que entra na base da pilha independentemente de preço: renováveis variáveis (custo variável ~zero), inflexibilidades técnicas e contratuais. O bloco que o despacho \"recebe pronto\" antes de otimizar o resto.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-nacele",
+    term: "Nacele",
+    unit: "Eólica",
+    definition:
+      "A \"casa de máquinas\" no topo da torre eólica: eixo, multiplicadora (quando há), gerador e sistemas de controle e giro (yaw). Pesa dezenas de toneladas a mais de 100 m de altura — parte do porquê de logística ser gargalo da fonte.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-o-m",
+    term: "O&M",
+    unit: "Economia",
+    definition:
+      "Operação e Manutenção — custos recorrentes do ativo, divididos em fixos (R$/kW·ano, existem mesmo parado) e variáveis (R$/MWh, proporcionais à geração). Segundo termo do numerador do LCOE.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-ordem-de-merito",
+    term: "Ordem de mérito",
+    unit: "Despacho",
+    definition:
+      "A fila de despacho por custo variável crescente: must-run e CVU ~zero na base, valor da água posicionando a hidro, térmicas por CVU no topo. A fonte marginal — a última a entrar — define o custo marginal do sistema. Fundamento do Módulo 02, esqueleto do INST·06.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-pch",
+    term: "PCH",
+    unit: "Hidro",
+    definition:
+      "Pequena Central Hidrelétrica — aproveitamento de até 30 MW com características definidas em regulação, historicamente beneficiado como fonte incentivada. Junto das CGHs, soma alguns GW distribuídos pelo interior.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-piso-do-pld",
+    term: "Piso do PLD",
+    unit: "Preço",
+    definition:
+      "Valor mínimo regulatório do preço de curto prazo, recalculado anualmente pela ANEEL (na casa de R$ 60/MWh — vivo). É onde o preço \"encosta\" nas horas de sobra estrutural — o sintoma do meio-dia solar.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-repotenciacao",
+    term: "Repotenciação",
+    unit: "Ativo",
+    definition:
+      "Substituir máquinas antigas por tecnologia atual no mesmo sítio — turbinas eólicas maiores no mesmo parque, rotores e geradores novos em hidrelétricas. Compra energia adicional sem novo sítio: o \"retrofit\" do setor de geração.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-reversivel-uhr",
+    term: "Reversível (UHR)",
+    unit: "Armazenamento",
+    definition:
+      "Usina Hidrelétrica Reversível: bombeia água morro acima nas horas baratas e turbina nas caras — armazenamento por gravidade, padrão mundial para deslocamento longo. Sem projeto de grande porte operando no Brasil; em estudo no planejamento (vivo).",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-scee",
+    term: "SCEE",
+    unit: "Solar",
+    definition:
+      "Sistema de Compensação de Energia Elétrica — o \"saldo\" da MMGD: energia injetada vira crédito que abate consumo, nas regras e prazos da Lei 14.300. A leitura correta de créditos na fatura é item de auditoria do CLE.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-sistemas-isolados",
+    term: "Sistemas isolados",
+    unit: "Operação",
+    definition:
+      "Localidades fora do SIN — concentradas na Amazônia — supridas localmente, em geral a diesel/óleo, com sobrecusto socializado pela CCC. A fronteira mais óbvia para solar + bateria substituir combustível caro.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-smr",
+    term: "SMR",
+    unit: "Nuclear",
+    definition:
+      "Small Modular Reactor — reatores nucleares pequenos e modulares, fabricados em série, prometendo atacar exatamente o problema de prazo e capital da nuclear tradicional. Em demonstração no mundo; horizonte distante no Brasil.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-take-or-pay",
+    term: "Take-or-pay",
+    unit: "Contrato",
+    definition:
+      "Cláusula de suprimento de combustível em que se paga um volume mínimo, consumido ou não. Transforma custo variável em afundado e gera térmica contratualmente inflexível — a \"atleta de pernas amarradas\" que distorce a ordem de mérito.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-tracker",
+    term: "Tracker",
+    unit: "Solar",
+    definition:
+      "Rastreador de eixo que gira os módulos seguindo o sol. Eleva o FC da UFV para 25–30% e alarga o \"ombro\" da geração diária — CAPEX adicional que quase sempre se paga em sítios de boa irradiação.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-transicao-justa",
+    term: "Transição justa",
+    unit: "Política",
+    definition:
+      "O conjunto de políticas para regiões e trabalhadores dependentes de cadeias fósseis em desativação — no Brasil, o carvão de SC/RS. Lembrete de que tecnologia de geração também é geografia social e política regional.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-tucurui",
+    term: "Tucuruí",
+    unit: "Âncora",
+    definition:
+      "UHE no rio Tocantins (PA), ~8,5 GW — a maior usina 100% brasileira. Parte da geração de gigantes com reservatório construída sob lógica de Estado entre os anos 1960 e 1990.",
+    aulaIds: ["aula-03-02"],
+  },
+  {
+    id: "gl-m03-ufv",
+    term: "UFV",
+    unit: "Solar",
+    definition:
+      "Usina Fotovoltaica centralizada — dezenas a centenas de MW vendendo no atacado (leilão ou mercado livre), concentrada onde irradiação é alta e terra é barata. Mesma física da MMGD, régua econômica oposta.",
+    aulaIds: ["aula-03-05"],
+  },
+  {
+    id: "gl-m03-uhe",
+    term: "UHE",
+    unit: "Hidro",
+    definition:
+      "Usina Hidrelétrica de grande porte (acima dos limites de PCH). O bloco dominante da matriz: ~103 GW somando as centralizadas (SIGA — vivo), entre reservatórios históricos e fio d'água recentes.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-valor-da-agua",
+    term: "Valor da água",
+    unit: "Despacho",
+    definition:
+      "Custo de oportunidade de turbinar hoje versus guardar para a estiagem, calculado pelos modelos oficiais — o \"CVU implícito\" que posiciona a hidro com reservatório na ordem de mérito. Visto pelo lado do ativo: é o estoque que dá à usina o direito de escolher quando gerar.",
+    aulaIds: ["aula-03-02"],
+  },
+  {
+    id: "gl-m03-vertimento",
+    term: "Vertimento",
+    unit: "Hidro",
+    definition:
+      "Água liberada pelo vertedouro sem passar pelas turbinas — energia potencial descartada, por reservatório cheio ou restrição operativa. O análogo hidráulico do curtailment.",
+    aulaIds: [],
+  },
+  {
+    id: "gl-m03-wacc",
+    term: "WACC",
+    unit: "Finanças",
+    definition:
+      "Weighted Average Cost of Capital — o custo médio ponderado do capital que desconta os fluxos do projeto. Em ativos de CAPEX dominante, é a variável mais pesada do LCOE: cada ponto de WACC vale mais que qualquer otimização de engenharia — a matemática que condenou Angra 3.",
+    aulaIds: [],
+  },
 ];
 
 /** Verbetes em que a aula aparece — para a página da aula referenciar. */

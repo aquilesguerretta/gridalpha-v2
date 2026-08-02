@@ -5169,3 +5169,126 @@ cadeia-de-transformacao 1 · dimensionador 1 · quebra-cabeca 2.
 pré-existentes de Recharts em `nest/student/{ProjectSandbox,
 SandboxTrading}`, não desta wave). `gridalpha-detect` sobre o arquivo
 modificado — "No findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 32 — MÓDULO 08
+
+**Status:** conteúdo fechado e verificado. **Instrumentos NÃO portados**
+— declarado, não silenciado (ver abaixo). Terceiro módulo da Trilha 2,
+que passa a 20 aulas em 3 de 7 módulos.
+
+**Arquivos:** `alexandria-modulo-08-content.ts` (NOVO, 479 linhas) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+`alexandria-instrument-calculators.ts` **intocado**.
+
+**Fonte:** `alexandria_modulo08.html` — 326.382 bytes (219.053 de markup
++ 98.898 de `<script>`).
+
+### Catálogo confirmado
+
+`bloco-08`: **level 2, track `'brasil'`, `illustrationPrefix: 'mat-'`**,
+priority `confirmar`. Lido no catálogo, não deduzido.
+
+Vocabulário: seletores dos Módulos 01-03 dão **zero**; é o dos Módulos
+04-07.
+
+### Contagem real
+
+17 seções = **7 aulas + 10 de aparato**. **146 blocos.** §Ex "Doze
+exercícios" = 12 `<details>`; §Lex "124 termos" = 124 `.term`.
+
+Tese da fonte: *"Não existe a matriz elétrica brasileira"* — fontes
+diferentes medem universo, período e grandeza diferentes.
+
+### `src-card` — estrutura nova, e uma perda silenciosa corrigida
+
+A Aula 02 organiza as seis fontes em **fichas** (`src-card`: cabeçalho +
+7 linhas chave/valor); a Aula 06 tem mais duas. São **8 fichas e 52
+pares**, e o mapeamento herdado das waves anteriores os descartava **em
+silêncio**.
+
+**A anomalia que denunciou:** a Aula 02 fechava com 4 blocos contra
+17-30 das outras. Não havia erro nem aviso — só um número fora de
+padrão. Cada ficha virou um `titulo` (nome + tag da fonte) mais uma
+`tabela` de duas colunas. **130 → 146 blocos**, e a Aula 02 renderiza 6
+tabelas na tela.
+
+### Gravura — 2 de 8, e o prefixo do catálogo só casa em parte
+
+**A biblioteca `mat-` é de CARGA INDUSTRIAL** (correia de mineração,
+forno de arco, cuba eletrolítica, pivô de irrigação, saneamento),
+enquanto o Bloco 8 trata de matriz de geração, sazonalidade e
+transmissão. O `illustrationPrefix` do catálogo aponta para uma
+biblioteca que só corresponde parcialmente ao conteúdo real do bloco.
+
+Só duas têm seção dedicada:
+
+| Aula | Gravura | Frase que decidiu |
+| --- | --- | --- |
+| 05 | `mat-08-gerador-diesel-isolado` | "Sistemas isolados atendem localidades não conectadas ao sistema interligado, sobretudo na Amazônia… o diesel dominava a geração isolada em 2025" |
+| 06 | `mat-03-racks-data-center` | "A carga que ainda não existe. Data centers entraram na conversa de planejamento… da ordem de 800 megawatts" |
+
+As outras seis não foram forçadas. **Novo falso positivo para a série:**
+`/cimento/` casa com "cres·**cimento**" — sexto caso, depois de
+Francis/São Francisco, Xingu/pá, "antes do lítio", "vazio"/esvaziar e
+"aprovação prévia do Senado".
+
+### Exercícios
+
+Os doze vão para `SOLTOS`. O único que cita aula o faz **em prosa dentro
+do gabarito** ("é o recorte da Aula 01 aplicado ao tempo") — referência
+de conteúdo, não tag de posse; mesma leitura que a Wave 25 fez no
+Módulo 05.
+
+### INSTRUMENTOS NÃO PORTADOS — e por quê
+
+A fonte tem **ONZE** `<div class="inst">`: um no § MAP (fora de aula) e
+**dez de aula**, com as Aulas 01, 02 e 03 tendo **dois cada**. TODOS
+geram campos e dados por script — o markup traz só containers vazios — e
+cada um carrega objeto de estado e lógica próprios (`I1`..`I11`), de
+4,8k a 21,5k chars. São dez portas individuais.
+
+**O `Inst · 04` é mecânica genuinamente nova**, exatamente como o brief
+antecipou. "Reconstrutor de matriz · desenhe as duas pizzas de memória",
+e a própria fonte declara: *"é o único do sistema Alexandria que exige
+que você **produza** a resposta antes de ver a correção"*. Tem 6 campos
+numéricos (% por fonte), duas rodadas (capacidade / geração), um `ref`
+de gabarito embutido e `tol: 3`; o botão "Corrigir esta rodada" só então
+compara e devolve erro por fonte, erro total e diagnóstico de viés.
+
+**Isso não é reproduzível pelo `InstrumentPanel` atual**, que calcula ao
+vivo por `useMemo` sobre os valores: o resultado apareceria enquanto o
+aluno digita, destruindo exatamente aquilo que o instrumento existe para
+fazer. Reproduzir a fase de ocultação exige tocar `InstrumentPanel.tsx`
+— NUNCA MODIFICAR — e é **decisão de produto, não de extração**.
+
+Mapear o INST 04 como `simulador` comum seria entregar a casca sem o
+mecanismo. Por isso `instruments: []` nas sete aulas, e a extração dos
+onze fica para wave dedicada, junto com a decisão sobre a mecânica de
+duas fases. O conteúdo de apostila, os exercícios e as gravuras estão
+completos e verificados.
+
+Nota para quem pegar: o `Inst · 08` é um **"Termômetro hidrológico"** —
+terceira ocorrência do nome no currículo (Módulo 05: 8 chaves booleanas;
+Módulo 06: balanço numérico; aqui: `foto` por submercado com ena/ear e
+quadrante). Três mecânicas distintas sob o mesmo nome, o que reforça a
+regra de inspecionar sempre.
+
+### Verificação por clique real
+
+As sete aulas abertas uma a uma, rolando o `<main>` para disparar o lazy:
+**2 gravuras com `naturalWidth` 1024×1024** (Aulas 05 e 06), tabelas
+renderizando (a Aula 02 com **6**, que são as fichas recuperadas), zero
+NaN, zero overflow horizontal, zero erro de página. Regressão nos
+**sete** módulos já fechados — todos com suas gravuras carregando.
+1440×900.
+
+### Trilha 2: 13 → 20 aulas
+
+`totalAulas` passa de 13 em 2 de 7 módulos para **20 em 3 de 7**, com
+`totalAulasPartial` true. Registro foi import + spread pela sexta vez,
+sem tocar componente nenhum.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem
+**7 pré-existentes** fora dela, em
+`src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
+desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."

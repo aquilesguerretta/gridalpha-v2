@@ -4449,3 +4449,167 @@ Ciclo completo por interação real: página → roda abre o imersivo (alt
 perfil e reenquadra → ESC sai para a página → clique num país da página
 reabre o modo e voa. `tsc -b` 0 erros em Alexandria · `gridalpha-detect`
 "No findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 29 — MÓDULO 06 · ENTRADA NA TRILHA 2
+
+**Status:** fechada. Primeiro módulo fora da Trilha 1. A Trilha 2 deixa
+de ter contagem desconhecida.
+
+**Arquivos:** `alexandria-modulo-06-content.ts` (NOVO, 638 linhas) ·
+`alexandria-instrument-calculators.ts` (+7) · `alexandria-curriculo.ts`
+(import + spread) · `alexandria-trilhas.ts` (`AULAS_POR_BLOCO`).
+
+**Fonte:** `alexandria_modulo06.html`, nome conferido no disco. 207.980
+bytes sem o `<script>` — o maior módulo do currículo.
+
+### Track e vocabulário, medidos e não presumidos
+
+`bloco-06` no catálogo da FOUNDRY: **level 2, track `'brasil'`**,
+`illustrationPrefix: 'his-'`. As seis aulas carregam `track: 'brasil'`;
+as 42 dos Módulos 01-05 são `'universal'`.
+
+Vocabulário: os seletores dos Módulos 01-03 dão **zero** (`class="aula"`,
+`aula-marker`, `div.exercise`, `exercise-tag`, `glossary-item`,
+`checklist-item`). É o vocabulário abreviado dos Módulos 04-05, então o
+extrator da Wave 24 serviu de base.
+
+### Contagem real
+
+| sinal | prosa | markup |
+| --- | --- | --- |
+| aulas | §MAP "Seis aulas" | 6 seções `Aula NN` |
+| exercícios | §Ex "Dez exercícios" | 10 `<details>` |
+| glossário | §Lex "Noventa e nove termos" | 99 `.term` |
+
+16 seções = 6 aulas + 10 de aparato. **142 blocos de apostila.** Prosa e
+markup concordam nos três — segunda vez seguida.
+
+| Aula | Período | Título | blocos | gravuras |
+| --- | --- | --- | --- | --- |
+| 01 | 1879–1934 | Antes do Estado | 19 | 2 |
+| 02 | 1934–1988 | O Estado dono de tudo | 24 | 1 |
+| 03 | 1988–2002 | A reforma inacabada e o trauma fundador | 33 | 3 |
+| 04 | 2003–2011 | A reconstrução deliberada | 19 | 1 |
+| 05 | 2012–2021 | O modelo é testado de novo | 27 | 2 |
+| 06 | 2022–2028 | Onde a história pousa hoje | 20 | 1 |
+
+### Instrumento — oito na fonte, sete de aula
+
+O `Inst · 01` ("Linha do tempo · quatorze marcos") vive no § MAP, que é
+aparato — **fora de qualquer aula** — e não entra, mesmo tratamento que
+o `LAB · 01` do Módulo 01 recebeu na Wave 4. A **Aula 06 é a primeira
+com DOIS instrumentos**.
+
+**Quatro tipos fora do enum**, o padrão que o brief antecipou. Mapeados
+pela MECÂNICA, nunca pelo nome, com o título literal preservado na tela:
+
+| fonte | mecânica real | → kind |
+| --- | --- | --- |
+| `Linha do tempo` | 14 marcos clicáveis, sem cálculo | (fora de aula) |
+| `Termômetro do racionamento` | 4 campos numéricos → 4 readouts | `simulador` |
+| `Linha da abertura` | 2 campos numéricos → 4 saídas | `simulador` |
+| `Mapa trauma → cicatriz` | 11 itens, seleção revela texto | `explorador` |
+
+O **'Termômetro' daqui NÃO é o do Módulo 05**: lá eram 8 chaves
+booleanas com peso (mapeado para `quebra-cabeca`), aqui são campos
+numéricos de balanço energético. É a prova de que mecânica decide e
+prefixo não — não existe regra fixa por nome.
+
+Os 11 pares trauma→cicatriz do INST 08 vivem no `<script>` (o HTML traz
+só `<div class="tr-grid" id="i8-grid"></div>` vazio) e foram extraídos
+para `MODULO_06_TRAUMA_CICATRIZ`. O grid de seleção única virou um
+`select`, primitivo que o painel já renderiza.
+
+### Prova de fidelidade — 23 de 23
+
+16 valores numéricos + 7 vereditos, confrontados contra reimplementação
+independente com os defaults da fonte. Zero divergência.
+
+**Bug encontrado na própria porta, pela verificação e não pela
+leitura:** o INST 07 aninha os vereditos em `if(grupo===1){…} else {…}`,
+e o conversor linearizou a estrutura. O resultado era 2024/Grupo A cair
+no ramo de BAIXA TENSÃO e responder *"unidade de baixa tensão não tem
+elegibilidade"* quando o correto é *"Elegível em 2024, e sem depender da
+carga"*. Os três vereditos do ramo inalcançável saíram e as quatro
+condições do ramo Grupo A (`t<0`, `t===0`, `ok`, else) foram
+restauradas. Os quatro ramos testados um a um: 1990 "não existia
+figura", 2024 "sem depender da carga", 2023 "1,6 vez acima do limiar de
+500 kW", 2020/2019 "não elegível" com a norma certa.
+
+### Saídas: 24 declaradas, 16 entram
+
+Oito ficam de fora por serem texto puro — `i2-a5` ('12 anos'), `i4-ms`
+('não atinge' / 'já abaixo'), `i4-nf` ('esgotado'), `i5-rb` ('3 anos') e
+**as QUATRO do INST 07** ('Elegível', 'sem limite', nome de norma, ano).
+
+**O INST 07 fica com ZERO saída numérica**, e isso é fiel: é instrumento
+de consulta regulatória, e o veredito literal carrega a leitura inteira.
+Terceira wave seguida com essa limitação de contrato (19, 24, 29).
+
+**Toggles não portados, registrado:** o INST 07 tem dois botões na fonte
+(Grupo A / baixa tensão, convencional / incentivada) cujo estado vive só
+no script — não são `<input>` e por isso não viraram `InstrumentField`.
+Portado no ramo padrão, que é onde a fonte inicia.
+
+### Gravura — 10 de 11, cada uma por leitura de frase
+
+| Aula | Gravuras | Frase que decidiu |
+| --- | --- | --- |
+| 01 | `his-01`, `his-02` | "primeira instalação permanente de iluminação elétrica é de 1879"; "O Código de Águas — Decreto nº 24.643, de 1934" |
+| 02 | `his-03` | "Em 1957 é criada Furnas"; "Tratado de Itaipu" |
+| 03 | `his-04`, `his-05`, `his-09` | "chamado de apagão, mas apagão é interrupção involuntária"; "2001: o racionamento"; "três anos antes da primeira privatização" |
+| 04 | `his-06` | "O Novo Modelo de 2004 é o marco que ainda rege o setor" |
+| 05 | `his-07`, `his-08` | "bandeira específica de escassez hídrica"; "dezenas de geradores obtêm liminares" |
+| 06 | `his-10` | "a partir de 1º de janeiro de 2024, todo consumidor do Grupo A pudesse migrar" |
+
+**`his-11-placa-institucional-vazia` NÃO mapeada.** Seus únicos hits são
+falsos positivos: *"preencher esse **vazio** com usinas a gás"* e *"a
+caixa d'água começou a **esvaziar**"*. Nenhuma frase trata de instituição
+vazia como assunto. Quarto falso positivo da série, depois de
+Francis/São Francisco, (Xingu, PA)/pá e "antes do lítio".
+
+**`his-09` ficou na Aula 03 e não na 06 de propósito:** a Aula 06
+declara explicitamente que a capitalização da Eletrobras **não é venda
+direta**, então usar "leilão de privatização" lá contradiria o ponto
+pedagógico da própria aula.
+
+### Segundo bug, também achado por verificação
+
+As dez gravuras ficavam com `naturalWidth` 0 em todas as seis aulas. Não
+era arquivo corrompido (os 11 são PNG válidos 1024×1024, assinatura
+conferida) nem lazy loading (rolar o `<main>` inteiro em passos não
+carregava nenhuma).
+
+**Era erro meu de contrato:** `CurriculumAula.illustrations` é NOME DE
+ARQUIVO, e eu gerei path completo. Os módulos que funcionam declaram
+`'fis-04-triangulo-potencia.png'`, e a `Prancha` do `ApostilaPanel`
+prefixa `/alexandria/gravuras/` sozinha — o componente documenta isso.
+O resultado era `/alexandria/gravuras//alexandria/gravuras/his-01…`.
+
+### Exercícios e vídeo
+
+Os dez exercícios são **todos soltos** — varredura por `/[Aa]ula\s*\d+/`
+no enunciado E no gabarito devolve zero. Vínculo não inventado; vão para
+`MODULO_06_EXERCICIOS_SOLTOS` e as aulas ficam com `activities: []`.
+
+`video: null` MEDIDO: zero `<video>`, `<iframe>`, youtube, vimeo, `.mp4`.
+
+### Trilha 2 tem número pela primeira vez
+
+`totalAulas` passa de `null` para **6 aulas em 1 de 7 módulos**, com
+`totalAulasPartial` true. Registro no resolvedor foi import + spread pela
+quarta vez, sem tocar componente nenhum.
+
+### Verificação por clique real
+
+As seis aulas abertas uma a uma: "AULA N DE 6", gravuras com
+`naturalWidth` 1024×1024 na distribuição mapeada (2/1/3/1/2/1), os sete
+instrumentos presentes (a Aula 06 mostra INST-07 e INST-08), zero NaN,
+zero overflow horizontal, zero erro de página. Regressão nos cinco
+módulos da Trilha 1: M01 a3, M02 a3 e M03 a6 com suas 3 gravuras cada,
+M04 e M05 com zero (como devem). 1440×900.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem
+**7 pré-existentes** fora dela, todos em
+`src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
+desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."

@@ -33,6 +33,12 @@
       "port": 5247
     },
     {
+      "name": "GridAlpha Dev 5261",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5261", "--strictPort"],
+      "port": 5261
+    },
+    {
       "name": "GridAlpha Preview",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "preview"],

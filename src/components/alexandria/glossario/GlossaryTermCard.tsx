@@ -94,7 +94,11 @@ export function GlossaryTermCard({ termo, onAbrirAula }: GlossaryTermCardProps) 
               color: A2.tintaMetadado,
             }}
           >
-            Definido no § Lex; o corpo das aulas do Módulo 01 não usa o termo.
+            {/* Wave 34: era "…do Módulo 01" fixo — verdade com um módulo
+                só, falso desde que o glossário passou a agregar os § Lex
+                dos Módulos 01-08. Mesma classe da correção do eyebrow. */}
+            Definido no § Lex; nenhuma aula extraída trata o termo como
+            assunto central.
           </span>
         )}
       </div>

@@ -50,12 +50,20 @@ export function GlossarioView() {
     );
   }, [busca]);
 
-  // Agrupamento por letra inicial — o catálogo já vem em ordem alfabética
-  // da fonte, então basta particionar preservando a ordem.
+  // Agrupamento por letra inicial — o catálogo exporta ordenado (desde a
+  // Wave 34 a ordenação é explícita no próprio dado), então basta
+  // particionar preservando a ordem. A letra é NORMALIZADA sem acento:
+  // a ordenação pt-BR intercala 'Água' entre os A, e sem normalizar o
+  // marcador viraria A, Á, A — grupo repetido. Os 38 termos originais do
+  // Módulo 01 não tinham inicial acentuada, por isso o caso só apareceu
+  // quando os Módulos 02-08 entraram (Wave 34).
   const grupos = useMemo(() => {
     const out: { letra: string; termos: GlossaryTerm[] }[] = [];
     for (const t of visiveis) {
-      const letra = t.term[0].toUpperCase();
+      const letra = t.term[0]
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '');
       const ultimo = out[out.length - 1];
       if (ultimo && ultimo.letra === letra) ultimo.termos.push(t);
       else out.push({ letra, termos: [t] });
@@ -73,18 +81,24 @@ export function GlossarioView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xl }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
-        <span style={{ ...AT.rotulo, color: A.terracota }}>§ Lex · Módulo 01</span>
+        {/* Wave 34: o glossário deixou de ser só do Módulo 01 — a wave
+            estendeu o dado para os § Lex dos Módulos 02-08, e o eyebrow
+            fixo virou afirmação falsa na própria tela que a wave mudou.
+            Correção mínima de cópia, fora da posse declarada da Fase B
+            (que era só o arquivo de dados), pela mesma razão da Wave 15:
+            não há como entregar a fase sem ela. */}
+        <span style={{ ...AT.rotulo, color: A.terracota }}>§ Lex · Módulos 01-08</span>
         <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>
           Glossário Alexandria
         </h1>
         <p style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave, margin: 0 }}>
           Os vocábulos que aparecem em conversa real com diretor de energia,
           gerente de utilidades ou regulador. Cada verbete ancora nas aulas
-          onde o termo é genuinamente usado.
+          onde o termo é genuinamente central.
         </p>
         <span style={{ ...AT.dado, fontSize: '12px', color: A2.tintaMetadado }}>
           {ALEXANDRIA_GLOSSARIO.length} verbetes · {comAula} ancorados em aula ·{' '}
-          {ALEXANDRIA_GLOSSARIO.length - comAula} definidos sem uso no corpo do módulo
+          {ALEXANDRIA_GLOSSARIO.length - comAula} sem âncora de aula
         </span>
       </div>
 

@@ -52,7 +52,9 @@
 
 import type { GlossaryTerm } from '@/lib/types/alexandria';
 
-export const ALEXANDRIA_GLOSSARIO: GlossaryTerm[] = [
+/** Os verbetes, organizados por MODULO de origem (blocos abaixo) — a
+ *  ordem do arquivo e de manutencao, nao de exibicao. */
+const VERBETES: GlossaryTerm[] = [
   {
     id: "gl-ampere-a",
     term: "Ampere (A)",
@@ -5164,6 +5166,16 @@ export const ALEXANDRIA_GLOSSARIO: GlossaryTerm[] = [
     aulaIds: [],
   },
 ];
+
+/** Ordem ALFABETICA global no export — o GlossarioView agrupa por letra
+ *  inicial assumindo catalogo ordenado (contrato da Wave 8, verdadeiro
+ *  com um modulo so). Com oito blocos por modulo, cada um alfabetico
+ *  por dentro, o array literal deixou de ser globalmente ordenado — as
+ *  letras repetiriam a cada bloco. A ordenacao mora aqui, na fronteira
+ *  do dado, para o arquivo continuar organizado por proveniencia. */
+export const ALEXANDRIA_GLOSSARIO: GlossaryTerm[] = [...VERBETES].sort((a, b) =>
+  a.term.localeCompare(b.term, 'pt-BR', { sensitivity: 'base' }),
+);
 
 /** Verbetes em que a aula aparece — para a página da aula referenciar. */
 export const getTermosByAula = (aulaId: string): GlossaryTerm[] =>

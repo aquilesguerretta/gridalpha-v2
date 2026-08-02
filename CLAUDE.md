@@ -4361,3 +4361,91 @@ dominante → **busca "franca"** → "França · FRA" → Enter → alt 0,36
 segue imersivo) → **ESC 2** sai (header de volta, 4,39, frontispício)
 → **clique no Brasil da página** abre o modo + voa + perfil. `tsc -b`
 0 erros em Alexandria · detect "No findings. Surface is clean."
+
+## LYCEUM — REVISÃO DIRETA 4 PÓS-WAVE 28 (grade, mãos no imersivo, transição contínua)
+
+**Status:** fechada. Quarto pedido direto do Aquiles sobre o modo
+imersivo: "a animacao esta meio rusty quando damos esc", "a parte de
+traz do globo esta muito sem graca", "voce acha que consegue fazer com
+que as maos do atlas segurem o globo almentado? ou eu precisaria de um
+modelo dele 3d?", "quando damos zoom a barra de procurar fica
+overlapping o mundo, deixa ela no canto, e tira as recomendacoes".
+
+**Arquivos:** `AtlasGlobo.tsx` · `BuscaPais.tsx` · `AtlasStub.tsx`.
+
+### A pergunta do 3D — resposta: NÃO precisa
+
+As mãos seguram o globo aumentado no modo imersivo, e a gravura 2D
+basta. A composição sempre foi PARAMÉTRICA (vão entre as palmas
+derivado do raio por `raioPorVao`); o que faltava era aplicá-la também
+no imersivo em vez de esconder a figura. Agora a gravura é escalada a
+partir do raio do modo — no imersivo ela fica grande demais para caber,
+e o corpo sangra para fora da base, exatamente como o pedido descreve.
+As palmas tocam o arco inferior por construção geométrica, não por
+ajuste de pixel. Um modelo 3D só seria necessário se a figura tivesse
+que girar junto com a câmera; como ela é frontal e fixa, e a esfera
+passa na frente dela, o plano resolve.
+
+### A "animação rusty" — a causa medida não era a suposta
+
+Suspeitei do atraso de 130ms entre a troca de layout e o início do voo.
+Isso era parte, mas a linha do tempo frame a frame achou o vilão maior:
+**no frame da troca o globo INCHAVA 23%** (raio aparente 404 → 498 px) e
+só depois começava a animar. Causa: a altura do canvas muda entre os
+modos (955 no imersivo, 1178 na página), e a MESMA altitude rende raios
+diferentes.
+
+Correção em três partes:
+1. `raioPorAlt` / `altPorRaio` extraídas como funções puras (a segunda
+   já existia embutida). A transição captura o raio aparente ANTES da
+   troca e reposiciona a câmera na altitude que o reproduz no canvas
+   novo — o movimento passa a ser contínuo desde o primeiro frame.
+2. O voo parte junto com a troca de layout, sem os 130ms.
+3. O `maxDistance` é afrouxado durante o voo (a altitude de
+   continuidade pode ultrapassar o piso do modo de destino — é o caso
+   ao ENTRAR no imersivo) e restaurado por `configurarCamera` no pouso.
+
+**Segunda armadilha, também medida:** a primeira versão da compensação
+saía errada por 14%, porque o `ResizeObserver` não atualiza `tamanho`
+no mesmo commit em que o palco troca de geometria — a composição
+chegava com a ALTURA ANTIGA (log interno: `canvasHnovo: 1346` quando o
+canvas real virava 1178). O effect de transição agora roda a cada
+composição nova e só age quando o estado bate com o `getBoundingClientRect`
+real; enquanto não bater, espera o próximo.
+
+Medição de fechamento (2000×955), raio aparente bruto:
+- **saída por ESC:** 384 → 393 px (2%, era 384 → 498)
+- **entrada:** contínua; o que parecia salto era o voo já em curso
+
+O fade de troca do palco (opacidade 0 → 1 em `AE.hover`) fica: `fixed` ↔
+`relative` não é animável e o centro da esfera ainda salta ~128px entre
+as duas composições — o fade cobre esse resíduo.
+
+### "A parte de trás do globo sem graça" — grade de coordenadas
+
+Interpretado como o campo vazio da esfera (o oceano liso, sem nada além
+das fronteiras). Entrou **grade de meridianos e paralelos a cada 30°**,
+via `pathsData` — o retículo gravado de um globo de gabinete. Não é
+ornamento inventado: são círculos máximos e paralelos geográficos
+reais. Fica em altitude 0,002 (abaixo dos polígonos, em 0,006), então a
+terra passa por cima e a grade lê no mar. Ouro do contorno a 16% —
+presente sem disputar com a fronteira.
+
+### Busca no canto, sem sugestões
+
+A barra saiu do centro (onde atravessava o planeta) para o canto
+superior direito, em coluna com o chip de ferramentas futuras. A lista
+de sugestões foi removida por pedido: Enter voa para o melhor
+casamento, com prefixo do nome vencendo "contém em qualquer campo"
+(buscar "chi" acha Chile, não China por acaso de ordem de array).
+Quando nada casa, uma linha curta em terracota diz isso — é estado, não
+sugestão.
+
+### Verificação (2000×955)
+
+Ciclo completo por interação real: página → roda abre o imersivo (alt
+1,69, header coberto, esfera inteira topo 73 / fundo 882) → busca
+"franca" + Enter → França com perfil (nuclear 65,2%) → ESC fecha o
+perfil e reenquadra → ESC sai para a página → clique num país da página
+reabre o modo e voa. `tsc -b` 0 erros em Alexandria · `gridalpha-detect`
+"No findings. Surface is clean."

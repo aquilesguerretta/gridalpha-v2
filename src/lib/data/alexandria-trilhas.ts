@@ -37,7 +37,7 @@ import { getBlocksByLevel } from './alexandria-blocks';
  *  `sec-id` — 6 casam `Aula NN`, 10 são aparato — e o § MAP anuncia
  *  "Seis aulas". LYCEUM Wave 29.
  *
- *  Blocos 07-17 ficam fora deste mapa de propósito — não têm HTML no
+ *  Blocos 08-17 ficam fora deste mapa de propósito — não têm HTML no
  *  repositório, e estimar seria inventar. */
 const AULAS_POR_BLOCO: Record<string, number> = {
   'bloco-01': 9,   // Física de Energia e Eletricidade
@@ -48,6 +48,9 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // Primeiro bloco do Nível 2 / track 'brasil' — a Trilha 2 deixa de
   // ter contagem desconhecida e passa a 6 aulas em 1 de 7 módulos.
   'bloco-06': 6,   // História do Setor Elétrico Brasileiro
+  // Segundo módulo da Trilha 2. Mesma medição: 17 seções `sec-id`,
+  // das quais 7 casam `Aula NN` e 10 são aparato. LYCEUM Wave 30.
+  'bloco-07': 7,   // Estrutura Institucional Detalhada
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

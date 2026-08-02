@@ -243,7 +243,12 @@ export interface UserProgress {
 
 /** Prefixo do título do instrumento na fonte ('Calculadora · ...').
  *  Nove valores observados nos Módulos 01-03. Os três primeiros são os
- *  do Módulo 01; os seis seguintes entram com os Módulos 02-03. */
+ *  do Módulo 01; os seis seguintes entram com os Módulos 02-03.
+ *  Catálogo completo dos 54 instrumentos extraídos dos Módulos 01-07,
+ *  agrupado por `kind` com a mecânica de cada um — e o registro de que
+ *  nome de instrumento não decide `kind`, mecânica decide — está em
+ *  `docs/alexandria/instrument-taxonomy.md`. Confirmado nesse documento
+ *  (auditoria pós-Módulo 07): os 9 membros seguem suficientes. */
 export type InstrumentKind =
   | 'calculadora'
   | 'controles'

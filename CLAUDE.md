@@ -4938,3 +4938,141 @@ voa e abre o perfil (agora em alt 1,28) · ESC fecha o perfil e
 reenquadra · ESC sai para a página · clique da página faz as duas fases.
 `tsc -b` 0 erros em Alexandria · `gridalpha-detect` "No findings.
 Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 31 — PERFIL REAL, PROGRESSO DE VERDADE
+
+**Status:** fechada. Fecha a frase pendurada desde a Wave 23 ("sua
+identidade é real, seu percurso ainda não") — o Perfil lê
+`GET /api/progress/me` (CURSOR Wave 11) em vez do mock que alimentava o
+rail direito desde a FOUNDRY Wave 3. Primeiro lugar do frontend onde a
+Alexandria ESCREVE progresso, não só lê.
+
+**Arquivos:** `src/lib/progress/progressApi.ts` (NOVO) ·
+`src/components/alexandria/viewer/AulaViewer.tsx` (evento + botão de
+conclusão) · `src/pages/alexandria/PerfilStub.tsx` (progresso real +
+correção de cópia stale no Certificado) · `.claude/launch.json`
+(entrada de porta 5261).
+
+### Fase 1 — o achado que virou pergunta ao Aquiles
+
+Auditados os três pontos que o brief pedia: o contrato real dos
+Endpoints 22-24 (`docs/v2-backend-contract.md`), o estado real de
+`PerfilStub.tsx` (mock importado direto em `ProgressoSecao`) e
+`AulaViewer.tsx` (nenhum ponto de mount/saída identificável como
+"conclusão").
+
+**Não existia ponto de conclusão explícito na interface.** Sem botão
+"terminei", sem checagem de exercício (`ExercicioBlock` só revela
+gabarito, não confirma resposta, e boa parte das aulas tem
+`activities: []`), e "Próxima aula/Voltar ao módulo" já é navegação —
+usar isso como afirmação implícita de conclusão é exatamente o caso que
+o brief nomeou para eu parar. Perguntado ao Aquiles antes de escrever
+qualquer linha de `aula_concluida`: reaproveitar Próxima/Voltar, um
+botão novo, ou só `aula_iniciada` nesta wave. **Escolhido: botão novo**
+— `ConclusaoAula`, ao final de `AulaViewer`, depois do `ExercicioBlock`.
+
+### Onde os eventos disparam, exatamente
+
+- **`aula_iniciada`** — `useEffect` com dependência `[aula.id]` em
+  `AulaViewer`. Trocar de aula via "Próxima aula" NÃO desmonta o
+  componente (mesma rota, params diferentes), então a dependência no id
+  é o que refaz o registro — não a montagem do componente em si. Best-
+  effort: falha vai pro `console.error` e a aula continua legível.
+- **`aula_concluida`** — clique em "Marcar aula como concluída"
+  (`ConclusaoAula`). Estado local (`status`) nasce `null` a cada troca
+  de aula e só vira `'concluido'` com confirmação real do backend —
+  nunca otimista.
+- A resposta de `POST /events` já traz `aulaStatus` no corpo (Endpoint
+  22), então nem `aula_iniciada` nem `aula_concluida` precisam de uma
+  segunda chamada a `GET /aulas/{id}` para saber o status atual —
+  `getAulaStatus` existe no cliente (o brief pediu os três endpoints),
+  mas nenhum consumidor desta wave o chama.
+
+**Artefato de StrictMode confirmado, não corrigido:** em dev, o efeito
+de `aula_iniciada` dispara duas vezes por abertura de aula (mount →
+cleanup → mount), gravando duas linhas no log imutável
+`progress_event`. Mesma classe do duplo GET que a ARCHITECT documentou
+na Identidade Wave 1 — inofensivo aqui porque o efeito colateral
+(`aula_status`) é idempotente por `COALESCE`/upsert; produção não roda
+StrictMode.
+
+### Perfil — junção contra o catálogo, nunca contra `null`
+
+O backend devolve fato cru (`aulaIds`), de propósito — não tem tabela
+de aula nem de módulo (contrato, § "Per-account learning progress"). A
+junção é toda no frontend: `dado.aulasConcluidas.map(getAula).filter(≠
+null)`. Como `getAula` só reconhece aulas de módulo extraído, o "nunca
+contra denominador desconhecido" da wave sai de graça dessa restrição
+estrutural — nenhum módulo com `totalAulas: null` tem entrada em
+`alexandria-curriculo.ts` para `getAula` achar.
+
+Grade de 4 números: aulas concluídas (`X de TOTAL_AULAS_EXTRAIDAS
+confirmadas`), aulas em andamento (nova — substitui o "Nível 1 %" do
+mock, que já se documentava como sobre-estimativa por medir contra um
+denominador parcial), insígnias, sequência. Lista "Em andamento" com
+link direto pra continuar a aula (rota derivada de `getModuleById`,
+nunca digitada).
+
+**Concessão de badge segue sem dono.** Nenhuma wave, em lugar nenhum do
+frontend, emite `badge_conquistado` — então a lista de insígnias
+conquistadas fica vazia para toda conta real até essa regra existir.
+Não é bug desta wave nem foi resolvido aqui: é a mesma lacuna que o
+contrato do backend já registrava ("Badge award TIMING... is out of
+scope").
+
+**Conta sem nenhum evento** mostra "Comece por aqui" com o texto real
+("o rastreamento é real — abra qualquer aula") em vez do zero mudo ou
+de qualquer erro.
+
+### Cópia que passaria a mentir, corrigida de passagem
+
+O Certificado dizia "3 dos 5 módulos" e "os dois restantes seguem sem
+conteúdo extraído" — verdade no fechamento da Wave 2, **falsa desde a
+Wave 25** (Trilha 1 fechou com os 5 módulos confirmados,
+`totalAulasPartial: false`). Corrigido para derivar do catálogo
+(`t1.totalAulasPartial`, `moduleIds.filter(...)`) em vez de repetir
+dígitos que já divergiram uma vez. A razão do bloqueio muda de
+"denominador desconhecido" (não é mais verdade) para "ainda não cruza
+contra progresso real" — que é verdade, e fica registrada como a
+próxima pendência do Certificado, não resolvida aqui.
+
+### Verificação por clique real, ponta a ponta
+
+Conta nova (`lyceum.w31.<timestamp>@gridalpha.com`), servidor próprio
+na porta 5261 (`--strictPort`, entrada nova no `.claude/launch.json`).
+
+| Passo | Rede / tela | Resultado |
+| --- | --- | --- |
+| `/alexandria/perfil`, conta vazia | `GET /api/progress/me` 200 | "0 de 55 confirmadas" · "COMECE POR AQUI" |
+| abre Módulo 01 Aula 3 | `POST /events` 201 ×2 (StrictMode) | `aulaStatus.status: "em_andamento"` |
+| volta ao Perfil sem concluir | — | "Aulas em andamento: 1" · título + link da Aula 3 |
+| reabre a aula (ainda não concluída) | `POST /events` 201 | botão "Marcar aula como concluída" continua visível |
+| clica em "Marcar aula como concluída" | `POST /events` 201, `eventType: "aula_concluida"` | `aulaStatus.status: "concluido"`, tela mostra "✓ Aula concluída" |
+| volta ao Perfil | — | "1 de 55 confirmadas" · "Aulas em andamento: 0" |
+| **reabre a aula já concluída** | `POST /events` 201, `eventType: "aula_iniciada"` | resposta confirma `status: "concluido"` **sem reverter** (o bug que a Wave 11 corrigiu) — tela mostra "✓ Aula concluída", nunca o botão |
+
+`tsc -b` — 0 erros nos arquivos desta wave (seguem só os
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
+sobre os três arquivos de produto — "No findings. Surface is clean."
+
+**Nota de ambiente** (mesma família de waves anteriores): o painel
+Browser não compôs `screenshot` nem manteve a árvore de `read_page`
+além de um punhado de nós interativos no topo da página — verificação
+por `read_network_requests` (corpo de resposta lido direto) e
+`get_page_text` (DOM renderizado real), com um clique disparado via
+`javascript_tool` no botão de conclusão quando `computer`/`find` não
+alcançaram o elemento. O que se verificou é o DOM real e as respostas
+reais do backend, não um mock de teste.
+
+### Registrado, não resolvido
+
+- **Concessão de badge** — sem regra em lugar nenhum do frontend.
+- **Certificado** — denominador da Trilha 1 agora conhecido (Wave 25),
+  mas o cruzamento contra progresso real para decidir emissão não
+  existe.
+- **Conta de teste** deixada no banco — mesma pendência que Waves 23 e
+  26 e a ARCHITECT já registraram; sem endpoint de exclusão no
+  contrato.
+- **`getAulaStatus` (Endpoint 24)** está no cliente, sem consumidor
+  nesta wave — a resposta de `POST /events` já carrega `aulaStatus`,
+  então nenhum ponto construído aqui precisou de uma segunda leitura.

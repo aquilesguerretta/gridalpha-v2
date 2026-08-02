@@ -104,10 +104,34 @@ const GRAV = {
 const COMPOSICAO = { larguraFig: 0.78, raioPorVao: 0.78 } as const;
 const MARGEM_TOPO = 10; // ar acima da esfera quando a altura limita
 
-// Fade do frontispício no zoom-in: opacidade 1 no repouso, 0 quando a
-// altitude cruza ALT_FADE_FIM — acima do pouso mais baixo do voo
-// (alt ≤ 1,6), então a figura some ANTES do mergulho terminar.
-const ALT_FADE_FIM = 1.7;
+// Fade do frontispício no zoom-in, em FRAÇÕES do repouso do modo (a
+// altitude de repouso muda entre página ~4,4 e imersivo ~1,7, então um
+// limiar absoluto inverteria o sinal no imersivo): opaco perto do
+// repouso, zero ao cruzar 42% dele — sempre antes do mergulho pousar.
+const FADE_INICIO = 0.95;
+const FADE_FIM = 0.42;
+
+// ─────────────────────────────────────────────────────────────────────
+// Grade de coordenadas (revisão 4) — meridianos e paralelos a cada 30°,
+// o retículo gravado de um globo de gabinete. Dá estrutura ao oceano
+// vazio sem inventar dado nenhum: são círculos máximos e paralelos
+// geográficos reais, não ornamento. Fica ABAIXO dos polígonos em
+// altitude, então a terra passa por cima e a grade lê no mar.
+// ─────────────────────────────────────────────────────────────────────
+const GRADE: Array<Array<[number, number]>> = (() => {
+  const linhas: Array<Array<[number, number]>> = [];
+  for (let lng = -180; lng < 180; lng += 30) {
+    const meridiano: Array<[number, number]> = [];
+    for (let lat = -88; lat <= 88; lat += 4) meridiano.push([lat, lng]);
+    linhas.push(meridiano);
+  }
+  for (let lat = -60; lat <= 60; lat += 30) {
+    const paralelo: Array<[number, number]> = [];
+    for (let lng = -180; lng <= 180; lng += 4) paralelo.push([lat, lng]);
+    linhas.push(paralelo);
+  }
+  return linhas;
+})();
 
 // Raio da esfera em cena (three-globe) e meia-abertura vertical da
 // câmera (fov 50°, CONFIRMADO por medição: a razão raio/altura 0,344
@@ -132,32 +156,45 @@ interface Composicao {
 }
 
 function comporFrontispicio(w: number, h: number, imersivo: boolean): Composicao {
-  // Fator vertical da composição por unidade de largura da gravura:
-  // corpo da figura abaixo das mãos + subida do centro (dy) + raio.
-  // É o que permite ajustar a largura para a composição INTEIRA caber
-  // na altura h — globo nunca cortado.
+  // ── raio da esfera em repouso, por modo ──────────────────────────
+  // PÁGINA: a composição INTEIRA (esfera + figura + pedestal) cabe na
+  // altura — kVert é o fator vertical por unidade de largura da
+  // gravura (corpo abaixo das mãos + subida do centro + raio).
+  // IMERSIVO: o maior planeta que cabe inteiro com margem — o
+  // enquadramento Google Earth. Aqui a figura NÃO limita nada: ela é
+  // escalada a partir do raio e o corpo sangra para fora da tela.
   const rFrac = COMPOSICAO.raioPorVao * GRAV.vao;
   const dyFrac = Math.sqrt(Math.max(0, rFrac * rFrac - (GRAV.vao / 2) * (GRAV.vao / 2)));
   const kVert = GRAV.proporcao * (1 - GRAV.maoY) + dyFrac + rFrac;
-  const imgW = Math.min(COMPOSICAO.larguraFig * w, (h - MARGEM_TOPO) / kVert);
+  const larguraFigPagina = Math.min(COMPOSICAO.larguraFig * w, (h - MARGEM_TOPO) / kVert);
+  const raio = imersivo
+    ? Math.min(0.43 * h, 0.46 * w)
+    : COMPOSICAO.raioPorVao * GRAV.vao * larguraFigPagina;
+
+  // ── a gravura, derivada do raio ──────────────────────────────────
+  // Em ambos os modos a geometria é a MESMA relação: o vão entre as
+  // palmas corresponde ao raio por `raioPorVao`, e a esfera toca as
+  // duas mãos. Só o enquadramento muda — no imersivo a figura fica
+  // grande demais para caber, e é isso que o pedido queria: "as mãos
+  // segurem o globo aumentado, mesmo que o corpo esteja para fora".
+  // Não precisa de modelo 3D: a gravura é plana e a esfera passa na
+  // frente dela; as palmas tocam o arco inferior por construção.
+  const vao = raio / COMPOSICAO.raioPorVao;
+  const imgW = vao / GRAV.vao;
   const imgH = imgW * GRAV.proporcao;
-  const imgTop = h - imgH; // pedestal na base do palco
-  const imgLeft = w / 2 - GRAV.maoMeioX * imgW; // ponto médio das mãos no eixo da esfera
-  const maoY = imgTop + GRAV.maoY * imgH;
-  const vao = GRAV.vao * imgW;
-  const raio = COMPOSICAO.raioPorVao * vao;
-  // esfera tocando as duas palmas: centro sobe dy acima da linha das mãos
+  // centro da esfera: base da composição na página; meio da tela no
+  // imersivo (planeta centrado, como o Google Earth)
   const dy = Math.sqrt(Math.max(0, raio * raio - (vao / 2) * (vao / 2)));
-  const centroY = maoY - dy;
+  const esferaCentroY = imersivo ? h / 2 : h - imgH + GRAV.maoY * imgH - dy;
+  const maoY = esferaCentroY + dy;                    // linha das palmas
+  const imgTop = maoY - GRAV.maoY * imgH;             // topo da gravura
+  const imgLeft = w / 2 - GRAV.maoMeioX * imgW;       // meio das mãos no eixo
+
   // MODO PÁGINA: o canvas desce até a BASE do palco (o mergulho usa a
   // altura inteira, sem faixa morta) e sobe simétrico acima do centro
   // da esfera — o excesso é cortado pelo overflow do palco.
-  // MODO IMERSIVO (revisão 3 — "vire tipo o Google Earth"): esfera
-  // CENTRADA no viewport, canvas = palco inteiro, e o repouso é o
-  // planeta grande e INTEIRO — perto o suficiente para dominar a tela,
-  // nunca cortado.
-  const esferaCentroY = imersivo ? h / 2 : centroY;
-  const canvasH = imersivo ? h : Math.max(2 * (h - centroY), 2.2 * raio);
+  // MODO IMERSIVO: canvas = palco inteiro.
+  const canvasH = imersivo ? h : Math.max(2 * (h - esferaCentroY), 2.2 * raio);
   const canvasTop = esferaCentroY - canvasH / 2;
   // Ótica exata: altitude cuja distância d faz a esfera aparecer com
   // `raio` px num canvas de canvasH px sob fov de 50°.
@@ -166,11 +203,7 @@ function comporFrontispicio(w: number, h: number, imersivo: boolean): Composicao
     const dist = RAIO_CENA / Math.sin(Math.atan(x));
     return dist / RAIO_CENA - 1; // altitude em raios de globo, não distância
   };
-  // Raio de repouso: no imersivo, o maior que cabe INTEIRO com margem
-  // (86% da altura, limitado pela largura); na página, o encaixe nas
-  // mãos da gravura.
-  const raioRepouso = imersivo ? Math.min(0.43 * h, 0.46 * w) : raio;
-  const altRepouso = altPorRaio(raioRepouso);
+  const altRepouso = altPorRaio(raio);
   // Cobertura: raio aparente que alcança o canto mais distante do
   // PALCO a partir do centro da esfera — abaixo dessa altitude não
   // existe borda visível.
@@ -449,16 +482,18 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
         if (!g) return;
         const alt = g.pointOfView().altitude;
         const repouso = compRef.current?.altRepouso ?? 2.3;
-        // No imersivo a página inteira fica apagada (figura + coluna):
-        // o repouso do modo (~1,6) está abaixo do limiar de fade, e a
-        // fórmula da página inverteria o sinal — força zero.
-        const teto = repouso * 0.97;
-        const o = imersivoRef.current
-          ? 0
-          : Math.max(0, Math.min(1, (alt - ALT_FADE_FIM) / (teto - ALT_FADE_FIM)));
+        // Fade em frações do repouso do MODO — funciona igual na página
+        // (repouso ~4,4) e no imersivo (~1,7), onde um limiar absoluto
+        // inverteria o sinal. A figura segue o globo nos dois modos.
+        const o = Math.max(
+          0,
+          Math.min(1, (alt / repouso - FADE_FIM) / (FADE_INICIO - FADE_FIM)),
+        );
         const figura = figuraRef.current;
         if (figura) figura.style.opacity = o.toFixed(3);
-        ambienteRef.current?.(o);
+        // A coluna de texto só existe no modo página: no imersivo a
+        // tela é do globo, e nada de leitura disputa espaço com ele.
+        ambienteRef.current?.(imersivoRef.current ? 0 : o);
         // Gatilho de entrada por roda (revisão 3): zoom para dentro a
         // partir do repouso da página ABRE o modo imersivo.
         if (!imersivoRef.current && !voandoRef.current && !transicaoModoRef.current && alt < repouso * 0.92) {
@@ -536,6 +571,9 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
   // wave. Traço fino, mesma família do fio duplo do frontispício.
   const corContorno = useCallback(() => A2.ouroSobreNavy, []);
   const corLateral = useCallback(() => 'rgba(0, 0, 0, 0)', []);
+  // Grade: o mesmo ouro do contorno, a 16% — presente para dar
+  // estrutura ao mar, longe de disputar com a fronteira.
+  const corGrade = useCallback(() => 'rgba(203, 170, 110, 0.16)', []);
 
   // ── composição: derivada do tamanho medido + modo ─────────────────
   const comp: Composicao | null = useMemo(
@@ -642,6 +680,11 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
             showAtmosphere={false}
             globeMaterial={materialRef.current}
             onGlobeReady={aoGloboPronto}
+            pathsData={GRADE}
+            pathColor={corGrade}
+            pathStroke={null}
+            pathPointAlt={0.002}
+            pathTransitionDuration={0}
             polygonsData={mundo.features}
             polygonAltitude={0.006}
             polygonCapColor={corTopo}
@@ -661,17 +704,7 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
           esquerda, busca de país ao centro, e o espaço de ferramentas
           futuras declarado honestamente — nada finge existir. */}
       {imersivo && mundo !== null && (
-        <div
-          style={{
-            position: 'absolute',
-            top: AS.md,
-            left: AS.md,
-            right: AS.md,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: AS.lg,
-          }}
-        >
+        <>
           <button
             type="button"
             onClick={() => {
@@ -679,6 +712,9 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
               sairImersivoRef.current?.();
             }}
             style={{
+              position: 'absolute',
+              top: AS.md,
+              left: AS.md,
               background: A2.cremeSuperficie,
               border: `1px solid ${A.fioSobreCreme}`,
               borderRadius: 0,
@@ -693,24 +729,36 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersiv
             ← Página do atlas
           </button>
 
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-            <BuscaPais mundo={mundo} aoEscolher={aoClicar} />
-          </div>
-
-          <span
+          {/* Ferramentas ancoradas no CANTO (revisão 4) — o centro é do
+              planeta; nada de painel atravessado por cima dele. */}
+          <div
             style={{
-              border: `1px dashed ${A.terracota}`,
-              padding: `${AS.xs} ${AS.md}`,
-              ...AT.rotulo,
-              fontSize: '8px',
-              letterSpacing: '0.13em',
-              color: A.terracota,
-              whiteSpace: 'nowrap',
+              position: 'absolute',
+              top: AS.md,
+              right: AS.md,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-end',
+              gap: AS.md,
+              pointerEvents: 'none',
             }}
           >
-            Mais ferramentas em produção
-          </span>
-        </div>
+            <BuscaPais mundo={mundo} aoEscolher={aoClicar} />
+            <span
+              style={{
+                border: `1px dashed ${A.terracota}`,
+                padding: `2px ${AS.sm}`,
+                ...AT.rotulo,
+                fontSize: '8px',
+                letterSpacing: '0.13em',
+                color: A.terracota,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Mais ferramentas em produção
+            </span>
+          </div>
+        </>
       )}
 
       {/* Reenquadrar: aparece quando o usuário se afastou do repouso

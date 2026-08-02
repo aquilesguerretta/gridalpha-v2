@@ -5292,3 +5292,116 @@ sem tocar componente nenhum.
 **7 pré-existentes** fora dela, em
 `src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
 desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."
+
+## LYCEUM — ALEXANDRIA WAVE 37 — MÓDULO 09
+
+**Status:** conteúdo fechado e verificado. **Instrumentos NÃO portados**
+— declarado, com duas razões (abaixo). Quarto módulo da Trilha 2, que
+passa a 28 aulas em 4 de 7 módulos.
+
+**Arquivos:** `alexandria-modulo-09-content.ts` (NOVO, 561 linhas) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+`alexandria-instrument-calculators.ts` **intocado**.
+
+**Fonte:** `alexandria_modulo09.html` — 372.141 bytes (259.140 de markup
++ 102.738 de `<script>`).
+
+### Catálogo confirmado
+
+`bloco-09`: **level 2, track `'brasil'`, `illustrationPrefix: 'mer-'`**.
+Vocabulário: seletores dos Módulos 01-03 dão **zero**; é o dos 04-08.
+
+### Contagem real — e a primeira com oito aulas
+
+18 seções = **8 aulas + 10 de aparato**. **194 blocos.** §Ex "Catorze
+exercícios" = 14 `<details>`; §Lex com 136 `.term`.
+
+### DUAS estruturas novas, achadas ANTES da verificação final
+
+A lição do Módulo 08 foi aplicada de verdade: medi **cobertura de TEXTO
+por aula** antes de aceitar qualquer contagem.
+
+**A checagem por elemento, sozinha, teria passado.** Ela deu desvio de
+−34% a +41% em torno da média, nada fora de ±50% — e não havia `src-card`
+nenhum. Só a cobertura de texto revelou o problema, porque contagem de
+elemento **dupla-conta** os `<p>` que vivem dentro de `box`/`lv`:
+
+| aula | cobertura inicial | final |
+| --- | --- | --- |
+| 04 | **57,5%** | 95,6% |
+| 03 | 72,6% | 95,0% |
+| 06 | 78,9% | 91,0% |
+| 02 | 84,8% | 93,1% |
+
+Duas causas, ambas descartadas em silêncio pelo extrator herdado:
+
+1. **`div.fi`** — fichas de estrutura contratual na Aula 04: 6 fichas,
+   42 pares chave/valor, **6.004 chars**. Mesma natureza do `src-card`
+   do Módulo 08, com nome diferente. Vira `titulo` + `tabela`.
+2. **`<ol>`** — listas ORDENADAS (`ol.num-list`, `ol.stp`). O extrator
+   capturava só `<ul>`.
+
+**130 → 190 → 194 blocos.** Cobertura final **90,3% a 96,1%** nas oito;
+o resíduo é `p.disc` e normalização de entidade, não apostila.
+
+### Sem instrumento de duas fases — verificado, não presumido
+
+A Wave 34 implementou o modo `reconstrutor` + `correcaoSobDemanda`. Este
+módulo **não precisa dele**: os marcadores ("produza", "Corrigir",
+"gabarito") estão na **prosa da apostila, no § Ex e no botão do § Quiz**
+(`id="quiz-rs"`), e **nenhum dos onze instrumentos declara `ref` nem
+`tol`**. O shape foi comparado antes de concluir.
+
+### Instrumentos não portados — duas razões
+
+São **onze**: um no § MAP (fora de aula) e dez de aula, com a **Aula 08
+tendo três**. TODOS geram campos por script, cada um com objeto e lógica
+próprios — mesmo perfil do Módulo 08.
+
+**Razão adicional desta wave:** a LYCEUM Wave 34 está **EM VOO** sobre
+`InstrumentPanel.tsx` e `src/lib/types/alexandria.ts` — os dois
+modificados e **não commitados** no momento desta extração. Portar
+instrumento agora significaria depender de um contrato de tipo em
+movimento. `instruments: []` nas oito aulas.
+
+### Gravura — 2 de 6, e a cobertura baixa É o achado
+
+As seis `mer-` (aperto de mãos, martelo de leilão, PPA, bifurcação,
+balança de risco, guarda-chuva de hedge) dão hits **espalhados** — um
+por aula em várias — que a leitura de frase revelou serem menções
+incidentais, não seções dedicadas: "leilão" numa cláusula descritiva do
+ACR, "hedge natural" dentro de indexação, "migração" como conceito
+corrente do módulo inteiro. **`mer-03-contrato-ppa` dá ZERO ocorrência
+de PPA** — o contrato aqui é CCEAR/CCEAL.
+
+Mapeadas só as duas em que o objeto da gravura **é o assunto declarado
+da aula**, mesmo critério dos módulos anteriores:
+
+| Aula | Gravura |
+| --- | --- |
+| 04 · "O contrato é um sistema de alocação de risco" | `mer-01-aperto-maos-contrato` |
+| 05 · "Os riscos, um a um: quem carrega o quê" | `mer-05-balanca-risco-economia` |
+
+As outras quatro **não foram forçadas**. Segunda vez seguida que o
+prefixo do catálogo casa só em parte com o conteúdo real — no Módulo 08
+foram 2 de 8.
+
+### Verificação por clique real
+
+As oito aulas abertas uma a uma: "AULA N DE 8", **2 gravuras com
+`naturalWidth` 1536×1024** (Aulas 04 e 05), a **Aula 04 renderizando 8
+tabelas** (as 6 fichas `fi` recuperadas + 2 originais), zero NaN, zero
+overflow horizontal, zero erro de página. Regressão nos **oito** módulos
+já fechados. 1440×900.
+
+### Trilha 2: 20 → 28 aulas
+
+`totalAulas` passa de 20 em 3 de 7 módulos para **28 em 4 de 7**, com
+`totalAulasPartial` true. Registro foi import + spread pela sétima vez,
+sem tocar componente nenhum.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem
+**7 pré-existentes** fora dela, em
+`src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
+desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."
+Index conferido vazio antes de cada `git add` — sem vazamento nesta wave.

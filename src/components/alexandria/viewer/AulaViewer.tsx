@@ -4,13 +4,28 @@
 //   → abas: Referência Técnica · Apostila · Notas · Transcrição
 //   → InstrumentPanel, onde a aula tiver instrumento
 //   → ExercicioBlock ao final
+//   → ConclusaoAula — LYCEUM Wave 31, ver abaixo
 //
 // Aba sem conteúdo real mostra estado próprio dizendo por quê — nunca
 // painel vazio sem explicação. Mesma disciplina do módulo em produção.
+//
+// PROGRESSO REAL — LYCEUM Wave 31. `aula_iniciada` dispara uma vez por
+// `aula.id` genuinamente aberta (dependência do efeito é `aula.id`, não
+// toda renderização — trocar de aula via "Próxima aula" re-renderiza este
+// mesmo componente sem desmontar, e é exatamente aí que o efeito precisa
+// refirar). Falha de rede no evento é best-effort: loga e segue, nunca
+// bloqueia a leitura da aula.
+//
+// Não existia ponto de conclusão explícito na interface antes desta wave
+// (sem botão "terminei", exercícios sem checagem, `activities: []` em
+// boa parte das aulas). Confirmado com o Aquiles: em vez de reaproveitar
+// "Próxima aula/Voltar" como afirmação implícita de conclusão, entra um
+// botão dedicado — `ConclusaoAula`, ao final, depois do `ExercicioBlock`.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CurriculumAula } from '@/lib/types/alexandria';
 import { getCorpoAula, getLeadAula } from '@/lib/data/alexandria-curriculo';
+import { recordEvent, type AulaStatusInfo } from '@/lib/progress/progressApi';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import { VideoArea } from './VideoArea';
 import { ApostilaPanel } from './ApostilaPanel';
@@ -34,6 +49,48 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
   // `alexandria-curriculo.ts`.
   const blocos = getCorpoAula(aula.id);
   const lead = getLeadAula(aula.id);
+
+  // `null` = ainda não sabemos (efeito não resolveu, ou falhou). Nunca
+  // afirma "concluído" sem confirmação real do backend.
+  const [status, setStatus] = useState<AulaStatusInfo['status'] | null>(null);
+  const [marcando, setMarcando] = useState(false);
+  const [erroMarcar, setErroMarcar] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Troca de aula (Próxima/Anterior não desmonta este componente) —
+    // limpa o status da aula anterior antes de perguntar pela nova, para
+    // não mostrar "concluído" da aula que acabou de sair de cena.
+    setStatus(null);
+    setErroMarcar(null);
+    let vivo = true;
+
+    recordEvent('aula_iniciada', aula.id)
+      .then((r) => {
+        if (vivo && r.aulaStatus) setStatus(r.aulaStatus.status);
+      })
+      .catch((err: unknown) => {
+        // Best-effort: a aula continua legível mesmo sem registrar.
+        console.error('[alexandria] falha ao registrar aula_iniciada', err);
+      });
+
+    return () => {
+      vivo = false;
+    };
+  }, [aula.id]);
+
+  async function marcarConcluida() {
+    setMarcando(true);
+    setErroMarcar(null);
+    try {
+      const r = await recordEvent('aula_concluida', aula.id);
+      setStatus(r.aulaStatus?.status ?? 'concluido');
+    } catch (err) {
+      console.error('[alexandria] falha ao registrar aula_concluida', err);
+      setErroMarcar('Não foi possível salvar agora. Tente de novo.');
+    } finally {
+      setMarcando(false);
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xxl }}>
@@ -108,6 +165,81 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
       ))}
 
       <ExercicioBlock atividades={aula.activities} />
+
+      <ConclusaoAula
+        status={status}
+        marcando={marcando}
+        erro={erroMarcar}
+        onMarcar={marcarConcluida}
+      />
+    </div>
+  );
+}
+
+/** O único ponto de conclusão explícito da aula — LYCEUM Wave 31. Estado
+ *  desconhecido (efeito ainda não resolveu ou falhou) mostra o botão, não
+ *  um terceiro estado visual: nunca afirma "concluído" sem confirmação. */
+function ConclusaoAula({
+  status,
+  marcando,
+  erro,
+  onMarcar,
+}: {
+  status: AulaStatusInfo['status'] | null;
+  marcando: boolean;
+  erro: string | null;
+  onMarcar: () => void;
+}) {
+  if (status === 'concluido') {
+    return (
+      <div
+        style={{
+          borderTop: `1px solid ${A.fioSobreCreme}`,
+          paddingTop: AS.lg,
+          display: 'flex',
+          alignItems: 'center',
+          gap: AS.sm,
+        }}
+      >
+        <span style={{ ...AT.corpo, fontSize: '14px', color: A.oliva }}>
+          ✓ Aula concluída
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        borderTop: `1px solid ${A.fioSobreCreme}`,
+        paddingTop: AS.lg,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: AS.sm,
+        alignItems: 'flex-start',
+      }}
+    >
+      <button
+        type="button"
+        onClick={onMarcar}
+        disabled={marcando}
+        style={{
+          ...AT.rotulo,
+          fontSize: '10px',
+          color: marcando ? A2.tintaMetadado : A.terracota,
+          background: 'none',
+          border: `1px solid ${marcando ? A2.fioClaroSobreCreme : A.terracota}`,
+          borderRadius: AR.none,
+          padding: `${AS.sm} ${AS.lg}`,
+          cursor: marcando ? 'default' : 'pointer',
+          transition: `color ${AE.estado} ${AE.easing}, border-color ${AE.estado} ${AE.easing}`,
+        }}
+      >
+        {marcando ? 'Marcando…' : 'Marcar aula como concluída'}
+      </button>
+      {erro && (
+        <span style={{ ...AT.dado, fontSize: '11px', color: A.terracota }}>{erro}</span>
+      )}
     </div>
   );
 }

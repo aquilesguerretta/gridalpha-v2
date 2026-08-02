@@ -16,6 +16,7 @@ from app.routers import (
     news,
     outages_v2,
     products,
+    progress,
     reserve_margin,
     spark_spread,
     stream,
@@ -82,6 +83,9 @@ app.include_router(products.router)  # /api/products/*
 
 # Wave 10 world atlas — real Our World in Data country energy profiles.
 app.include_router(atlas_world.router)  # /api/atlas/world/*
+
+# Wave 11 progress — per-account lesson/badge/streak tracking, event-logged.
+app.include_router(progress.router)  # /api/progress/*
 
 
 @app.get("/health")

@@ -258,7 +258,18 @@ export const INSTRUMENTOS_MODULO_06: Instrument[] = [
     title: "Mapa trauma → cicatriz regulatória",
     formula: null,
     fields: [
-      { id: "i8-sel", label: "Pressão histórica", unit: null, kind: "select", defaultValue: "0", options: [{ value: "0", label: "undefined · undefined" }, { value: "1", label: "undefined · undefined" }, { value: "2", label: "undefined · undefined" }, { value: "3", label: "undefined · undefined" }, { value: "4", label: "undefined · undefined" }, { value: "5", label: "undefined · undefined" }, { value: "6", label: "undefined · undefined" }, { value: "7", label: "undefined · undefined" }, { value: "8", label: "undefined · undefined" }, { value: "9", label: "undefined · undefined" }, { value: "10", label: "undefined · undefined" }] },
+      // Rótulos DERIVADOS de MODULO_06_TRAUMA_CICATRIZ, nunca digitados —
+      // a extração da Wave 29 gerou o template com campos inexistentes e
+      // os 11 labels saíram "undefined · undefined" literais (defeito
+      // achado na regressão da Wave 34). O formato período · título é o
+      // do chip da fonte: '<span class="y">'+T[i].y+'</span>'+esc(T[i].t).
+      {
+        id: "i8-sel", label: "Pressão histórica", unit: null, kind: "select", defaultValue: "0",
+        options: MODULO_06_TRAUMA_CICATRIZ.map((t, i) => ({
+          value: String(i),
+          label: `${t.periodo} · ${t.titulo}`,
+        })),
+      },
     ],
     outputs: [
 

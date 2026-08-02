@@ -968,12 +968,138 @@ Upserts on `iso_code`, so re-running is idempotent.
 
 ---
 
+## Per-account learning progress (Wave 11)
+
+Closes the pendency the Alexandria Perfil (LYCEUM Wave 23) registered:
+until this wave there was no table tying a real account to lesson
+completion, so the Perfil showed the same mock progress to every user.
+
+### Event log, not a state table
+
+`progress_event` is the single source of truth — every real action
+(lesson started, lesson completed, instrument used, exercise answered,
+badge awarded) is one immutable row, never overwritten. `aula_status` and
+`badge_award` are DERIVED read caches, kept in sync on every write so the
+Perfil never has to replay the whole log; `study_streak` is derived the
+same way. If a derivation rule (streak math, a badge's award condition)
+is later found wrong, the fix is recomputing against the log, never a
+destructive migration — that's why the log exists at all.
+
+The backend has no `aula` or `modulo` table and does not pretend to.
+`entity_id` is an opaque string (`aula_id`, `instrumento_id`,
+`exercicio_id`, or `badge_id`, depending on `event_type`) that these
+endpoints never interpret, count against a total, or turn into a
+percentage. **No endpoint here ever returns "X of Y lessons" or a
+completion percentage** — that join belongs to the frontend, against the
+curriculum structure it already has and the backend deliberately does
+not.
+
+Badge award TIMING (which of the 13 real badges gets awarded by which
+action) is out of scope — this wave ships the mechanism to record and
+query an award, not the rule for when to call it. No "lente" or
+"competência" entity is modeled; `metadata` JSONB on `progress_event`
+exists so that door stays open without a future migration.
+
+### ENDPOINT 22 — Record a progress event
+
+`POST /api/progress/events`
+
+Authenticated (same session middleware as Wave 9). Plain JSON response,
+not the canonical envelope — mirrors Wave 9's `/api/products/{id}/activate`
+shape, since this reports what just happened rather than serving a
+market/reference read.
+
+Request:
+
+```json
+{ "eventType": "aula_concluida", "entityId": "modulo-01-aula-03", "metadata": { "lente": "residencial" } }
+```
+
+`eventType` is one of `aula_iniciada` · `aula_concluida` ·
+`instrumento_usado` · `exercicio_respondido` · `badge_conquistado`.
+`metadata` is optional and unvalidated beyond being a JSON object.
+
+Response (201):
+
+```json
+{
+  "eventId": "6c2e…",
+  "eventType": "aula_concluida",
+  "entityId": "modulo-01-aula-03",
+  "occurredAt": "2026-08-02T17:26:39.982435+00:00",
+  "streak": { "atual": 3, "maior": 5, "ultimoDiaAtivo": "2026-08-02" },
+  "aulaStatus": {
+    "status": "concluido",
+    "startedAt": "2026-08-02T17:26:32.616065+00:00",
+    "completedAt": "2026-08-02T17:26:39.982435+00:00"
+  }
+}
+```
+
+`aulaStatus` is present only for `aula_iniciada` / `aula_concluida`;
+`badgeAlreadyAwarded` (boolean) is present only for `badge_conquistado`.
+Neither key appears for `instrumento_usado` / `exercicio_respondido` —
+those two event types write only to the log, with no derived-table
+side effect. `422` for an unknown `eventType` or a blank `entityId`.
+`401` unauthenticated.
+
+Derivation per `eventType`:
+
+| `eventType` | Effect |
+| --- | --- |
+| `aula_iniciada` | Upserts `aula_status` — `status='em_andamento'`; `started_at` is set only if not already set (`COALESCE`, first-open time, not most recent). Re-sending this against an already-`concluido` lesson reverts its status to `em_andamento` — the brief specifies the upsert unconditionally, and no "don't downgrade" rule was invented. |
+| `aula_concluida` | Upserts `aula_status` — `status='concluido'`; `completed_at` is overwritten unconditionally (deliberate asymmetry vs. `started_at` — the brief's wording qualifies only the latter). |
+| `badge_conquistado` | Upserts `badge_award` via `ON CONFLICT DO NOTHING` — idempotent, same pattern as Wave 9's `activate`. |
+| `instrumento_usado`, `exercicio_respondido` | Log-only. No derived table touched. |
+| *(every event type)* | Recomputes `study_streak` in one atomic `INSERT … ON CONFLICT DO UPDATE`, comparing the stored `last_active_date` to `CURRENT_DATE` at the database clock: same day → no change; exactly one day ago → `current_streak_days += 1`; more than one day ago (or first event ever) → resets to 1. `longest_streak_days` tracks the running max. |
+
+### ENDPOINT 23 — My progress
+
+`GET /api/progress/me` — canonical `{meta, data, summary}` envelope
+(this is user reference data, not identity, so it follows the
+market/infrastructure convention, not Wave 9's plain-JSON one).
+
+```json
+{
+  "meta": { "timestamp": "2026-08-02T17:27:00Z", "source": "progress-event-log", "data_age_seconds": 0 },
+  "data": {
+    "aulasConcluidas": ["modulo-01-aula-03"],
+    "aulasEmAndamento": [],
+    "badges": [{ "badgeId": "badge-guardiao-fp", "awardedAt": "2026-08-02T17:26:46.040050+00:00" }],
+    "streak": { "atual": 1, "maior": 5, "ultimoDiaAtivo": "2026-08-02" }
+  },
+  "summary": "1 lesson(s) concluded, 0 in progress, 1 badge(s), 1-day streak."
+}
+```
+
+All four arrays/fields are raw facts from `aula_status` / `badge_award` /
+`study_streak` — no aggregate that depends on curriculum size. `401`
+unauthenticated.
+
+### ENDPOINT 24 — Status of one lesson
+
+`GET /api/progress/aulas/{aula_id}` — canonical envelope.
+
+```json
+{
+  "meta": { "timestamp": "2026-08-02T17:27:00Z", "source": "progress-event-log", "data_age_seconds": 0 },
+  "data": { "status": "concluido", "startedAt": "2026-08-02T17:26:32.616065+00:00", "completedAt": "2026-08-02T17:26:39.982435+00:00" },
+  "summary": "aula 'modulo-01-aula-03' — concluido."
+}
+```
+
+`404` if this account has never started the lesson (no `aula_status`
+row). `401` unauthenticated.
+
+---
+
 ## Versioning
 
 This contract is version `1.0` (Wave 5). Wave 7 adds Endpoints 13–15
 (infrastructure viewport APIs), Wave 9 adds Endpoints 16–21 (platform
-identity), and Wave 10 adds the world energy atlas endpoints
-(`/api/atlas/world/*`) additively under the same version.
+identity), Wave 10 adds the world energy atlas endpoints
+(`/api/atlas/world/*`), and Wave 11 adds Endpoints 22–24 (per-account
+progress, `/api/progress/*`) additively under the same version.
 Additive changes (new fields in `meta` or `data`) remain non-breaking.
 Field renames or removals require a new version doc and coordinated
 frontend update.

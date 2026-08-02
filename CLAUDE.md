@@ -3040,6 +3040,117 @@ depois do deploy — nenhuma tabela ou rota das Waves 7-9 foi tocada.
 sem tocar as tabelas de infraestrutura/identidade. Deploy no Railway
 (`gridalpha-v2-production`) verificado por HTTPS real depois do push.
 
+## CURSOR WAVE 11 — PROGRESSO PERSISTENTE POR CONTA
+
+**Status:** fechada. Fecha a pendência que a Alexandria Wave 23 (LYCEUM)
+já tinha registrado por escrito: o Perfil mostrava progresso mock porque
+não existia tabela nenhuma amarrando conclusão de aula a conta real.
+Agora existe.
+
+### Achado da Fase 1
+
+`users.id` é UUID (PK, `gen_random_uuid()`), confirmado direto em
+`app/db/models/user.py` — é nele que a FK das quatro tabelas novas
+aponta. Busca por `aula_id`/`badge_id` em todo `app/` deu **zero
+ocorrência** antes desta wave: não havia convenção nenhuma pra herdar ou
+colidir, o formato (string opaca) é definido aqui pela primeira vez.
+
+### Log de evento, não tabela de estado
+
+`progress_event` é a fonte de verdade — cada ação real (aula iniciada,
+aula concluída, instrumento usado, exercício respondido, badge
+conquistado) é uma linha imutável. `aula_status` e `badge_award` são
+CACHES derivados, mantidos em sincronia a cada escrita; `study_streak`
+é derivado do mesmo jeito. Se uma regra de derivação se provar errada, a
+correção é recalcular contra o log — nunca migração destrutiva.
+
+O backend não tem tabela de `aula` nem `modulo`, e os três endpoints
+nunca calculam "X de Y aulas" nem percentual de nível — devolvem
+`aula_id` cru, e quem junta contra o currículo é o frontend, que já sabe
+a estrutura.
+
+### Schema — aditivo, migration `0004_progress`
+
+`progress_event` (log imutável, `event_type` travado por CHECK nos cinco
+valores, `metadata` JSONB solto de propósito — sem "lente" nem
+"competência" modelada, só a porta aberta) + `aula_status` (PK composta
+`user_id, aula_id`) + `badge_award` (PK composta `user_id, badge_id`) +
+`study_streak` (PK `user_id`). DDL idêntico ao SQL literal do brief —
+nenhuma decisão de schema própria além do que já está documentado em
+`app/db/models/progress.py`.
+
+### Duas assimetrias deliberadas, lidas literalmente do brief
+
+- **`aula_iniciada`** só seta `started_at` se ainda não existir
+  (`COALESCE`) — é a primeira vez que a aula foi aberta, não a mais
+  recente. Reenviar este evento contra uma aula já `concluido` **reverte
+  o status pra `em_andamento`** — o brief especifica o upsert sem
+  ressalva, e "não regredir status" seria regra de produto que esta wave
+  não foi convidada a inventar. Registrado, não corrigido.
+- **`aula_concluida`** sobrescreve `completed_at` sem condição — o brief
+  qualifica só `started_at` com "se ainda não existir"; `completed_at`
+  não carrega a mesma ressalva. Assimetria lida ao pé da letra.
+
+Badge é idempotente por `ON CONFLICT DO NOTHING`, mesmo padrão do
+`activate` da Wave 9. `instrumento_usado` e `exercicio_respondido` só
+gravam no log — sem tabela derivada, como o brief mandou.
+
+### Streak — uma query atômica, não leitura-depois-escrita
+
+`INSERT ... ON CONFLICT DO UPDATE` com `CASE` comparando
+`last_active_date` contra `CURRENT_DATE` do relógio do banco: mesmo dia
+não muda nada; exatamente um dia atrás incrementa; mais de um dia atrás
+(ou primeiro evento da conta) reseta pra 1. `longest_streak_days`
+acompanha o máximo corrente. Fica numa query só — sem essa atomicidade,
+duas chamadas concorrentes do mesmo usuário poderiam ler o mesmo
+`last_active_date` antigo e uma pisar no incremento da outra.
+
+### Endpoints — `app/routers/progress.py`
+
+`POST /api/progress/events` devolve JSON plano (mesmo idioma do
+`activate` da Wave 9 — reporta o que acabou de acontecer, não é leitura
+de mercado), com `aulaStatus` presente só pra `aula_iniciada`/
+`aula_concluida` e `badgeAlreadyAwarded` só pra `badge_conquistado`.
+`GET /api/progress/me` e `GET /api/progress/aulas/{aula_id}` usam o
+envelope canônico `{meta, data, summary}` — é dado de referência do
+usuário, não identidade pura, então segue a convenção dos endpoints de
+mercado/infraestrutura. Os três autenticados pelo mesmo middleware de
+sessão da Wave 9 (`get_current_user`); `401` sem sessão nos três.
+
+### Smoke test real — TestClient contra o banco de produção, 39 asserções, 0 falha
+
+Conta descartável criada via `/api/auth/signup` com
+`X-Auth-Transport: bearer` (cookie `Secure` não viaja em `http://` do
+TestClient — mesmo motivo documentado pela ARCHITECT na Identidade
+Wave 1, agora atravessado por Bearer em vez de cookie).
+
+| Verificação | Resultado |
+| --- | --- |
+| `aula_iniciada` → `aula_status` | `em_andamento`, `started_at` setado |
+| reenviar `aula_iniciada` | `started_at` preservado (`COALESCE` confirmado) |
+| `aula_concluida` mesma aula | `concluido`, `completed_at` setado, `started_at` intacto |
+| `GET /aulas/{id}` depois | `concluido`; aula nunca tocada → `404` |
+| `badge_conquistado` 2× seguidas | 1ª `badgeAlreadyAwarded: false`, 2ª `true`; **1 linha só** em `badge_award` (contado direto no banco) |
+| `instrumento_usado` / `exercicio_respondido` | `201`, sem `aulaStatus` nem `badgeAlreadyAwarded` na resposta |
+| `eventType` inválido | `422` |
+| `GET /me` | `aulasConcluidas`/`aulasEmAndamento`/`badges`/`streak` batendo com o que foi gravado |
+| `last_active_date` forçado pra ontem (`UPDATE` direto) + novo evento | `current_streak_days` **4 → 5**, `longest` acompanha |
+| `last_active_date` forçado pra 3 dias atrás + novo evento | `current_streak_days` reseta pra **1**, `longest` continua em 5 |
+| novo evento no mesmo dia | `current_streak_days` **não muda** |
+| sem sessão | `POST /events` e `GET /me` → `401` |
+| `DELETE` da conta de teste | `progress_event` da conta cai a zero por `ON DELETE CASCADE` |
+
+Conta de teste removida ao final — sem pendência de limpeza, diferente
+das contas deixadas nas waves de identidade anteriores (havia acesso
+direto ao banco aqui, então a exclusão foi feita).
+
+**Gates:** migration `0004_progress` aplicada sobre `0003_country_energy`
+sem tocar tabela nenhuma das Waves 7-10. `py -3 -c "from app.main import
+app"` importa limpo com os 45 routes esperados nas três fases
+intermediárias de commit. Nenhum endpoint das Waves 7-10 foi verificado
+com regressão nesta wave especificamente porque nenhum arquivo deles foi
+tocado — só leitura de `user.py`, conforme a posse declarada.
+
 ## ARCHITECT — IDENTIDADE DE PLATAFORMA WAVE 1
 
 **Status:** fechada. Consumidor frontend da Wave 9 do backend — contexto

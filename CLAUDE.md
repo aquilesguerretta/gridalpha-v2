@@ -5546,3 +5546,174 @@ pré-existentes de Recharts em `nest/student/*`) · `gridalpha-detect` —
 - **Rankings são top-8 fixos** — sem paginação nem "ver todos".
 - **Filtro é de uma fonte por vez**; combinar critérios (ex.: renovável
   > 50% E geração > 100 TWh) seria uma wave de consulta, não de filtro.
+
+## LYCEUM — ALEXANDRIA WAVE 34 — DUAS FASES, GLOSSÁRIO COMPLETO, RECURSOS DO MÓDULO
+
+**Status:** fechada. Três frentes independentes em arquivo, commit por
+fase como o brief mandou. **Confirmação explícita: os 54 instrumentos
+existentes não mudaram comportamento** — regressão por clique real em
+seis módulos com VALOR CALCULADO conferido contra o que cada wave
+documentou, não só "renderizou sem erro".
+
+### FASE A — modo de correção sob demanda no InstrumentPanel
+
+**Arquivos:** `InstrumentPanel.tsx` · `alexandria.ts` (tipo) ·
+`alexandria-modulo-08-content.ts` + `alexandria-instrument-calculators.ts`
+(exceção de posse AUTORIZADA pelo Aquiles, só para o Inst · 04).
+
+A auditoria da Fase A.1 achou os quatro pontos de vazamento: o `useMemo`
+que calcula a cada tecla, as `Saidas`, o parágrafo de veredito, e —
+o menos óbvio — o `mostrado()`, que ecoa valor resolvido pela
+calculadora DENTRO do campo (idioma da Lei de Ohm) e imprimiria a
+resposta enquanto o aluno digita. Tudo bifurcado num campo opcional
+novo do contrato:
+
+`correcaoSobDemanda?: { botaoRotulo; referencia; tolerancia;
+normalizar?; zerarRotulo? }` — instrumento SEM o campo segue o caminho
+idêntico ao de antes. Com o campo: nada calcula ao vivo, o botão revela
+comparação campo a campo (produzido × referência × desvio com barra de
+direção, tolerância colorindo), leituras da calculadora e veredito; o
+resultado CONGELA até o próximo clique — fiel à fonte, onde editar
+campo não re-roda a checagem. **Nova tentativa é permitida sem limite —
+confirmado no script da fonte** (nada tranca após `i4check()`), não
+presumido. Normalizar re-roda a correção após reescalar (literal da
+fonte, incluindo o arredondamento a uma casa que pode somar 100,1).
+
+**O Reconstrutor de matriz portado:** o toggle de rodada virou DOIS
+instrumentos empilhados (`m08-inst-04-cap`/`-ger`) — "primeiro em
+capacidade, depois em geração" expresso em layout, cada um com sua
+referência e calculadora. `InstrumentKind` ganhou o 10º membro
+(`reconstrutor`) — a mecânica produzir-antes-de-corrigir não cabia em
+nenhum dos 9; pendência de refletir no `instrument-taxonomy.md`
+(posse FOUNDRY). O painel de referência EDITÁVEL da fonte não foi
+portado (referência vive em código; proveniência preservada no note).
+
+**Fidelidade: 36 de 36.** O script ORIGINAL foi extraído do HTML e
+EXECUTADO com DOM shimado contra 10 vetores (referência exata nas duas
+rodadas, ordem errada, dentro/fora da tolerância, faltando, soma 120,
+fronteira soma=8, viés, vazio) — leituras E vereditos byte a byte
+idênticos aos da porta. A leitura "Ordem das fontes · Correta/Incorreta"
+é texto e foi dobrada no veredito (mesma limitação das Waves 19/24/25/29).
+
+**Regressão dos 54 (o gate da fase), valor a valor:**
+
+| Módulo | Instrumento | Valor conferido |
+| --- | --- | --- |
+| 01 | INST-01 | 50 kWh (10 kW × 5 h) |
+| 02 | INST-02 | 1.215,47 A · 39 MW · 3,9% (Wave 18) |
+| 03 | INST-06 | CMO 150 · "Hidro reservatório" (Wave 19) |
+| 05 | INST-04 | sinais 0+2 → opacidade 42 · reprodutibilidade "não" (Wave 25) |
+| 06 | INST-07 | 2024/800 → ramo "sem exigência de carga mínima" (Wave 29) |
+| 07 | INST-04 | 450 · 90 · 90 · ramo "monitoramento ativo" (Wave 30) |
+
+**Três defeitos PRÉ-EXISTENTES achados na regressão** (confirmados
+contra dado commitado, não desta wave; viraram chips de tarefa):
+1. `m06-inst-08` tem 11 options com label literal `"undefined ·
+   undefined"` gravado no arquivo de dados desde a Wave 29.
+2. A heurística `ehDiagrama` (formula null + outputs vazio) desenha o
+   Triângulo de Potência espúrio em exploradores dos Módulos 06-07.
+3. Vereditos de `m07-inst-04/06` carregam `<b>` literal que o painel
+   renderiza como texto cru desde a Wave 30.
+
+### FASE B — glossário, sete módulos de dívida
+
+**Arquivo:** `alexandria-glossario.ts` (os 38 do Módulo 01 intocados,
+ids originais preservados; novos entram namespaçados `gl-mNN-`).
+Um commit por módulo, sete commits.
+
+**Contagem final, prosa e markup CONCORDANDO nos sete** (primeira vez
+que a série não tem divergência nenhuma):
+
+| Módulo | Verbetes | Âncoras | Vocabulário |
+| --- | --- | --- | --- |
+| 01 (Wave 8) | 38 | 35 termos | `glossary-item` |
+| 02 | 65 | 24 | `glossary-item` |
+| 03 | 63 | 11 | `glossary-item` |
+| 04 | 58 | 10 | § Lex `p > span.term` por categoria |
+| 05 | 72 | 10 | idem |
+| 06 | 99 | 7 | idem |
+| 07 | 118 | 18 | idem |
+| 08 | 124 | 4 | idem |
+| **total** | **637** | **119 termos** | |
+
+No M04 o `.term` bruto dá 76 porque a classe também aparece no corpo —
+a contagem §Lex-escopada dá os 58 da prosa. No vocabulário novo o
+rótulo da CATEGORIA ("Formação de preço e despacho") vira o `unit`.
+
+**Âncora por ESTRUTURA, não por varredura de corpo:** termo ancora
+quando aparece (frase exata, fronteira de palavra, sem acento/caixa) no
+título, subtítulo ou cabeçalho de seção da aula — lidos do TS de
+conteúdo real. Mais conservador que a leitura de corpo da Wave 8;
+auditado a olho módulo a módulo. **Três falsos positivos excluídos por
+leitura de frase** (7º-9º da série): 'Energia'→aula-04-04 ("Energia
+nova" nomeia tipo de leilão), 'Carga'→aula-08-03 (o assunto é o
+composto "Carga líquida", que ancora sozinho) e 'Carga'→aula-08-05
+(referência locacional em título de transmissão). O M07 corroborou a
+regra: os 18 termos mapeiam órgão a órgão exatamente como as fichas
+institucionais da Wave 30.
+
+**Fixes multi-módulo achados na verificação** (`GlossarioView` /
+`GlossaryTermCard`, fora da posse da Fase B — correção mínima que a
+própria wave tornou necessária, mesma razão da Wave 15): o export agora
+ordena alfabeticamente na fronteira do dado (o view agrupa por letra
+assumindo catálogo ordenado — com 8 blocos as letras repetiriam); letra
+de grupo normalizada sem acento ('Água' intercalado nos A gerava
+marcador A, Á, A — inicial acentuada não existia nos 38 do M01); e as
+cópias fixas "Módulo 01" no eyebrow e no rodapé de verbete sem âncora
+viraram texto verdadeiro para o agregado 01-08.
+
+Verificado por clique: busca acha termo de módulo novo ("Missing
+money", M04) e a âncora navega para
+`/trilha/trilha-fundamentos-universais/modulo/modulo-04/aula/3` — a
+aula certa do módulo certo. 23 grupos de letra A→W sem repetição.
+
+### FASE C — Recursos do Módulo
+
+**Arquivos:** `RecursosDoModulo.tsx` (NOVO) · `ModuloAulaList.tsx`.
+
+A auditoria mediu a convenção real: **não é uniforme** — o Módulo 01
+exporta `MODULO_01_SINTESE`; os 02-09 exportam
+`MODULO_NN_EXERCICIOS_SOLTOS`. **71 exercícios soltos**
+(1/2/1/9/10/10/12/12/14 — o M09 da Wave 37, que a sessão paralela
+fechou durante esta, entrou no registro também). Mais o **LAB · 01 do
+Módulo 01, renderizado pela primeira vez na história do produto** —
+calculadora portada e testada desde a Wave 4, nunca alcançada por tela
+nenhuma; valores conferem (reativo B R$ 3.200, fatura B R$ 68.825,
+diferença R$ 16.450 — os números da prova da Wave 4).
+
+O `Inst · 01` dos Módulos 06 (linha do tempo) e 07 (mapa institucional)
+**não foi materializado como `Instrument`** — são chips sem campo nem
+saída (taxonomia FOUNDRY Wave 4); extraí-los é wave de extração, não
+desta fase. Pendência registrada, sem seção vazia fingindo conteúdo.
+
+Módulo sem recurso não mostra nada (verificado no modulo-10, em
+produção). Exercício reutiliza `ExercicioBlock`; instrumento de módulo,
+o `InstrumentPanel` — zero componente de exercício novo. De passagem:
+o "Três dos dezessete módulos têm conteúdo" fixo do estado EmProducao
+virou derivado de `MODULOS_COM_CONTEUDO` (dizia 3, a verdade era 9).
+
+O registro módulo→recursos mora no próprio componente porque
+`alexandria-curriculo.ts` está fora da posse — candidato a migrar
+quando o resolvedor abrir.
+
+### Gates e ambiente
+
+`tsc -b` — 0 erros nos arquivos da wave; permanecem 7 pré-existentes em
+`nest/student/{ProjectSandbox,SandboxTrading}` (Recharts, desde a Wave
+3). `gridalpha-detect` sobre toda a superfície tocada — "No findings.
+Surface is clean." Screenshots das três superfícies em 1440×900 e
+1920×1080 via `playwright-core` no scratchpad dirigindo o Chrome do
+sistema (o painel Browser desta sessão não compõe frames — mesma nota
+de ambiente das waves anteriores); servidor próprio na porta 5261.
+`git status` conferido antes de cada um dos onze commits — nenhum
+arquivo de outra sessão entrou em commit nenhum.
+
+### Registrado, não resolvido
+
+- Os **dez instrumentos restantes do Módulo 08** seguem não portados —
+  escopo travado pelo próprio Aquiles nesta wave.
+- `instrument-taxonomy.md` ainda não reflete o 10º kind (posse FOUNDRY).
+- Os três defeitos pré-existentes da regressão (chips criados).
+- Glossário do **Módulo 09** (Wave 37 paralela) não extraído — o brief
+  desta wave cobria 2-8; os exercícios soltos do M09 JÁ aparecem nos
+  Recursos, o § Lex dele não.

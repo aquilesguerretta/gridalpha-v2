@@ -173,6 +173,26 @@ const mmi = (v: number) =>
     ? 'R$ ' + (v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' bi'
     : 'R$ ' + v.toLocaleString('pt-BR', { maximumFractionDigits: 0 }) + ' mi';
 
+
+import { MODULO_07_EXPLORADORES } from './alexandria-modulo-07-content';
+
+/** ── Helpers do Módulo 07 ────────────────────────────────────
+ *  Literais do <script> da fonte. O módulo é institucional: dos nove
+ *  instrumentos de aula, SETE são exploradores sem cálculo — seleção
+ *  única que revela texto — e só dois fazem aritmética de prazo. */
+const dias = (v: number) => num(v, 0) + (v === 1 ? ' dia' : ' dias');
+
+/** Monta o veredito de um explorador: rótulo do item + corpo, ambos
+ *  literais da fonte. Nada é reescrito nem resumido. */
+function explorar07(chave: string, sel: unknown): string {
+  const lista = MODULO_07_EXPLORADORES[chave] ?? [];
+  if (!lista.length) return '';
+  const bruto = typeof sel === 'string' ? Number(sel) : (sel as number);
+  const i = Number.isFinite(bruto) ? Math.min(Math.max(Math.trunc(bruto), 0), lista.length - 1) : 0;
+  const it = lista[i];
+  return `${it.rotulo}\n\n${it.corpo}`;
+}
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -1836,6 +1856,107 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
     })();
     return { valores: {}, veredito: cadeia + '\n\n' + fecho };
   },
+
+
+  // ══════════════════════════════════════════════════════════
+  // MÓDULO 07 — Estrutura Institucional Detalhada
+  //
+  // Nove instrumentos de aula. O `Inst · 01` (Mapa institucional) vive
+  // no § MAP, fora de aula, e não entra — mesmo tratamento do LAB · 01
+  // (Módulo 01) e do Inst · 01 (Módulo 06).
+  // ══════════════════════════════════════════════════════════
+
+  // ── m07 INST 02 · comparador de instrumentos jurídicos ────
+  // Onze instrumentos, de lei ordinária a despacho. Seleção revela
+  // quem emite, o que vincula e como se lê.
+  'm07-inst-02': (i) => ({ valores: {}, veredito: explorar07('02', i['i2-sel']) }),
+
+  // ── m07 INST 04 · anatomia de um ato regulatório ──────────
+  // Soma dos seis prazos do rito. A JANELA DE INFLUÊNCIA é só tomada de
+  // subsídios + consulta pública (a+c) — as outras quatro etapas correm
+  // sem porta de entrada, e é essa razão que o instrumento ensina.
+  'm07-inst-04': (i) => {
+    const a = n(i['i4-a-n']);
+    const b = n(i['i4-b-n']);
+    const c = n(i['i4-c-n']);
+    const d = n(i['i4-d-n']);
+    const e = n(i['i4-e-n']);
+    const f = n(i['i4-f-n']);
+    const tot = a + b + c + d + e + f;
+    const jan = a + c;
+    const r = tot > 0 ? jan / tot : 0;
+    // 'Regime' é TEXTO na fonte e não cabe em `valores` — vai no
+    // veredito, que já o narra.
+    const av =
+      f === 0 ? 'sem vacância — a regra vale na publicação'
+      : f < 30 ? 'vacância curta'
+      : f < 90 ? 'vacância apertada'
+      : f < 180 ? 'vacância razoável'
+      : 'vacância confortável';
+    // 'Regime' é TEXTO na fonte — fica fora de `valores` e entra no
+    // veredito, que é onde o original o narra.
+    const reg =
+      jan === 0 ? 'Fechado à contribuição'
+      : r >= 0.28 ? 'Aberto e previsível'
+      : r >= 0.15 ? 'Aberto com janela estreita'
+      : 'Formalmente aberto, praticamente fechado';
+    void av;
+    return {
+      valores: { 'i4-tot': tot, 'i4-jan': jan, 'i4-avi': f },
+      veredito: ((): string => {
+    if (jan===0) return `<b>Sem porta de entrada.</b> Não há tomada de subsídios nem consulta pública: o agente descobre a regra quando ela já é obrigação. Isso acontece em hipóteses de urgência declarada e é legítimo nelas — mas transforma o processo regulatório em risco não gerenciável para quem é regulado. Nesse desenho, a única defesa possível é posterior: recurso administrativo e via judicial. Ciclo total de ${dias(tot)}, com ${av}.`;
+    if (r>=0.28 && f>=90) return `<b>Rito aberto e com aviso.</b> A janela de influência é de ${dias(jan)} em um ciclo de ${dias(tot)} — cerca de ${num(r*100,0)}% do processo aceita contribuição externa documentada — e ainda restam ${dias(f)} entre a deliberação e a vigência para adaptar contrato, sistema e operação. É o desenho em que participar tem retorno real e em que a surpresa regulatória é evitável. Regime: ${reg.toLowerCase()}, ${av}.`;
+    if (r>=0.15) return `<b>Aberto, mas exige monitoramento ativo.</b> A janela de influência é de ${dias(jan)} num ciclo de ${dias(tot)} — cerca de ${num(r*100,0)}%. Quem monitora apenas a publicação final chega depois de fechada. Quem monitora o despacho de abertura de consulta chega a tempo. Depois da deliberação restam ${dias(f)} de adaptação: ${av}. A assimetria entre grandes e pequenos agentes nasce exatamente aqui — não na regra, mas na capacidade de acompanhar o processo.`;
+    return `<b>Formalmente aberto, praticamente fechado.</b> Apenas ${num(r*100,0)}% do ciclo de ${dias(tot)} aceita contribuição — ${dias(jan)} de janela contra ${dias(b+d+e)} de processo interno. O rito cumpre a exigência de participação sem entregar participação efetiva: quando a minuta chega ao público, as escolhas estruturais já foram feitas na fase de elaboração. Aviso prévio: ${dias(f)}, ${av}.`;
+      })(),
+    };
+  },
+
+  // ── m07 INST 06 · régua do ciclo mensal ───────────────────
+  // Consumo → desembolso é a soma das cinco etapas; a folga até o
+  // aporte é contestação + garantia (c+d).
+  'm07-inst-06': (i) => {
+    const a = n(i['i6-a-n']);
+    const b = n(i['i6-b-n']);
+    const c = n(i['i6-c-n']);
+    const d = n(i['i6-d-n']);
+    const e = n(i['i6-e-n']);
+    const tot = a + b + c + d + e;
+    const fol = c + d;
+    const prev = a + b;
+    let reg =
+      tot <= 25 ? 'Ciclo curto'
+      : tot <= 40 ? 'Ciclo padrão'
+      : tot <= 55 ? 'Ciclo longo'
+      : 'Ciclo muito longo';
+    if (c === 0) reg += ' · sem contestação';
+    else if (c <= 3) reg += ' · janela mínima';
+    void prev;
+    const cap = `O intervalo de ${dias(tot)} entre o fim do mês de consumo e a liquidação é capital de giro parado: a energia foi consumida, o valor ainda não circulou, e o agente carrega a posição no balanço enquanto isso.`;
+    return {
+      valores: { 'i6-tot': tot, 'i6-jan': c, 'i6-fol': fol },
+      veredito: ((): string => {
+    if (c===0) return `<b>Sem janela de contestação.</b> A prévia sai no dia ${num(prev,0)} e vira obrigação sem intervalo para questionamento. Todo erro de medição, de registro de contrato ou de aplicação de regra vira desembolso primeiro e discussão depois — e discussão depois de liquidado é processo, não é ajuste. ${cap}`;
+    if (c<=3) return `<b>Janela mínima.</b> São ${dias(c)} entre conhecer a prévia e perder o direito de contestar — tempo insuficiente para conferir medição por ponto, conciliar contratos e montar argumento técnico em qualquer operação de porte. Na prática, quem não tem conciliação automatizada não contesta. ${cap} A folga até o aporte é de ${dias(fol)}.`;
+    if (fol<5) return `<b>Contestação existe, folga de caixa não.</b> A janela de ${dias(c)} é utilizável, mas entre saber o valor e ter que aportar garantia há apenas ${dias(fol)}. Para um agente com tesouraria enxuta, isso significa manter caixa ocioso permanentemente — porque não dá tempo de mobilizar recurso depois que o número aparece. ${cap}`;
+    if (tot<=40) return `<b>Ciclo equilibrado.</b> Janela de contestação de ${dias(c)}, folga de ${dias(fol)} entre a prévia e o aporte, e ${dias(tot)} do fim do consumo à liquidação. É o desenho em que o agente consegue conferir antes de pagar e mobilizar caixa antes de aportar — as duas condições que separam gestão de tesouraria de reação a boleto. ${cap}`;
+    return `<b>Ciclo longo, com controle preservado.</b> A janela de ${dias(c)} e a folga de ${dias(fol)} funcionam, mas o ciclo de ${dias(tot)} amplia a exposição: quanto mais tempo entre consumo e liquidação, maior o valor em aberto e maior o efeito de uma inadimplência de terceiro sobre o rateio da liquidação. ${cap}`;
+      })(),
+    };
+  },
+
+  // ── m07 INST 03 · estante da EPE · qual documento responde qual pergunta ──
+  'm07-inst-03': (i) => ({ valores: {}, veredito: explorar07('03', i['i3-sel']) }),
+  // ── m07 INST 05 · cadeia temporal da operação ──
+  'm07-inst-05': (i) => ({ valores: {}, veredito: explorar07('05', i['i5-sel']) }),
+  // ── m07 INST 07 · escada do travamento · o que parou o projeto ──
+  'm07-inst-07': (i) => ({ valores: {}, veredito: explorar07('07', i['i7-sel']) }),
+  // ── m07 INST 08 · roteador de decisão ──
+  'm07-inst-08': (i) => ({ valores: {}, veredito: explorar07('08', i['i8-sel']) }),
+  // ── m07 INST 09 · localizador de dado ──
+  'm07-inst-09': (i) => ({ valores: {}, veredito: explorar07('09', i['i9-sel']) }),
+  // ── m07 INST 10 · calendário institucional ──
+  'm07-inst-10': (i) => ({ valores: {}, veredito: explorar07('10', i['i10-sel']) }),
 
 };
 

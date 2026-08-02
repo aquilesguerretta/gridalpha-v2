@@ -4724,3 +4724,153 @@ idêntico ao anterior (alt 4,4 · raio 235 · esfera topo a 1px). `tsc -b`
 0 erros em Alexandria · `gridalpha-detect` "No findings. Surface is
 clean." · `vite build` confirma a fronteira lazy preservada
 (`AtlasGlobo-*.js` em chunk próprio, 1.846 KB).
+
+## LYCEUM — ALEXANDRIA WAVE 30 — MÓDULO 07
+
+**Status:** fechada. Segundo módulo da Trilha 2, que passa a ter 13
+aulas em 2 de 7 módulos.
+
+**Arquivos:** `alexandria-modulo-07-content.ts` (NOVO, 699 linhas) ·
+`alexandria-instrument-calculators.ts` (+9) · `alexandria-curriculo.ts`
+· `alexandria-trilhas.ts`.
+
+**Fonte:** `alexandria_modulo07.html` — **378.316 bytes** (253.154 de
+markup + 112.814 de `<script>`), o maior módulo do currículo.
+
+### Catálogo e vocabulário, confirmados
+
+`bloco-07` na FOUNDRY: **level 2, track `'brasil'`,
+`illustrationPrefix: 'ins-'`**, priority `maxima`. Lido, não deduzido do
+padrão do Bloco 6.
+
+Vocabulário: seletores dos Módulos 01-03 dão **zero**; é o dos Módulos
+04-06 (`sec-id` 17 · `lede` 17 · `inst` 10 · `det-bd` 19 · `term` 118).
+
+### Contagem real
+
+17 seções = **7 aulas + 10 de aparato**. **141 blocos.** §Ex anuncia
+"Doze exercícios" e há 12 `<details>`; §Lex anuncia "118 termos" e há
+118 `.term`.
+
+As sete aulas mapeiam órgão a órgão: MME/CNPE · EPE · ANEEL · ONS ·
+CCEE · monitoramento e periferia · síntese.
+
+### Instrumento — dez na fonte, nove de aula
+
+O `Inst · 01` ("Mapa institucional · autoridade × dado") vive no § MAP,
+fora de aula — mesmo tratamento do `LAB · 01` (Módulo 01) e do
+`Inst · 01` (Módulo 06). **A Aula 07 tem TRÊS instrumentos** (08, 09,
+10), recorde do currículo acima dos dois da Aula 06 do Módulo 06.
+
+**Nove prefixos, um só no enum.** Mecânica inspecionada um a um:
+
+| fonte | campos | mecânica | → kind |
+| --- | --- | --- | --- |
+| `Mapa institucional` | 0 | chips clicáveis | (fora de aula) |
+| `Comparador de instrumentos jurídicos` | 0 | grid → texto | `comparador` |
+| `Estante da EPE` | 0 | grid → texto | `explorador` |
+| `Anatomia de um ato regulatório` | 6 | numérico + verdict | `simulador` |
+| `Cadeia temporal da operação` | 0 | chips → texto | `explorador` |
+| `Régua do ciclo mensal` | 5 | numérico + verdict | `simulador` |
+| `Escada do travamento` | 0 | grid → texto | `explorador` |
+| `Roteador de decisão` | 0 | grid → texto | `explorador` |
+| `Localizador de dado` | 0 | grid → texto | `explorador` |
+| `Calendário institucional` | 0 | calendário → texto | `explorador` |
+
+`Comparador` é o único cujo nome bate com o enum — e bate também na
+mecânica, então foi mantido. É um módulo **predominantemente
+exploratório**, coerente com o tema institucional: sete dos nove só
+revelam texto por seleção.
+
+### Dados dos exploradores, e o deslocamento de um
+
+Os sete exploradores têm os dados no `<script>` (11, 7, 5, 9, 12, 12
+itens e 12 meses); o HTML traz só o container vazio. Cada IIFE declara o
+array com o MESMO nome (`var D`), então a busca é ancorada no id do
+container.
+
+**Ancorar ANTES do id devolvia o array do instrumento ANTERIOR** — o
+Comparador jurídico recebia os dados da Estante da EPE, e assim por
+diante. Pego conferindo cada conjunto contra o título do próprio
+instrumento antes de aceitar; a fonte menciona o id antes de declarar os
+dados dentro do mesmo IIFE, então a busca correta é a PRIMEIRA
+ocorrência depois da âncora.
+
+### Prova de fidelidade — 23 de 23, ramo por ramo
+
+Os dois vereditos numéricos têm estrutura **aninhada** na fonte
+(`if(jan===0){…} else if(r>=0.28 && f>=90){…}`), que é exatamente o que
+produziu veredito errado na Wave 29. Testei cada ramo isoladamente em
+vez de aceitar o primeiro resultado plausível:
+
+- **INST 04**, os quatro ramos: "Sem porta de entrada" · "Rito aberto e
+  com aviso" · "Aberto, mas exige monitoramento ativo" · "Formalmente
+  aberto, praticamente fechado".
+- **INST 06**, os três ramos, com os vereditos conferidos como
+  **distintos** por comparação e não por inspeção visual.
+
+O extrator de ramos pegou só os `else if` — o `else` terminal tem forma
+diferente e escapou, o que o `tsc` denunciou como *"function lacks
+ending return"*. Inserido a partir da fonte, não redigitado.
+
+**Aritmética:** no INST 04 a JANELA DE INFLUÊNCIA é só `a+c` (tomada de
+subsídios + consulta pública); as outras quatro etapas correm sem porta
+de entrada, e é essa razão que o instrumento ensina. No INST 06, folga
+até o aporte é `c+d`.
+
+`i4-reg` e `i6-reg` ("Regime") são texto na fonte — 6 saídas numéricas
+de 8 declaradas. Os sete exploradores têm zero saída numérica por
+construção.
+
+### Gravura — 7 de 8, por leitura de frase
+
+A fonte usa "Ficha institucional · ÓRGÃO" e elas casam 1:1:
+
+| Aula | Ficha | Gravura |
+| --- | --- | --- |
+| 01 | MME, CNPE | `ins-01-predio-ministerial`, `ins-08-sala-conselho` |
+| 02 | EPE | `ins-05-instituto-pesquisa` |
+| 03 | ANEEL | `ins-02-predio-regulador` |
+| 04 | ONS | `ins-03-centro-operacao` |
+| 05 | CCEE | `ins-04-predio-comercializacao` |
+| 06 | CMSE, CADE | `ins-07-balanca-concorrencia` |
+| 07 | — (síntese) | — |
+
+**`ins-06-predio-frontao-classico` NÃO mapeada.** A varredura ampla
+(TCU / Tribunal / Congresso / judiciário / MP / Senado) só devolve
+menção incidental: *"envolve orçamento, política macroeconômica, meio
+ambiente"* numa enumeração, *"documentação técnica, fundiária,
+ambiental"* idem, e *"aprovação prévia do Senado Federal"* numa cláusula
+sobre nomeação de diretor da agência. Nenhuma trata prédio institucional
+como assunto. **Quinto falso positivo da série** evitado.
+
+**`illustrations` como NOME DE ARQUIVO PURO**, conferido contra o Módulo
+06 antes de gerar — a lição da Wave 29, que gerou path completo e
+produziu `naturalWidth` 0 em todas as gravuras.
+
+### Exercícios e vídeo
+
+Os doze exercícios são **todos soltos**: varredura por `/[Aa]ula\s*\d+/`
+no enunciado E no gabarito devolve zero. `video: null` MEDIDO — zero
+`<video>`, `<iframe>`, youtube, vimeo, `.mp4`.
+
+### Trilha 2: 6 → 13 aulas
+
+`totalAulas` passa de 6 em 1 de 7 módulos para **13 em 2 de 7**, com
+`totalAulasPartial` true. Registro foi import + spread pela quinta vez,
+sem tocar componente nenhum.
+
+### Verificação por clique real
+
+As sete aulas abertas uma a uma, rolando o `<main>` para disparar o lazy
+das gravuras: **7 gravuras com `naturalWidth` 1024×1024** na
+distribuição mapeada (2/1/1/1/1/1/0), os nove instrumentos presentes (a
+Aula 07 mostra INST-08, 09 e 10), zero NaN, zero overflow horizontal,
+zero erro de página. Regressão nos **seis** módulos já fechados — cinco
+da Trilha 1 e o Módulo 06 — todos com suas gravuras carregando.
+1440×900.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem
+**7 pré-existentes** fora dela, em
+`src/components/nest/student/{ProjectSandbox,SandboxTrading}` (Recharts,
+desde a Wave 3). `gridalpha-detect` — "No findings. Surface is clean."

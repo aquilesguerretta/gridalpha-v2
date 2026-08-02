@@ -30,6 +30,7 @@ import {
 } from '../../../lib/atlas/worldApi';
 import { PaisTooltip, type AlvoTooltip } from './PaisTooltip';
 import { PaisPerfil } from './PaisPerfil';
+import { BuscaPais } from './BuscaPais';
 
 // ─────────────────────────────────────────────────────────────────────
 // Curva de movimento — a MESMA cubic-bezier(0.65, 0, 0.35, 1) de
@@ -130,7 +131,7 @@ interface Composicao {
   altCobertura: number;
 }
 
-function comporFrontispicio(w: number, h: number): Composicao {
+function comporFrontispicio(w: number, h: number, imersivo: boolean): Composicao {
   // Fator vertical da composição por unidade de largura da gravura:
   // corpo da figura abaixo das mãos + subida do centro (dy) + raio.
   // É o que permite ajustar a largura para a composição INTEIRA caber
@@ -148,11 +149,16 @@ function comporFrontispicio(w: number, h: number): Composicao {
   // esfera tocando as duas palmas: centro sobe dy acima da linha das mãos
   const dy = Math.sqrt(Math.max(0, raio * raio - (vao / 2) * (vao / 2)));
   const centroY = maoY - dy;
-  // O canvas desce até a BASE do palco (o mergulho usa a altura
-  // inteira, sem faixa morta) e sobe simétrico acima do centro da
-  // esfera — o excesso é cortado pelo overflow do palco.
-  const canvasH = Math.max(2 * (h - centroY), 2.2 * raio);
-  const canvasTop = centroY - canvasH / 2;
+  // MODO PÁGINA: o canvas desce até a BASE do palco (o mergulho usa a
+  // altura inteira, sem faixa morta) e sobe simétrico acima do centro
+  // da esfera — o excesso é cortado pelo overflow do palco.
+  // MODO IMERSIVO (revisão 3 — "vire tipo o Google Earth"): esfera
+  // CENTRADA no viewport, canvas = palco inteiro, e o repouso é o
+  // planeta grande e INTEIRO — perto o suficiente para dominar a tela,
+  // nunca cortado.
+  const esferaCentroY = imersivo ? h / 2 : centroY;
+  const canvasH = imersivo ? h : Math.max(2 * (h - centroY), 2.2 * raio);
+  const canvasTop = esferaCentroY - canvasH / 2;
   // Ótica exata: altitude cuja distância d faz a esfera aparecer com
   // `raio` px num canvas de canvasH px sob fov de 50°.
   const altPorRaio = (raioPx: number): number => {
@@ -160,11 +166,15 @@ function comporFrontispicio(w: number, h: number): Composicao {
     const dist = RAIO_CENA / Math.sin(Math.atan(x));
     return dist / RAIO_CENA - 1; // altitude em raios de globo, não distância
   };
-  const altRepouso = altPorRaio(raio);
+  // Raio de repouso: no imersivo, o maior que cabe INTEIRO com margem
+  // (86% da altura, limitado pela largura); na página, o encaixe nas
+  // mãos da gravura.
+  const raioRepouso = imersivo ? Math.min(0.43 * h, 0.46 * w) : raio;
+  const altRepouso = altPorRaio(raioRepouso);
   // Cobertura: raio aparente que alcança o canto mais distante do
-  // PALCO a partir do centro da esfera (que fica em centroY, não no
-  // meio do palco) — abaixo dessa altitude não existe borda visível.
-  const raioCobertura = Math.hypot(w / 2, Math.max(centroY, h - centroY));
+  // PALCO a partir do centro da esfera — abaixo dessa altitude não
+  // existe borda visível.
+  const raioCobertura = Math.hypot(w / 2, Math.max(esferaCentroY, h - esferaCentroY));
   const altCobertura = altPorRaio(raioCobertura);
   return { imgW, imgH, imgLeft, imgTop, canvasH, canvasTop, altRepouso, altCobertura };
 }
@@ -184,9 +194,14 @@ export interface AtlasGloboProps {
    *  na MESMA curva do fade do frontispício. É como a página esmaece
    *  título, descrição e referências quando só o globo deve restar. */
   aoMudarOpacidadeAmbiente?: (opacidade: number) => void;
+  /** Modo imersivo (revisão 3): palco em tela cheia, sem header nem
+   *  rodapé, planeta no enquadramento Google Earth + barra de busca. */
+  imersivo: boolean;
+  aoEntrarImersivo?: () => void;
+  aoSairImersivo?: () => void;
 }
 
-export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
+export function AtlasGlobo({ aoMudarOpacidadeAmbiente, imersivo, aoEntrarImersivo, aoSairImersivo }: AtlasGloboProps) {
   const [mundo, setMundo] = useState<MundoAtlas | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [tamanho, setTamanho] = useState<{ w: number; h: number } | null>(null);
@@ -213,6 +228,21 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
   const ambienteRef = useRef(aoMudarOpacidadeAmbiente);
   ambienteRef.current = aoMudarOpacidadeAmbiente;
   const aoVoltarRef = useRef<(() => void) | null>(null);
+  const entrarImersivoRef = useRef(aoEntrarImersivo);
+  entrarImersivoRef.current = aoEntrarImersivo;
+  const sairImersivoRef = useRef(aoSairImersivo);
+  sairImersivoRef.current = aoSairImersivo;
+  // detecção de transição de modo em tempo de render: o snap do
+  // configurarCamera fica suspenso até o voo de transição assentar
+  const imersivoRef = useRef(imersivo);
+  const transicaoModoRef = useRef(false);
+  if (imersivoRef.current !== imersivo) {
+    imersivoRef.current = imersivo;
+    transicaoModoRef.current = true;
+  }
+  /** país clicado ainda no modo página — o voo dispara depois que o
+   *  palco expande e a composição imersiva assenta */
+  const vooPendenteRef = useRef<PaisFeature | null>(null);
 
   // ── dado: TopoJSON + 188 perfis, uma vez ──────────────────────────
   useEffect(() => {
@@ -275,12 +305,17 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
     }
   }, []);
 
-  // ESC fecha o perfil e voa de volta — mesmo idioma dos overlays do
-  // resto do sistema (diálogo do Portal, painel do rail).
+  // ESC em camadas — mesmo idioma dos overlays do resto do sistema:
+  // perfil aberto → fecha e reenquadra; senão, imersivo → volta à
+  // página do atlas. (A busca intercepta o próprio ESC para limpar.)
   useEffect(() => {
-    if (selecionado === null) return;
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') aoVoltarRef.current?.();
+      if (e.key !== 'Escape') return;
+      if (selecionado !== null) {
+        aoVoltarRef.current?.();
+      } else if (imersivoRef.current) {
+        sairImersivoRef.current?.();
+      }
     };
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
@@ -295,17 +330,16 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
     });
   }, [iniciarFade]);
 
-  // ── clique → voo de câmera → SÓ ENTÃO o perfil abre. Navegar antes
-  //    do movimento terminar cortaria a sensação de voar até lá. ─────
-  const aoClicar = useCallback((poligono: object) => {
-    const f = poligono as PaisFeature;
+  // ── voo até um país → SÓ ENTÃO o perfil abre. Navegar antes do
+  //    movimento terminar cortaria a sensação de voar até lá. ────────
+  const voarAtePais = useCallback((f: PaisFeature) => {
     const globo = globoRef.current;
-    if (!mundo || !globo || voandoRef.current) return;
+    if (!mundo || !globo) return;
 
     const [lng, lat] = geoCentroid(f);
     // Altitude proporcional ao tamanho do país — a Rússia não cabe no
     // enquadramento de Fiji. geoBounds em graus; clamp em [0.5, 1.6].
-    // TETO NOVO (segunda revisão): nunca pousa acima da altitude de
+    // Teto (segunda revisão): nunca pousa acima da altitude de
     // cobertura — o mapa preenche o palco inteiro ao fim de todo voo,
     // sem borda de esfera nem creme à mostra ("mapa cortado").
     const [[oeste, sul], [leste, norte]] = geoBounds(f);
@@ -323,6 +357,48 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
       setSelecionado({ feature: f, resumo: a3 ? (mundo.porIso.get(a3) ?? null) : null });
     }, VOO_MS + 50);
   }, [mundo]);
+
+  // Clique (ou busca): no modo página, primeiro ABRE o imersivo — o
+  // voo fica pendente e dispara quando o palco expandido assenta.
+  const aoClicar = useCallback((poligono: object) => {
+    const f = poligono as PaisFeature;
+    if (!mundo || voandoRef.current) return;
+    if (!imersivoRef.current) {
+      vooPendenteRef.current = f;
+      entrarImersivoRef.current?.();
+      return;
+    }
+    voarAtePais(f);
+  }, [mundo, voarAtePais]);
+
+  // ── transição de modo: depois do palco trocar de geometria, voa —
+  //    para o país pendente (clique que abriu o modo) ou para o
+  //    repouso do modo novo. AE.desenhoCurto para o assentamento. ────
+  useEffect(() => {
+    if (!transicaoModoRef.current) return;
+    const t = setTimeout(() => {
+      const globo = globoRef.current;
+      const comp = compRef.current;
+      if (globo && comp) {
+        const pendente = vooPendenteRef.current;
+        vooPendenteRef.current = null;
+        if (pendente) {
+          transicaoModoRef.current = false;
+          voarAtePais(pendente);
+          return;
+        }
+        voandoRef.current = true;
+        globo.pointOfView({ altitude: comp.altRepouso }, 700);
+        vooRef.current = setTimeout(() => {
+          voandoRef.current = false;
+          transicaoModoRef.current = false;
+        }, 750);
+      } else {
+        transicaoModoRef.current = false;
+      }
+    }, 130);
+    return () => clearTimeout(t);
+  }, [imersivo, voarAtePais]);
 
   // ── retorno: perfil fecha no clique, câmera voa de volta —
   //    movimento simétrico ao de entrada, mesma duração, pousando no
@@ -373,13 +449,23 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
         if (!g) return;
         const alt = g.pointOfView().altitude;
         const repouso = compRef.current?.altRepouso ?? 2.3;
+        // No imersivo a página inteira fica apagada (figura + coluna):
+        // o repouso do modo (~1,6) está abaixo do limiar de fade, e a
+        // fórmula da página inverteria o sinal — força zero.
         const teto = repouso * 0.97;
-        const o = Math.max(0, Math.min(1, (alt - ALT_FADE_FIM) / (teto - ALT_FADE_FIM)));
+        const o = imersivoRef.current
+          ? 0
+          : Math.max(0, Math.min(1, (alt - ALT_FADE_FIM) / (teto - ALT_FADE_FIM)));
         const figura = figuraRef.current;
         if (figura) figura.style.opacity = o.toFixed(3);
         ambienteRef.current?.(o);
+        // Gatilho de entrada por roda (revisão 3): zoom para dentro a
+        // partir do repouso da página ABRE o modo imersivo.
+        if (!imersivoRef.current && !voandoRef.current && !transicaoModoRef.current && alt < repouso * 0.92) {
+          entrarImersivoRef.current?.();
+        }
         // botão de reenquadrar: só quando o afastamento veio da roda
-        setLongeDoRepouso(alt < repouso * 0.85 && !voandoRef.current);
+        setLongeDoRepouso(alt < repouso * 0.85 && !voandoRef.current && !transicaoModoRef.current);
       };
       controles.addEventListener('change', aoMudarCamera);
       controlesRef.current = controles;
@@ -401,11 +487,13 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
 
     // Pouso: primeira vez, câmera fora do piso (estado clobberado),
     // ou estava NO repouso anterior e o palco mudou de tamanho.
+    // Suspenso durante transição de modo — o voo da transição é quem
+    // leva a câmera ao repouso novo, animado, não um snap.
     const alt = globo.pointOfView().altitude;
     const anterior = altRepousoAnteriorRef.current;
     const foraDoPiso = alt > comp.altRepouso + 0.05;
     const estavaEmRepouso = anterior !== null && Math.abs(alt - anterior) < 0.05;
-    if (!voandoRef.current && (anterior === null || foraDoPiso || estavaEmRepouso)) {
+    if (!voandoRef.current && !transicaoModoRef.current && (anterior === null || foraDoPiso || estavaEmRepouso)) {
       globo.pointOfView({ ...DIR_REPOUSO, altitude: comp.altRepouso }, 0);
     }
     altRepousoAnteriorRef.current = comp.altRepouso;
@@ -449,10 +537,10 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
   const corContorno = useCallback(() => A2.ouroSobreNavy, []);
   const corLateral = useCallback(() => 'rgba(0, 0, 0, 0)', []);
 
-  // ── composição do frontispício: derivada do tamanho medido ────────
+  // ── composição: derivada do tamanho medido + modo ─────────────────
   const comp: Composicao | null = useMemo(
-    () => (tamanho ? comporFrontispicio(tamanho.w, tamanho.h) : null),
-    [tamanho],
+    () => (tamanho ? comporFrontispicio(tamanho.w, tamanho.h, imersivo) : null),
+    [tamanho, imersivo],
   );
   compRef.current = comp;
 
@@ -568,6 +656,62 @@ export function AtlasGlobo({ aoMudarOpacidadeAmbiente }: AtlasGloboProps) {
       )}
 
       <PaisTooltip alvo={alvoTooltip} areaRef={areaRef} />
+
+      {/* Barra de ferramentas do modo imersivo (revisão 3): sair à
+          esquerda, busca de país ao centro, e o espaço de ferramentas
+          futuras declarado honestamente — nada finge existir. */}
+      {imersivo && mundo !== null && (
+        <div
+          style={{
+            position: 'absolute',
+            top: AS.md,
+            left: AS.md,
+            right: AS.md,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: AS.lg,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setSelecionado(null);
+              sairImersivoRef.current?.();
+            }}
+            style={{
+              background: A2.cremeSuperficie,
+              border: `1px solid ${A.fioSobreCreme}`,
+              borderRadius: 0,
+              padding: `${AS.xs} ${AS.md}`,
+              cursor: 'pointer',
+              ...AT.rotulo,
+              fontSize: '9px',
+              color: A.tintaSobreCreme,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ← Página do atlas
+          </button>
+
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <BuscaPais mundo={mundo} aoEscolher={aoClicar} />
+          </div>
+
+          <span
+            style={{
+              border: `1px dashed ${A.terracota}`,
+              padding: `${AS.xs} ${AS.md}`,
+              ...AT.rotulo,
+              fontSize: '8px',
+              letterSpacing: '0.13em',
+              color: A.terracota,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Mais ferramentas em produção
+          </span>
+        </div>
+      )}
 
       {/* Reenquadrar: aparece quando o usuário se afastou do repouso
           pela roda (nunca durante voo dirigido nem com perfil aberto).

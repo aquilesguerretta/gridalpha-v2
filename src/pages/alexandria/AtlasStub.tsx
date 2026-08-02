@@ -72,6 +72,12 @@ export function AtlasStub() {
   const colunaRef = useRef<HTMLDivElement | null>(null);
   const palcoRef = useRef<HTMLDivElement | null>(null);
   const [larguraMain, setLarguraMain] = useState<number | null>(null);
+  // Modo imersivo (revisão 3): o palco vira overlay FIXO por cima de
+  // header e rodapé — o shell nem é tocado; ao sair, tudo volta. O
+  // globo continua montado no mesmo nó, então nada recarrega.
+  const [imersivo, setImersivo] = useState(false);
+  const entrarImersivo = useCallback(() => setImersivo(true), []);
+  const sairImersivo = useCallback(() => setImersivo(false), []);
 
   // Full-bleed (segunda revisão): o palco escapa da prancha de 1120px
   // e ocupa a largura inteira do <main> — no mergulho o mapa cobre a
@@ -115,12 +121,22 @@ export function AtlasStub() {
           revisão ("aumente o tamanho... consecutivamente da página"). */}
       <div
         ref={palcoRef}
-        style={{
-          position: 'relative',
-          height: 'max(520px, calc(100vh - 118px))',
-          width: larguraMain !== null ? `${larguraMain}px` : '100%',
-          marginLeft: larguraMain !== null ? `calc((100% - ${larguraMain}px) / 2)` : 0,
-        }}
+        style={
+          imersivo
+            ? {
+                // tela cheia: cobre header, rodapé e a página inteira
+                position: 'fixed',
+                inset: 0,
+                zIndex: 60,
+                background: A.cremePapel,
+              }
+            : {
+                position: 'relative',
+                height: 'max(520px, calc(100vh - 118px))',
+                width: larguraMain !== null ? `${larguraMain}px` : '100%',
+                marginLeft: larguraMain !== null ? `calc((100% - ${larguraMain}px) / 2)` : 0,
+              }
+        }
       >
         <div style={{ position: 'absolute', inset: 0 }}>
           <Suspense
@@ -138,7 +154,12 @@ export function AtlasStub() {
               </div>
             }
           >
-            <AtlasGlobo aoMudarOpacidadeAmbiente={aoMudarOpacidadeAmbiente} />
+            <AtlasGlobo
+              aoMudarOpacidadeAmbiente={aoMudarOpacidadeAmbiente}
+              imersivo={imersivo}
+              aoEntrarImersivo={entrarImersivo}
+              aoSairImersivo={sairImersivo}
+            />
           </Suspense>
         </div>
 

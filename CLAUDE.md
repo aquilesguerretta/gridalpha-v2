@@ -6115,3 +6115,155 @@ estava usando `git add -A`. O código está correto e na branch; só a
 atribuição ficou errada, e o histórico não foi reescrito porque o
 commit já estava pushado numa branch com outras sessões ativas. Os
 outros onze commits desta wave são individuais e limpos.
+
+## LYCEUM — ALEXANDRIA WAVE 36 — GLITCH DE COR, FILTRO NO IMERSIVO, CAMADA BRASIL
+
+**Status:** fechada. Três frentes, um commit cada. A camada Brasil fecha
+a pendência que o Atlas declarava em contorno tracejado desde a Wave 27.
+
+**Arquivos:** `src/components/alexandria/atlas/CamadaBrasil.tsx` (NOVO) ·
+`AtlasGlobo.tsx` · `AtlasStub.tsx`. `atlasDerivacoes.ts`,
+`worldApi.ts`, `AtlasControles.tsx` e `ComparadorPaises.tsx` intocados.
+
+### O "glitch de cor" não era glitch de cor
+
+O brief mandava diagnosticar antes de construir, e a medição inverteu o
+diagnóstico. **36+ trocas consecutivas entre os quatro modos de
+coloração, zero falha** — nenhum frame errado, nenhuma cor presa,
+nenhuma corrida entre `polygonCapColor` e o estado de React.
+
+A causa real: no mergulho, a coluna lateral esmaece para `opacity: 0`
+(revisão 2 pós-Wave 28) mas **continuava no fluxo, alcançável e
+clicável** — 26 botões focáveis por Tab, invisíveis na tela. Um Tab
+perdido ou um clique no lugar "vazio" acionava um controle que o
+usuário não estava vendo, e a cor do globo mudava sozinha. Lido como
+glitch de renderização; era controle fantasma.
+
+**Correção:** o mesmo handler que escreve a opacidade agora, abaixo de
+0,05, marca a coluna com `inert`, `visibility: hidden` e
+`pointerEvents: none`. `inert` é o mecanismo nativo que tira do foco E
+do hit-testing de uma vez — sem ele, `pointer-events: none` sozinho
+ainda deixaria a coluna tabulável.
+
+**Prova de fechamento:** dez trocas de coloração, com **hash de
+screenshot real** em cada uma. Cada modo devolve a MESMA assinatura em
+toda repetição, e os quatro são distintos entre si:
+
+| modo | 1440×900 | 1920×1080 |
+| --- | --- | --- |
+| Nenhuma | `4fe60c2398a4` ×3 | `016eae54548c` ×3 |
+| Matriz dominante | `01d788353fae` ×3 | `5ff3ab4d40b7` ×3 |
+| Intensidade de carbono | `fcb344338074` ×2 | `0a188c8c30cf` ×2 |
+| Participação renovável | `16cf57fdd625` ×2 | `a99bb39fba25` ×2 |
+
+A sonda por `readPixels` foi ABANDONADA no meio da fase: ela lê fora do
+ciclo de render e devolveu creme onde a tela mostrava navy. O hash de
+screenshot passa pelo pipeline de composição inteiro, que é o que o
+usuário vê.
+
+### Filtro e coloração só no imersivo
+
+Coloração, filtro, rankings e comparador saíram da página de entrada e
+existem só no modo imersivo. A página de entrada volta a ser o
+frontispício — Atlas segurando o globo, sem instrumento de análise
+disputando espaço com a gravura.
+
+**Decisão pedida pelo brief, tomada vendo renderizado:** com a camada
+Brasil aberta, o **filtro por matriz dominante sai de cena**. Quatro
+regiões não é escala de filtro — um controle que oferece oito
+categorias para quatro polígonos, dos quais nenhum tem matriz
+declarada, seria controle decorativo. A coloração por métrica sai pela
+mesma razão: não há métrica por submercado para colorir.
+
+### Camada Brasil — o que ela tem, e o que ela não tem
+
+**TEM** geometria real (`public/br/submercados.geojson`, o que o
+ARCHITECT construiu na Portal BR Wave 2 — malha por UF do IBGE
+dissolvida pela classificação CCEE/ONS) e contexto qualitativo
+**literal** da tabela do Módulo 08, verificado byte a byte contra
+`alexandria-modulo-08-content.ts`.
+
+**NÃO TEM nenhum número por submercado.** Confirmado medindo o endpoint
+real: o perfil do Brasil traz `fuelMix` NACIONAL e mais nada regional.
+Percentual de matriz, preço ou intercâmbio por submercado exigiria
+ingestão nova (ONS/CCEE), que é wave do Cursor. A ausência é declarada
+na tela em contorno tracejado, e o teste de fechamento varre o painel
+por qualquer padrão de percentual ou unidade — **zero ocorrência**.
+
+**Roraima aparece no contorno e não recebe submercado.** Não é
+esquecimento: a definição CCEE documentada não a atribui a nenhum dos
+quatro, e o `ufsIbge` do GeoJSON confirma (o código 14 não consta em
+nenhuma das quatro listas). Mesma decisão que o ARCHITECT registrou,
+pela mesma razão, e declarada ao aluno em vez de silenciada.
+
+### Contorno, não polígono preenchido — decidido por medição
+
+Os submercados entraram primeiro como `polygonsData`, ao lado dos
+países. **Três resoluções de curvatura testadas, todas falhando na
+tampa e todas com o traço correto:**
+
+| `polygonCapCurvatureResolution` | tampa |
+| --- | --- |
+| 5° | malha facetada, blocos retos onde a fronteira é curva |
+| 90 | casco convexo — a concavidade do Nordeste desaparecia |
+| 2 | casca oca, tampa não fechava |
+
+A geometria foi auditada antes de culpar o dado: sentido de anel
+conforme RFC 7946, coordenadas em grau e não projetadas, zero vértice
+duplicado ou auto-tocante. O defeito é da triangulação por earcut sobre
+polígono grande em esfera, não do GeoJSON.
+
+Como o traço saiu correto nas três, a camada virou **contorno via
+`pathsData`** — o mesmo mecanismo que a grade de coordenadas da revisão
+4 já provava. Anéis convertidos para pares `[lat, lng]`, altitude 0,02
+(acima do polígono do país em 0,006) e espessura 1,2.
+
+**Duas medições fecharam o traço:**
+1. **Cor opaca, não `rgba`.** O react-globe.gl declara que "transparent
+   colors are not supported in Fat Lines with set width" — com alfa o
+   traço simplesmente não aparecia, apesar das 14 linhas estarem na
+   cena. Trocado para hex opaco do sistema: oliva (N), ouro (NE),
+   terracota (SE/CO), azul-aço (S).
+2. **Espessura 1,2, não 0,55.** A 0,55 a fronteira de submercado lia
+   como mais um contorno de país. 1,2 é o piso medido em que ela passa
+   a ler como camada própria.
+
+**Contagem na cena, medida:** 303 linhas no repouso (a grade) → **317**
+com a camada aberta = os 14 anéis dos quatro submercados (N 5 · NE 1 ·
+SE-CO 6 · S 2). Fechar a camada devolve a 303.
+
+### Verificação por interação real — 34 asserções, 0 falha, nas duas viewports
+
+Modo página sem coloração e sem filtro · imersivo com os três · dez
+trocas de coloração determinísticas (acima) · Brasil pela busca abrindo
+os quatro submercados nomeados · Roraima declarada · ausência de dado
+declarada · 317 linhas · filtro fora de cena · zero número no painel ·
+contexto do Norte batendo com o texto literal do Módulo 08 · volta ao
+globo mundial fechando a camada, devolvendo o filtro e as 303 linhas ·
+ESC em camadas devolvendo à página · zero erro de página · zero
+overflow horizontal.
+
+**Fronteira lazy confirmada por build real**, não por leitura de
+código: `polygonCapColor`, `pathsData`, `pathPointAlt` e
+`polygonCapCurvatureResolution` têm **0 ocorrência no bundle de
+entrada** e 6/7/6/5 no `AtlasGlobo-*.js` (1.847 KB / 524 KB gzip).
+`CamadaBrasil` fica no entry de propósito — é dado e texto, sem Three,
+igual a `atlasDerivacoes`.
+
+### Registrado, não resolvido
+
+- **Commit `f955e62` carrega dois arquivos de sessão paralela** —
+  `alexandria-instrument-calculators.ts` e
+  `alexandria-modulo-08-content.ts` estavam pré-indexados quando o
+  commit encadeado rodou. Decisão do Aquiles: **deixar como está**. Os
+  outros dois commits da wave são limpos, e a partir daí a wave passou
+  a usar `git commit <caminhos>`, que ignora entrada estranha no index.
+- **Submercado não é clicável no globo** — a seleção é pela lista do
+  painel. Clicar no traço exige hit-testing de linha, que o
+  `pathsData` não oferece; viraria polígono de novo.
+- **Sem dado por submercado** (acima) — depende de ingestão ONS/CCEE.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos desta wave; permanecem os 7
+pré-existentes em `nest/student/{ProjectSandbox,SandboxTrading}`
+(Recharts, desde a Wave 3). `gridalpha-detect` sobre os 15 arquivos da
+superfície — "No findings. Surface is clean." `vite build` exit 0.

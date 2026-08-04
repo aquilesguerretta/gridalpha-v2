@@ -6592,3 +6592,203 @@ GW" com a armadilha dos dois planos. Aula 1 do Módulo 08 intacta — INST
 **Gates:** `tsc -b` — 0 erros nos arquivos da wave. `gridalpha-detect`
 sobre os 3 arquivos de produto — "No findings. Surface is clean."
 `npm run test:games` — 14/14.
+
+## LYCEUM — ALEXANDRIA WAVE 41 — MÓDULO 10
+
+**Status:** fechada, com instrumento portado. Quinto módulo da Trilha 2,
+que passa a 45 aulas em 6 de 7 módulos (as 9 desta wave mais as 8 da
+Wave 42, que fechou em paralelo).
+
+**Arquivos:** `docs/alexandria/extraction-protocol.md` (NOVO) ·
+`alexandria-modulo-10-content.ts` (NOVO, 2.091 linhas) ·
+`alexandria-instrument-calculators.ts` (+11) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+
+**Fonte:** `alexandria_modulo10.html` — 359.726 bytes (250.749 de markup
++ 108.960 de script).
+
+### Protocolo de extração — consolidado
+
+`docs/alexandria/extraction-protocol.md` não existia; foi criado. Dez
+seções, cada uma existindo porque a ausência dela produziu um defeito
+real, com o defeito citado: vocabulário medido, cobertura de TEXTO,
+frequência não é veredito (nove falsos positivos tabelados), nome de
+instrumento repetido, exercício sem vínculo, contagem por três sinais,
+`illustrations` como nome puro, cálculo portado, limitações de contrato
+conhecidas, higiene de sessão.
+
+### Catálogo confirmado por leitura, não herdado
+
+`bloco-10`: **level 2, track `'brasil'`, `illustrationPrefix: 'tar-'`**,
+priority `maxima`, 8-10 h. Vocabulário: os oito seletores dos Módulos
+01-03 dão **zero**; é o abreviado dos 04+ (`sec-id` 19, `lede` 19,
+`inst` 11, `lv` 5, `det-bd` 22, `box` 26).
+
+### A COBERTURA DE TEXTO MUDOU A EXTRAÇÃO — sete das nove reprovaram
+
+Este é o achado central da wave, e valida a regra que o Módulo 09
+inaugurou. Com o extrator herdado, a cobertura media **44,6% a 94,8%**,
+com **SETE das nove abaixo de 85%**. A checagem por contagem de
+ELEMENTO teria passado — ela dupla-conta os `<p>` aninhados em `box`/`lv`.
+
+O diagnóstico por elemento-folha (chars de texto por classe, com
+instrumentos excluídos) achou três estruturas descartadas em silêncio:
+
+| estrutura | o que é | perda |
+| --- | --- | --- |
+| `div.fi` | fichas de modalidade — 6 fichas, 36 pares chave/valor | **5.363 chars** só na Aula 02 |
+| `div.chain` | grade de quatro `cbox` rotuladas (taxonomia de flexibilidade de carga) | **848 chars** na Aula 04 |
+| `div.form` | fórmula destacada com nota de rodapé | 364 chars |
+
+O `div.fi` é a MESMA estrutura que o Módulo 09 já tinha exposto — a
+fonte a reusa. O `div.form` mapeia no kind **`formula`**, que o contrato
+tem desde a Wave 4 e **nenhum módulo anterior havia usado**.
+
+Regex não resolveu: as divs aninham e o não-guloso fecha no lugar
+errado. O extrator foi trocado por **walker de árvore de DOM com
+offsets**, que preserva o HTML inline (`<b>`) e respeita aninhamento.
+
+**Cobertura final: 93,0% a 96,6% nas NOVE, zero abaixo de 85%.**
+
+| aula | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cobertura | 96,5% | 96,6% | 95,2% | 93,6% | 94,7% | 93,7% | 94,9% | 94,4% | 93,0% |
+| blocos | 21 | 31 | 20 | 16 | 18 | 18 | 20 | 17 | 18 |
+
+**179 blocos** nas nove. O resíduo é normalização de entidade e
+pontuação de aparato, não apostila.
+
+### Contagem
+
+19 seções = **9 aulas + 10 de aparato**. §Ex com 14 `<details>`; §Lex
+com 161 `.term`. `video: null` MEDIDO — zero `<video>`, `<iframe>`,
+youtube, vimeo, `.mp4`, `<audio>` no arquivo inteiro.
+
+### Instrumento — ONZE portados, dez de aula
+
+A Wave 34 **fechou** (verificado antes de decidir: `correcaoSobDemanda`
+commitado em `0651996`, `reconstrutor` no tipo, árvore limpa), então a
+Fase 3 entrou em escopo — diferente das Waves 32 e 37, que a acharam em
+voo. O `Inst · 01` vive no § MAP, fora de aula; as Aulas 03, 08 e 09 têm
+DOIS instrumentos cada; as Aulas 01 e 07 não têm nenhum.
+
+`kind` decidido pela MECÂNICA: explorador 2 · comparador 2 ·
+dimensionador 1 · simulador 3 · quebra-cabeca 3.
+
+### O "RECONSTRUTOR" QUE NÃO É O RECONSTRUTOR
+
+`Inst · 09 — Reconstrutor de fatura, "estime antes de ver"` tem o nome,
+o verbo e a pedagogia do Reconstrutor de matriz do Módulo 08 (Wave 34).
+**E não tem a mecânica dele.** Medido antes de assumir:
+
+- zero referência no código, zero tolerância (`grep` no bloco de script);
+- o botão **"Corrigir" do documento pertence ao § Quiz**, não a este
+  instrumento — localizado por contexto no markup;
+- o aluno informa **os dois vetores** (a estimativa e a composição real
+  da própria fatura), então não há gabarito a ocultar;
+- `calc()` roda a cada `input` desde o load.
+
+Por isso `correcaoSobDemanda` está **deliberadamente ausente** e o kind
+é `comparador`. É a regra 4 do protocolo disparando pela terceira vez na
+família — depois de "Termômetro" (três mecânicas) e "Mapa" (duas).
+
+### Prova de fidelidade — 90 asserções, 0 divergências
+
+O `<script>` ORIGINAL foi **executado num DOM shimado** (`node:vm`), com
+18 casos cobrindo os quatro instrumentos numéricos ramo por ramo:
+INST 03 nas faixas ajustada / folga ampla / contrato insuficiente e com
+histórico curto; INST 04 nos quatro ramos (sem disparo com margem, na
+borda, disparada, descolamento); INST 05 com ponta acima do total
+(clamp); INST 06 nas quatro chaves combinatórias (limpo, indutivo
+pontual, ambas as janelas); INST 09 com viés, soma fora de cem e vetor
+exato. Cada saída foi confrontada **com o formato do original** (sufixo
+e casas decimais) mais o título da faixa do veredito.
+
+Smoke dos onze com os `defaultValue` semeados como o `InstrumentPanel`
+faz: **11 limpos, zero NaN/undefined/[object**.
+
+Regressão: **79 calculadoras registradas** (68 + 11), todas sem exceção
+nem sujeira com entrada vazia; M01 INST 01 = 50 kWh e LAB 01 reativo B =
+R$ 3.200 (os valores das Waves 4 e 34) conferem.
+
+### Duas decisões de porta, declaradas
+
+- **Saída textual sai de `outputs`** em vez de ficar declarada e vazia —
+  `rc-est`, `ol-est` e `rb-maior`. Precedente do Módulo 04 (Wave 24),
+  que podou as seis não-numéricas. O conteúdo delas vai no veredito.
+  Sexta wave com a mesma limitação de contrato.
+- **Chip que seleciona E marca não tem primitivo.** Nos `Inst · 08` e
+  `10` o mesmo chip abre o detalhe e, no segundo clique, marca como
+  verificado. Desdobrado em um `select` de foco mais N chaves booleanas
+  independentes — o primitivo que o painel renderiza, e o mesmo
+  tratamento que a Wave 38 deu ao grid do Módulo 08.
+
+### Gravura — 4 de 9, por leitura de frase
+
+A biblioteca `tar-` tem nove arquivos (a numeração pula o 05). **CINCO
+dão zero ocorrência** — `tar-01`/`tar-02` medidores, `tar-03` caixa de
+medição, `tar-06` transformador de corrente: o módulo trata estrutura
+tarifária e leitura de fatura, não hardware de medição. Terceira wave
+seguida em que o prefixo do catálogo casa só em parte.
+
+| Aula | Gravura | Frase que decidiu |
+| --- | --- | --- |
+| 04 | `tar-04-relogio-posto-ponta` | §04.1 "Três horas, definidas por concessionária, em dias úteis" |
+| 05 | `tar-07-banco-capacitores` | "banco de capacitores fixo que permanece energizado quando a carga indutiva já foi desligada" |
+| 08 | `tar-08-bandeira-tarifaria` | "a bandeira tarifária é a camada de curtíssimo prazo" |
+| 09 | `tar-10-lupa-fatura` | a aula É "A ordem de leitura em cinco minutos" |
+
+**`tar-09-pilha-moedas-composicao` NÃO mapeada.** Os hits são
+"composição da base [de cálculo tributária]" (Aula 07) e "decomposição"
+da variação entre períodos (Aula 08) — operação analítica, não o objeto
+da gravura. **Décimo falso positivo da série.** Os hits de bandeira na
+Aula 01 são enumeração de itens, o mesmo padrão, e por isso ela ficou na
+Aula 08.
+
+### Exercício: 14, todos soltos
+
+A varredura por `/[Aa]ula\s*\d+/` no enunciado E no gabarito dos catorze
+devolve **zero**. Padrão desde o Módulo 04.
+
+### Sessão paralela no mesmo arquivo — isolamento, não `git add -A`
+
+A Wave 42 (Módulo 11) estava em voo sobre
+`alexandria-instrument-calculators.ts` com trabalho **não commitado**.
+Commitar o arquivo inteiro teria carregado o trabalho dela sob a minha
+mensagem — exatamente o defeito que o commit `f955e62` registrou.
+
+Resolução: a versão a commitar foi **reconstruída a partir do `HEAD`**
+com apenas as minhas inserções, verificada por `tsc`, commitada, e o
+estado da outra sessão devolvido por `git merge-file` de três vias
+(conflitos só de adjacência, resolvidos mantendo os dois lados).
+Conferido no fechamento que o snapshot da outra sessão já estava sem o
+M11 antes do meu `checkout` — ela mesma tinha revertido —, então nada
+foi perdido e nenhum estado obsoleto foi re-injetado.
+
+### Verificação por clique real
+
+As nove aulas abertas uma a uma: "AULA N DE 9", **4 gravuras com
+`naturalWidth` 1536×1024** exatamente nas aulas mapeadas (4, 5, 8, 9),
+**Aula 02 com 7 tabelas** (as 6 fichas `fi` recuperadas + 1 original),
+zero NaN, zero erro de console, zero overflow horizontal.
+
+Interação real conferida: no Dimensionador da Aula 03, mudar a demanda
+contratada de 1.200 para 900 kW leva a utilização a 112% e o veredito
+vira **"Contrato insuficiente"** — a faixa correta do original.
+
+Regressão nos **nove** módulos já fechados: M01 a3 (1024/1536/1024),
+M02 a3 (3×1024), M03 a6 (3×1536), M04 a1 e M05 a1 (zero, como devem),
+M06 a3 (3×1024), M07 a1 (2×1024), M08 a5 (1024), M09 a4 (1536) — todas
+carregando, zero NaN. 1440×900. Screenshots das Aulas 03 e 05.
+
+### Trilha 2: 28 → 45 aulas
+
+`totalAulas` passa a **45 em 6 de 7 módulos**, com `totalAulasPartial`
+true. Registro no resolvedor foi import + spread pela oitava vez, sem
+tocar componente nenhum.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem os
+**7 pré-existentes** em `nest/student/{ProjectSandbox,SandboxTrading}`
+(Recharts, desde a Wave 3). `gridalpha-detect` sobre os arquivos da wave
+— "No findings. Surface is clean." `git status` conferido antes de cada
+um dos quatro commits.

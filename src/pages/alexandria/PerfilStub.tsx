@@ -22,7 +22,11 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import type { PlatformUser } from '@/lib/auth/authApi';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { getMyProgress, type MyProgress } from '@/lib/progress/progressApi';
-import { getAula, TOTAL_AULAS_EXTRAIDAS } from '@/lib/data/alexandria-curriculo';
+import {
+  getAula,
+  getAulaDoModulo,
+  TOTAL_AULAS_EXTRAIDAS,
+} from '@/lib/data/alexandria-curriculo';
 import { ALEXANDRIA_BADGES } from '@/lib/data/alexandria-badges';
 import { BADGES_SEM_REGRA, contarBloqueios } from '@/lib/progress/badgeRules';
 import { getTrilhaByLevel, getModuleById } from '@/lib/data/alexandria-trilhas';
@@ -33,6 +37,15 @@ import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
  *  `/api/products/me`. Não é lista local: o catálogo vem do servidor
  *  justamente para o front não manter uma segunda cópia que deriva. */
 const PRODUTO = 'alexandria';
+
+/** O progresso da conta, buscado uma vez no topo e compartilhado pelas
+ *  seções que o consomem. Os três estados são explícitos — carregando não
+ *  é "vazio", e falha não é "zero". */
+interface DadoProgresso {
+  dado: MyProgress | null;
+  carregando: boolean;
+  falhou: boolean;
+}
 
 /** Mesma forma de data que o `/conta` da plataforma usa, para os dois
  *  lados da mesma conta não escreverem a mesma data de jeitos diferentes. */
@@ -48,6 +61,27 @@ export function PerfilStub() {
   const navigate = useNavigate();
   const [ativadoEm, setAtivadoEm] = useState<string | null>(null);
   const [saindo, setSaindo] = useState(false);
+
+  // O progresso é buscado UMA vez aqui e desce para as duas seções que o
+  // consomem — LYCEUM Wave 39. Antes vivia dentro de `ProgressoSecao`;
+  // com o Certificado passando a cruzar progresso real, deixar cada uma
+  // com seu próprio `useEffect` renderia duas chamadas idênticas ao mesmo
+  // endpoint na mesma carga de página.
+  const [progresso, setProgresso] = useState<MyProgress | null>(null);
+  const [carregandoProgresso, setCarregandoProgresso] = useState(true);
+  const [progressoFalhou, setProgressoFalhou] = useState(false);
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    getMyProgress(ctrl.signal)
+      .then((d) => setProgresso(d))
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setProgressoFalhou(true);
+      })
+      .finally(() => setCarregandoProgresso(false));
+    return () => ctrl.abort();
+  }, []);
 
   // Sair devolve à entrada da Alexandria, não ao portal: quem estava aqui
   // estava lendo a Alexandria, e é para lá que faz sentido voltar sem
@@ -111,8 +145,8 @@ export function PerfilStub() {
         </div>
 
         <IdentidadeSecao user={user} ativadoEm={ativadoEm} onSair={sair} saindo={saindo} />
-        <ProgressoSecao />
-        <CertificadoSecao />
+        <ProgressoSecao dado={progresso} carregando={carregandoProgresso} falhou={progressoFalhou} />
+        <CertificadoSecao dado={progresso} carregando={carregandoProgresso} falhou={progressoFalhou} />
       </div>
     </AlexandriaShell>
   );
@@ -215,23 +249,7 @@ function IdentidadeSecao({
 // entrada em `alexandria-curriculo.ts`), então o "nunca contra
 // denominador desconhecido" da wave sai de graça dessa restrição
 // estrutural, não de um filtro adicional inventado aqui.
-function ProgressoSecao() {
-  const [dado, setDado] = useState<MyProgress | null>(null);
-  const [carregando, setCarregando] = useState(true);
-  const [falhou, setFalhou] = useState(false);
-
-  useEffect(() => {
-    const ctrl = new AbortController();
-    getMyProgress(ctrl.signal)
-      .then((d) => setDado(d))
-      .catch((err: unknown) => {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        setFalhou(true);
-      })
-      .finally(() => setCarregando(false));
-    return () => ctrl.abort();
-  }, []);
-
+function ProgressoSecao({ dado, carregando, falhou }: DadoProgresso) {
   if (carregando) {
     return (
       <Secao rotulo="Progresso na Alexandria">
@@ -478,57 +496,173 @@ function ListaDeAulas({ titulo, aulas }: { titulo: string; aulas: CurriculumAula
   );
 }
 
-// ── Certificado — bloqueado, com a razão real ──────────────────────
+// ── Certificado — cruzando progresso real, LYCEUM Wave 39 ──────────
 //
-// Correção de leitura desta wave: o texto original dizia "3 dos 5
-// módulos" e "os dois restantes seguem sem conteúdo extraído" — verdade
-// no fechamento da Wave 2, falso desde a Wave 25 (Trilha 1 fechou com os
-// 5 módulos confirmados, `totalAulasPartial: false`). Corrigido para
-// derivar do catálogo em vez de repetir dígitos que já divergiram uma
-// vez. A razão do bloqueio muda de "denominador desconhecido" (não é
-// mais verdade) para "ainda não cruza contra progresso real" — que É
-// verdade: esta wave conecta o registro por aula, não a checagem de
-// trilha completa para emissão de certificado. Registrado, não
-// resolvido.
-function CertificadoSecao() {
+// Fecha a pendência que a Wave 31 registrou por escrito ("o que falta
+// agora é cruzar isso contra o progresso real desta conta"). Até aqui a
+// seção era estática: o mesmo texto para toda conta, sem olhar uma única
+// aula concluída.
+//
+// O requisito é EXPLÍCITO e derivado, nunca suposto: as aulas da Trilha 1
+// são enumeradas do catálogo (`t1.moduleIds` × `totalAulas` de cada
+// módulo, resolvidas por `getAulaDoModulo`), e o progresso vem de
+// `GET /api/progress/me`. A intersecção é a conta. Nada de "provavelmente
+// concluiu" — o certificado exige as aulas reais, uma a uma, e a seção
+// mostra QUAIS faltam, por módulo, em vez de um bloqueado/desbloqueado
+// binário sem contexto.
+
+/** As aulas reais da Trilha 1, enumeradas do catálogo. Módulo sem
+ *  `totalAulas` (nenhum na Trilha 1 desde a Wave 25) contribui zero em
+ *  vez de estimativa — o denominador nunca é inventado. */
+function aulasDaTrilha1(): { moduloId: string; titulo: string; aulaIds: string[] }[] {
   const t1 = getTrilhaByLevel(1);
-  const totalModulos = t1?.moduleIds.length ?? 0;
-  const modulosComFonte =
-    t1?.moduleIds.filter((id) => getModuleById(id)?.totalAulas !== null).length ?? 0;
+  if (!t1) return [];
+  return t1.moduleIds.map((moduloId) => {
+    const m = getModuleById(moduloId);
+    const total = m?.totalAulas ?? 0;
+    const aulaIds: string[] = [];
+    for (let n = 1; n <= total; n += 1) {
+      const a = getAulaDoModulo(moduloId, n);
+      if (a) aulaIds.push(a.id);
+    }
+    return { moduloId, titulo: m?.title ?? moduloId, aulaIds };
+  });
+}
+
+function CertificadoSecao({ dado, carregando, falhou }: DadoProgresso) {
+  const t1 = getTrilhaByLevel(1);
+  const porModulo = aulasDaTrilha1();
+  const totalAulas = porModulo.reduce((s, m) => s + m.aulaIds.length, 0);
+
+  if (carregando) {
+    return (
+      <Secao rotulo="Certificado">
+        <span style={{ ...AT.corpo, fontSize: '14px', color: A.tintaSuave }}>
+          Verificando o requisito contra o seu progresso…
+        </span>
+      </Secao>
+    );
+  }
+
+  // Sem progresso legível não dá para afirmar nem "cumpriu" nem "faltam
+  // N": o requisito é declarado, o estado da conta fica em aberto.
+  if (falhou || !dado) {
+    return (
+      <Secao rotulo="Certificado">
+        <Cartela rotulo="Nível 1 · requisito não verificado">
+          <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
+            O certificado de Nível 1 exige as {totalAulas} aulas da Trilha 1
+            concluídas. O seu progresso não respondeu agora, então esta
+            seção não afirma quantas faltam — recarregue para verificar.
+          </p>
+        </Cartela>
+      </Secao>
+    );
+  }
+
+  const concluidas = new Set(dado.aulasConcluidas);
+  const feitasPorModulo = porModulo.map((m) => ({
+    ...m,
+    feitas: m.aulaIds.filter((id) => concluidas.has(id)).length,
+  }));
+  const feitas = feitasPorModulo.reduce((s, m) => s + m.feitas, 0);
+  const faltam = totalAulas - feitas;
+  const completo = totalAulas > 0 && faltam === 0;
+  const pct = totalAulas > 0 ? Math.round((feitas / totalAulas) * 100) : 0;
 
   return (
     <Secao rotulo="Certificado">
-      <div
-        style={{
-          border: `1px dashed ${A.terracota}`,
-          borderRadius: AR.none,
-          padding: AS.lg,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: AS.xs,
-        }}
+      <Cartela
+        rotulo={
+          completo ? 'Nível 1 · requisito cumprido' : `Nível 1 · ${feitas} de ${totalAulas} aulas`
+        }
       >
-        <span style={{ ...AT.rotulo, color: A.terracota }}>Nível 1 · indisponível</span>
-        {t1?.totalAulasPartial ? (
-          <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
-            O certificado de nível exige a trilha inteira, e a Trilha 1 ainda
-            não tem tamanho conhecido: {t1?.totalAulas ?? 0} aulas estão
-            confirmadas em {modulosComFonte} dos {totalModulos} módulos, e os
-            demais seguem sem conteúdo extraído. Emitir certificado sobre um
-            denominador desconhecido seria certificar o que ninguém mediu.
-          </p>
-        ) : (
-          <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
-            A Trilha 1 fechou com denominador conhecido — {t1?.totalAulas ?? 0}{' '}
-            aulas confirmadas nos {totalModulos} módulos. O que falta agora é
-            cruzar isso contra o progresso real desta conta para decidir
-            quando emitir: esta wave conecta o registro por aula, não essa
-            checagem de trilha completa. Fica registrado como a próxima
-            pendência do Certificado.
-          </p>
-        )}
-      </div>
+        <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
+          {completo ? (
+            <>
+              Você concluiu as {totalAulas} aulas da Trilha 1 —{' '}
+              {t1?.title ?? 'Nível 1'} — nos {porModulo.length} módulos. O
+              requisito está cumprido e verificado contra o seu progresso
+              real. A emissão do documento em si ainda não existe: não há
+              endpoint de certificado no backend, e um botão que não emite
+              nada seria pior que esta frase.
+            </>
+          ) : (
+            <>
+              O certificado de Nível 1 exige as {totalAulas} aulas da Trilha 1
+              concluídas nos {porModulo.length} módulos. Você concluiu{' '}
+              {feitas} — {pct}% do caminho, {faltam} aula
+              {faltam > 1 ? 's' : ''} restante{faltam > 1 ? 's' : ''}.
+            </>
+          )}
+        </p>
+
+        {/* Barra de requisito: fio, nunca sombra nem raio. */}
+        <div
+          style={{ height: '3px', background: A2.fioClaroSobreCreme, width: '100%' }}
+          role="img"
+          aria-label={`${feitas} de ${totalAulas} aulas concluídas`}
+        >
+          <div
+            style={{
+              height: '3px',
+              width: `${pct}%`,
+              background: completo ? A.oliva : A.terracota,
+              transition: `width ${AE.estado} ${AE.easing}`,
+            }}
+          />
+        </div>
+
+        {/* Onde exatamente falta — bloqueado/desbloqueado sem contexto não
+            diz ao aluno o que fazer a seguir. */}
+        <dl style={{ display: 'flex', flexDirection: 'column', margin: 0 }}>
+          {feitasPorModulo.map((m, i) => (
+            <div
+              key={m.moduloId}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr auto',
+                gap: AS.md,
+                padding: `${AS.xs} 0`,
+                borderTop: i > 0 ? `1px solid ${A2.fioClaroSobreCreme}` : 'none',
+              }}
+            >
+              <dt style={{ ...AT.dado, fontSize: '11px', color: A.tintaSuave }}>{m.titulo}</dt>
+              <dd
+                style={{
+                  ...AT.dado,
+                  fontSize: '11px',
+                  margin: 0,
+                  color: m.feitas === m.aulaIds.length ? A.oliva : A2.tintaMetadado,
+                }}
+              >
+                {m.feitas} / {m.aulaIds.length}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </Cartela>
     </Secao>
+  );
+}
+
+/** Cartela tracejada em terracota — o registro que o sistema inteiro usa
+ *  para "existe, mas ainda não está disponível". */
+function Cartela({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+  return (
+    <div
+      style={{
+        border: `1px dashed ${A.terracota}`,
+        borderRadius: AR.none,
+        padding: AS.lg,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: AS.sm,
+      }}
+    >
+      <span style={{ ...AT.rotulo, color: A.terracota }}>{rotulo}</span>
+      {children}
+    </div>
   );
 }
 

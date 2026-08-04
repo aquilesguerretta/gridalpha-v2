@@ -211,6 +211,7 @@ import {
   M08_INST04_REF,
   M08_INST04_TOL,
   M08_INST04_FONTES,
+  M08_INST02_SRC,
 } from './alexandria-modulo-08-content';
 
 /** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
@@ -287,6 +288,70 @@ function i4checkM08(
     valores: { 'i4-acertos': acertos, 'i4-err': errTotal, 'i4-soma': soma },
     veredito: msg,
   };
+}
+
+// ── Módulo 08 · INST 02 — Conversor de três eixos (LYCEUM Wave 38) ──
+//
+// PORTADO do `i2calc()` da fonte. As duas pizzas SVG e as duas legendas
+// não têm slot no painel; o conteúdo NUMÉRICO delas (a fatia de cada
+// fonte em cada pizza) vira saída, em vez de ser descartado em silêncio.
+// Descartar seria a perda que a Wave 37 flagrou nos `src-card`.
+//
+// O `clamp` de entrada é o da fonte, aplicado no handler de `input`
+// (cap 0-400 GW, fc 0-100%): campo fora da faixa é grampeado antes de
+// entrar na conta, não rejeitado.
+
+function i2calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  // `8.76` da fonte: GW × (FC/100) × 8760 h ÷ 1000 = TWh/ano.
+  const src = M08_INST02_SRC.map((s) => ({
+    ...s,
+    cap: clampM08(i[`i2c-${s.k}`] ?? s.cap, 0, 400),
+    fc: clampM08(i[`i2f-${s.k}`] ?? s.fc, 0, 100),
+  }));
+  const A = src.map((s) => ({ k: s.k, nm: s.nome, v: s.cap }));
+  const B = src.map((s) => ({ k: s.k, nm: s.nome, v: s.cap * (s.fc / 100) * 8.76 }));
+  const tA = A.reduce((a, b) => a + b.v, 0);
+  const tB = B.reduce((a, b) => a + b.v, 0);
+  const posA: Record<string, number> = {};
+  const posB: Record<string, number> = {};
+  [...A].sort((a, b) => b.v - a.v).forEach((x, k) => { posA[x.k] = k + 1; });
+  [...B].sort((a, b) => b.v - a.v).forEach((x, k) => { posB[x.k] = k + 1; });
+  const trocas = src.filter((s) => posA[s.k] !== posB[s.k]);
+
+  let maiorSubida: { nm: string; d: number } | null = null;
+  let maiorQueda: { nm: string; d: number } | null = null;
+  src.forEach((s) => {
+    const pa = tA > 0 ? (s.cap / tA) * 100 : 0;
+    const pb = tB > 0 ? ((s.cap * (s.fc / 100) * 8.76) / tB) * 100 : 0;
+    const d = pb - pa;
+    if (!maiorSubida || d > maiorSubida.d) maiorSubida = { nm: s.nome, d };
+    if (!maiorQueda || d < maiorQueda.d) maiorQueda = { nm: s.nome, d };
+  });
+  // Os dois só são null com `src` vazio, que não acontece — o cast evita
+  // que o TS exija guarda para um caso que a estrutura de dado impede.
+  const sub = maiorSubida as unknown as { nm: string; d: number };
+  const que = maiorQueda as unknown as { nm: string; d: number };
+
+  const valores: Record<string, number> = {
+    'i2-cap-tot': tA,
+    'i2-ger-tot': tB,
+    'i2-fc-med': tA > 0 ? (tB / (tA * 8.76)) * 100 : 0,
+    'i2-trocas': trocas.length,
+  };
+  src.forEach((s) => {
+    valores[`i2-a-${s.k}`] = tA > 0 ? (s.cap / tA) * 100 : 0;
+    valores[`i2-b-${s.k}`] = tB > 0 ? ((s.cap * (s.fc / 100) * 8.76) / tB) * 100 : 0;
+  });
+
+  let msg: string;
+  if (trocas.length === 0) {
+    msg = '<b>Nenhuma troca de posição.</b> Isso só acontece quando os fatores de capacidade digitados são muito próximos entre si. É um cenário útil como teste: se todas as fontes tivessem o mesmo fator, as duas pizzas seriam idênticas e este bloco inteiro seria desnecessário. Volte um fator para um valor realista e observe o ranking se reorganizar.';
+  } else if (trocas.length <= 2) {
+    msg = `<b>${trocas.length} troca${trocas.length > 1 ? 's' : ''} de posição.</b> A fonte que mais ganha participação ao passar de capacidade para geração é <b>${sub.nm}</b>, com ${f1m08(sub.d)} pontos percentuais de ganho; a que mais perde é <b>${que.nm}</b>, com ${f1m08(Math.abs(que.d))} pontos de perda. A direção do movimento é inteiramente previsível pelo fator de capacidade de cada fonte em relação à média do parque — quem está acima da média sobe, quem está abaixo desce.`;
+  } else {
+    msg = `<b>${trocas.length} trocas de posição.</b> Este é o cenário que torna qualquer afirmação sobre "a segunda maior fonte do Brasil" indefensável sem qualificação. Com essa dispersão de fatores de capacidade, o ranking da pizza de capacidade e o da pizza de geração são objetos diferentes, e citar um como se fosse o outro produz um erro que não é de arredondamento — é de ordem. A fonte que mais sobe é <b>${sub.nm}</b> e a que mais desce é <b>${que.nm}</b>.`;
+  }
+  return { valores, veredito: msg };
 }
 
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
@@ -2053,6 +2118,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   'm07-inst-09': (i) => ({ valores: {}, veredito: explorar07('09', i['i9-sel']) }),
   // ── m07 INST 10 · calendário institucional ──
   'm07-inst-10': (i) => ({ valores: {}, veredito: explorar07('10', i['i10-sel']) }),
+
+  // ── m08 INST 02 · conversor de três eixos · as duas pizzas ──
+  'm08-inst-02': i2calcM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

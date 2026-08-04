@@ -167,6 +167,85 @@ const M08_INST_04: Instrument[] = [
   },
 ];
 
+// ── INST · 02 — Conversor de três eixos (LYCEUM Wave 38) ──────
+// Os doze campos da fonte são seis pares (capacidade GW + fator de
+// capacidade %) num `field-grid` de dois inputs por linha. O painel tem
+// um input por campo, então o par vira dois campos nomeados.
+//
+// As duas pizzas SVG e as duas legendas não têm slot no painel. O que
+// elas mostram de NUMÉRICO — a fatia de cada fonte em cada pizza — sai
+// como saída em vez de ser descartado; é o mesmo julgamento que a Wave
+// 37 aplicou aos `src-card` quando descobriu a perda silenciosa. O que
+// se perde é só o desenho, não o dado.
+/** As seis fontes do INST 02 com a fotografia de 2025 declarada na fonte
+ *  (`I2.src`) — capacidade em GW e fator de capacidade em %. Exportada
+ *  porque a calculadora importa DAQUI, mesma direção de `M08_INST04_REF`:
+ *  uma fonte de verdade só, sem cópia que possa divergir.
+ *  A cor por fonte do original é da pizza SVG e não tem consumidor aqui. */
+export const M08_INST02_SRC: { k: string; nome: string; cap: number; fc: number }[] = [
+  { k: 'hid', nome: 'Hidrelétrica', cap: 110.2, fc: 41.6 },
+  { k: 'sol', nome: 'Solar', cap: 64.8, fc: 15.5 },
+  { k: 'eol', nome: 'Eólica', cap: 34.7, fc: 38.3 },
+  { k: 'bio', nome: 'Biomassa', cap: 17.5, fc: 41.1 },
+  { k: 'fos', nome: 'Térmica fóssil', cap: 31.8, fc: 27.5 },
+  { k: 'nuc', nome: 'Nuclear', cap: 2.0, fc: 90.4 },
+];
+
+const I2_INTRO =
+  'Digite a capacidade instalada e o fator de capacidade de cada fonte. O instrumento devolve as duas pizzas e marca em dourado toda fonte que <b>trocou de posição</b> entre elas. Os valores iniciais são a fotografia de 2025 declarada abaixo; substitua qualquer um deles e a lição continua funcionando — é essa a razão de o instrumento existir.';
+const I2_SRCNOTE =
+  '<b>Referência inicial:</b> capacidade e geração por fonte no conceito amplo do balanço energético, ano-base 2025, publicado em junho de 2026; fatores de capacidade derivados da razão entre as duas séries. Consulta em 1º de agosto de 2026.';
+const I2_DISC =
+  'Didático/ilustrativo. O cálculo usa capacidade média do período implícita nos valores digitados; não modela entrada de usinas ao longo do ano, indisponibilidade nem corte de geração. Serve para ensinar a relação entre as grandezas, não para dimensionar projeto.';
+
+const M08_INST_02: Instrument[] = [
+  {
+    id: 'm08-inst-02',
+    kind: 'comparador',
+    title: 'Conversor de três eixos · as duas pizzas lado a lado',
+    formula: 'TWh/ano = GW × (FC ÷ 100) × 8,76',
+    fields: M08_INST02_SRC.flatMap((s) => [
+      {
+        id: `i2c-${s.k}`,
+        label: `${s.nome} · capacidade`,
+        unit: 'GW',
+        kind: 'number' as const,
+        defaultValue: s.cap,
+        min: 0,
+        max: 400,
+        step: 0.1,
+      },
+      {
+        id: `i2f-${s.k}`,
+        label: `${s.nome} · fator de capacidade`,
+        unit: '%',
+        kind: 'number' as const,
+        defaultValue: s.fc,
+        min: 0,
+        max: 100,
+        step: 0.1,
+      },
+    ]),
+    outputs: [
+      { id: 'i2-cap-tot', label: 'Capacidade total', unit: 'GW' },
+      { id: 'i2-ger-tot', label: 'Geração implícita', unit: 'TWh/ano' },
+      { id: 'i2-fc-med', label: 'Fator de capacidade médio', unit: '%' },
+      { id: 'i2-trocas', label: 'Fontes que trocam de posição', unit: null },
+      ...M08_INST02_SRC.map((s) => ({
+        id: `i2-a-${s.k}`,
+        label: `Pizza 1 · capacidade · ${s.nome}`,
+        unit: '%',
+      })),
+      ...M08_INST02_SRC.map((s) => ({
+        id: `i2-b-${s.k}`,
+        label: `Pizza 2 · geração · ${s.nome}`,
+        unit: '%',
+      })),
+    ],
+    note: `${I2_INTRO}<br><br>${I2_SRCNOTE}<br><br>${I2_DISC}`,
+  },
+];
+
 export const MODULO_08_LEAD: Record<string, string> = {
   'aula-08-01': "Esta aula não tem um único número decorável, e isso é intencional. Ela ensina as três perguntas que você faz antes de aceitar qualquer estatística de matriz — e quem as faz automaticamente nunca mais cita o número errado na conversa errada.",
   'aula-08-02': "Esta aula não reensina como uma turbina funciona — isso é o Módulo 03. Ela responde a três perguntas diferentes: quanto de cada fonte existe, onde ela está, e por que a soma tem a forma que tem .",
@@ -450,7 +529,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    // Inst · 02 da fonte. O Inst · 03 é da mesma aula e entra a seguir.
+    instruments: M08_INST_02,
   },
   {
     id: 'aula-08-02',

@@ -116,6 +116,11 @@ export function AtlasStub() {
     );
   }, []);
   const colunaRef = useRef<HTMLDivElement | null>(null);
+  const painelRef = useRef<HTMLDivElement | null>(null);
+  // O painel analítico entra por fade DEPOIS que o zoom para o modo
+  // imersivo assenta — aparecer no meio do movimento faria o mesmo
+  // "pisca" que a Wave 36 veio corrigir.
+  const [painelVisivel, setPainelVisivel] = useState(false);
   const espacadorRef = useRef<HTMLDivElement | null>(null);
   // Modo imersivo (revisão 3): o palco vira overlay FIXO por cima de
   // header e rodapé — o shell nem é tocado; ao sair, tudo volta. O
@@ -202,6 +207,15 @@ export function AtlasStub() {
 
   const entrarImersivo = useCallback(() => trocarModo(true), [trocarModo]);
   const sairImersivo = useCallback(() => trocarModo(false), [trocarModo]);
+
+  // Fade do painel analítico, atrás do zoom: some no mesmo instante em
+  // que a saída começa (nada de painel flutuando sobre a transição) e
+  // entra só quando o modo imersivo assentou.
+  useEffect(() => {
+    if (!imersivo) { setPainelVisivel(false); return; }
+    const t = setTimeout(() => setPainelVisivel(true), MODO_MS + 60);
+    return () => clearTimeout(t);
+  }, [imersivo]);
 
   // Mesma promise cacheada que o globo consome — zero busca duplicada.
   useEffect(() => {
@@ -363,96 +377,6 @@ export function AtlasStub() {
             </div>
           )}
 
-          {/* Painel analítico (Wave 35) — coloração, filtro e rankings,
-              todos derivados dos 12 campos já ingeridos. */}
-          {mundo !== null && (
-            <AtlasControles
-              mundo={mundo}
-              modoCor={modoCor}
-              aoMudarModoCor={setModoCor}
-              filtro={filtro}
-              aoMudarFiltro={setFiltro}
-              aoEscolherPais={(iso) => setPedidoDeVoo({ iso, nonce: Date.now() })}
-            />
-          )}
-
-          {/* Comparação: acumula a partir do país selecionado — o
-              mesmo que o clique no globo, a busca e o ranking já
-              produzem. Nunca uma segunda mecânica de seleção. */}
-          {mundo !== null && (
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: AS.sm,
-                borderTop: `1px solid ${A.fioSobreCreme}`,
-                paddingTop: AS.sm,
-                pointerEvents: 'auto',
-              }}
-            >
-              <span style={{ ...AT.rotulo, fontSize: '8px', letterSpacing: '0.13em', color: A2.tintaMetadado }}>
-                Comparar países
-              </span>
-
-              <button
-                type="button"
-                disabled={selecionado === null || comparados.includes(selecionado) || comparados.length >= 3}
-                onClick={() => selecionado && adicionarAComparacao(selecionado)}
-                style={{
-                  background: 'none',
-                  border: `1px solid ${selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? A.fioSobreCreme : A2.fioClaroSobreCreme}`,
-                  borderRadius: 0,
-                  padding: `${AS.xs} ${AS.sm}`,
-                  cursor: selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? 'pointer' : 'default',
-                  textAlign: 'left',
-                  ...AT.dado,
-                  fontSize: '11px',
-                  color: selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? A.tintaSobreCreme : A2.tintaMetadado,
-                }}
-              >
-                {selecionado === null
-                  ? 'Clique num país para selecioná-lo'
-                  : comparados.includes(selecionado)
-                    ? `${nomeDe(selecionado, mundo.porIso.get(selecionado)?.countryName ?? selecionado)} já está na comparação`
-                    : comparados.length >= 3
-                      ? 'Máximo de três países'
-                      : `+ Comparar ${nomeDe(selecionado, mundo.porIso.get(selecionado)?.countryName ?? selecionado)}`}
-              </button>
-
-              {comparados.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  {comparados.map((iso) => (
-                    <button
-                      key={iso}
-                      type="button"
-                      onClick={() => setComparados((a) => a.filter((x) => x !== iso))}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        gap: AS.sm,
-                        background: 'none',
-                        border: 'none',
-                        borderBottom: `1px solid ${A2.fioClaroSobreCreme}`,
-                        padding: '2px 0',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <span style={{ ...AT.dado, fontSize: '11px', color: A.tintaSobreCreme }}>
-                        {nomeDe(iso, mundo.porIso.get(iso)?.countryName ?? iso)}
-                      </span>
-                      <span style={{ ...AT.dado, fontSize: '9px', color: A2.tintaMetadado }}>remover</span>
-                    </button>
-                  ))}
-                  {comparados.length === 1 && (
-                    <span style={{ ...AT.dado, fontSize: '9px', color: A2.tintaMetadado }}>
-                      Escolha ao menos mais um país para a tabela abrir.
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.55, color: A2.tintaMetadado }}>
             Fronteiras: Natural Earth 1:110m (TopoJSON, cópia
@@ -480,6 +404,131 @@ export function AtlasStub() {
             </span>
           </div>
         </div>
+
+        {/* ── Painel analítico — SÓ no modo imersivo (Wave 36) ──────
+            Decisão do brief: o modo de repouso mostra o frontispício e
+            a introdução, nada de filtro. O instrumento analítico
+            pertence ao modo em que a tela é do globo.
+
+            Antes deste ajuste o painel vivia na coluna de introdução —
+            visível na página e apenas ESMAECIDO no imersivo, que é o
+            inverso do desejado e a origem do defeito consertado na
+            Fase 2 (invisível porém alcançável). Agora ele é montado e
+            desmontado de verdade: nada de controle fantasma. */}
+        {imersivo && (
+          <div
+            ref={painelRef}
+            style={{
+              position: 'absolute',
+              left: AS.md,
+              top: '64px',
+              bottom: AS.md,
+              width: '248px',
+              overflowY: 'auto',
+              paddingRight: AS.sm,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: AS.lg,
+              background: A2.cremeSuperficie,
+              border: `1px solid ${A.fioSobreCreme}`,
+              padding: AS.md,
+              pointerEvents: 'auto',
+              opacity: painelVisivel ? 1 : 0,
+              transition: `opacity ${AE.estado} ${AE.easing}`,
+            }}
+          >
+            {/* Painel analítico (Wave 35) — coloração, filtro e rankings,
+                todos derivados dos 12 campos já ingeridos. */}
+            {mundo !== null && (
+              <AtlasControles
+                mundo={mundo}
+                modoCor={modoCor}
+                aoMudarModoCor={setModoCor}
+                filtro={filtro}
+                aoMudarFiltro={setFiltro}
+                aoEscolherPais={(iso) => setPedidoDeVoo({ iso, nonce: Date.now() })}
+              />
+            )}
+
+            {/* Comparação: acumula a partir do país selecionado — o
+                mesmo que o clique no globo, a busca e o ranking já
+                produzem. Nunca uma segunda mecânica de seleção. */}
+            {mundo !== null && (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: AS.sm,
+                  borderTop: `1px solid ${A.fioSobreCreme}`,
+                  paddingTop: AS.sm,
+                  pointerEvents: 'auto',
+                }}
+              >
+                <span style={{ ...AT.rotulo, fontSize: '8px', letterSpacing: '0.13em', color: A2.tintaMetadado }}>
+                  Comparar países
+                </span>
+
+                <button
+                  type="button"
+                  disabled={selecionado === null || comparados.includes(selecionado) || comparados.length >= 3}
+                  onClick={() => selecionado && adicionarAComparacao(selecionado)}
+                  style={{
+                    background: 'none',
+                    border: `1px solid ${selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? A.fioSobreCreme : A2.fioClaroSobreCreme}`,
+                    borderRadius: 0,
+                    padding: `${AS.xs} ${AS.sm}`,
+                    cursor: selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? 'pointer' : 'default',
+                    textAlign: 'left',
+                    ...AT.dado,
+                    fontSize: '11px',
+                    color: selecionado && !comparados.includes(selecionado) && comparados.length < 3 ? A.tintaSobreCreme : A2.tintaMetadado,
+                  }}
+                >
+                  {selecionado === null
+                    ? 'Clique num país para selecioná-lo'
+                    : comparados.includes(selecionado)
+                      ? `${nomeDe(selecionado, mundo.porIso.get(selecionado)?.countryName ?? selecionado)} já está na comparação`
+                      : comparados.length >= 3
+                        ? 'Máximo de três países'
+                        : `+ Comparar ${nomeDe(selecionado, mundo.porIso.get(selecionado)?.countryName ?? selecionado)}`}
+                </button>
+
+                {comparados.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {comparados.map((iso) => (
+                      <button
+                        key={iso}
+                        type="button"
+                        onClick={() => setComparados((a) => a.filter((x) => x !== iso))}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          gap: AS.sm,
+                          background: 'none',
+                          border: 'none',
+                          borderBottom: `1px solid ${A2.fioClaroSobreCreme}`,
+                          padding: '2px 0',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                        }}
+                      >
+                        <span style={{ ...AT.dado, fontSize: '11px', color: A.tintaSobreCreme }}>
+                          {nomeDe(iso, mundo.porIso.get(iso)?.countryName ?? iso)}
+                        </span>
+                        <span style={{ ...AT.dado, fontSize: '9px', color: A2.tintaMetadado }}>remover</span>
+                      </button>
+                    ))}
+                    {comparados.length === 1 && (
+                      <span style={{ ...AT.dado, fontSize: '9px', color: A2.tintaMetadado }}>
+                        Escolha ao menos mais um país para a tabela abrir.
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tabela de comparação: abre com dois países, some ao fechar.
             Fica ancorada na base do palco, fora da coluna estreita —

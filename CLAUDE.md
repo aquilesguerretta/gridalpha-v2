@@ -7879,3 +7879,240 @@ sobre os arquivos da wave — "No findings. Surface is clean."
   mapeiam par chave-valor em `tabela`, então o primeiro par ("Insumo e
   origem") está sendo renderizado como cabeçalho. Módulos 9, 10 e 12 têm
   o mesmo. Corrigir é wave de revisão, fora da posse desta.
+
+## LYCEUM — ALEXANDRIA WAVE 49 — MÓDULO 17
+
+**Status:** conteúdo fechado e verificado. **Instrumentos NÃO portados** —
+declarado, com a razão real abaixo. **O currículo NÃO fechou:** 16 de 17
+blocos têm contagem; falta o Bloco 15, cuja wave não aterrissou.
+
+**Arquivos:** `alexandria-modulo-17-content.ts` (NOVO, 618 linhas) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+`alexandria-instrument-calculators.ts` **intocado**.
+
+**Fonte:** `alexandria_modulo17.html` — 370.989 bytes (283.971 de markup
++ 87.018 de script em DOIS blocos `<script>`).
+
+### Catálogo e título — conferem
+
+`bloco-17`: **level 3, track `'brasil'`, título "Cenário Internacional
+Comparativo", `illustrationPrefix: null`**, priority `media-alta`, 2-3 h
+— o menor orçamento de hora do currículo. O `<title>` e o `<h1>` da
+fonte trazem a **mesma string do catálogo**, sem a divergência que os
+Módulos 06 e 11 tiveram.
+
+**O track permanece `'brasil'` pelo terceiro módulo seguido da Trilha
+3.** Comparar jurisdições estrangeiras não muda de quem é o currículo —
+confirmado por leitura, não herdado (Seção 7).
+
+Vocabulário medido: os oito seletores dos Módulos 01-03 dão **zero**; é
+o dos Módulos 04-16 (`sec-id` 22, `lede` 21, `inst` 12, `det-bd` 28,
+`box` 35, `term` 192).
+
+### Contagem — 11 aulas, e um aparato com onze seções
+
+22 seções = **11 aulas + 11 de aparato**. **Onze aulas é o maior número
+de um módulo do currículo**, e o aparato tem uma seção a mais que o
+padrão de dez: além de §00 §MAP §Caso §Erros §Ex §Quiz §Voz §Final §Lex
+§Ref existe **`§Fichas · Seis jurisdições`**, seção nova.
+
+Os três sinais concordam: §Ex anuncia "Dezoito" e há 18 `<details>`;
+§Fichas anuncia "Sete campos, os mesmos para as seis" e há **42
+`fi-row`** (6 × 7); §Lex traz 192 termos em oito famílias.
+
+**122 blocos de apostila.** Um instrumento por aula, mais o `Inst · 01`
+no § MAP, fora de aula — mesmo destino do `LAB · 01` (M01) e dos
+`Inst · 01` dos M06, M07, M10, M12 e M13.
+
+### SETE FAMÍLIAS NOVAS, e a armadilha de container que só o fallback pegou
+
+Este é o achado de método da wave. O extrator herdado fechou em **109
+blocos** — número perfeitamente plausível para 11 aulas, e que teria
+passado sem suspeita.
+
+Sete famílias de estrutura, todas divs puras sem `<p>` dentro:
+
+| família | o que é |
+| --- | --- |
+| `ga/gak/gav` | glossário de ambiguidade (Sentido A/B/C/D do mesmo termo) |
+| `esc/esc-r/-n/-b` | escada numerada de liberação |
+| `p7/p7-r/-n/-k/-v` | as sete declarações de perímetro |
+| `tri/tg/tk/tv` | grade das três lentes |
+| `grg/grg-r/-k/-v` | dotação · desenho · política |
+| `cn5/cn5-r/-n/-k/-v` | casos numerados |
+| `conf` / `glo` | declaração de parte interessada + glossário |
+
+Mais `par3` (barra de proporção), `clk-r` e `fi-row` — as duas últimas
+já conhecidas dos Módulos 13 e 09/10. **`fi-row` é a terceira variante
+da família `src-card` (M08) / `fi` (M09-10) / `emp` (M13)**: a fonte
+renomeia a mesma ficha chave-valor a cada dois ou três módulos.
+
+**A armadilha:** as famílias de LINHA (`p7-r`, `cn5-r`, `esc-r`,
+`grg-r`) vivem dentro de um CONTAINER de mesmo prefixo (`p7`, `cn5`,
+`esc`, `grg`). O walker via o PAI, não o reconhecia, e pulava o filho
+inteiro — perdendo tudo o que estava dentro. Buscar a linha diretamente
+não adianta: é preciso **recursar no container** em vez de descartá-lo.
+
+**O que tornou isso visível foi um FALLBACK QUE AVISA** — qualquer div
+com mais de 40 caracteres de texto que o walker não reconheça é
+reportada com o volume perdido, nunca descartada em silêncio. Ele
+apontou seis containers de uma vez (`p7` 3.126 chars, `tri` 2.208,
+`cn5` 2.162, `esc` 1.352, `grg` 1.006, `conf` 943) e, depois de
+corrigidos, fechou em **zero**. Recomendo o padrão para toda extração
+futura: é mais barato que caçar perda por diferença de contagem.
+
+Segunda correção, achada pela cobertura: `par3` não é um bloco só — é
+`par3-hd` + `par3-bd` com **três** grupos barra+nota dentro, e a
+primeira versão colapsava os três num único e perdia os quatro `<p>` de
+prosa. **109 → 118 → 122 blocos.**
+
+### Cobertura por palavra — 99,8% a 100% nas onze
+
+Medida por palavra, não por trecho contíguo (a distinção que a Wave 45
+estabeleceu e que a Seção 5 do protocolo já registra). Agregado
+**99,9%**, zero aula abaixo de 85%, zero div não reconhecida.
+
+### Exercício — forma própria desta fonte
+
+Nos Módulos 04-13 o `<summary>` era "NN · Título" e o corpo trazia
+Enunciado + gabarito. **Aqui o `<summary>` É O ENUNCIADO inteiro e o
+`det-bd` é o gabarito.** Os 18 têm gabarito; nenhum vazio.
+
+O §Ex declara quatro categorias (cinco de perímetro, cinco de
+atribuição, quatro de pressuposto institucional, quatro de unidade) mas
+**o markup não marca cada exercício com a sua** — não há cabeçalho de
+categoria entre os `<details>`. Atribuir por posição seria inferência,
+não extração, então os 18 vão sem categoria e a contagem fica
+registrada.
+
+Varredura por `/[Aa]ula\s*\d+/` no enunciado E no gabarito dos dezoito:
+**zero**. Todos soltos, oitavo módulo seguido no padrão da Seção 4.
+
+### CONTEÚDO COMPARATIVO, NÃO INTEGRAÇÃO TÉCNICA
+
+O brief avisou para não presumir integração com dado americano só
+porque o módulo cita mercado americano. A medição vai além do aviso:
+
+**Os nomes próprios dos operadores norte-americanos ocorrem UMA vez
+cada, e SOMENTE no § MAP, que é aparato.** Nas ONZE aulas extraídas
+nenhum deles aparece — o texto trata por descrição funcional ("um dos
+sete operadores", "o operador que atende quase toda a carga de um
+estado"). A única exceção é a China, nomeada na Aula 07, que é a aula
+sobre ela. O § 00 traz uma **escada de liberação** declarando o que pode
+ser citado e sob que condição.
+
+Não há, e não deve haver, ligação com feed de dado, com os hooks de dado
+do terminal ou com o produto americano: **a aula fala SOBRE um mercado,
+ela não LÊ um mercado.**
+
+**A fonte é transparente sobre o vínculo comercial**, e isso foi
+extraído integralmente em vez de suavizado. A seção `conf` ("Parte
+interessada · leia antes da Aula 05") e a própria Aula 05 declaram que o
+estudo detalhado de um dos sete operadores se justifica pela construção
+de um terminal do GridAlpha sobre ele, que ele recebe cerca do dobro do
+espaço dos outros seis, e que *"toda afirmação desta aula sobre a
+riqueza analítica daquele mercado é feita por parte interessada"*.
+
+### Sem gravura, e sem buraco
+
+`illustrationPrefix: null` no catálogo **e zero `<img>` no markup** — os
+dois sinais concordando, mesmo padrão dos Módulos 11 e 13.
+`illustrations: []` nas onze; nenhuma biblioteca de outro bloco foi
+puxada por semelhança de tema. Verificado na tela: **zero `<figure>` de
+aula nas onze**, layout intacto. `video: null` MEDIDO.
+
+### INSTRUMENTOS — medidos, não portados
+
+São doze: o `Inst · 01` no § MAP e onze de aula, um por aula. Todos
+medidos, com a mecânica de cada um inspecionada:
+
+| tipo | quais | mecânica |
+| --- | --- | --- |
+| numérico | i06, i09, i10, i11 | 4 a 7 campos → readouts + veredito |
+| checklist | i02 (7), i03 (10), i04 (3) | chaves booleanas → veredito por contagem |
+| estado / lookup | i01, i05, i07, i08, i12 | seleção revela texto |
+
+**`toFixed` ocorre ZERO vez no módulo inteiro e `Math.` apenas cinco** —
+radicalmente diferente de todos os módulos anteriores. Este é um módulo
+de verificação e classificação conceitual, não de aritmética, o que é
+coerente com o tema. O `i12` (Verificador de comparação, o instrumento
+assinatura do módulo final) sozinho tem 19.308 chars de lógica.
+
+**A razão de não portar NÃO é colisão de arquivo** —
+`alexandria-instrument-calculators.ts` estava limpo durante toda a wave,
+situação inversa à da Wave 45. É escala: doze instrumentos com prova de
+fidelidade ramo a ramo é trabalho da dimensão da Wave 38 inteira, e
+meio-porte é pior que porte nenhum — a Wave 38 estabeleceu que
+fidelidade exige testar o espaço de entrada inteiro. A medição acima
+fica como groundwork para a wave dedicada. `instruments: []` nas onze.
+
+### O CURRÍCULO NÃO FECHOU — 16 de 17
+
+O brief supunha que, se as Waves 47 e 48 tivessem fechado, este módulo
+encerraria as dezessete unidades. **A Wave 48 fechou** (Módulo 16
+registrado em `0b02cc8`, `'bloco-16': 10`). **A Wave 47 não** — não
+existe `alexandria-modulo-15-content.ts` e `bloco-15` não tem entrada em
+`AULAS_POR_BLOCO`.
+
+Estado no fechamento desta wave, lido na tela:
+
+| Trilha | aulas | módulos com fonte |
+| --- | --- | --- |
+| 1 · Fundamentos Universais | 42 | 5/5 |
+| 2 · Setor Elétrico Brasileiro | 53 | 7/7 |
+| 3 · Especialização Estratégica | **37** | **4/5** |
+
+Os 37 são 8 + 8 + 10 + 11 (Blocos 13, 14, 16 e 17). A Trilha 3 mostra
+"5 módulos · 1 em produção", e o módulo em produção é o Bloco 15.
+**Fechar o Bloco 15 fecha o currículo inteiro.**
+
+### Achado para quem fechar o Bloco 15
+
+O brief pediu para conferir como um componente que lê progresso agregado
+reage ao currículo completo. Verificado: `AlexandriaFooter.tsx` L510
+imprime
+
+```
+Currículo em extração · {MODULOS_COM_FONTE} de {TOTAL_MODULOS} módulos verificados
+```
+
+Os números são derivados corretamente (hoje: "16 de 17"), **mas
+"Currículo em extração" é string fixa, não condicional.** Quando o Bloco
+15 entrar, o rodapé passará a dizer *"Currículo em extração · 17 de 17
+módulos verificados"* — que se contradiz na mesma linha.
+
+Registrado, não corrigido: `AlexandriaFooter.tsx` não está na posse
+desta wave. É correção de uma linha para a wave que fechar o Bloco 15.
+
+### Verificação por clique real
+
+As onze aulas abertas uma a uma em 1440×900: **"AULA N DE 11"** nas
+onze, **zero `<figure>` de aula**, tabelas renderizando (as fichas e
+grades recuperadas), 5.531 a 10.396 caracteres de corpo, zero NaN, zero
+overflow horizontal, zero erro de página. Repetido em 1920×1080 nas
+aulas 1 e 5, na trilha e no hub.
+
+Regressão nos módulos já fechados, com o `<main>` rolado para disparar o
+lazy: **12 de 12 OK** — M01 a3 3/3, M03 a6 3/3, M05 a1 0/0, M06 a3 3/3,
+M07 a1 2/2, M09 a4 1/1, M10 a5 1/1, M11 a1 0/0, M12 a1 1/1, M13 a1 0/0,
+M14 a1 0/0, M16 a1 0/0. Nenhuma com NaN.
+
+`window.innerWidth` medido antes de confiar em qualquer medida de
+layout (Seção 13). O contador de gravura exclui as `orn-` da cartela do
+rodapé — o falso positivo que a Wave 42 registrou.
+
+**Gates:** `tsc -b` escopado — **0 erros nos arquivos desta wave**;
+permanecem os **7 pré-existentes** em
+`nest/student/{ProjectSandbox,SandboxTrading}` (Recharts, desde a Wave
+3). `gridalpha-detect` sobre os três arquivos — "No findings. Surface is
+clean." `git diff --stat` real conferido antes de cada commit, com
+sequência guardada de escrita-gates-commit e pathspec explícito.
+
+### Registrado, não resolvido
+
+- **Bloco 15** — único módulo do currículo sem conteúdo extraído.
+- **"Currículo em extração"** — string fixa que passará a se contradizer
+  quando o Bloco 15 fechar (acima).
+- **Os doze instrumentos** — medidos e localizados, não portados.
+- **§ Lex do Módulo 17** (192 termos em oito famílias) — glossário é
+  escopo próprio, fechado até o Módulo 08 na Wave 34.

@@ -76,6 +76,11 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // digitado. Mesmo evento que a Wave 25 tratou para a Trilha 1.
   // LYCEUM Wave 44.
   'bloco-12': 8,   // Geopolítica Energética do Brasil
+  // PRIMEIRO módulo da Trilha 3 (level 3). O track permanece
+  // 'brasil' — a Trilha 3 não introduz track novo, confirmado no
+  // catálogo. 18 seções `sec-id`, das quais 8 casam `Aula NN`.
+  // LYCEUM Wave 45.
+  'bloco-13': 8,   // Análise Financeira de Empresas e Projetos
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

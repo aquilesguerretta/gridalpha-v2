@@ -74,6 +74,11 @@ import {
   MODULO_12_LEAD,
 } from './alexandria-modulo-12-content';
 import {
+  MODULO_13_AULAS,
+  MODULO_13_CORPO,
+  MODULO_13_LEAD,
+} from './alexandria-modulo-13-content';
+import {
   MODULO_10_AULAS,
   MODULO_10_CORPO,
   MODULO_10_LEAD,
@@ -97,6 +102,7 @@ const AULAS: CurriculumAula[] = [
   ...MODULO_10_AULAS,
   ...MODULO_12_AULAS,
   ...MODULO_11_AULAS,
+  ...MODULO_13_AULAS,
 ];
 const CORPO: Record<string, AulaBloco[]> = {
   ...MODULO_01_CORPO,
@@ -111,6 +117,7 @@ const CORPO: Record<string, AulaBloco[]> = {
   ...MODULO_10_CORPO,
   ...MODULO_12_CORPO,
   ...MODULO_11_CORPO,
+  ...MODULO_13_CORPO,
 };
 const LEAD: Record<string, string> = {
   ...MODULO_01_LEAD,
@@ -125,6 +132,7 @@ const LEAD: Record<string, string> = {
   ...MODULO_10_LEAD,
   ...MODULO_12_LEAD,
   ...MODULO_11_LEAD,
+  ...MODULO_13_LEAD,
 };
 
 // Os ids são únicos por construção (`aula-01-NN` × `aula-02-NN`), mas o

@@ -1,197 +1,296 @@
-# Protocolo de extração — Alexandria
+# Alexandria — Protocolo de Extração de Módulo
 
-Consolidação da disciplina que nove waves de extração (LYCEUM 4, 18, 19,
-24, 25, 29, 30, 32, 37) confirmaram uma a uma. Não é teoria: cada seção
-abaixo existe porque a ausência dela produziu um defeito real, e o
-defeito está citado.
-
-Quem abrir um módulo novo lê isto antes de escrever a primeira linha de
-extrator.
+> Referência permanente pra qualquer wave de extração de módulo do
+> currículo. Consolida o que as Waves 4, 18, 19, 24, 25, 29, 30, 32, 34,
+> 38, 41 e 42 já confirmaram por fechamento real — não é teoria, é o
+> comportamento medido da fonte, várias vezes, em módulos diferentes.
+> Todo brief de extração lê isto na Fase 1, em vez de reescrever a
+> lista.
+>
+> Reconciliado na Wave 43 a partir da versão da Wave 41: a numeração
+> 1-11 abaixo é a canônica e briefs a citam por número (a Seção 11 é
+> nova nesta reconciliação). As Seções 12-13 preservam material que a
+> Wave 41 tinha e que o texto canônico não cobre.
 
 ---
 
-## 1. Vocabulário de classe: sempre medido, nunca presumido
+## 1. Ilustração — nome de arquivo, nunca path
 
-A fonte mudou de vocabulário no meio do currículo. Os seletores dos
-Módulos 01-03 (`class="aula"`, `aula-marker`, `div.exercise`,
-`exercise-tag`, `glossary-item`, `checklist-item`) dão **zero** nos
-Módulos 04+, que usam o vocabulário abreviado (`sec-id`, `lede`, `inst`,
-`lv`, `det-bd`).
+`illustrations` sempre recebe nome de arquivo puro
+(`"his-01-usina-seculo-xix.png"`), nunca path completo. O componente de
+renderização já prefixa `/alexandria/gravuras/` sozinho — gerar path
+completo produz duplicação silenciosa
+(`/alexandria/gravuras//alexandria/gravuras/…`, `naturalWidth: 0` sem
+erro nenhum, o defeito real da Wave 29, que só apareceu na verificação
+por clique). Confirma contra um módulo que já funciona antes de gerar o
+campo, toda vez.
 
-E o vocabulário abreviado tem variação interna: o callout do Módulo 04 é
-`class="box"`; no Módulo 05 é `class="box gd"`. Uma varredura exata por
-`class="box"` daria zero e perderia os oito.
+## 2. Frequência de termo nunca é veredito — sempre lê a frase real
 
-**Regra:** contar as ocorrências de cada seletor candidato no arquivo
-real antes de escolher o extrator. Nunca herdar o extrator da wave
-anterior sem essa medição.
+Confirmado errado treze vezes, em módulos diferentes, sempre por
+confiar em contagem de palavra:
 
-## 2. Cobertura de TEXTO, nunca contagem de elemento
+**Gravura:** `Francis`→"Rio São **Francisco**" (não a turbina, Wave 19) ·
+`Xingu,PA`→colide com "pá" de aerogerador (19) · "antes do **lítio**"→
+figura de linguagem sobre reservatório (19) · `torre`/`isolador`→
+enumeração de itens de custo, nenhum é o assunto (18) · `motor`→lista de
+cinco equipamentos indutivos (5) · `turbina`→11+ ocorrências: hidráulica,
+eólica, a gás e a vapor (19) · "**vazio**"→"esvaziar caixa d'água" (29) ·
+"aprovação prévia do **Senado**"→cláusula de nomeação de diretor, não
+tribunal (30) · "cres**cimento**"→casa com `cimento` (32) ·
+"composição"/"decomposição"→operação analítica sobre base tributária, não
+o objeto físico da pilha de moedas (41).
 
-Esta é a regra mais cara de aprender. **Contagem de elemento por aula
-não detecta perda de conteúdo.**
+**Termo de glossário:** `Energia`→"leilão de **energia** nova" (34) ·
+`Carga`→"**carga** líquida", sentido composto diferente (34) · `Carga`→
+referência locacional, não o conceito do verbete (34).
 
-No Módulo 09 a checagem por elemento passou limpa — desvio de −34% a
-+41% em torno da média, nada fora de ±50% — e mesmo assim a Aula 04
-tinha perdido **6.004 caracteres reais** (seis fichas `div.fi`, 42 pares
-chave/valor). Contagem de elemento dupla-conta os `<p>` aninhados dentro
-de `box`/`lv`, e essa inflação mascarou a perda.
+Regra: sempre lê a sentença real onde o termo candidato aparece antes de
+decidir correspondência. Contagem de ocorrência é sinal pra investigar,
+nunca prova. Mapear só quando o objeto da gravura é o **assunto
+declarado da seção**. Prefixo de catálogo casando só em parte com o
+conteúdo é resultado normal (Módulo 08: 2 de 8; Módulo 09: 2 de 6), não
+sinal de erro.
 
-Só a medição de cobertura de texto revelou:
+## 3. Instrumento — nome repetido não garante mesma mecânica
 
-| aula | cobertura inicial | final |
-| --- | --- | --- |
-| 04 | **57,5%** | 95,6% |
-| 03 | 72,6% | 95,0% |
+"Termômetro" já foi três coisas diferentes em três módulos (M05: 8
+chaves booleanas com peso; M06: balanço numérico; M08: quadrante
+estoque×fluxo). "Mapa" já foi duas (M05: 3 campos → posição num plano;
+M06: seleção revelando texto de array).
 
-**Regra:** para cada aula, medir `caracteres extraídos ÷ caracteres de
-texto da seção na fonte`. **Investigar qualquer aula abaixo de ~85%**
-antes de seguir. Cobertura saudável fica em 90-96%; o resíduo é
-pontuação de aparato e normalização de entidade.
-
-Precedentes de estrutura descartada em silêncio, todos achados por
-cobertura: `src-card` (Módulo 08, 8 fichas / 52 pares), `div.fi`
-(Módulo 09, 6 fichas / 42 pares), `<ol>` ordenada (Módulo 09 — o
-extrator só capturava `<ul>`).
-
-## 3. Frequência de termo nunca é veredito — leia a frase
-
-Mapear gravura por contagem de ocorrência produz falso positivo. **Nove
-já confirmados**, cada um pego lendo a frase real:
-
-| termo | falso positivo | wave |
-| --- | --- | --- |
-| Francis | "São **Francisco**", o rio | 19 |
-| PA (pá) | "(Xingu, **PA**)", a sigla do estado | 19 |
-| lítio | "a bateria que veio antes do **lítio**" — contraste retórico | 19 |
-| torre / isolador | enumeração de itens de custo, nenhum é o assunto | 18 |
-| motor | lista de cinco equipamentos indutivos | 5 |
-| vazio | "preencher esse **vazio** com usinas a gás" | 29 |
-| Senado | cláusula sobre nomeação de diretor | 30 |
-| cimento | "cres·**cimento**" | 32 |
-| turbina | 11+ ocorrências: hidráulica, eólica, a gás e a vapor | 19 |
-
-**Regra:** varrer por equipamento/conceito específico, e **ler a frase
-real** antes de aceitar. Mapear só quando o objeto da gravura é o
-assunto declarado da seção — nunca por menção dentro de enumeração.
-Prefixo de catálogo casando só em parte com o conteúdo é resultado
-normal (Módulo 08: 2 de 8; Módulo 09: 2 de 6), não sinal de erro.
-
-## 4. Nome de instrumento repetido não garante mesma mecânica
-
-"Termômetro" aparece três vezes no currículo, com **três mecânicas
-distintas**:
-
-| módulo | mecânica real | `kind` |
-| --- | --- | --- |
-| 05 | 8 chaves booleanas com peso | `quebra-cabeca` |
-| 06 | 4 campos numéricos de balanço | `simulador` |
-| 08 | `foto` por submercado, ena/ear, quadrante | `simulador` |
-
-"Mapa" idem: Módulo 05 é simulação paramétrica contínua (`simulador`),
-Módulo 06 é consulta discreta que revela texto (`explorador`).
+**O teste mais difícil até agora:** o Módulo 10 teve um instrumento
+chamado "Reconstrutor" com o mesmo verbo e a mesma pedagogia do
+Reconstrutor do Módulo 8 — e **não era a mesma mecânica** (zero
+referência, zero tolerância, botão de correção pertencia ao quiz, não ao
+instrumento). Nunca presume mecânica pelo nome, nem quando nome, verbo e
+intenção pedagógica parecem todos bater — inspeciona a marcação real
+toda vez.
 
 O risco inverso também existe: no Módulo 07, "Comparador de instrumentos
 jurídicos" tem a **mesma forma de campo** que os seis `explorador` do
 módulo — um `select`, zero saída numérica. Forma idêntica também não é
-atalho seguro.
+atalho seguro; o que separa os dois é a intenção declarada da fonte.
 
-**Regra:** inspecionar a marcação real (campos, saídas, tipo de
-interação) e decidir o `kind` pela MECÂNICA. O título literal da fonte é
-sempre preservado na tela — o `kind` é taxonomia interna. Catálogo em
-`docs/alexandria/instrument-taxonomy.md`.
+Instrumento pode viver fora de qualquer aula (padrão `§MAP`, primeiro
+visto como `LAB·01` no Módulo 1) — vai pra Recursos do Módulo, não pra
+aula nenhuma. Aula pode ter mais de um instrumento — recorde atual é
+três (Módulo 7, Aula 7).
 
-## 5. Exercício sem vínculo de aula é o padrão desde o Módulo 04
+Saída textual (não numérica) é o padrão comum desde o Módulo 4, não
+exceção — sempre confere se alguma saída não cabe em
+`Record<string, number>` antes de considerar o mapeamento completo.
 
-Nos Módulos 01-03 a tag aponta a aula (`Ex · 04 · Aula 05`). A partir do
-Módulo 04 o `<summary>` traz só `NN · Título`, e a varredura por
-`/[Aa]ula\s*\d+/` no enunciado **e** no gabarito costuma dar zero.
+Condicional aninhada no script original não se lineariza sem testar ramo
+por ramo depois, **por comparação, não por inspeção visual** — já quebrou
+uma vez (Módulo 6, INST 07, ramo de baixa tensão executando quando não
+devia; e o extrator de ramos da Wave 30 pegou só os `else if` e perdeu o
+`else` terminal, que o `tsc` denunciou).
+
+Se a mecânica real não couber em nenhum `kind` existente: confere
+`docs/alexandria/instrument-taxonomy.md` primeiro. Se for genuinamente
+nova (já aconteceu uma vez — `reconstrutor`, Módulo 8, "produz resposta
+antes de ver correção"), generaliza por superconjunto documentado, com
+autorização explícita se a extensão sair da posse original da wave.
+Sinaliza pra FOUNDRY atualizar o catálogo depois — não deixa o documento
+desatualizado.
+
+## 4. Exercício sem vínculo de aula é o padrão desde o Módulo 4, não falha
+
+Módulos 4, 6, 7, 8, 9 e 11 tiveram **zero** exercício com tag apontando
+aula específica na fonte — todos foram pro bucket `SOLTOS`. Testa o
+vínculo explicitamente (não presume que existe nem que não existe), mas
+não estranha se o resultado for zero de novo.
 
 Referência em prosa não é tag de posse: o Módulo 05 tem "é precisamente
 o caminho híbrido descrito na Aula 06" no fecho de um gabarito, e mesmo
 assim aquele exercício é solto — a tag dele não aponta aula nenhuma.
+Varre os três campos (resumo, enunciado, gabarito).
 
-**Regra:** varrer os três campos. Sem vínculo declarado, o exercício vai
-para `MODULO_NN_EXERCICIOS_SOLTOS` e a aula fica com `activities: []`.
-Nunca inventar o vínculo.
+Exercício solto vai pra Recursos do Módulo, junto com instrumento fora
+de aula.
 
-## 6. Contagem por três sinais independentes
+## 5. Contagem de bloco por aula — cobertura de texto, não contagem de elemento
 
-Contagem bruta de seção superestima: `.aula` era classe compartilhada
-entre aula real e aparato (§ Lex, § Ex, § Quiz…), e `sec-id` também é.
+O Módulo 8 quase perdeu 16 blocos reais porque uma aula destoou muito da
+média das outras — contagem de elemento pegou isso. O Módulo 9 provou
+que contagem de elemento sozinha **NÃO É SUFICIENTE**: todas as oito
+aulas ficaram dentro de ±50% da média, zero sinal de alarme, e mesmo
+assim uma aula tinha perdido **6.004 caracteres reais**. A causa:
+contagem de elemento duplica os `<p>` que já vivem dentro de blocos tipo
+`box`/`lv`, inflando artificialmente o número de aulas intactas e
+escondendo a que não estava.
 
-Cruzar sempre: **seções que casam `Aula NN`** × **a prosa do hero /
-§ MAP** × **numeração de subseção `x.y` da própria fonte**.
+Os Módulos 10 e 11 confirmaram de novo — em ambos, mais da metade das
+aulas caiu abaixo de 85% de cobertura real, recuperadas depois de
+identificar a estrutura descartada (`div.fi`, `div.chain`/`cbox`,
+`div.lv`, `div.form`, `p.srcnote`, `<ol>`).
+
+| módulo | pior aula, cobertura inicial | final |
+| --- | --- | --- |
+| 09 | 57,5% | 95,6% |
+| 11 | 61,9% | 99,8% |
+
+**A medida correta é cobertura de texto real** — quantos caracteres da
+fonte sobreviveram na extração, não quantos elementos foram contados.
+Mede cobertura de texto por aula na Fase 1, antes de aceitar qualquer
+contagem como final. Aula abaixo de ~85% de cobertura precisa de
+investigação — geralmente é estrutura nova que o extrator ainda não sabe
+capturar. Cobertura saudável fecha em 90-99%; o resíduo é pontuação de
+aparato e normalização de entidade.
+
+Regex simples não dá conta de estrutura aninhada — usa walker de árvore
+de DOM real quando a perda for identificada. Regex não-guloso fecha no
+lugar errado em `div` aninhada (lição do Módulo 04).
+
+**Cruzamento por três sinais independentes.** Contagem bruta de seção
+superestima: `.aula` era classe compartilhada entre aula real e aparato
+(§ Lex, § Ex, § Quiz…), e `sec-id` também é. Cruza sempre: **seções que
+casam `Aula NN`** × **a prosa do hero / § MAP** × **numeração de
+subseção `x.y` da própria fonte**.
 
 Quando prosa e markup divergem, **o markup vence** e a divergência é
 registrada, não corrigida. Precedentes: Módulo 01 ("seis dos oito", há
-8), Módulo 02 ("Oito exercícios", há 10), glossário do Módulo 01
-("Vinte e oito termos", há 38).
+8), Módulo 02 ("Oito exercícios", há 10), glossário do Módulo 01 ("Vinte
+e oito termos", há 38).
 
-## 7. `illustrations` é NOME DE ARQUIVO PURO
+## 6. Vocabulário de classe — nunca presume, mede toda vez
 
-O componente `Prancha` prefixa `/alexandria/gravuras/` sozinho. Gerar
-caminho completo produz `/alexandria/gravuras//alexandria/gravuras/…` e
-**`naturalWidth` 0 em todas as gravuras do módulo** — o defeito da Wave
-29, que só apareceu na verificação por clique.
+Confirmado: Módulos 1-3 usam um vocabulário (`aula-marker`,
+`exercise-tag`, `glossary-item`); Módulos 4 em diante usam outro
+inteiramente (`sec-id`, `lede`, `inst`, `det-bd`, `lv`), com variação de
+detalhe entre módulos dentro desse grupo (posição do id, forma do
+exercício).
 
-**Regra:** `'tar-03-conta-industrial.png'`, nunca com barra inicial nem
-prefixo. Conferir contra um módulo que já funciona antes de gerar.
+E o vocabulário abreviado tem variação interna: o callout do Módulo 04 é
+`class="box"`; no Módulo 05 é `class="box gd"` — varredura exata por
+`class="box"` daria zero e perderia os oito. O Módulo 11 inverte duas
+coisas de uma vez: `sec-id` põe o negrito no nome (`§Ex ·
+<b>Exercícios</b>`) em vez de no marcador, e `inst-hd` põe o `span.id`
+antes do `span.nm`.
 
-## 8. Cálculo portado, nunca rederivado
+Testa os seletores conhecidos contra o arquivo real antes de escolher
+extrator — se nenhum bater, remapeia do zero.
 
-A lógica vem do `<script>` da fonte, transcrita, não reconstruída do
-enunciado. A prova de fidelidade é confrontar a porta contra uma
-**reimplementação independente do original** com os defaults da fonte —
-ou executar o script original num DOM simulado, que é o método mais
-forte (Waves 34 e 38).
+## 7. Catálogo real, nunca suposição
 
-**Condicional aninhada exige teste ramo por ramo.** A linearização de
-`if(grupo===1){…} else {…}` produziu veredito errado no INST 07 do
-Módulo 06 (Wave 29): 2024/Grupo A caía no ramo de baixa tensão. O
-extrator de ramos da Wave 30 pegou só os `else if` e perdeu o `else`
-terminal — o `tsc` denunciou.
+`level`, `track`, `illustrationPrefix` e até o **título** sempre
+confirmados no catálogo real da FOUNDRY antes de qualquer extração —
+nunca herdados do padrão do módulo anterior.
 
-Quirk da fonte é **sinalizado, não corrigido**: o `|| 1` que faz campo
-vazio virar 1, o preset que reescreve campo alheio, a numeração
-`INST · NN` que não bate com o prefixo dos ids internos.
+Título com `priority: 'confirmar'` pode genuinamente divergir da fonte
+real (Módulo 11: catálogo trazia "Energia Solar e Análise de Propostas",
+fonte declara "Geração Distribuída e a Anatomia de uma Proposta Solar" —
+escopo mais amplo, não sinônimo). `illustrationPrefix` pode casar só
+parcialmente com o conteúdo real, ou ser `null` com zero `<img>` no
+markup, os dois sinais concordando (Módulo 11).
 
-Onde o espaço de entrada é finito e pequeno, **cobrir o espaço inteiro**
+Não força correspondência fraca — reporta cobertura real, mesmo se
+baixa. Divergência de catálogo se registra, nunca se corrige (arquivo
+fora de posse) — vira pendência FOUNDRY.
+
+## 8. Git — pathspec sempre, verificação nunca encadeada na ação
+
+`git commit <paths exatos> -m "..."` sempre — nunca `git commit`
+sozinho, nunca `git commit -a`, nunca `git add -A`. O index é
+compartilhado entre sessões; commit sem pathspec leva tudo que está
+staged no momento, não só o que a sessão atual adicionou. O commit
+`f955e62` carregou dois arquivos de outra sessão por causa disso.
+
+Verificação antes de commit é passo separado, nunca encadeado (`&&`) na
+mesma linha que a ação que ela deveria proteger.
+
+## 9. Gate de build — sempre escopado
+
+`tsc -b`, nunca `tsc --noEmit` — o tsconfig raiz não typecheca os
+arquivos da app (nota da Wave 3). Reporta sempre como "zero erros nos
+arquivos da wave, X pré-existentes fora dela" — nunca "0 erros" sem essa
+qualificação. Os pré-existentes de Recharts em `nest/student/*` não são
+de wave nenhuma de extração.
+
+`gridalpha-detect` sobre os arquivos da wave, 0 P0.
+
+## 10. Fidelidade — porta, nunca rederiva
+
+Lógica de cálculo sempre portada do script original, nunca reescrita "de
+forma equivalente". Confirma contra reimplementação independente ou
+**execução do script original em DOM simulado** (método mais forte,
+Waves 34, 38 e 42). Bug ou resíduo do original se sinaliza, nunca se
+corrige silenciosamente — o `|| 1` que faz campo vazio virar 1, o preset
+que reescreve campo alheio, a numeração `INST · NN` que não bate com o
+prefixo dos ids internos.
+
+Onde o espaço de entrada é finito e pequeno, **cobre o espaço inteiro**
 em vez de amostrar (Wave 38: 96 e 36 combinações exaustivas).
 
-Nota de método (Wave 38): toda falha de fidelidade investigada até a
-causa foi **defeito do harness de teste**, nunca da porta — tipicamente
-chamar a calculadora com entrada vazia, quando o painel sempre semeia os
-`defaultValue`.
+Texto de veredito com interpolação numérica se transcreve por extração
+programática, não digitação — 62,6 mil caracteres de prosa num módulo só
+(11) é volume onde erro de digitação é certeza estatística.
 
-## 9. Limitações de contrato conhecidas
+**Nota de método (Waves 38 e 42):** toda falha de fidelidade investigada
+até a causa se provou **defeito do harness de teste**, nunca da porta —
+tipicamente chamar a calculadora com entrada vazia quando o painel
+sempre semeia os `defaultValue`, ou contar elementos que não são os do
+alvo (as gravuras `orn-` do rodapé entrando na contagem de gravura de
+aula).
+
+## 11. Backup local fica obsoleto no instante em que outra sessão escreve — verifica antes de restaurar
+
+Um backup tirado no início de uma operação **não é garantia contra
+sessão paralela** — ele reflete o arquivo no momento em que foi tirado, e
+uma sessão concorrente pode escrever no mesmo arquivo logo depois, sem
+aviso nenhum.
+
+Restaurar por cima desse backup sem checar o estado real do arquivo **no
+momento da restauração** já apagou 494 linhas não commitadas de outra
+wave (Wave 42 sobre a Wave 41) — recuperado só porque a sessão atingida
+tinha os próprios artefatos salvos em scratchpad e o diff exato ainda
+batia.
+
+Antes de qualquer restauração de arquivo compartilhado: `git diff
+--stat` **real, agora**, no arquivo — nunca confia no que o diff mostrava
+quando o backup foi tirado. Se o arquivo mudou desde então, a restauração
+exige reconciliação de três vias (`git merge-file` ou equivalente), nunca
+sobrescrita direta.
+
+Corolário: `cp arquivo backup && operação` numa árvore com sessão
+paralela ativa é a própria armadilha — o `&&` cria a janela. Faz a
+leitura de estado como passo separado, imediatamente antes da escrita.
+
+---
+
+## 12. Limitações de contrato conhecidas
 
 Registrar, não contornar:
 
-- **Saída textual não cabe em `valores`.** `ResultadoInstrumento.valores`
-  é `Record<string, number>`, então mês, quadrante, nome de usina
-  marginal, veredito categórico ficam de fora. Cinco waves de evidência
-  (19, 24, 25, 29, 38). O veredito literal costuma carregá-los em prosa.
-- **Desenho não porta** — SVG, pizza, mapa, calendário. O conteúdo
-  numérico e textual deles entra como saída ou veredito; descartá-lo
-  seria a perda silenciosa da seção 2.
+- **Saída textual não cabe em `valores`.**
+  `ResultadoInstrumento.valores` é `Record<string, number>`, então mês,
+  quadrante, nome de usina marginal, veredito categórico e nome de norma
+  ficam de fora. Seis waves de evidência (19, 24, 25, 29, 38, 42). O
+  veredito literal costuma carregá-los em prosa.
+- **Desenho não porta** — SVG, pizza, mapa, calendário, gráfico de
+  barras. O conteúdo numérico e textual deles entra como saída ou
+  veredito; descartá-lo seria a perda silenciosa da Seção 5.
 - **`durationMinutes`, `difficulty`, `video` são `null` MEDIDOS.** Zero
   `<video>`, `<iframe>`, youtube, vimeo, `.mp4` — medir, não herdar dos
   módulos anteriores.
+- **Campo `number` pareado com `range` gêmeo** (`<algo>` + `<algo>-r`) é
+  UM campo lógico. Fica o `number`, que carrega value/min/max/step; o
+  `kind` vira `range` quando o deslizador existe.
 
-## 10. Higiene de sessão
+## 13. Verificação e ambiente
 
-- **`git` sempre com pathspec explícito.** Nunca `git add -A`: sessões
-  paralelas trabalham na mesma árvore, e o commit `f955e62` carregou
-  dois arquivos de outra sessão por causa disso.
-- **`git status` conferido antes de cada commit**, staged batendo com o
-  que a fase deveria tocar.
-- **Gate real é `tsc -b` escopado**, não `tsc --noEmit` — o tsconfig raiz
-  não typecheca os arquivos da app (nota da Wave 3). Erros pré-existentes
-  de Recharts em `nest/student/*` não são da wave.
-- **`gridalpha-detect`** sobre os arquivos da wave, 0 P0.
-- **Verificação por clique real**, com `naturalWidth` lido no DOM — não
-  presença de tag. E **medir `window.innerWidth` antes de acreditar em
-  qualquer medida de layout**: o painel Browser pode nascer 0×0 com
-  `visibilityState: hidden`, o que faz toda largura medir 0 e o
-  `IntersectionObserver` do lazy nunca disparar (Wave 39).
+**Verificação por clique real**, com `naturalWidth` lido no DOM — não
+presença de tag. Instrumento sem `NaN` no primeiro paint. Regressão nos
+módulos já fechados a cada wave.
+
+**Medir `window.innerWidth` antes de acreditar em qualquer medida de
+layout**: o painel Browser pode nascer 0×0 com `visibilityState:
+hidden`, o que faz toda largura medir 0 e o `IntersectionObserver` do
+lazy nunca disparar (Wave 39). Isso produz falso positivo de "gravura
+quebrada" que parece regressão e não é.
+
+Fallback que funciona quando o painel não compõe frames:
+`playwright-core` no scratchpad dirigindo o Chrome do sistema com
+`--enable-unsafe-swiftshader`, servidor próprio em porta dedicada
+declarada no `.claude/launch.json`.

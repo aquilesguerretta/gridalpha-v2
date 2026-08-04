@@ -781,6 +781,28 @@ const M08_INST_09: Instrument[] = [
   },
 ];
 
+const M08_INST_10: Instrument[] = [
+  {
+    id: 'm08-inst-10',
+    kind: 'simulador',
+    title: 'Perfil de carga · casamento com a curva de geração',
+    formula: 'fator de carga = (consumo ÷ 8.760) ÷ demanda média em operação × 100',
+    fields: [
+      { id: 'i10-c', label: 'Consumo anual', unit: 'GWh/ano', kind: 'range', defaultValue: 120, min: 1, max: 600, step: 1 },
+      { id: 'i10-h', label: 'Horas de operação por dia', unit: 'h', kind: 'range', defaultValue: 24, min: 4, max: 24, step: 1 },
+      { id: 'i10-d', label: 'Dias de operação por semana', unit: 'dias', kind: 'range', defaultValue: 7, min: 1, max: 7, step: 1 },
+      { id: 'i10-t', label: 'Concentração no turno diurno', unit: '% do consumo', kind: 'range', defaultValue: 40, min: 0, max: 100, step: 1 },
+    ],
+    outputs: [
+      { id: 'i10-demmed', label: 'Demanda média em operação', unit: 'MW' },
+      { id: 'i10-fc', label: 'Fator de carga anual', unit: '%' },
+      { id: 'i10-horas', label: 'Horas de operação por ano', unit: 'h' },
+      { id: 'i10-solar', label: 'Cobertura solar teórica', unit: '%' },
+    ],
+    note: 'Duas plantas com o mesmo consumo anual podem ter custo e risco completamente diferentes. Monte um perfil e veja o fator de carga resultante, a demanda de ponta implícita e qual fonte casa melhor com a curva — e qual introduz descasamento que precisaria ser coberto.<br><br>Didático/ilustrativo. O modelo é simplificado e trabalha com perfil retangular por turno; a curva real de uma planta tem picos de partida, paradas e sazonalidade de produção que só a medição de quinze minutos revela. Não trata de estrutura tarifária nem de modalidade, que são matéria do Bloco 10.',
+  },
+];
+
 export const MODULO_08_LEAD: Record<string, string> = {
   'aula-08-01': "Esta aula não tem um único número decorável, e isso é intencional. Ela ensina as três perguntas que você faz antes de aceitar qualquer estatística de matriz — e quem as faz automaticamente nunca mais cita o número errado na conversa errada.",
   'aula-08-02': "Esta aula não reensina como uma turbina funciona — isso é o Módulo 03. Ela responde a três perguntas diferentes: quanto de cada fonte existe, onde ela está, e por que a soma tem a forma que tem .",
@@ -1164,7 +1186,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    // Inst · 10 da fonte.
+    instruments: M08_INST_10,
   },
   {
     id: 'aula-08-07',

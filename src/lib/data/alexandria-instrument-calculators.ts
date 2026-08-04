@@ -623,6 +623,67 @@ function i9calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento 
   };
 }
 
+// ── Módulo 08 · INST 10 — Perfil de carga (LYCEUM Wave 38) ──
+//
+// PORTADO do `i10calc()`. As quatro leituras são numéricas e cabem
+// inteiras. O veredito da fonte é montado em TRÊS camadas somadas: o
+// bloco de fator de carga (4 faixas), o bloco de casamento com solar
+// (3 faixas) e uma frase condicional de operação ininterrupta — as três
+// preservadas com a mesma condição e na mesma ordem.
+//
+// `52` semanas e `8760` horas são literais da fonte, não normalizados.
+function i10calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const c = clampM08(i['i10-c'] ?? 120, 1, 600);
+  const h = clampM08(i['i10-h'] ?? 24, 4, 24);
+  const d = clampM08(i['i10-d'] ?? 7, 1, 7);
+  const t = clampM08(i['i10-t'] ?? 40, 0, 100);
+
+  const horasAno = h * d * 52;
+  const demMed = horasAno > 0 ? (c * 1000) / horasAno : 0;
+  const demMedAnual = (c * 1000) / 8760;
+  const fatorCarga = demMed > 0 ? (demMedAnual / demMed) * 100 : 0;
+  const horasDiurnas = Math.min(h, 7);
+  const energiaDiurna = c * (t / 100);
+  const potDiurna = horasDiurnas * d * 52 > 0 ? (energiaDiurna * 1000) / (horasDiurnas * d * 52) : 0;
+  const coberturaSolar = demMed > 0
+    ? Math.min(100, (potDiurna / demMed) * 100 * (horasDiurnas / Math.max(h, 1)))
+    : 0;
+
+  const fcTxt = f1m08(fatorCarga);
+  let msg: string;
+  if (fatorCarga >= 85) {
+    msg = `<b>Perfil praticamente contínuo, fator de carga de ${fcTxt}%.</b> É o perfil típico de mineração, metalurgia, química de base e papel e celulose. A boa notícia: demanda contratada bem aproveitada e previsibilidade alta. A notícia relevante: praticamente nenhuma flexibilidade natural, o que significa que participação em resposta da demanda exige alteração de processo, não apenas de agenda. `;
+  } else if (fatorCarga >= 55) {
+    msg = `<b>Perfil de operação estendida, fator de carga de ${fcTxt}%.</b> Turnos longos com paradas definidas. Há espaço real para deslocar processos não críticos — refrigeração, bombeamento, carregamento de baterias, moagem — para janelas específicas, e esse espaço tem valor econômico mensurável. `;
+  } else if (fatorCarga >= 30) {
+    msg = `<b>Perfil concentrado, fator de carga de ${fcTxt}%.</b> A planta consome muito em poucas horas. A consequência direta é que a demanda contratada precisa cobrir um pico que existe numa fração pequena do tempo, e o custo dessa capacidade ociosa é frequentemente a maior oportunidade de otimização de uma conta industrial. `;
+  } else {
+    msg = `<b>Perfil altamente concentrado, fator de carga de ${fcTxt}%.</b> Este é o perfil que mais penaliza economicamente, porque exige capacidade instalada e contratada dimensionada para um pico que ocorre raramente. Antes de qualquer discussão sobre fonte ou contrato, a pergunta é se o pico pode ser achatado — deslocar carga costuma valer mais que negociar preço. `;
+  }
+  const tTxt = String(Math.round(t));
+  if (t >= 70 && horasDiurnas >= 6) {
+    msg += `<br><br><b>Casamento com solar.</b> Com ${tTxt}% do consumo concentrado no turno diurno, o perfil tem afinidade estrutural com geração fotovoltaica: a produção e o consumo ocorrem na mesma janela. É o caso menos comum na indústria pesada e o mais comum em comércio, serviços e agroindústria de beneficiamento.`;
+  } else if (t <= 35) {
+    msg += `<br><br><b>Descasamento com solar.</b> Com apenas ${tTxt}% do consumo no turno diurno, contratar exclusivamente solar deixa a maior parte da operação descoberta nas horas em que ela realmente consome. Isso não invalida a fonte — invalida a leitura de que basta comparar volume anual. A pergunta correta é qual fração do consumo cai dentro da janela de produção, e a resposta aqui é pequena.`;
+  } else {
+    msg += `<br><br><b>Casamento parcial com solar.</b> Com ${tTxt}% do consumo no turno diurno, a fonte cobre uma parte relevante e deixa o resto exposto. É a configuração mais comum e a mais mal analisada, porque o volume anual sugere um casamento melhor do que o perfil horário confirma.`;
+  }
+  if (h >= 20 && d >= 6) {
+    msg += ' Operação praticamente ininterrupta também significa que o custo de uma interrupção não programada é alto: a confiabilidade local da distribuidora deixa de ser detalhe e vira variável de decisão independente do preço da energia.';
+  }
+  msg += '<br><br>Este instrumento não trata de estrutura tarifária, modalidade nem posto horário, que são matéria do Bloco 10. Ele responde apenas à pergunta de formato: qual é a forma da curva e com qual fonte ela conversa.';
+
+  return {
+    valores: {
+      'i10-demmed': demMed,
+      'i10-fc': fatorCarga,
+      'i10-horas': horasAno,
+      'i10-solar': coberturaSolar,
+    },
+    veredito: msg,
+  };
+}
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -2408,6 +2469,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 09 · anatomia do corte · causa, hora e quem paga ──
   'm08-inst-09': i9calcM08,
+
+  // ── m08 INST 10 · perfil de carga · casamento com a geracao ──
+  'm08-inst-10': i10calcM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

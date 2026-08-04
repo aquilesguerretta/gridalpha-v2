@@ -730,6 +730,57 @@ const M08_INST_08: Instrument[] = [
   },
 ];
 
+// ── INST · 09 — Anatomia do corte de geração (LYCEUM Wave 38) ──
+// Quatro grupos segmentados (patamar, dia, região, condição da rede) que
+// classificam um cenário. As QUATRO leituras da fonte são todas texto —
+// causa, sobre quem recai, o que resolve, carga líquida —, então
+// `valores` fica vazio e o veredito carrega tudo, na ordem da fonte.
+const M08_INST_09: Instrument[] = [
+  {
+    id: 'm08-inst-09',
+    kind: 'simulador',
+    title: 'Anatomia do corte de geração · causa, hora e quem paga',
+    formula: null,
+    fields: [
+      {
+        id: 'i9-pat', label: 'Patamar horário', unit: null, kind: 'select', defaultValue: 'P3',
+        options: [
+          { value: 'P1', label: 'P1 · 00h–07h' },
+          { value: 'P2', label: 'P2 · transição' },
+          { value: 'P3', label: 'P3 · 09h–16h' },
+          { value: 'P4', label: 'P4 · 18h–24h' },
+        ],
+      },
+      {
+        id: 'i9-dia', label: 'Dia', unit: null, kind: 'select', defaultValue: 'util',
+        options: [
+          { value: 'util', label: 'Dia útil' },
+          { value: 'fds', label: 'Domingo ou feriado' },
+        ],
+      },
+      {
+        id: 'i9-reg', label: 'Região da usina', unit: null, kind: 'select', defaultValue: 'ne',
+        options: [
+          { value: 'ne', label: 'Nordeste' },
+          { value: 'no', label: 'Norte' },
+          { value: 'seco', label: 'Sudeste/Centro-Oeste' },
+          { value: 'sul', label: 'Sul' },
+        ],
+      },
+      {
+        id: 'i9-rede', label: 'Condição da rede', unit: null, kind: 'select', defaultValue: 'ok',
+        options: [
+          { value: 'ok', label: 'Normal' },
+          { value: 'lim', label: 'Limite de exportação atingido' },
+          { value: 'ind', label: 'Equipamento indisponível' },
+        ],
+      },
+    ],
+    outputs: [],
+    note: 'Monte um cenário: escolha o patamar horário, o dia da semana, a região e a condição da rede. O instrumento devolve qual causa de corte predomina, sobre qual fonte ela recai e o que efetivamente resolveria aquele caso — que quase nunca é o que a manchete sugere.<br><br>Didático/ilustrativo. O instrumento aplica a lógica de classificação publicada pelo operador — quando há simultaneidade de causas, prevalece a razão energética, porque o corte ocorreria mesmo com transmissão infinita. Não reproduz despacho real nem regra de ressarcimento; para o caso concreto, valem os procedimentos de rede e a regulação vigente.',
+  },
+];
+
 export const MODULO_08_LEAD: Record<string, string> = {
   'aula-08-01': "Esta aula não tem um único número decorável, e isso é intencional. Ela ensina as três perguntas que você faz antes de aceitar qualquer estatística de matriz — e quem as faz automaticamente nunca mais cita o número errado na conversa errada.",
   'aula-08-02': "Esta aula não reensina como uma turbina funciona — isso é o Módulo 03. Ela responde a três perguntas diferentes: quanto de cada fonte existe, onde ela está, e por que a soma tem a forma que tem .",
@@ -1093,7 +1144,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    // Inst · 09 da fonte.
+    instruments: M08_INST_09,
   },
   {
     id: 'aula-08-06',

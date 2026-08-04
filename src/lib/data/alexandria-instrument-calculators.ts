@@ -548,6 +548,81 @@ function i8calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento 
   return { valores: { 'i8-folga': meses }, veredito: `${cabeca}<br><br>${msg}` };
 }
 
+// ── Módulo 08 · INST 09 — Anatomia do corte (LYCEUM Wave 38) ──
+//
+// PORTADO do `i9calc()`, com a cadeia de condições NA ORDEM da fonte —
+// `ind` primeiro, depois razão energética, depois `lim` em região
+// exportadora, depois `lim` fora dela, e o caso normal por último. A
+// ordem é o conteúdo: é ela que expressa "quando há simultaneidade de
+// causas, prevalece a razão energética".
+//
+// As quatro leituras são todas TEXTO; `valores` fica vazio e o veredito
+// as abre antes da explicação, como a fonte imprime.
+function i9calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const p = String(i['i9-pat'] ?? 'P3');
+  const d = String(i['i9-dia'] ?? 'util');
+  const r = String(i['i9-reg'] ?? 'ne');
+  const n = String(i['i9-rede'] ?? 'ok');
+  const diurno = p === 'P3';
+  const transic = p === 'P2';
+  const noturno = p === 'P1' || p === 'P4';
+  const cargaBaixa = diurno || p === 'P1' || d === 'fds';
+
+  let causa: string, fonte: string, resolve: string, expl: string;
+  if (n === 'ind') {
+    causa = 'Indisponibilidade externa';
+    fonte = r === 'ne' || r === 'no'
+      ? 'Usinas conectadas à instalação indisponível, eólicas e solares'
+      : 'Usinas conectadas à instalação indisponível';
+    resolve = 'Reparo, redundância de equipamento e disciplina de manutenção';
+    expl = 'Equipamento fora de serviço é a única das três causas com mecanismo de ressarcimento definido em regulação, desde que a restrição esteja associada a contingência previamente identificada e ultrapasse o limite de tempo estabelecido. Do ponto de vista de diagnóstico, é também a mais simples: a causa é localizável, tem responsável e tem prazo. As outras duas são sistêmicas e não têm nenhuma das três coisas.';
+  } else if (diurno || (transic && d === 'fds')) {
+    causa = 'Razão energética';
+    fonte = 'Predominantemente fotovoltaica centralizada, com parcela eólica no rateio';
+    resolve = 'Armazenamento, flexibilidade de demanda, resposta da carga e moderação da expansão correlacionada';
+    expl =
+      'No patamar de maior irradiância, a soma da geração distribuída, da solar centralizada, da eólica, da térmica inflexível e da hidráulica no piso pode exceder a carga líquida. Quando isso acontece, o corte ocorreria mesmo com transmissão infinita — e é por isso que a classificação adotada pelo operador prioriza a razão energética quando há simultaneidade de causas. ' +
+      (d === 'fds'
+        ? 'Sendo domingo ou feriado, a carga está no mínimo semanal enquanto a oferta solar não muda, o que torna este o pior caso do sistema. Nos cenários prospectivos, este patamar chega a ter a maior parte de suas horas com restrição.'
+        : 'Em dia útil a carga é maior e o excedente é menor, mas as projeções do operador indicam que o corte por razão energética passa a ocorrer com magnitude elevada inclusive em dias úteis à medida que a capacidade variável cresce.') +
+      (r === 'seco' || r === 'sul'
+        ? ' Note que a região da usina importa pouco aqui: o desequilíbrio é nacional, e o rateio distribui o corte entre as fontes despachadas pelo operador em todo o sistema.'
+        : ' A concentração de renovável variável na região amplifica o efeito local, mas a origem do corte permanece sistêmica.');
+  } else if (n === 'lim' && (r === 'ne' || r === 'no')) {
+    causa = 'Confiabilidade elétrica';
+    fonte = 'Usinas eólicas e solares da região exportadora, conforme critério de rateio';
+    resolve = 'Reforço de rede, compensação reativa, controles e modelos dinâmicos aderentes ao desempenho real';
+    expl =
+      'Com o limite de exportação atingido, a geração local excede o que a carga da região consome mais o que a rede consegue levar para fora. Esta é a causa que reforço de transmissão efetivamente resolve. Vale registrar o que a fez crescer: a revisão dos modelos matemáticos das usinas renováveis após uma perturbação relevante de 2023 reduziu a capacidade de escoamento calculada — o limite não encolheu por conservadorismo do operador, encolheu porque passou a refletir o desempenho real das usinas em contingência.' +
+      (noturno
+        ? ' Nos patamares noturnos, com vento forte e carga do sistema em transição, o limite de exportação é a restrição dominante e a solar não participa por ausência de recurso.'
+        : '');
+  } else if (n === 'lim') {
+    causa = 'Confiabilidade elétrica, de menor magnitude';
+    fonte = 'Usinas da região sob restrição local';
+    resolve = 'Reforço localizado e recomposição de margem de conexão';
+    expl = 'Fora das regiões exportadoras estruturais, o limite atingido tende a ser interno e localizado, e não uma fronteira de intercâmbio regional. O efeito é menor em volume e mais concentrado em poucas usinas. O diagnóstico correto exige identificar qual inequação ou qual limite interno foi violado, porque a solução é específica do ponto.';
+  } else {
+    causa = 'Sem corte esperado nesta configuração';
+    fonte = '—';
+    resolve = 'Nada a resolver: é o estado normal de operação';
+    expl = p === 'P4'
+      ? 'No patamar de ponta, a carga está no máximo e a geração solar já cessou. O problema deste patamar é o oposto do corte: é a rampa de subida que exige hidráulica, térmica, armazenamento e intercâmbio respondendo em poucas horas. Nas análises prospectivas do operador, este intervalo aparece com praticamente nenhuma hora sob restrição, o que sugere que as interligações regionais estão bem dimensionadas para a ponta.'
+      : 'Na madrugada, a carga é baixa mas a solar não gera e a hidráulica já opera próximo do piso. O vento pode estar alto, especialmente no Nordeste, mas o balanço fecha sem necessidade de corte na maior parte dos casos. É o patamar mais tranquilo do dia — e é útil lembrar disso quando alguém descreve o corte de geração como um problema permanente: ele é um problema de janela horária.';
+  }
+
+  const cabeca = [
+    `<b>Causa predominante</b> — ${causa}`,
+    `<b>Sobre quem recai</b> — ${fonte}`,
+    `<b>O que efetivamente resolve</b> — ${resolve}`,
+    `<b>Carga líquida no patamar</b> — ${cargaBaixa ? 'Baixa' : 'Elevada'}`,
+  ].join('<br>');
+  return {
+    valores: {},
+    veredito: `${cabeca}<br><br>${expl}<br><br><b>Quem nunca é cortado.</b> Em todas as configurações acima, a micro e minigeração distribuída permanece inalterada, porque ela não está sob comando do operador. O ônus da restrição recai integralmente sobre a geração centralizada — que não é quem causa o desequilíbrio, é quem pode ser chamada a corrigi-lo. Essa assimetria é problema de desenho de regra, não de tecnologia.`,
+  };
+}
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -2330,6 +2405,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 08 · termometro hidrologico · estoque x fluxo ──
   'm08-inst-08': i8calcM08,
+
+  // ── m08 INST 09 · anatomia do corte · causa, hora e quem paga ──
+  'm08-inst-09': i9calcM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

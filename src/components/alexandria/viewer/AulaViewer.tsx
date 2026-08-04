@@ -1,13 +1,30 @@
 // AulaViewer — a aula completa.
 //
 //   VideoArea (estado "em produção" nas nove)
-//   → abas: Referência Técnica · Apostila · Notas · Transcrição
+//   → Apostila — o corpo da aula, conteúdo de página
 //   → InstrumentPanel, onde a aula tiver instrumento
-//   → ExercicioBlock ao final
+//   → ExercicioBlock
+//   → MaterialComplementar — referência real, ou a ausência declarada
 //   → ConclusaoAula — LYCEUM Wave 31, ver abaixo
 //
-// Aba sem conteúdo real mostra estado próprio dizendo por quê — nunca
-// painel vazio sem explicação. Mesma disciplina do módulo em produção.
+// ESTRUTURA DE ABA DESFEITA — LYCEUM Wave 39. Até aqui havia um tab strip
+// de quatro abas: Referência técnica · Apostila · Notas · Transcrição. A
+// auditoria mediu o que ele de fato governava e o achado inverteu o
+// diagnóstico esperado: instrumento, exercício e conclusão JÁ estavam
+// fora do sistema de aba. O problema era o contrário — a Apostila é o
+// corpo INTEIRO da aula (89 a 194 blocos, conforme o módulo), e o tab
+// strip permitia trocá-la por um parágrafo de três linhas dizendo que
+// não existe conteúdo. Três das quatro abas eram estado vazio, então o
+// controle não oferecia alternativa nenhuma: só oferecia dispensar a
+// aula.
+//
+// Composição nova: a Apostila sai do sistema de aba e vira conteúdo de
+// página — nunca atrás de um controle que a dispense, mesmo registro do
+// instrumento e do exercício. As três ausências viram UM bloco só ao
+// final, declarando cada uma com a razão real, no lugar de quatro
+// controles fingindo navegação. Quando `references` for populado (a
+// extração alcançar o § Ref), a referência aparece ali como conteúdo de
+// verdade — a decisão é derivada de `aula.references`, não digitada.
 //
 // PROGRESSO REAL — LYCEUM Wave 31. `aula_iniciada` dispara uma vez por
 // `aula.id` genuinamente aberta (dependência do efeito é `aula.id`, não
@@ -23,7 +40,7 @@
 // botão dedicado — `ConclusaoAula`, ao final, depois do `ExercicioBlock`.
 
 import { useEffect, useState } from 'react';
-import type { CurriculumAula } from '@/lib/types/alexandria';
+import type { CurriculumAula, LessonReference } from '@/lib/types/alexandria';
 import { getCorpoAula, getLeadAula } from '@/lib/data/alexandria-curriculo';
 import { recordEvent, type AulaStatusInfo } from '@/lib/progress/progressApi';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
@@ -32,19 +49,7 @@ import { ApostilaPanel } from './ApostilaPanel';
 import { InstrumentPanel } from './InstrumentPanel';
 import { ExercicioBlock } from './ExercicioBlock';
 
-type Aba = 'referencia' | 'apostila' | 'notas' | 'transcricao';
-
-const ABAS: { id: Aba; rotulo: string }[] = [
-  { id: 'referencia', rotulo: 'Referência técnica' },
-  { id: 'apostila', rotulo: 'Apostila' },
-  { id: 'notas', rotulo: 'Notas' },
-  { id: 'transcricao', rotulo: 'Transcrição' },
-];
-
 export function AulaViewer({ aula }: { aula: CurriculumAula }) {
-  // Apostila é a única com conteúdo real hoje, então é a aba inicial.
-  const [aba, setAba] = useState<Aba>('apostila');
-
   // Resolvido pelo id da aula, não por módulo fixo — ver
   // `alexandria-curriculo.ts`.
   const blocos = getCorpoAula(aula.id);
@@ -96,75 +101,17 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xxl }}>
       <VideoArea video={aula.video} />
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {/* Faixa de abas. Ativa é fio de 2px embaixo — o mesmo idioma que o
-            handoff usa em tab strip. Nunca caixa, nunca pílula. */}
-        <div
-          role="tablist"
-          style={{ display: 'flex', gap: AS.xl, borderBottom: `1px solid ${A.fioSobreCreme}` }}
-        >
-          {ABAS.map((t) => {
-            const ativa = t.id === aba;
-            return (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={ativa}
-                type="button"
-                onClick={() => setAba(t.id)}
-                style={{
-                  ...AT.rotulo,
-                  fontSize: '10px',
-                  color: ativa ? A.tintaSobreCreme : A2.tintaMetadado,
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: `2px solid ${ativa ? A.terracota : 'transparent'}`,
-                  borderRadius: AR.none,
-                  padding: `0 0 ${AS.sm}`,
-                  marginBottom: '-1px',
-                  cursor: 'pointer',
-                  transition: `color ${AE.estado} ${AE.easing}, border-color ${AE.estado} ${AE.easing}`,
-                }}
-              >
-                {t.rotulo}
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={{ paddingTop: AS.xl }}>
-          {aba === 'apostila' && (
-            <ApostilaPanel lead={lead} blocos={blocos} gravuras={aula.illustrations} />
-          )}
-
-          {aba === 'referencia' && (
-            <AbaVazia
-              titulo="Sem referência nesta aula"
-              corpo="Os módulos extraídos reúnem as fontes numa seção própria de fim de módulo (§ Ref), não por aula — por isso `references` está vazio em todas elas. Quando a extração alcançar o aparato, elas aparecem aqui."
-            />
-          )}
-
-          {aba === 'notas' && (
-            <AbaVazia
-              titulo="Notas do aluno ainda não existem"
-              corpo="Anotar exige persistência por usuário, que a Alexandria ainda não tem. O primitivo de anotação da Wave 1 (leader-line, bracket, detail-frame) foi feito para esta camada."
-            />
-          )}
-
-          {aba === 'transcricao' && (
-            <AbaVazia
-              titulo="Sem transcrição"
-              corpo="Transcrição é derivada de vídeo, e nenhuma aula extraída tem gravação — os HTML de origem não trazem vídeo nenhum. O texto da aula está na Apostila, e é a aula inteira, não um resumo."
-            />
-          )}
-        </div>
-      </div>
+      {/* O corpo da aula. Conteúdo de página — nunca atrás de um controle
+          que possa dispensá-lo. */}
+      <ApostilaPanel lead={lead} blocos={blocos} gravuras={aula.illustrations} />
 
       {aula.instruments.map((inst) => (
         <InstrumentPanel key={inst.id} instrumento={inst} />
       ))}
 
       <ExercicioBlock atividades={aula.activities} />
+
+      <MaterialComplementar referencias={aula.references} />
 
       <ConclusaoAula
         status={status}
@@ -244,33 +191,102 @@ function ConclusaoAula({
   );
 }
 
-/** Aba sem conteúdo real. Diz o que falta e por quê — nunca vazio mudo. */
-function AbaVazia({ titulo, corpo }: { titulo: string; corpo: string }) {
+/** Material complementar — LYCEUM Wave 39, no lugar das três abas vazias.
+ *
+ *  Referência é a única das três que pode ter conteúdo real hoje, e a
+ *  decisão é DERIVADA de `aula.references`: com documento, ele renderiza
+ *  como conteúdo; sem, entra na lista de ausências ao lado das outras
+ *  duas. Nada aqui é digitado por módulo — quando a extração alcançar o
+ *  § Ref, esta seção passa a mostrar documento sozinha.
+ *
+ *  Uma declaração compacta em vez de três blocos empilhados: a regra de
+ *  densidade do produto vale também para o que NÃO existe. */
+function MaterialComplementar({ referencias }: { referencias: LessonReference[] }) {
+  // Notas e Transcrição são ausência estrutural, não de extração — cada
+  // uma com a razão real e atual, não a herdada.
+  const ausencias: [string, string][] = [
+    [
+      'Notas',
+      'A Alexandria registra progresso por conta desde a Wave 31, mas não guarda texto livre: o backend não tem tabela de anotação, e o único campo livre do log de progresso é de escrita, não de leitura. Anotar exige uma wave de backend antes de uma wave de interface.',
+    ],
+    [
+      'Transcrição',
+      'Derivada de vídeo, e nenhuma aula extraída tem gravação — os HTML de origem não trazem vídeo nenhum. O texto da aula está acima, inteiro, e não é resumo.',
+    ],
+  ];
+  if (referencias.length === 0) {
+    ausencias.unshift([
+      'Referência técnica',
+      'Os módulos extraídos reúnem as fontes numa seção de fim de módulo (§ Ref), não por aula — por isso `references` está vazio em todas elas. Quando a extração alcançar o aparato, os documentos aparecem aqui.',
+    ]);
+  }
+
   return (
-    <div
-      style={{
-        borderLeft: `3px solid ${A2.fioColunaSobreCreme}`,
-        padding: `${AS.sm} ${AS.lg}`,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: AS.sm,
-      }}
-    >
-      <span style={{ ...AT.h3, fontSize: '13px', color: A.tintaSuave, letterSpacing: '0.08em' }}>
-        {titulo}
-      </span>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: AS.md }}>
       <span
         style={{
-          ...AT.corpo,
-          fontSize: '14px',
-          lineHeight: 1.6,
+          ...AT.rotulo,
+          fontSize: '10px',
           color: A2.tintaMetadado,
-          maxWidth: '58ch',
+          paddingBottom: AS.xs,
+          borderBottom: `1px solid ${A.fioSobreCreme}`,
         }}
       >
-        {corpo}
+        Material complementar
       </span>
-    </div>
+
+      {referencias.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {referencias.map((r, i) => (
+            <a
+              key={r.id}
+              href={r.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                ...AT.corpo,
+                fontSize: '14px',
+                color: A.terracota,
+                textDecoration: 'none',
+                padding: `${AS.sm} 0`,
+                borderTop: i > 0 ? `1px solid ${A2.fioClaroSobreCreme}` : 'none',
+              }}
+            >
+              {r.title} · {r.source}
+            </a>
+          ))}
+        </div>
+      )}
+
+      <div
+        style={{
+          borderLeft: `3px solid ${A2.fioColunaSobreCreme}`,
+          padding: `${AS.xs} ${AS.lg}`,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: AS.sm,
+        }}
+      >
+        {ausencias.map(([titulo, corpo]) => (
+          <div key={titulo} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ ...AT.rotulo, fontSize: '10px', color: A.tintaSuave }}>
+              {titulo} — ainda não existe
+            </span>
+            <span
+              style={{
+                ...AT.corpo,
+                fontSize: '13px',
+                lineHeight: 1.55,
+                color: A2.tintaMetadado,
+                maxWidth: '62ch',
+              }}
+            >
+              {corpo}
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

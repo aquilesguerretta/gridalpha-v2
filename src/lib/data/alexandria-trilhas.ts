@@ -69,6 +69,13 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // Solar") diverge do catálogo, que traz o derivado da Wave 1 com
   // priority 'confirmar'. LYCEUM Wave 42.
   'bloco-11': 8,   // Energia Solar e Análise de Propostas (título do catálogo)
+  // SÉTIMO e último módulo da Trilha 2 — e é ele que a FECHA. 18 seções
+  // `sec-id`: 8 casam `Aula NN`, 10 são aparato. Com este bloco nenhum
+  // módulo do Nível 2 tem `totalAulas: null`, então `totalAulasPartial`
+  // da Trilha 2 passa a `false` SOZINHO — o campo é derivado, não
+  // digitado. Mesmo evento que a Wave 25 tratou para a Trilha 1.
+  // LYCEUM Wave 44.
+  'bloco-12': 8,   // Geopolítica Energética do Brasil
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

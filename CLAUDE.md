@@ -6972,3 +6972,218 @@ dirigindo o Chrome do sistema.
 - **Os onze instrumentos** — medidos e com dado extraído, não portados.
 - **§ Lex do Módulo 11** (150 termos) — glossário é escopo próprio.
 - **Módulos 09-11 têm HTML no repositório**; o Bloco 12 fecha a Trilha 2.
+
+## LYCEUM — ALEXANDRIA WAVE 44 — MÓDULO 12 · TRILHA 2 COMPLETA
+
+**Status:** fechada. **A TRILHA 2 FECHOU** — Setor Elétrico Brasileiro é
+a segunda trilha do currículo do zero à fluência, com os sete módulos
+extraídos e nenhum em `null`. **53 aulas.**
+
+**Arquivos:** `alexandria-modulo-12-content.ts` (NOVO, 1.743 linhas) ·
+`alexandria-instrument-calculators.ts` (+11) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+
+**Fonte:** `alexandria_modulo12.html` — 338.846 bytes (238.713 de markup
++ 100.133 de script).
+
+### Protocolo — divergência sinalizada na Fase 1, resolvida durante a wave
+
+Na leitura da Fase 1 o `extraction-protocol.md` tinha **dez** seções, não
+as onze que o brief citava — a Wave 43 ainda não havia reconciliado.
+Segui com o que existia e sinalizei, sem bloquear. A reconciliação
+(`b29a83d`) entrou durante a wave e o arquivo passou a **treze** seções,
+com a §11 sendo exatamente a disciplina que esta wave mais exercitou:
+«Backup local fica obsoleto no instante em que outra sessão escreve».
+
+### Catálogo confirmado, e o título CONFERE
+
+`bloco-12`: **level 2, track `'brasil'`, `illustrationPrefix: 'geo-'`**,
+priority `alta`, 4-5 h. O `<h1>` da fonte é literalmente **"Geopolítica
+Energética do Brasil"** — o mesmo do catálogo. Conferido porque título já
+divergiu duas vezes (Módulos 06 e 11), mas aqueles são `priority:
+'confirmar'`; este é `'alta'` e bate. Nenhuma pendência FOUNDRY aberta.
+
+Vocabulário: os oito seletores dos Módulos 01-03 dão **zero**; é o
+abreviado dos 04+ (`sec-id` 18, `lede` 17, `inst` 11, `det-bd` 22,
+`box` 24).
+
+### COBERTURA DE TEXTO — três estruturas que este módulo estreia
+
+Com o extrator herdado da Wave 41 a cobertura media **68,8% a 94,3%**,
+com DUAS aulas abaixo de 85% e outras duas na borda (87,0% e 88,3%). O
+diagnóstico por elemento-folha achou três estruturas novas:
+
+| estrutura | o que é | perda |
+| --- | --- | --- |
+| `div.gcmp` | grade `gk`/`gv` — rótulo + prosa | 1.019 chars na Aula 03 |
+| `div.tax` | taxonomia numerada `tax-n`/`tax-b` com selo `.st`, seis categorias | 1.693 chars na Aula 08 |
+| `div.dual` | cartões `dk`/`dv`/`dm` — rótulo, número grande, descrição | 933 chars entre as Aulas 01 e 07 |
+
+**Cobertura final: 91,7% a 94,3% nas OITO, zero abaixo de 85%.**
+
+| aula | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cobertura | 92,7% | 93,2% | 91,7% | 94,3% | 93,3% | 93,1% | 94,0% | 93,1% |
+| blocos | 19 | 17 | 16 | 17 | 18 | 19 | 21 | 21 |
+
+**148 blocos.** Trajetória: Aula 03 de 68,8→91,7%, Aula 08 de
+69,8→93,1%, Aula 01 de 87,0→92,7%, Aula 07 de 88,3→94,0%.
+
+### As três viraram `nota`, não `tabela` — e a razão é do renderizador
+
+Achado desta wave, ao inspecionar `ApostilaPanel`: o componente `Tabela`
+trata a **primeira linha como `<thead>`**. Usar `tabela` para essas três
+estruturas consumiria um par de dado real como cabeçalho, ou exigiria
+inventar um cabeçalho que a fonte não tem. `nota` (label + html) é
+exatamente o que modela rótulo mais prosa.
+
+**PENDÊNCIA REGISTRADA, não corrigida:** as tabelas chave/valor dos
+Módulos 08, 09 e 10 (`src-card`, `fi`) têm esse mesmo efeito — o primeiro
+par renderiza como cabeçalho. Não há perda de texto, só de hierarquia
+visual. Corrigir é wave própria; aqueles arquivos não são posse desta.
+
+### Contagem — prosa e markup CONCORDAM
+
+18 seções = **8 aulas + 10 de aparato**. §Ex com 14 `<details>`; §Lex com
+152 `.term`. `video: null` MEDIDO (zero `<video>`, `<iframe>`, youtube,
+vimeo, `.mp4`, `<audio>`).
+
+O §08.1 diz "Sete aulas sobre fluxo de capital estrangeiro" e a Aula 08
+abre com "As sete aulas anteriores entregaram material" — sete de
+conteúdo mais a síntese, oito no total. "Oito movimentos" é o
+instrumento, não contagem de aula. Sem divergência a registrar.
+
+### Instrumento — ONZE, dez de aula
+
+O `Inst · 01` vive no § MAP, fora de aula — mesmo tratamento do `LAB · 01`
+(M01) e dos `Inst · 01` dos M06, M07 e M10. As Aulas 01 e 08 têm DOIS
+cada. `kind` pela MECÂNICA: explorador 5 · calculadora 2 · comparador 1 ·
+quebra-cabeca 3.
+
+**Quirk corrigido antes de gerar:** o `Inst · 08` (Régua de maturidade)
+usa escala de **TRÊS estados** (0/1/2, máximo 18 em nove itens), não
+booleana — a primeira geração o tratou como Sim/Não. Os rótulos dos três
+estados são literais do array `s` de cada item na fonte.
+
+### Prova de fidelidade — 51 asserções, 0 divergências
+
+O `<script>` ORIGINAL executado em DOM shimado (`node:vm`), 11 casos
+cobrindo **todos os ramos** dos dois instrumentos aritméticos: INST 02
+nas três faixas (consistente, divergência moderada, divergência alta) mais
+o limite de eletricidade a 100%; INST 09 nos sete ramos — extrema, nula,
+entrada incoerente, alta, moderada, proporcional e produção acima da
+reserva. Confrontado no formato do original, incluindo o `pc()` de
+precisão variável por magnitude (que existe para 0,005% não virar
+"0,0%").
+
+**Nota de método, confirmando a §8 do protocolo:** o veredito voltava
+vazio na primeira rodada. Não era a porta — o script original quebra em
+`$id('sg-b1').style` (nó de barra não registrado no shim) **antes** de
+escrever o veredito. Defeito do harness, como em toda falha de fidelidade
+investigada até a causa desde a Wave 38.
+
+Smoke dos onze com os `defaultValue` semeados como o `InstrumentPanel`
+faz: **11 limpos**, zero NaN/undefined/[object. Regressão: **96
+calculadoras registradas** (85 + 11), todas sem exceção com entrada
+vazia; M01 INST 01 = 50 kWh e M10 INST 03 = 84,2% conferem.
+
+### Gravura — 5 de 10, e dois falsos positivos novos
+
+| Aula | Gravura | Frase que decidiu |
+| --- | --- | --- |
+| 01 | `geo-05-canavial-colheitadeira` | §01.4 "Etanol: protagonismo real, com o segundo lugar dito por extenso" |
+| 02 | `geo-08-globo-terrestre` | a aula É "COP30 e o ciclo climático" |
+| 03 | `geo-10-painel-solar-container` | "Camada 2 · Cadeia de equipamento", subseção declarada sobre módulo fotovoltaico |
+| 06 | `geo-07-cilindro-hidrogenio` | "O hidrogênio é o tema deste bloco" |
+| 07 | `geo-06-amostras-minerio` | a aula É "Minerais críticos e estratégicos" |
+
+**Cinco não mapeadas, e DUAS levam a série de falso positivo do protocolo
+de dez para doze:**
+
+- **`geo-01-plataforma-petroleo`** — os hits de "plataforma" são
+  "posicionamento da **plataforma**" (analítica) e "**plataformas** de
+  dados estrangeiras". "pré-sal" dá ZERO no módulo inteiro, e "petróleo"
+  aparece como unidade de medida (tep), fatia da matriz e classe
+  tarifária — nunca a plataforma como assunto.
+- **`geo-09-arvore-amazonia`** — "desmatamento" aparece como TEMA DE
+  NEGOCIAÇÃO: ausência de linguagem no texto da COP30, item acionável da
+  investigação americana, exigência de rastreabilidade europeia. Nenhuma
+  aula trata a floresta como assunto.
+
+As outras três: `geo-02-navio-cargueiro` e `geo-04-gasoduto` com zero
+ocorrência; `geo-03-porto-guindastes` com dois hits incidentais.
+
+### Exercício: 14, todos soltos
+
+Varredura por `/[Aa]ula\s*\d+/` no enunciado E no gabarito dos catorze
+devolve **zero**. Padrão desde o Módulo 04.
+
+### Sessão paralela — a §11 exercitada, e um falso alarme verificado
+
+A Wave 43 (Módulo 11) estava em voo sobre
+`alexandria-instrument-calculators.ts`. O `git diff --stat` bruto
+mostrava **6.477 linhas** alteradas; com `-w --ignore-cr-at-eol`, a
+mudança real era de **83 inserções** — o resto era reescrita de fim de
+linha. Medir isso antes de agir foi o que tornou a operação possível.
+
+Procedimento: versão a commitar **reconstruída a partir do `HEAD`** com
+apenas as minhas inserções, `tsc` verificado, commit com pathspec
+explícito. O merge de três vias falhou (o diff de fim de linha faz o
+merge ver o arquivo inteiro como conflito), então a devolução foi por
+**patch por âncora de texto** sobre os hunks reais deles.
+
+**Falso alarme verificado, não presumido:** o registro `m11-inst-04` não
+aparecia no arquivo, e a hipótese óbvia era que meu commit tivesse
+revertido trabalho alheio. `git show --numstat` sobre o meu commit:
+**105 inserções, 0 remoções** — puramente aditivo. O `m11-inst-04` ausente
+é o registro deles como `m11-inst-05`, decisão própria. A §11 diz para
+verificar o estado real antes de restaurar; verificar antes de *acusar*
+é o mesmo princípio.
+
+### A Trilha 2 fechou — e o campo é derivado, não digitado
+
+`totalAulasPartial` é `modules.some((m) => m.totalAulas === null)`. Não há
+campo para editar: acrescentar `'bloco-12': 8` ao `AULAS_POR_BLOCO` faz o
+valor virar `false` sozinho. Mesmo evento que a Wave 25 tratou para a
+Trilha 1, e a mesma checagem de consumidor foi refeita antes de mudar o
+valor: o único é `TrilhaCard.tsx:108`, que apenas deixa de renderizar a
+ressalva "· N de M módulos com fonte". **Nenhum componente precisou
+mudar.**
+
+| Trilha | totalAulas | parcial | módulos com fonte |
+| --- | --- | --- | --- |
+| 1 · Fundamentos Universais | 42 | false | 5/5 |
+| 2 · Setor Elétrico Brasileiro | **53** | **false** | **7/7** |
+| 3 · Especialização Estratégica | null | true | 0/5 |
+
+### Verificação por clique real
+
+As oito aulas abertas uma a uma: "AULA N DE 8", **5 gravuras com
+`naturalWidth` 1536×1024** exatamente nas aulas mapeadas (1, 2, 3, 6, 7),
+zero NaN, zero erro de console. A taxonomia recuperada renderiza com os
+selos de status ("Padrão preferido", "Proibido", "Zona cinzenta") e os
+dois instrumentos da Aula 08 estão presentes.
+
+Interação real: no INST 09 da Aula 07, subir a produção nacional de 0,02
+para 60 kt/ano vira o veredito de **"Assimetria extrema"** para
+**"Assimetria moderada"** — a faixa correta do original.
+
+**Hub:** Trilha 2 com "53 aulas confirmadas", **sem a ressalva de
+parcial**, igual à Trilha 1; só a Trilha 3 mantém "Conteúdo em produção".
+Rodapé em "12 de 17 módulos verificados".
+
+Regressão nos módulos já fechados: M01 a3 (1024/1536/1024), M03 a6
+(3×1536), M05 a1 (zero, como deve), M06 a3 (3×1024), M07 a1 (2×1024),
+M09 a4 (1536), M10 a5 (1536), M11 a1 (zero) — todas carregando, zero NaN.
+
+Zero overflow horizontal em 1440×900 e 1920×1080, com `window.innerWidth`
+medido antes de confiar em qualquer medida (§13). Screenshots das Aulas
+06 e 08 e do hub.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem os
+**7 pré-existentes** em `nest/student/{ProjectSandbox,SandboxTrading}`
+(Recharts, desde a Wave 3), mais os erros transitórios da Wave 43 em voo
+(`M11_ESCADA_FIOB`), que não são desta wave. `gridalpha-detect` sobre os
+arquivos da wave — "No findings. Surface is clean." `git diff --stat`
+real conferido antes de cada um dos quatro commits e antes da única
+restauração em arquivo compartilhado.

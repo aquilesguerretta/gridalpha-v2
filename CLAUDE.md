@@ -5936,3 +5936,182 @@ em commit nenhum.
   endpoints) antes de qualquer wave de interface.
 - **Conta de teste deixada no banco** — mesma pendência das Waves 23, 26
   e 31; sem endpoint de exclusão no contrato.
+
+## LYCEUM — ALEXANDRIA WAVE 38 — INSTRUMENTOS PENDENTES
+
+**Status:** fechada. Os dez instrumentos do Módulo 08 que a Wave 32
+deixou declarados como `instruments: []` estão portados, e os dois
+`Inst · 01` dos Módulos 06 e 07 — que existiam só como referência em
+prosa — são dado real. **Doze commits, um por instrumento**, nenhum em
+lote.
+
+**Arquivos:** `alexandria-modulo-08-content.ts` ·
+`alexandria-modulo-06-content.ts` · `alexandria-modulo-07-content.ts` ·
+`alexandria-instrument-calculators.ts` · `RecursosDoModulo.tsx` (uma
+linha de registro por módulo — ver "desvio de posse" abaixo).
+
+### Método: execução do script ORIGINAL em DOM shimado
+
+Nenhum cálculo foi rederivado. Cada porta foi confrontada contra o
+`<script>` da fonte EXECUTADO num DOM simulado, mesmo método que a Wave
+34 usou no Reconstrutor. Condicional aninhada foi testada ramo por
+ramo, por comparação de string, nunca por inspeção visual — a lição do
+bug do INST 07 do Módulo 06 (Wave 29), em que a linearização de
+`if(grupo===1){…} else {…}` produziu veredito errado.
+
+Onde o espaço de entrada é finito e pequeno, a prova cobre o espaço
+INTEIRO em vez de amostrar.
+
+### Os dez do Módulo 08, com fidelidade individual
+
+| Inst | Nome | `kind` | Fidelidade | Cobertura |
+| --- | --- | --- | --- | --- |
+| 01 | Mapa físico · geração × escoamento | explorador | **169/169** | espaço inteiro: 3 fluxos × 14 nós |
+| 02 | Conversor de três eixos | comparador | **114/114** | 8 cenários, 2 clamps, divisão por zero |
+| 03 | Fator de capacidade | calculadora | **80/80** | as 6 fontes, os 4 ramos, 3 clamps |
+| 05 | Leitura lateral | explorador | **57/57** | espaço inteiro: 7 campos × 6 fontes |
+| 06 | Curvas de complementaridade | quebra-cabeça | **80/80** | 3 escalas × 5 configurações, 4 ramos |
+| 07 | Calendário sazonal | explorador | **110/110** | espaço inteiro: os 12 meses |
+| 08 | Termômetro hidrológico | simulador | **125/125** | 4 quadrantes × úmido/seco, 7 fronteiras |
+| 09 | Anatomia do corte | simulador | **480/480** | **espaço inteiro: 96 combinações** |
+| 10 | Perfil de carga | simulador | **100/100** | 4+3 faixas, condicional, 4 clamps |
+| 11 | Roteador de recorte | explorador | **253/253** | **espaço inteiro: 36 combinações** |
+
+**1.568 asserções, zero divergência.** O Inst · 04 (Reconstrutor) já
+tinha sido portado pela Wave 34 e não é desta wave.
+
+### Os dois `Inst · 01` materializados
+
+| Módulo | Nome | Fidelidade | Cobertura |
+| --- | --- | --- | --- |
+| 06 | Linha do tempo · quatorze marcos | **58/58** | os 14 marcos + 2 grampos |
+| 07 | Mapa institucional · autoridade × dado | **263/263** | espaço inteiro: 3 fluxos × 8 órgãos |
+
+Os dois viviam no § MAP, fora de qualquer aula. As Waves 29 e 30
+registraram que existiam na fonte e não entravam; a taxonomia da
+FOUNDRY Wave 4 os listou como «mencionados em comentário, nunca
+materializados como dado». Agora são `Instrument` real, e vão em
+Recursos do Módulo — mesmo caminho do `LAB · 01` do Módulo 01.
+
+**Achado da Fase 3:** os dois NÃO eram "chips clicáveis sem campo nem
+saída", como a taxonomia supunha. O do Módulo 06 são 14 marcos com ano,
+título, corpo e legado; o do Módulo 07 são 8 órgãos com ficha de seis
+linhas cada. É conteúdo denso — a suposição de que não havia o que
+extrair estava errada, e a taxonomia merece a correção.
+
+### `InstrumentKind` não precisou crescer
+
+Os doze couberam nos dez membros existentes. Duas decisões por
+MECÂNICA, contra o nome, na disciplina que o catálogo já firmou:
+
+- **INST 06 "Curvas de complementaridade" → `quebra-cabeca`.** Cinco
+  chaves booleanas independentes que montam um portfólio e devolvem
+  diagnóstico é o Inst · 09 do Módulo 03, já catalogado assim.
+  "Curvas" descreve o SVG, que é a parte que não porta.
+- **INST 08 "Termômetro hidrológico" → `simulador`.** É a **terceira**
+  ocorrência do nome "Termômetro" no currículo e a terceira mecânica
+  distinta — Módulo 05: 8 chaves com peso (`quebra-cabeca`); Módulo 06:
+  balanço numérico (`simulador`); aqui: posição em quadrante. Confirma
+  a regra do catálogo com um terceiro caso.
+
+### Dado gerado, não transcrito
+
+Sete dos doze carregam tabela grande (14 nós, 7×6 textos, 3×7 séries de
+12 pontos, 12 meses, 18 fichas de 5 campos, 14 marcos, 8 órgãos). Todas
+foram GERADAS por parse do literal do `<script>` mais emissão de TS —
+zero transcrição manual, zero risco de erro de digitação.
+
+### Perdas declaradas, não silenciosas
+
+- **Desenho não porta.** Duas pizzas SVG, gráfico de seis linhas, mapa
+  do Brasil, quadrante, calendário e mapa institucional ficam de fora —
+  o painel não tem slot. O **conteúdo numérico e textual** deles entra
+  como saída ou veredito. No INST 02 isso significou 12 saídas de fatia:
+  descartá-las seria a perda silenciosa que a Wave 37 flagrou nos
+  `src-card`.
+- **Saída de texto continua sem casa.** `ResultadoInstrumento.valores` é
+  `Record<string, number>`, então quadrante, tendência, causa, "sobre
+  quem recai" e as fichas inteiras vão no veredito. **Quinta wave
+  seguida** com essa limitação (19, 24, 25, 29, agora 38) — não é mais
+  ocorrência isolada, é pendência de contrato madura.
+- **Preset com efeito colateral não reproduz.** O "Carregar fotografia
+  de" do INST 08 não alimenta o cálculo: ele REESCREVE os dois campos
+  numéricos. Função pura não faz isso, e mantê-lo como select produziria
+  controle morto — as quatro fotografias entram como dado declarado na
+  nota. Mesma classe que a Wave 19 sinalizou no INST 08 do Módulo 03.
+
+### Desvio de posse, declarado
+
+`RecursosDoModulo.tsx` é componente, e o brief manda nunca modificar
+componente. Mas o registro módulo → instrumentos mora dentro dele (a
+própria Wave 34 registrou isso ao criá-lo, porque o resolvedor estava
+fora de posse), e sem uma linha ali os três instrumentos de módulo não
+alcançam tela nenhuma. A mudança é um import e a troca de
+`instrumentos: []` pelo array, em três linhas — zero mudança de
+composição, de layout ou de lógica de render. Mesmo precedente da Wave
+15, que saiu da posse por uma string quando não havia outro caminho
+para entregar a fase.
+
+### Regressão: 120 de 120
+
+Os **56 instrumentos preexistentes** rodados com os defaults semeados
+EXATAMENTE como o `InstrumentPanel` faz — primeiro paint limpo em
+todos, zero NaN, zero `undefined`, zero exceção. Mais os valores que
+cada wave documentou, conferidos um a um: M01 INST 01 = 50 kWh (Wave 4)
+· M02 INST 02 = 1.215,47 A / 39 MW / 3,9 % (Wave 18) · M03 INST 06 =
+CMO 150 (Wave 19) · M07 INST 04 = 450/90/90 (Wave 30) · LAB 01 =
+reativo R$ 3.200 / fatura R$ 68.825 (Wave 34) · Reconstrutor nas duas
+rodadas = 6 acertos e erro 0, e o caso "faltando" com `valores` vazio.
+As **três correções pós-Wave-34** seguem de pé: `m06-inst-08` sem
+`undefined` nos rótulos, `ehDiagrama` ancorado no `inst-05`, veredito do
+M07 renderizando `<b>` real.
+
+**Nota de método:** as primeiras rodadas de regressão acusaram falha
+falsa porque chamavam a calculadora com entrada VAZIA. O painel sempre
+semeia os `defaultValue`, e as calculadoras preexistentes contam com
+isso — as novas desta wave têm fallback próprio e por isso passavam. O
+harness é que estava errado, não o código. Mesmo padrão apareceu três
+vezes nesta wave (clamp do INST 02, `i5render` do INST 05, parser de
+readouts do INST 08): **toda falha de fidelidade investigada até a
+causa foi defeito do teste, nunca da porta.**
+
+### Verificação por clique real (1440×900 e 1280×800)
+
+As sete aulas do Módulo 08 abertas uma a uma: os instrumentos certos em
+cada uma (1→02+03, 2→04cap+04ger+05, 3→06+07, 4→08, 5→09, 6→10, 7→11),
+**zero NaN em todas**. INST 02 no primeiro paint em 261 GW / 761,44
+TWh/ano / 33,3 % / 2 trocas, com as fatias de capacidade em 42,22 /
+24,83 / 13,3 / 6,7 / 12,18 / 0,77 — **as mesmas de `M08_INST04_REF.cap`,
+o gabarito que o Reconstrutor da Wave 34 já usava**. Cross-validação
+independente entre dois instrumentos da mesma fonte.
+
+Interação real conferida: trocar a fonte do INST 03 de hidrelétrica
+para solar move a faixa de 40-60 % para 20-30 % e vira o veredito para
+"Acima da faixa típica de Solar" (45,66 % contra teto de 30 %). Trocar o
+órgão do M07 INST 01 de CNPE para ONS troca a ficha inteira.
+
+Os três `Inst · 01` renderizando em Recursos do Módulo nos módulos 06,
+07 e 08. Zero erro de console, zero overflow horizontal.
+
+### Registrado, não resolvido
+
+- **`docs/alexandria/instrument-taxonomy.md` está desatualizado em três
+  pontos** (posse FOUNDRY): não reflete o 10º kind `reconstrutor`
+  (pendência que a Wave 34 já tinha aberto), conta 54 instrumentos
+  quando agora são **68**, e descreve os `Inst · 01` dos Módulos 06/07
+  como não materializáveis — o que esta wave desmentiu.
+- **Saída textual sem casa em `valores`** — a pendência de contrato
+  acima, agora com cinco waves de evidência.
+- Os toggles do INST 07 do Módulo 06, sinalizados na Wave 29, seguem
+  não portados; não são desta wave.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos da wave (seguem só os 7
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
+sobre os 5 arquivos — "No findings. Surface is clean."
+
+**Nota de sessão:** o INST 02 foi commitado por uma sessão paralela
+dentro do commit `f955e62` ("wave 36 filters immersive only"), que
+estava usando `git add -A`. O código está correto e na branch; só a
+atribuição ficou errada, e o histórico não foi reescrito porque o
+commit já estava pushado numa branch com outras sessões ativas. Os
+outros onze commits desta wave são individuais e limpos.

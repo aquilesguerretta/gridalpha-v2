@@ -7510,3 +7510,198 @@ is clean."
   10-14 nem o 10º kind `reconstrutor`. Posse FOUNDRY.
 - **Commit `6e41144` com mensagem trocada** — conteúdo da Wave 44 sob
   mensagem da 43. Não reescrito (já pushado, branch com quatro sessões).
+
+## LYCEUM — ALEXANDRIA WAVE 46 — MÓDULO 14
+
+**Status:** conteúdo fechado, verificado e registrado. **Instrumentos NÃO
+portados** — declarado, com a razão real (abaixo). Segundo módulo da
+Trilha 3, que passa a 16 aulas em 2 de 5 módulos.
+
+**Arquivos:** `alexandria-modulo-14-content.ts` (NOVO, 509 linhas) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+`alexandria-instrument-calculators.ts` **intocado**.
+
+### Catálogo e título — confirmados, não herdados
+
+`bloco-14` no catálogo real: **level 3, track `'brasil'`, título
+"Biocombustíveis e Bioenergia", `illustrationPrefix: null`**, priority
+`media`. O título da FONTE **bate com o catálogo** — `<title>` e `<h1>`
+trazem a mesma string, literal. Sem a divergência que o Módulo 11 teve
+(protocolo §7).
+
+Estado real da Trilha 3 no início da wave: **zero** módulos registrados.
+Nível 3 são os blocos 13-17; o `bloco-13` da Wave 45 entrou durante esta
+wave, e o `bloco-14` é o segundo.
+
+### Contagem por três sinais — todos concordando
+
+18 seções = **8 aulas + 10 de aparato**. É a primeira vez na série em que
+a prosa do hero declara TODOS os quatro números e o markup confirma cada
+um, sem divergência a registrar:
+
+| sinal | hero declara | markup |
+| --- | --- | --- |
+| aulas | 8 | 8 seções casando `Aula NN` |
+| instrumentos | 10 | 10 `div.inst` |
+| exercícios | 14 | 14 `<details>` no §Ex |
+| termos | 158 | 158 `.term` no §Lex |
+
+### Cobertura de texto — o gate, medido por token
+
+Medida sobre o corpo de cada aula com o markup dos instrumentos
+descontado do denominador. **135 blocos** nas oito:
+
+| aula | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cobertura | 99,5% | 99,8% | 99,8% | 99,8% | 99,8% | 99,9% | 99,9% | 99,9% |
+| blocos | 20 | 16 | 14 | 15 | 16 | 16 | 20 | 18 |
+
+Nenhuma aula abaixo de 85%, e nenhuma precisou de segunda rodada — o
+walker de árvore foi escrito já cobrindo as dezoito estruturas que a
+Fase 1 inventariou. Por kind: 38 titulo · 50 paragrafo · 7 formula ·
+22 nota · 4 lista · 14 tabela. Zero campo vazio.
+
+### Quatro estruturas novas, e o `kind: 'formula'` estreando
+
+O módulo mistura estruturas que o protocolo já registrou como perdidas
+antes — `div.emp` (as **6 fichas de rota** que o hero declara, 48 pares
+chave/valor, mesma natureza do `src-card` do M08 e do `div.fi` do M09),
+`div.dual`, `div.est`, `div.lv`, `div.scroll > table`, `<ol>` — mais
+**quatro próprias do domínio**:
+
+| estrutura | o que é |
+| --- | --- |
+| `div.saf` | calendário de safra por cadeia, mês a mês (maiúscula = ativo) |
+| `div.rt` | os três destinos concorrentes do bagaço |
+| `div.flux` | as três grandezas de cogeração que não se convertem |
+| `div.clk` | linha do tempo normativa do RenovaBio |
+
+`div.fx` (7 ocorrências) mapeia em **`kind: 'formula'`** — membro que o
+contrato tem desde a Wave 4 e que **nenhum módulo anterior havia usado**.
+
+### Vocabulário de commodity agrícola — a pista se confirma
+
+O brief trazia "A Safra de Energia" como pista não confirmada. **Bate com
+a fonte**: as aulas 01-03 são cana e etanol, 04 é biodiesel, 05 é bagaço
+e cogeração, 06 é biogás e biometano, 07 é RenovaBio e CBIO. É o primeiro
+módulo do currículo a integrar vocabulário de commodity agrícola a
+vocabulário de energia — ano-safra, ATR, mix açúcar-etanol, moagem,
+bagaço, vinhaça, palha, hidratado × anidro, CBIO, Centro-Sul.
+
+**A consequência de extração está no eixo temporal.** O módulo inteiro
+gira em torno de **ano-safra não ser ano-calendário** (ciclo abril-março
+contra janeiro-dezembro), e é por isso que nenhum número daqui é
+diretamente comparável a estatística elétrica sem declarar a base. Os
+números foram preservados com a base temporal colada, como a fonte os
+escreve — nenhuma normalização silenciosa.
+
+Nenhum termo novo foi forçado a correspondência com gravura ou com
+vocabulário anterior por semelhança fraca, que é o que a regra proíbe.
+
+### Gravura: zero, com dois sinais concordando
+
+`illustrationPrefix: null` no catálogo **E** zero `<img>` no markup —
+os dois sinais concordando, o mesmo caso do Módulo 11 (protocolo §7).
+`illustrations: []` nas oito, e nenhuma biblioteca de outro bloco foi
+puxada por semelhança de tema. Verificado na tela: **zero `<figure>`**
+nas oito aulas, sem placeholder e sem buraco.
+
+Os quatro `<img>` que cada aula reporta são as gravuras `orn-` da
+cartela do rodapé, que vive dentro do `<main>` desde a revisão
+pós-Wave 16 — exatamente o falso positivo que o protocolo §10 registra,
+identificado por `src` e não presumido.
+
+### Exercícios: 14, todos soltos
+
+Varredura por `/[Aa]ula\s*\d+/` no resumo, no enunciado E no gabarito
+dos catorze devolve **zero**. Sétimo módulo seguido no padrão do
+protocolo §4. A tag literal da fonte fica em `config.tag`.
+
+`video`, `durationMinutes` e `difficulty`: **null medidos** — zero
+`<video>`, `<iframe>`, youtube, vimeo, `.mp4` e `<audio>` no arquivo.
+
+### O defeito que só a verificação por clique pegou
+
+As sete fórmulas mostravam `<b>não equivale</b>` como **texto literal**
+na tela. Causa: o `ApostilaPanel` renderiza `formula.desc` e `formula.eq`
+como texto puro React (`{b.desc}`), sem `dangerouslySetInnerHTML` —
+diferente de `paragrafo.html`, `nota.html`, `lista.itens` e das células
+de tabela, que os quatro passam por HTML. O extrator preservava o inline
+da fonte em `desc` como faz nos campos que aceitam HTML.
+
+Corrigido na origem (`texto()` em vez de `inline()`), 7 blocos, e
+reverificado na tela: zero HTML literal em toda a aula. **Leitura de
+código não teria pego** — é o tipo de defeito que só aparece renderizado.
+
+### Colisão com sessão paralela — tratada sem sobrescrever nada
+
+A Wave 45 (Módulo 13) estava escrevendo nos MESMOS arquivos
+compartilhados, sem ter commitado, e o **HEAD mudou duas vezes durante
+esta wave**. `git commit <path>` teria levado o trabalho não commitado
+dela junto — o trap do commit `f955e62`.
+
+Técnica usada (protocolo §11): as inserções foram aplicadas na árvore de
+trabalho de forma **aditiva**, ao lado das dela; o que foi **estagiado**
+é um blob SINTETIZADO a partir do HEAD corrente mais somente a minha
+inserção, via `hash-object` + `update-index --cacheinfo`. A árvore de
+trabalho nunca foi sobrescrita, então nada em voo se perdeu.
+
+Verificado antes do commit, como passo separado: staged com 15 inserções
+e **zero deleção**; nenhuma linha adicionada contendo `MODULO_13` ou
+`bloco-13`; e o blob estagiado **preservando** o trabalho já commitado
+dela (`MODULO_13` seis vezes, `bloco-13` uma).
+
+Nota de método: na entrada da wave, `git status` acusou 98 linhas
+modificadas em dois arquivos compartilhados que se provaram **índice
+velho com normalização de fim de linha pendente**, não trabalho alheio —
+`git update-index --refresh` resolveu. Ler o diff real antes de agir
+evitou um stash desnecessário sobre nada.
+
+### INSTRUMENTOS NÃO PORTADOS — e por quê
+
+A fonte tem **dez**: um no § MAP (fora de aula, destino Recursos do
+Módulo) e nove em aula, com a **Aula 08 tendo dois**. São ~68 KB de
+lógica de script, escala da Wave 38 inteira.
+
+Não foram portados porque o arquivo que os receberia
+(`alexandria-instrument-calculators.ts`) estava com **outra sessão
+escrevendo dentro dele durante toda esta wave** — o `m11-inst-07` e o
+`m11-inst-08` da Wave 43/45, não commitados, com o diff mudando entre
+duas leituras minhas (77 → 66 linhas). Portar ali exigiria a técnica de
+reconstrução de três vias sobre um alvo em movimento, que é precisamente
+o cenário em que o protocolo §11 registra perda de 494 linhas.
+
+Mesma decisão que as Waves 32 e 37 tomaram pelo mesmo motivo, e pelo
+mesmo critério: `instruments: []` **declarado**, nunca silencioso. O
+conteúdo de apostila, os exercícios e o registro estão completos e
+verificados.
+
+### Verificação por clique real
+
+Hub → Trilha 3 mostra **"16 aulas confirmadas · 2 de 5 módulos com
+fonte"**, somando o bloco-13 da Wave 45 ao bloco-14 desta. Módulo 14
+lista as oito aulas com título e subtítulo reais. As oito abertas uma a
+uma: "AULA N DE 8", zero `<figure>`, zero NaN, tabelas renderizando (a
+Aula 08 com **6** — as fichas de rota), 7,6 mil a 15,3 mil caracteres de
+corpo. Zero erro de console, zero overflow horizontal de página.
+
+Regressão nos módulos já fechados, com `naturalWidth` lido no DOM depois
+de rolar para disparar o lazy: M01 a3 3/3 · M02 a3 3/3 · M03 a6 3/3 ·
+M06 a3 3/3 · M07 a1 2/2 · M09 a4 1/1 · M13 a1 0/0 (correto, sem
+prefixo). `window.innerWidth` medido em 1440 antes de acreditar em
+qualquer medida de layout (protocolo §13).
+
+**Gates:** `tsc -b` — **0 erros nos arquivos da wave**; permanecem os
+**7 pré-existentes** fora dela, em `nest/student/*` (Recharts).
+`gridalpha-detect` sobre os três arquivos — "No findings. Surface is
+clean."
+
+### Registrado, não resolvido
+
+- **Os dez instrumentos** — medidos e localizados, não portados (acima).
+- **As fichas de rota rendem tabela larga** (2.216 px na Aula 08), com
+  `overflow-x: auto` do próprio componente `Tabela` e sem overflow de
+  página. É o mesmo mapeamento que M08 e M09 já usam para ficha; encurtar
+  o texto da fonte para caber seria perda de conteúdo.
+- **§ Lex do Módulo 14** (158 termos) não extraído — glossário é escopo
+  próprio, fechado até o Módulo 08 na Wave 34.

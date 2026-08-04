@@ -24,6 +24,7 @@ import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { getMyProgress, type MyProgress } from '@/lib/progress/progressApi';
 import { getAula, TOTAL_AULAS_EXTRAIDAS } from '@/lib/data/alexandria-curriculo';
 import { ALEXANDRIA_BADGES } from '@/lib/data/alexandria-badges';
+import { BADGES_SEM_REGRA, contarBloqueios } from '@/lib/progress/badgeRules';
 import { getTrilhaByLevel, getModuleById } from '@/lib/data/alexandria-trilhas';
 import type { CurriculumAula, Badge } from '@/lib/types/alexandria';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
@@ -349,10 +350,7 @@ function ProgressoSecao() {
         </div>
       )}
 
-      {/* A concessão de badge não tem regra implementada em lugar nenhum
-          hoje (nenhuma wave emite `badge_conquistado`) — então esta lista
-          fica vazia para toda conta real até essa lógica existir. Registrado
-          como pendência sem dono, não resolvido nesta wave. */}
+      {badgesConquistados.length === 0 && <InsigniasBloqueadas />}
 
       {semNenhumEvento && (
         <div
@@ -374,6 +372,67 @@ function ProgressoSecao() {
         </div>
       )}
     </Secao>
+  );
+}
+
+/** Por que a lista de insígnias está vazia — LYCEUM Wave 39.
+ *
+ *  Até aqui isto era um comentário no código ("pendência sem dono") e a
+ *  lista simplesmente não aparecia. A Wave 39 auditou os 13 critérios e o
+ *  veredito é que nenhum tem evento real disponível hoje; o aluno merece
+ *  ler isso em vez de concluir que não conquistou nada. Os números são
+ *  DERIVADOS de `REGRAS_BADGE` (`contarBloqueios`), então não divergem da
+ *  tabela quando um bloqueio abrir. */
+function InsigniasBloqueadas() {
+  const c = contarBloqueios();
+  const linhas: [string, number, string][] = [
+    [
+      'Demonstração fora da tela',
+      c['competencia-humana'],
+      'o critério é explicar, desenhar num guardanapo, narrar ou recitar — nenhum evento prova isso, e conceder por aproximação seria insígnia falsa',
+    ],
+    [
+      'Valor calculado, não observado',
+      c['instrumentacao-ausente'],
+      'o número que o critério exige já é computado pelos instrumentos, mas nada lê o resultado deles ainda',
+    ],
+    ['Conteúdo ainda não extraído', c['conteudo-ausente'], 'a aula por trás do critério não existe'],
+    ['Superfície ainda não construída', c['feature-ausente'], 'a tela que o critério nomeia não existe'],
+  ].filter((l): l is [string, number, string] => (l[1] as number) > 0);
+
+  return (
+    <div
+      style={{
+        border: `1px dashed ${A.terracota}`,
+        borderRadius: AR.none,
+        padding: AS.lg,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: AS.sm,
+      }}
+    >
+      <span style={{ ...AT.rotulo, color: A.terracota }}>
+        Nenhuma insígnia é conquistável ainda
+      </span>
+      <p style={{ ...AT.corpo, fontSize: '13px', color: A.tintaSuave, maxWidth: '58ch', margin: 0 }}>
+        As {BADGES_SEM_REGRA.length} insígnias do catálogo têm critério
+        escrito, e nenhuma tem regra automática hoje. Isto não é a sua
+        conta: é o produto que ainda não sabe observar o que cada critério
+        pede.
+      </p>
+      <dl style={{ display: 'flex', flexDirection: 'column', gap: AS.xs, margin: 0 }}>
+        {linhas.map(([rotulo, n, razao]) => (
+          <div key={rotulo} style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            <dt style={{ ...AT.rotulo, fontSize: '9px', color: A2.tintaMetadado }}>
+              {rotulo} · {n}
+            </dt>
+            <dd style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.45, color: A.tintaSuave, margin: 0 }}>
+              {razao}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 

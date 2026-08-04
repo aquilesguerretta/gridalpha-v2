@@ -43,6 +43,7 @@ import { useEffect, useState } from 'react';
 import type { CurriculumAula, LessonReference } from '@/lib/types/alexandria';
 import { getCorpoAula, getLeadAula } from '@/lib/data/alexandria-curriculo';
 import { recordEvent, type AulaStatusInfo } from '@/lib/progress/progressApi';
+import { avaliarPorConclusao, concederBadges } from '@/lib/progress/badgeRules';
 import { A, A2, AT, AS, AR, AE } from '@/design/alexandria-tokens';
 import { VideoArea } from './VideoArea';
 import { ApostilaPanel } from './ApostilaPanel';
@@ -89,6 +90,15 @@ export function AulaViewer({ aula }: { aula: CurriculumAula }) {
     try {
       const r = await recordEvent('aula_concluida', aula.id);
       setStatus(r.aulaStatus?.status ?? 'concluido');
+
+      // Concessão de badge — LYCEUM Wave 39. Conclusão de aula é o único
+      // sinal que o produto emite, então é aqui que a avaliação cabe.
+      // Hoje NENHUMA das 13 regras dispara (ver `badgeRules.ts`: o
+      // veredito da wave é que nenhum critério tem evento real
+      // disponível), então isto devolve lista vazia sem abrir requisição.
+      // O caminho fica ligado para que abrir um bloqueio seja escrever
+      // uma regra, não montar encanamento.
+      await concederBadges(avaliarPorConclusao({ aulaId: aula.id }));
     } catch (err) {
       console.error('[alexandria] falha ao registrar aula_concluida', err);
       setErroMarcar('Não foi possível salvar agora. Tente de novo.');

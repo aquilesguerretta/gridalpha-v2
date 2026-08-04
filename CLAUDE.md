@@ -6267,3 +6267,145 @@ igual a `atlasDerivacoes`.
 pré-existentes em `nest/student/{ProjectSandbox,SandboxTrading}`
 (Recharts, desde a Wave 3). `gridalpha-detect` sobre os 15 arquivos da
 superfície — "No findings. Surface is clean." `vite build` exit 0.
+
+## LYCEUM — REVISÃO DIRETA PÓS-WAVE 36 (submercado clicável, camada que fecha, instrumentos de volta)
+
+**Status:** fechada. Pedido direto do Aquiles sobre a Wave 36 recém-
+fechada: "não é possível clicar nas subzonas brasileiras, elas não se
+destacam, elas ainda aparecem quando o Brasil está minimizado, a tela
+das subzonas fica fixa mesmo em outro país, e os filtros que você fez
+anteriormente simplesmente sumiram, era para eles estarem na tela, pode
+ser minimizado mas tem que estar lá quando o usuário está observando o
+globo." Três defeitos reportados, mais dois achados na verificação.
+
+**Arquivos:** `AtlasGlobo.tsx` · `CamadaBrasil.tsx` · `PaisPerfil.tsx` ·
+`AtlasStub.tsx`.
+
+### 1. Submercado clicável — e por que NÃO virou polígono
+
+A pendência que a wave registrou ("clicar no traço exige hit-testing de
+linha, que o `pathsData` não oferece; viraria polígono de novo") foi
+tentada pelo caminho óbvio primeiro: pôr os quatro submercados no mesmo
+array de polígonos, com tampa transparente só para o raycast. **Duas
+medições reprovaram o caminho:**
+
+1. **A tampa transparente escreve no depth buffer** e ocultava as
+   próprias fronteiras que a wave tinha acabado de acertar. Provado por
+   isolamento: removidos os polígonos da cena, o traço volta.
+2. **A triangulação por earcut acertava a região VIZINHA.** Um ponto em
+   (−7,5, −40,5) — Piauí, Nordeste — devolvia `norte`; um ponto no Rio
+   Grande do Sul devolvia `sudesteCentroOeste`. É o mesmo defeito de
+   triangulação que já tinha reprovado o preenchimento nas três
+   resoluções de curvatura; ele não some só porque a tampa é invisível.
+
+Solução: **hit-testing geodésico** (`submercadoEm`, em `CamadaBrasil`) —
+point-in-polygon por cruzamento de raio sobre a geometria REAL, com
+furo de anel respeitado. Zero objeto novo na cena, zero oclusão, e mais
+preciso que o mesh: usa os mesmos vértices do IBGE que desenham a
+fronteira. `toGlobeCoords` converte o pixel em lat/lng; o listener de
+clique corre em fase de CAPTURA, antes do handler de país do globe.gl,
+e marca o instante para `aoClicar` não refazer o voo até o Brasil.
+
+Verificado: (−7,35, −39,91) → `nordeste`, e o contexto aberto é o do
+Nordeste.
+
+**Destaque por PESO, não por cor.** Duas tentativas de atenuar o
+não-realçado foram medidas e desfeitas: por alfa (fat line com
+espessura não aceita canal alfa — a fronteira some inteira, o mesmo
+defeito que a wave já tinha registrado e que eu reintroduzi) e por tom
+escuro (`#6E6244` sobre o navy também some, e o Nordeste, que tem um
+único anel, desaparecia por completo). A cor é identidade da região e
+não muda; o traço vai de 1,2 para 2,4 sob o cursor.
+
+### 2. A camada seguia a seleção; passou a seguir o FOCO
+
+`aoSelecionarPais` só chega quando a câmera pousa (1200 ms depois). Com
+a camada amarrada nele, voar para outro país deixava os quatro
+submercados desenhados sobre território alheio durante todo o voo — e o
+painel deles não saía mais da tela.
+
+Prop nova `aoFocarPais`, disparada no INÍCIO do voo com o destino: a
+camada abre já durante a subida até o Brasil e fecha no instante em que
+o voo parte para qualquer outro país. Verificado: buscar França fecha a
+camada, tira as 14 fronteiras da cena (317 → 303) e mantém o perfil;
+voltar ao Brasil reabre.
+
+### 3. Instrumentos: decisão da wave revertida pelo dono
+
+A Fase 3 da Wave 36 montava coloração, filtro, rankings e comparação
+**só no imersivo**, seguindo o brief ao pé da letra. Vetado no uso real:
+quem observa o globo espera o instrumento à mão. Recolhido é aceitável;
+ausente, não.
+
+Agora é **um bloco, montado em dois lugares** — nasce recolhido na
+página (o frontispício é o assunto ali) e aberto no imersivo, com a
+barra sempre visível nos dois. A camada Brasil virou SEÇÃO dentro dele
+em vez de substituí-lo. Recolhido tira o conteúdo do DOM, então não
+repete o defeito de painel invisível porém alcançável que a Fase 2
+consertou.
+
+De passagem: a nota "Camada Brasil — wave separada, ainda não
+construída" ainda estava na coluna da página. Virou mentira quando a
+wave fechou; agora é instrução de uso.
+
+### 4. Achado: o perfil cobria a busca inteira
+
+Não foi reportado — apareceu quando o teste não conseguiu clicar no
+campo de busca. Medido: perfil em x 1068–1428, busca em x 1208–1428,
+os dois com `z-index: auto`, então quem monta depois vence. **Com um
+perfil aberto não dava para buscar outro país.** O perfil recua do topo
+no modo imersivo (`recuarDoTopo`), e os dois passam a coexistir.
+
+### 5. Causa raiz do traço que sumia — o acessor errado
+
+Este consumiu a maior parte da revisão, e três hipóteses minhas estavam
+erradas antes de a medição achar a certa.
+
+O sintoma: as fronteiras apareciam com coloração "Nenhuma" e **sumiam**
+com qualquer coloração por métrica. Contagem de pixel do traço do Sul:
+408 px → 3 px. Subir a altitude não resolvia — nem para 0,055, nem para
+0,30 (teste extremo, que faria a linha flutuar visivelmente).
+
+A medição decisiva foi ler a posição REAL da geometria na cena:
+`distCentro: 100,2` — raio da esfera é 100, ou seja o traço estava
+rente à superfície, na altitude da GRADE, e **abaixo** do cap do país
+(0,006).
+
+**`pathPointAlt` do globe.gl recebe o PONTO, não o objeto do caminho.**
+O acessor lia `obj.id`, que num ponto é sempre `undefined`, e caía no
+ramo da grade. Nenhum dos valores testados chegou a ser usado. Com
+coloração desligada o cap do país é lavagem com alfa e o traço aparecia
+por baixo; com coloração por métrica o cap vira opaco e a fronteira
+sumia — foi por isso que passou pela verificação da wave, que rodou no
+modo padrão.
+
+Correção: a altitude viaja no próprio ponto (`PontoCaminho {lat, lng,
+alt}`), com `pathPointLat`/`pathPointLng`/`pathPointAlt`. Grade em
+0,002, submercado em 0,015. Confirmado: `distCentro` 100,2 → **101,5**,
+e as quatro fronteiras aparecem nos quatro modos de coloração.
+
+**Nota de método:** duas sondas se provaram enganosas nesta revisão e
+foram descartadas — `readPixels` (lê fora do ciclo de render) já era
+conhecida, e a contagem de pixel por cor mostrou-se ambígua porque
+`#CBAA6E` é ao mesmo tempo a cor do Nordeste e a do contorno de país.
+O que decidiu foi ler a geometria da cena. Também houve uma hora
+perdida com o Vite servindo transform em cache: o `grep` no arquivo
+servido não achava as alterações porque **comentários são removidos no
+transform** — procurar o valor, não o comentário.
+
+### Verificação
+
+20 asserções por viewport, 1440×900 e 1920×1080, todas passando:
+barra de instrumentos na página · recolhida por padrão · expande e a
+coloração já funciona no modo página · aberta no imersivo · camada
+Brasil abre com os instrumentos ainda na tela · hover destaca ·
+clique abre o contexto DAQUELE submercado e só dele · França fecha a
+camada e limpa a cena · volta ao Brasil reabre · zero erro de página ·
+zero overflow horizontal. Regressão da wave re-executada nas duas
+viewports (a asserção "filtro sai de cena" foi atualizada — era a
+decisão que o Aquiles reverteu, não uma regressão).
+
+**Gates:** `tsc` 0 erros nos arquivos da revisão · `gridalpha-detect`
+"No findings. Surface is clean." · `vite build` exit 0 com a fronteira
+lazy confirmada por grep do bundle de entrada (`polygonCapColor`,
+`pathPointAlt`, `pathsData`: 0 no entry, 6/6/7 no chunk).

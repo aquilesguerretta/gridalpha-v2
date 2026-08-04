@@ -58,6 +58,12 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // `sec-id`, das quais 8 casam `Aula NN` e 10 são aparato.
   // LYCEUM Wave 37.
   'bloco-09': 8,   // Mercado ACR e ACL
+  // Sexto módulo da Trilha 2. 18 seções `sec-id` — 8 casam `Aula NN`,
+  // 10 são aparato. Terceira variante de vocabulário da série. O título
+  // real da fonte ("Geração Distribuída e a Anatomia de uma Proposta
+  // Solar") diverge do catálogo, que traz o derivado da Wave 1 com
+  // priority 'confirmar'. LYCEUM Wave 42.
+  'bloco-11': 8,   // Energia Solar e Análise de Propostas (título do catálogo)
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

@@ -1618,6 +1618,21 @@ const i11m12: CalculateFn = (i) => {
   };
 };
 
+
+/** Helpers do Módulo 11 — espelham `numOf`/`segVal`/`fmt` do <script>
+ *  da fonte, que os instrumentos transliterados chamam. `nm` reproduz o
+ *  `parseFloat` com vírgula, o fallback em NaN e o clamp, nessa ordem. */
+const nm = (v: EntradaInstrumento | undefined, def: number, a: number, b: number): number => {
+  const x = v === undefined || v === '' ? NaN : parseFloat(String(v).replace(',', '.'));
+  const y = Number.isNaN(x) ? def : x;
+  return Number.isNaN(y) ? a : Math.min(b, Math.max(a, y));
+};
+const sv = (v: EntradaInstrumento | undefined, def: string): string =>
+  v === undefined || v === '' ? def : String(v);
+/** `fmt` da fonte: casas fixas, pt-BR, e '—' para não-finito. */
+const fmt11 = (n: number, d?: number): string =>
+  !Number.isFinite(n) ? '—' : n.toLocaleString('pt-BR', { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -3439,6 +3454,96 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   'm10-inst-11': i11m10,
 
   // ── m11 INST 01 · mapa da proposta (lente × item) ──
+  // ── m11 INST 05 · Roteador de regime ──
+  // Transliteração mecânica do `calc()` da fonte: só as chamadas de DOM
+  // foram reescritas (`numOf`→`nm`, `segVal`→`sv`, `textContent`→OUT,
+  // `innerHTML`→VER). Lógica de ramo e prosa intocadas.
+  // As 3 saídas de TEXTO não cabem em `valores`
+  // (`Record<string, number>`, protocolo §12) — abrem o veredito.
+  'm11-inst-05': (i) => {
+    const OUT: Record<string, string> = {};
+    let VER = '';
+    const ESC = M11_ESCADA_FIOB;
+
+    let d=sv(i['rr-data'], 'ate2022');
+    let p=sv(i['rr-porte'], 'micro');
+    let m=sv(i['rr-mod'], 'localemuc');
+    let ano=Math.round(nm(i['rr-ano'], 2026, 2023, 2032));
+    let classe, perc, estado, cls='ok', t=[];
+
+    let agravado = (d!=='ate2022'&&d!=='doze') && p==='mini500mais' && m==='conc';
+
+    if(d==='ate2022'||d==='doze'){
+      classe='GD I — direito adquirido';
+      perc='0% até 31 de dezembro de 2045';
+      estado='Regra vigente e integralmente regulamentada';
+      cls='ok';
+      t.push('<b>Regime.</b> A unidade está abrangida pelo artigo 26 da lei de 2022: conectada na data da publicação ou com solicitação protocolada nos doze meses seguintes. As disposições do artigo 17 <b>não se aplicam até 31 de dezembro de 2045</b>, e todas as componentes tarifárias incidem apenas sobre a diferença positiva entre o consumido e a soma da energia injetada com o crédito acumulado.');
+      t.push('<b>Norma, vigência e regulamentação.</b> Lei nº 14.300/2022, artigo 26 e parágrafos; regulamentado no artigo 655-O da norma de condições gerais, com a redação da resolução de fevereiro de 2023. Vigente desde a publicação da lei. Classe GD I para efeito de faturamento e de aplicação de benefícios tarifários na resolução homologatória da distribuidora.');
+      t.push('<b>Atenção às hipóteses de cessação.</b> O regime deixa de ser aplicável em três situações: encerramento da relação contratual, salvo troca de titularidade; comprovação de irregularidade de medição atribuível ao consumidor; e, <b>na parcela de aumento</b>, ampliação de potência protocolada após o marco de doze meses. Uma proposta de ampliação que projeta o conjunto inteiro sob este regime está incorreta.');
+      t.push('<b>Teto de porte.</b> Para as unidades deste regime, o limite de potência instalada da minigeração é de 5 MW até 31 de dezembro de 2045, independentemente do enquadramento da fonte.');
+      if(ano>2045){
+        cls='att';
+        t.push('<b>Além do horizonte do direito adquirido.</b> O ano informado ultrapassa 31 de dezembro de 2045. A partir daí, a unidade passa a sujeitar-se à regra do artigo 17, cuja metodologia não existe hoje e será definida décadas antes desse marco — mas por processo cujo primeiro ciclo ainda não terminou.');
+      }
+    } else if(agravado){
+      classe='GD III — regime de concentração';
+      perc='100% das componentes de distribuição + 40% das de transmissão e conexão + 100% de P&D, EE e taxa de fiscalização';
+      estado=(ano<=2028?'Regra vigente e regulamentada':'Regra pós-transição, metodologia a regulamentar');
+      cls='per';
+      t.push('<b>Regime.</b> Minigeração acima de 500 kW, em fonte não despachável, na modalidade autoconsumo remoto ou geração compartilhada, com um único titular detendo 25% ou mais da participação do excedente. Aplica-se o parágrafo 1º do artigo 27, substancialmente mais oneroso que a escada padrão.');
+      t.push('<b>Composição do faturamento até 2028.</b> Cem por cento das componentes relativas à remuneração dos ativos de distribuição, à quota de reintegração regulatória e ao custo de operação e manutenção da distribuição; quarenta por cento das componentes de uso da rede básica, de transformadores de fronteira, de demais instalações de transmissão compartilhadas, de sistemas de distribuição de outras distribuidoras e de conexão; e cem por cento dos encargos de pesquisa e desenvolvimento, eficiência energética e taxa de fiscalização.');
+      t.push('<b>Norma, vigência e regulamentação.</b> Lei nº 14.300/2022, artigo 27, parágrafo 1º; regulamentado no artigo 655-P da norma de condições gerais. Classe GD III. Vigente e regulamentado até 2028; a partir de 2029, remissão ao artigo 17.');
+      t.push('<b>Por que este regime existe.</b> Ele distingue compartilhamento real de compartilhamento aparente. Um projeto verdadeiramente compartilhado tem participação pulverizada. Um arranjo estruturado para concentrar benefício num único titular por trás de fachada associativa é exatamente o que o limiar de vinte e cinco por cento captura — e é a estrutura que aparece em proposta agressiva de geração compartilhada de grande porte.');
+      if(ano>=2029){
+        t.push('<b>A partir de 2029.</b> O inciso IV do parágrafo 1º remete à regra do artigo 17, tal como o inciso VII do caput. A metodologia que a define está em projeto regulatório com conclusão prevista para 2027.');
+      }
+    } else {
+      classe='GD II — transição padrão';
+      let limiteArt17 = (d==='semestre')?2031:2029;
+      if(ano<=2028){
+        perc=(ESC[ano]!==undefined?ESC[ano]+'% das componentes de distribuição':'Percentual não fixado para o ano informado');
+        estado='Regra vigente e regulamentada';
+        cls=(ano>=2027?'att':'ok');
+      } else if(ano<limiteArt17){
+        perc='90% das componentes de distribuição, conforme regulamentação aplicável ao período';
+        estado='Período posterior à escada, com incidência do artigo 17 postergada';
+        cls='att';
+      } else {
+        perc='Todas as componentes não associadas ao custo da energia, abatidos os benefícios sistêmicos — valor a regulamentar';
+        estado='<b>Metodologia a regulamentar</b>';
+        cls='per';
+      }
+      t.push('<b>Regime.</b> A unidade não é abrangida pelo artigo 26 e não satisfaz os requisitos cumulativos do regime de concentração. Aplica-se a escada do caput do artigo 27, incidente sobre <b>toda</b> a energia ativa compensada. Classe GD II.');
+      t.push('<b>A escada, ano a ano.</b> Quinze por cento a partir de 2023, trinta a partir de 2024, quarenta e cinco a partir de 2025, sessenta a partir de 2026, setenta e cinco a partir de 2027 e noventa a partir de 2028. Os percentuais incidem sobre as componentes de remuneração de ativos, depreciação e operação e manutenção da distribuição — <b>não sobre a tarifa integral</b>.');
+      if(d==='semestre'){
+        t.push('<b>Janela de postergação.</b> O protocolo caiu entre 8 de janeiro e 7 de julho de 2023, ou seja, entre o décimo terceiro e o décimo oitavo mês da publicação da lei. Pelo parágrafo 2º do artigo 27, a aplicação do artigo 17 dá-se apenas <b>a partir de 2031</b> — dois anos a mais que o padrão. Regulamentado no artigo 655-P da norma de condições gerais.');
+      } else {
+        t.push('<b>Sem postergação.</b> O protocolo é posterior a 7 de julho de 2023, fora da janela do parágrafo 2º do artigo 27. A regra do artigo 17 incide a partir de 2029.');
+      }
+      if(ano>=limiteArt17){
+        t.push('<b>Aqui a projeção deixa o terreno conhecido.</b> A partir de '+limiteArt17+', o inciso VII do artigo 27 remete ao artigo 17, que manda incidir todas as componentes não associadas ao custo da energia, <b>abatidos todos os benefícios ao sistema elétrico</b>. Tratar isso como cem por cento é adotar a hipótese de que os benefícios calculados serão zero — hipótese possível, e não o texto da lei.');
+        t.push('<b>Estado do processo.</b> As diretrizes de valoração vieram pela resolução do conselho de política energética de abril de 2024, quase dois anos após o prazo legal. A agência abriu tomada de subsídios em dezembro de 2025, com contribuições até março de 2026, a ser seguida de análise de impacto regulatório e consulta pública, e <b>conclusão do projeto regulatório prevista para 2027</b>. Nenhuma proposta comercial conhece esse número, porque ele não existe.');
+      }
+      if(p==='mini500mais'&&m==='pulv'){
+        t.push('<b>Por que o regime agravado não incide aqui.</b> O porte e a fonte satisfazem os requisitos, mas nenhum titular detém vinte e cinco por cento ou mais da participação do excedente. A pulverização é o que mantém o arranjo no regime padrão — e é o campo que precisa estar declarado por escrito na proposta, porque é ele que sustenta o enquadramento.');
+      }
+      if(p==='mini500mais'&&m==='localemuc'){
+        t.push('<b>Por que o regime agravado não incide aqui.</b> O porte e a fonte satisfazem os requisitos, mas a modalidade não: o parágrafo 1º do artigo 27 alcança apenas autoconsumo remoto e geração compartilhada. Autoconsumo local e empreendimento com múltiplas unidades ficam fora, ainda que de grande porte.');
+      }
+    }
+    OUT['rr-classe'] = classe;
+    OUT['rr-perc'] = perc;
+    VER = estado;
+    
+    VER = t.map(function(x){return '<p>'+x+'</p>';}).join('');
+  
+    void VER;
+    return {
+      valores: {  },
+      veredito: '<b>Classe de faturamento.</b> ' + (OUT['rr-classe'] ?? '') + '<br><br>' + '<b>Componentes de distribuicao sobre a energia compensada.</b> ' + (OUT['rr-perc'] ?? '') + '<br><br>' + '<b>Estado da regra no ano informado.</b> ' + (OUT['rr-estado'] ?? '') + '<br><br>' + VER,
+    };
+  },
   'm11-inst-01': (i) => {
     const lente = String(i['mp-lente'] ?? 'eixo');
     const item = M11_MAPA_ITENS.find((x) => x.k === String(i['mp-item'] ?? M11_MAPA_ITENS[0].k)) ?? M11_MAPA_ITENS[0];

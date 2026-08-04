@@ -8116,3 +8116,299 @@ sequência guardada de escrita-gates-commit e pathspec explícito.
 - **Os doze instrumentos** — medidos e localizados, não portados.
 - **§ Lex do Módulo 17** (192 termos em oito famílias) — glossário é
   escopo próprio, fechado até o Módulo 08 na Wave 34.
+
+## LYCEUM — ALEXANDRIA WAVE 47 — MÓDULO 15 · TRILHA 3 COMPLETA
+
+**Status:** fechada, com os dez instrumentos portados. **A TRILHA 3
+FECHOU** — e com ela os **17 blocos** do currículo: o `bloco-15` era o
+último com `totalAulas: null`. O rodapé passou a marcar "17 de 17
+módulos verificados", lido na tela.
+
+| Trilha | aulas | módulos com fonte |
+| --- | --- | --- |
+| 1 · Fundamentos Universais | 42 | 5/5 |
+| 2 · Setor Elétrico Brasileiro | 53 | 7/7 |
+| 3 · Especialização Estratégica | **46** | **5/5** |
+
+**Arquivos:** `alexandria-modulo-15-content.ts` (NOVO, 762 linhas) ·
+`alexandria-instrument-calculators.ts` (+676) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts` ·
+`docs/alexandria/extraction-protocol.md`.
+
+**Fonte:** `alexandria_modulo15.html` — 370.303 bytes (280.694
+caracteres de markup + 78.878 de script).
+
+### Fase 0 — o protocolo estava QUEBRADO em HEAD, por defeito meu
+
+O commit `768f6f5` da Fase 0 cruzou com uma sessão paralela e deixou o
+`extraction-protocol.md` com **dois §14** e com quatro parágrafos
+duplicados em §5, §10 e §11 — a lição do backup obsoleto repetida três
+vezes seguidas dentro da mesma seção. Consolidado nesta wave
+(`ba25c5a`, 16 inserções / 88 remoções): §14 fica com a versão medida
+em `ApostilaPanel.tsx` (tabela campo → renderização), e a regra do
+`Tabela` vira **§15 própria** em vez de ser espremida dentro dela. O
+documento fecha com **15 seções, zero parágrafo repetido**, conferido
+por contagem de blocos idênticos, não a olho.
+
+### A suposição de track do brief foi TESTADA e não se sustentou
+
+O brief supunha que a travessia da Trilha 3 poderia trazer track novo.
+O catálogo real diz outra coisa: `bloco-15` é **level 3, track
+`'brasil'`**, `illustrationPrefix: null`, priority `media`. **A Trilha 3
+não introduz track novo** — só o `level` muda. O título da fonte
+(`<title>` e `<h1>`: "Petróleo, Gás e Petrobras") **bate com o
+catálogo**, sem a divergência do Módulo 11.
+
+**A pista de desenho de jogo também foi tratada como hipótese, e a
+medição a rejeitou.** O brief mencionava "capital limitado entre
+exploração/desenvolvimento/gás/refino/térmica, decisão de comitê
+estratégico". Na fonte: `alocação de capital` **0**, `capex` **0**,
+`orçamento de capital` **0**, `decisão de investimento` **0**. As seis
+ocorrências de "comitê" são o **comitê operacional do consórcio de
+partilha** (onde a PPSA representa a União) e o **comitê de
+monitoramento do setor elétrico** — governança, não alocação. O módulo
+é de verificação de leitura, organizado em três lentes (Regime, Camada,
+Acoplamento), e nada foi forçado para caber na hipótese.
+
+### Contagem — quatro sinais, todos concordando
+
+19 seções = **9 aulas + 10 de aparato**. **151 blocos de apostila.**
+
+| sinal | prosa da fonte | markup |
+| --- | --- | --- |
+| aulas | §MAP | 9 seções casando `Aula NN` |
+| instrumentos | — | 10 `div.inst` (1 no §MAP, 9 em aula) |
+| exercícios | §Ex "Quinze exercícios" | 15 `<details>` |
+| termos | §Lex "Cento e setenta e quatro" | 174 `span.term` |
+
+**Um instrumento por aula, nas nove** — distribuição mais regular do
+currículo. `video`, `durationMinutes` e `difficulty` **null medidos**
+(zero `<video>`, `<iframe>`, youtube, vimeo, `.mp4`, `<audio>`).
+
+### COBERTURA POR PALAVRA — 75,1% → 98,9%, em quatro etapas
+
+O gate do §5 se pagou de novo, e a terceira etapa é a mais instrutiva:
+
+| de → para | o que entrou |
+| --- | --- |
+| 75,1% → 87,4% | containers `wrap` / `scroll` / `cmpx` percorridos |
+| 87,4% → 89,4% | `fx` (fórmula), `stp`, `glo` (gak/gav), `clk` |
+| 89,4% → **93,3%** | **defeito do MEDIDOR**: ele não contava bloco `formula`, e aula com fórmula media baixo com perda ZERO |
+| 93,3% → **98,9%** | `par` / `par-col` / `ph` e `mot` / `mot-r` |
+
+Fechamento por aula: 100,0 · 96,3 · 93,4 · 98,8 · 100,0 · 100,0 · 99,0
+· 100,0 · 100,0. Nenhuma abaixo de 90%.
+
+**Quinta wave seguida em que a falha de verificação investigada até a
+causa se provou defeito do harness, não do produto** — aqui, do próprio
+medidor de cobertura.
+
+### Estrutura nova: a família de ficha chegou à QUARTA variante
+
+`div.emp` (42 pares chave/valor em 36 linhas) é a mesma ficha que já
+apareceu como `src-card` no M08, `div.fi` nos M09/M10 e `emp` no M13.
+A fonte renomeia a estrutura a cada dois ou três módulos, então
+varredura por nome de classe conhecido nunca basta — o que pega é medir
+volume de texto por classe não capturada.
+
+`div.par` / `par-col` / `ph` (confronto em duas colunas, cabeçalho por
+coluna) e `div.mot` / `mot-r` são **estreia** deste módulo.
+
+**Todas viram `nota`, nunca `tabela`** — protocolo §15, criado nesta
+wave: o componente `Tabela` promove a primeira linha a `<thead>`, e num
+par chave-valor isso consome dado real. `div.fx` vira `kind: 'formula'`
+com `eq` e `desc` em **texto puro** (§14), e a varredura de fechamento
+por `/<b>|&lt;/` no `innerText` das nove aulas deu **zero**.
+
+### Gravura: nenhuma, com os dois sinais concordando
+
+`illustrationPrefix: null` no catálogo **e zero `<img>` no markup**.
+`illustrations: []` nas nove, sem puxar biblioteca de outro bloco por
+semelhança de tema. Verificado na tela: **zero `<figure>`** nas nove,
+layout intacto.
+
+### Exercícios: 15, todos soltos
+
+Varredura por `/[Aa]ula\s*\d+/` no resumo, no enunciado E no gabarito
+dos quinze devolve **zero**. Oitavo módulo seguido no padrão. A família
+do §Ex ("identificação de regime", "identificação de camada",
+"separação de grandeza", "acoplamento") fica em `config.tag`.
+
+### Instrumentos — dez portados, nove de aula
+
+`kind` decidido por **mecânica**, nunca por nome: explorador 3 ·
+comparador 1 · simulador 3 · calculadora 3.
+
+| Inst | Aula | mecânica | `kind` |
+| --- | --- | --- | --- |
+| 01 · Mapa da cadeia | §MAP | 4 dimensões × 9 elos → texto | `explorador` |
+| 02 · Comparador de regimes | 01 | 3 regimes × 4 dimensões → texto | `comparador` |
+| 03 · Régua de grandeza de subsolo | 02 | 5 numéricos + 2 seg → 6 saídas | `simulador` |
+| 04 · Calculadora de parcela do Estado | 03 | 6 numéricos + 1 seg → 6 saídas | `calculadora` |
+| 05 · Decompositor de preço | 04 | 6 numéricos → 5 saídas | `calculadora` |
+| 06 · Régua de refino | 05 | 4 numéricos → 6 saídas | `calculadora` |
+| 07 · Régua de contrato de gás | 06 | 6 numéricos + 1 seg → 5 saídas | `simulador` |
+| 08 · Classificador de elo | 07 | 6 grandezas × 5 elos → texto | `explorador` |
+| 09 · Simulador de acoplamento | 08 | 6 numéricos → 6 saídas | `simulador` |
+| 10 · Verificador de regime e camada | 09 | filtro × 12 enunciados → texto | `explorador` |
+
+O `Inst · 01` vive no §MAP, fora de aula — mesmo tratamento do `LAB ·
+01` do M01 e dos `Inst · 01` dos Módulos 06, 07 e 10; destino é
+Recursos do Módulo.
+
+**O chip de 01/08/10 não existe no markup** — é gerado por script. O
+select correspondente foi **derivado do dado avaliado da fonte** (nome
+de elo, de grandeza, de enunciado), não digitado. O `cl-gr`/`cl-gr2` do
+INST 08 são dois grupos mutuamente exclusivos e viram UM select de seis
+opções, mesmo tratamento que o par `number`+`range` já recebia.
+
+### A UNIDADE foi recuperada, e ela estava no script
+
+A fonte concatena a unidade fora do markup —
+`fmt(v,3)+'<span class="u"> bi</span>'`. Extraída de lá para
+`InstrumentOutput.unit` nas 34 saídas: `bi`, `R$ bi`, `R$/L`,
+`mil bpd`, `US$/MMBtu`, `% da carga`, `% do contratado`, `R$/MWh`,
+`% da capacidade`. É a pendência que a Wave 18 registrou (`unit: null`
+porque a fonte concatenava no JavaScript) fechada **para este módulo** —
+o caminho é o mesmo para os anteriores, quando alguém abrir.
+
+### Prova de fidelidade — 393 asserções, 177 cenários, ZERO divergência
+
+O script ORIGINAL executado em DOM simulado, comparação por string.
+A porta emite uma **variante de prova** que devolve o `OUT` cru, então
+cada readout é conferido caractere a caractere — o teste não precisa
+saber casa decimal nem prefixo, o que seria rederivar o formatador em
+vez de conferi-lo. Os helpers do teste são **cópia literal** dos do
+repo (`nm`/`sv`/`fmt11`), não uma variante.
+
+| Inst | cobertura |
+| --- | --- |
+| 01 | **espaço inteiro**: 4 dimensões × 9 elos = 36 |
+| 02 | **espaço inteiro**: 3 × 4 = 12 |
+| 03 | os 5 ramos + amplitude, critério 2P e o grampo `k3<k2` |
+| 04 | os 3 ramos × os 3 desenhos de repartição = 9 |
+| 05 | os 3 ramos + o grampo de total mínimo |
+| 06 | os 4 ramos + o default |
+| 07 | os 3 ramos × as 3 camadas = 9 |
+| 08 | **espaço inteiro**: 6 grandezas × 5 elos = 30 |
+| 09 | os 4 ramos + o default |
+| 10 | **espaço inteiro**: 5 filtros × 12 enunciados = 60 |
+
+**O estado do chip foi exercido de verdade no INST 10:** selecionar sem
+filtro e só então filtrar faz a fonte rodar o próprio recuo
+(`if(!achou) atual=lista[0].k`), que é exatamente a regra que a porta
+implementa. Sem isso o teste estaria confrontando contra resíduo do
+cenário anterior.
+
+### Cinco defeitos que só a saída gerada revelou — todos meus
+
+Nenhum aparece em leitura de código:
+
+1. **`var` → `let` DENTRO de string literal.** A fonte escreve
+   `background:var(--cy)` em literal de CSS, e o replace cego produziu
+   `let(--cy)`. O transliterador passou a aplicar renome de helper e
+   `var`→`let` só fora de string.
+2. **Alias do container de veredito.** A Wave 43 reconhecia só o nome
+   literal `vd`; o M15 usa `v`, `v2`, `e`. O alias agora é resolvido
+   por pré-passe, e o destino continua decidido pelo **id** (`*-vd`),
+   nunca pelo nome — que é a lição que a Wave 43 pagou caro.
+3. **Descarte de desenho por regex cortava no meio da expressão.** O
+   `;` de dentro do callback fecha antes do `;` da sentença. Trocado
+   por scanner balanceado, com poda de variável órfã junto (o `cores`
+   do INST 05, o `ESC` do INST 09) — saem, não viram `void`.
+4. **`\b` num heredoc de Python virou BYTE DE BACKSPACE (0x08).** O
+   regex saiu como `/\x08return\s*;/` e nunca casou: o guard de
+   `return;` era **no-op silencioso**, e o `tsc` foi quem denunciou,
+   com a arrow devolvendo `undefined`. Patch de gerador também precisa
+   de gate.
+5. **`.field` fechando no `</div>` errado** — o aninhamento que o §5 já
+   nomeia — devolvia UM campo de doze.
+
+### Duas transformações declaradas, não silenciosas
+
+- **`ac-po` é TEXTO** ('Dentro do mérito · +73 R$/MWh') e sai de
+  `valores`, abrindo o veredito com o rótulo do próprio readout.
+  Sétima wave com a mesma limitação de contrato (19, 24, 25, 29, 38,
+  44, agora 47).
+- **`gs-rp` é OMITIDO quando o critério não é declarado.** O painel
+  renderiza `—` para chave ausente (lido em `InstrumentPanel.tsx`, não
+  presumido), que é exatamente a recusa da fonte. **Verificado na
+  tela:** trocar o critério para "não declarado" põe `R/P —` e troca o
+  veredito para "Recusa de leitura — falta o critério de certeza";
+  trocar para 3P devolve 20,92 anos e o veredito recalculado.
+
+A moldura de bloco dos quatro instrumentos de consulta é reescrita por
+`alx15`, uma regra só para os quatro: rótulo vira negrito, fim de bloco
+vira quebra, marcação estrutural sai. Nenhum texto é acrescentado,
+removido ou reordenado — e é isso que a prova confere, comparando
+conteúdo textual contra o do script.
+
+### Regressão — 111 calculadoras, 0 falha
+
+Todas rodadas com os `defaultValue` semeados **como o painel faz**
+(número OU string — o buraco que a fiação do M02 fechou): primeiro
+paint limpo em 111, zero exceção, zero valor não finito, zero sujeira
+de veredito. Mais os valores que cada wave documentou: M01 INST 01 =
+50 kWh · M01 LAB 01 reativo B = R$ 3.200 · M02 INST 02 = 1.215,47 A ·
+M10 INST 03 = 84,2%.
+
+### Verificação por clique real (1440×900 e 1920×1080)
+
+As nove aulas abertas uma a uma: "AULA N DE 9" nas nove, **zero
+`<figure>`**, **zero HTML literal**, zero NaN, zero overflow
+horizontal, zero erro de console. Os nove instrumentos presentes com
+título real e controles. Interação conferida no INST 03 (acima).
+Lista do módulo com "MÓDULO 3 DE 5" e as nove aulas com título e
+subtítulo reais. Hub com Trilha 3 em "46 aulas confirmadas", **sem a
+ressalva de parcial**.
+
+Regressão de gravura nos módulos já fechados, com `naturalWidth` lido
+no DOM: M01 a3 3/3 · M02 a3 3/3 · M03 a6 3/3 · M06 a3 3/3 · M07 a1
+2/2 · M09 a4 1/1 · M10 a5 1/1 · M13/M14/M15 0/0 (correto).
+
+**Nota de ambiente, com correção de método:** o painel Browser desta
+sessão tem viewport REAL (1440×900, medido antes de confiar em
+qualquer layout, §13) mas nasce com `visibilityState: 'hidden'` — e aba
+oculta **não dispara o observer de `loading="lazy"`**. A primeira
+rodada de regressão acusou `naturalWidth: 0` em todas as gravuras com
+a contagem de `<figure>` correta, o que lê como regressão de layout e
+não é. Forçar `loading='eager'` + `img.decode()` devolveu as dimensões
+reais. É a mesma família do painel 0×0 que a Wave 39 registrou, com
+sintoma diferente. Screenshot e composição de frame seguem indo por
+`playwright-core` no scratchpad dirigindo o Chrome do sistema.
+
+### Higiene de sessão
+
+Quatro commits, todos com pathspec explícito e `git diff --stat` real
+imediatamente antes, na **mesma sequência guardada** que escreve, roda
+os gates e commita abortando em qualquer falha (§11). Os quatro saíram
+**puramente aditivos** — `git show --numstat`: 762/0, 676/0, 15/0, e o
+do protocolo 16/88 (consolidação deliberada). A inserção no arquivo
+compartilhado de calculadoras foi por âncora de texto com prova de
+"zero linha do original ausente depois", e o registro no resolvedor
+ancorou no **fecho** de cada bloco, não no último elemento — a ordem
+dos spreads muda quando outra sessão registra um módulo, e foi assim
+que a Wave 45 falhou em silêncio.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem
+os **7 pré-existentes** em `nest/student/{ProjectSandbox,
+SandboxTrading}` (Recharts, desde a Wave 3). `gridalpha-detect` sobre
+os quatro arquivos — "No findings. Surface is clean."
+
+### Registrado, não resolvido
+
+- **"Currículo em extração" virou contradição** no rodapé
+  (`AlexandriaFooter.tsx`), que agora lê "17 de 17 módulos
+  verificados". A contagem é derivada e está certa; o rótulo é que
+  envelheceu, e **foi o registro desta wave que o fez envelhecer**. A
+  Wave 49 já tinha previsto isso por escrito. Arquivo fora da posse.
+- **§ Lex do Módulo 15** (174 termos) não extraído — glossário é escopo
+  próprio, fechado até o Módulo 08 na Wave 34. Com o currículo
+  completo, os módulos 09-17 são agora a maior dívida isolada do
+  produto.
+- **O painel formata toda saída com 2 casas decimais** (`fmt(v, 2)` em
+  `InstrumentPanel.tsx`), então `17,488` da fonte aparece como `17,49`.
+  Não é defeito da porta — o número cru está correto em `valores`; é o
+  painel que é dono da formatação, e ele é NUNCA MODIFICAR.
+- **`instrument-taxonomy.md`** segue sem os instrumentos dos Módulos
+  10-17 nem o 10º kind `reconstrutor`. Posse FOUNDRY.

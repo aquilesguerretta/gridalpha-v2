@@ -513,3 +513,23 @@ preservado). Confere na tela depois de extrair — a varredura é
 Fora da apostila, o mesmo cuidado vale para o veredito de instrumento,
 que **passa** por HTML desde a Wave 34 — ali o inline da fonte deve ser
 preservado, não removido.
+
+### A tabela completa, medida em `ApostilaPanel.tsx`
+
+| campo | renderização |
+| --- | --- |
+| `paragrafo.html` | **HTML** |
+| `nota.html` | **HTML** |
+| `lista.itens[]` | **HTML** |
+| `tabela.linhas[][]` (células) | **HTML** |
+| `formula.eq` | texto puro |
+| `formula.desc` | texto puro |
+| `titulo.texto` / `titulo.numero` | texto puro |
+
+Campo de texto puro recebe `texto()` (tags removidas); campo de HTML
+recebe `inline()` (só as tags de estrutura removidas). A varredura de
+fechamento é `/<b>|</b>|&lt;/` no `innerText` da aula, e tem que dar
+zero (Wave 46, sete fórmulas do Módulo 14 mostrando a tag literal).
+
+Fora da apostila vale o inverso: o veredito de instrumento **passa** por
+HTML desde a Wave 34 — ali o inline da fonte se preserva, não se remove.

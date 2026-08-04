@@ -5731,3 +5731,208 @@ arquivo de outra sessão entrou em commit nenhum.
 - Glossário do **Módulo 09** (Wave 37 paralela) não extraído — o brief
   desta wave cobria 2-8; os exercícios soltos do M09 JÁ aparecem nos
   Recursos, o § Lex dele não.
+
+## LYCEUM — ALEXANDRIA WAVE 39 — VIEWER, BADGE, CERTIFICADO
+
+**Status:** fechada. Duas das três pendências resolvidas de verdade
+(estrutura de aba, certificado). A terceira — concessão de badge —
+**fecha com zero regra automática**, e isso é o resultado da auditoria,
+não desistência: nenhum dos 13 critérios tem evento real disponível
+hoje. O detalhe por badge está abaixo e, executável, em
+`src/lib/progress/badgeRules.ts`.
+
+**Arquivos:** `src/lib/progress/badgeRules.ts` (NOVO) ·
+`viewer/AulaViewer.tsx` · `pages/alexandria/PerfilStub.tsx` ·
+`.claude/launch.json` (porta 5279).
+
+### Fase 1 — o achado que inverteu o diagnóstico da estrutura de aba
+
+O brief propunha tirar do sistema de aba "o conteúdo sempre relevante
+(instrumento, exercício)". Medido: **instrumento, exercício e conclusão
+JÁ estavam fora** desde sempre. O tab strip governava quatro painéis, e
+**três dos quatro eram estado vazio**.
+
+O defeito era o inverso do esperado. A Apostila é o corpo INTEIRO da
+aula (89 a 194 blocos, conforme o módulo) e era o único painel com
+conteúdo — então o controle não oferecia alternativa nenhuma ao aluno:
+oferecia **dispensar a aula** e trocá-la por um parágrafo de três linhas
+dizendo que não existe nada ali.
+
+### Fase 2 — composição nova
+
+A Apostila sai do sistema de aba e vira conteúdo de página, no mesmo
+registro do instrumento e do exercício: nunca atrás de um controle que a
+dispense. As três ausências viram UM bloco ao final —
+`MaterialComplementar` —, cada uma com a razão real, no lugar de quatro
+controles fingindo navegação. Ordem final, verificada por posição de
+texto no DOM: apostila → instrumento (4915) → material complementar
+(6000) → conclusão (6737).
+
+**A decisão é derivada, não digitada:** com `aula.references` populado
+(quando a extração alcançar o § Ref), a referência renderiza como
+documento de verdade e sai da lista de ausências, sozinha. Zero
+`role="tablist"` e zero `role="tab"` restantes.
+
+### Fase 3 — veredito: nenhuma das 13 tem regra automática
+
+**A superfície de observação do produto inteiro são DOIS sinais.**
+`AulaViewer` é o único arquivo em todo o `src/` que chama `recordEvent`,
+e emite só `aula_iniciada` e `aula_concluida`. Os outros três tipos que
+o backend aceita — `instrumento_usado`, `exercicio_respondido`,
+`badge_conquistado` — nunca foram emitidos por ninguém.
+
+Contra essa superfície, os 13 critérios caem em quatro bloqueios:
+
+| Bloqueio | N | Badges |
+| --- | --- | --- |
+| `competencia-humana` | 8 | tradutor-kw-kwh · fator-de-carga · lei-de-ohm · cadeia-da-rede · fronteira-do-ons · dez-segundos · fator-de-capacidade · vacina-do-lcoe |
+| `instrumentacao-ausente` | 3 | guardiao-fp · matriz-em-duas-lentes · leitor-de-mercado |
+| `conteudo-ausente` | 1 | anatomista-de-faturas |
+| `feature-ausente` | 1 | cartografo-do-sin |
+
+**Os oito de `competencia-humana`** pedem demonstração no mundo real —
+"explicar em 30 segundos", "desenhar num guardanapo", "narrar", "listar
+três coisas", "recitar os quatro limites". Nenhum evento prova isso.
+Autodeclaração provaria a AFIRMAÇÃO do aluno, não o critério. Dois deles
+são compostos com uma metade mensurável (`fator-de-carga`: "calcular FC
+E interpretar"; `vacina-do-lcoe`: "calcular LCOE E recitar os quatro
+limites") — conceder pela metade observável é conceder por proxy do
+todo, então ficam fora.
+
+**Os três de `instrumentacao-ausente` são o achado acionável.** Dois
+deles têm o critério **mecanicamente verificável e o número já
+calculado hoje**:
+
+- `badge-guardiao-fp` — "Atinja 0,92 de FP médio em simulação
+  tarifária" é limiar numérico sobre saída existente. `lab-01`
+  (Comparador de perfil elétrico) É literalmente a simulação tarifária,
+  tem FP por perfil como campo, e usa 0,92 como o limiar que dispara a
+  cobrança de reativo.
+- `badge-matriz-em-duas-lentes` — "desenhar a matriz em capacidade E em
+  energia, dois desenhos, com ordens de grandeza por fonte" é
+  exatamente o Reconstrutor de matriz do Módulo 08 (`m08-inst-04-cap` /
+  `-ger`, Wave 34). O veredito da própria fonte chama ordem certa + seis
+  fatias na tolerância de "o critério oficial de domínio deste bloco
+  cumprido".
+
+**O que bloqueia os dois é uma coisa só:** `InstrumentPanel` tem prop
+única (`{ instrumento }`), nenhum callback de resultado, e é NUNCA
+MODIFICAR nesta wave. Dar a ele um callback de resultado destrava dois
+badges de uma vez — é o bloqueio mais barato de abrir do conjunto.
+(Nota adicional: `ordemOk` do reconstrutor nem sai em `valores`, só
+`i4-acertos`, `i4-err` e `i4-soma`.) O terceiro, `leitor-de-mercado`,
+é mais caro: "acertou 90% das questões" exige questão corrigida, e
+`ExercicioBlock` só revela/oculta gabarito — sem campo de resposta e sem
+checagem.
+
+**`badge-anatomista-de-faturas` é o único cujo critério é puramente
+conclusão de aula** ("Concluiu a aula da conta de luz industrial item
+por item") — mapeia direto no sinal que já existe. Falta a aula: o
+Bloco 10 não tem HTML, e nenhuma aula dos Módulos 01-09 trata da conta
+industrial. Sem id para nomear, escrever a regra exigiria generalizar
+para o módulo inteiro, o que seria proxy.
+
+**O que a fase entrega**, então, não é concessão: é (a) a auditoria em
+forma tipada e consultável, com trava de DEV de cobertura 1:1 contra
+`ALEXANDRIA_BADGES` — para a próxima wave ler código em vez desta
+seção; e (b) o caminho de emissão pronto e ligado em `AulaViewer` após
+`aula_concluida`, para que abrir um bloqueio seja escrever uma regra e
+não montar encanamento. `avaliarPorConclusao` devolve lista vazia **sem
+tocar a rede** — confirmado: zero `badge_conquistado` no log de rede
+depois de quatro conclusões reais.
+
+No Perfil, a lista vazia de insígnias deixou de ser silêncio: uma
+cartela declara ao aluno que **nenhuma é conquistável ainda**, com a
+contagem por bloqueio DERIVADA de `contarBloqueios()` — 8 · 3 · 1 · 1 —
+e a frase que importa: "Isto não é a sua conta: é o produto que ainda
+não sabe observar o que cada critério pede."
+
+### Fase 4 — certificado cruzando progresso real
+
+Fecha a pendência que a Wave 31 registrou por escrito. Era estático: o
+mesmo texto para toda conta, sem olhar uma aula concluída.
+
+O requisito é enumerado do catálogo — `t1.moduleIds` × `totalAulas` de
+cada módulo, resolvido por `getAulaDoModulo` — e cruzado contra
+`GET /api/progress/me`. **42 aulas em 5 módulos (9/10/10/7/6)**, nenhum
+número digitado. Mostra progresso real com repartição por módulo, não
+bloqueado/desbloqueado binário: o aluno vê ONDE falta.
+
+Com as 42 concluídas o estado muda para "requisito cumprido", e diz a
+verdade seguinte — **a emissão do documento não existe**: não há
+endpoint de certificado no backend, e um botão que não emite nada seria
+pior que a frase.
+
+**O fetch de progresso subiu para o `PerfilStub`** e desce para as duas
+seções. Sem isso, Progresso e Certificado fariam duas chamadas idênticas
+ao mesmo endpoint na mesma carga. Confirmado no log de rede: **uma
+requisição por montagem** (as duas 200 + 1 abortada são o StrictMode do
+dev).
+
+### Fase 5 — Notas: armazenamento confirmado ausente
+
+Auditado o schema real: **nove tabelas**, nenhuma de texto livre por
+usuário. O único campo livre é `progress_event.metadata` (JSONB) — mas
+`progress_event` é log imutável e `GET /api/progress/me` devolve
+`aulasConcluidas` / `aulasEmAndamento` / `badges` / `streak`, **sem
+metadata**. Escrever nota ali seria escrita sem leitura possível.
+
+Só a copy mudou, e ela saiu junto no commit da Fase 2 — o texto vivia no
+`AbaVazia` que foi removido, então era inseparável. Sem commit próprio;
+não fabriquei um vazio. O antigo dizia "Anotar exige persistência por
+usuário, que a Alexandria ainda não tem" — **falso desde a Wave 31**. O
+novo nomeia o bloqueio real e atual: "não guarda texto livre: o backend
+não tem tabela de anotação, e o único campo livre do log de progresso é
+de escrita, não de leitura."
+
+### Verificação por clique real
+
+Conta nova (`lyceum.w39.<timestamp>@gridalpha.com`), servidor próprio na
+porta 5279 (`--strictPort`).
+
+| Passo | Resultado |
+| --- | --- |
+| Perfil, conta vazia | Certificado **0 de 42**, repartição 0/9 · 0/10 · 0/10 · 0/7 · 0/6 |
+| Concluir 4 aulas por clique no botão (3 no Módulo 01, 1 no Módulo 04) | `aulasConcluidas: [aula-01-01, aula-01-02, aula-01-03, aula-04-01]` |
+| Perfil de novo | Certificado **4 de 42 · 10% · 38 restantes**, repartição **3/9 · 0/10 · 0/10 · 1/7 · 0/6** |
+| `badges` no backend | **`[]`** — nenhum proxy disparou, como projetado |
+| `/api/progress/events` | todos 201; **zero** `badge_conquistado` |
+
+Estrutura: zero `role="tablist"` e zero `role="tab"` em Módulos 01 e 02,
+`MATERIAL COMPLEMENTAR` com as três ausências presentes, ordem de bloco
+conferida por posição no DOM. Zero overflow horizontal em 1440×900 e
+1920×1080 nas duas superfícies. Screenshots das duas em 1440×900.
+
+**Nota de ambiente, com correção de método:** o painel Browser desta
+sessão nasce com viewport **0×0 e `visibilityState: hidden`**, e isso
+produziu um falso positivo que quase virou diagnóstico errado — as três
+gravuras da Aula 03 mediam `naturalWidth` 0 e a `<figure>` media largura
+0, o que lê como regressão de layout. Não era: `<main>` inteiro media 0.
+Resolvido com `resize_window`, e a prova definitiva veio do Playwright
+MCP num browser que compõe de verdade — **1024×1024 · 1536×1024 ·
+1024×1024**, renderizando em 220px, exatamente a grade que a Wave 5
+documentou. Lição para a próxima sessão: **medir `window.innerWidth`
+antes de acreditar em qualquer medida de layout** naquele painel.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos desta wave; permanecem os **7
+pré-existentes** em `nest/student/{ProjectSandbox,SandboxTrading}`
+(Recharts, desde a Wave 3). `gridalpha-detect` sobre `viewer`,
+`src/lib/progress` e `src/pages/alexandria` — "No findings. Surface is
+clean." `git status` conferido antes de cada um dos três commits:
+nenhum arquivo das sessões paralelas (Atlas, jogos do Módulo 08) entrou
+em commit nenhum.
+
+### Registrado, não resolvido
+
+- **Callback de resultado no `InstrumentPanel`** — destrava
+  `guardiao-fp` e `matriz-em-duas-lentes` de uma vez. O trabalho mais
+  barato do conjunto de badges.
+- **Exercício avaliado** — sem campo de resposta nem correção, o
+  `exercicio_respondido` que o backend aceita continua sem emissor, e
+  `leitor-de-mercado` continua impossível.
+- **Emissão do certificado** — o requisito agora é verificado de
+  verdade; o documento não existe (sem endpoint no backend).
+- **Notas** — pede wave de backend (tabela de anotação por usuário +
+  endpoints) antes de qualquer wave de interface.
+- **Conta de teste deixada no banco** — mesma pendência das Waves 23, 26
+  e 31; sem endpoint de exclusão no contrato.

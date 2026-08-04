@@ -6439,3 +6439,156 @@ como deve.
 **Gates:** `tsc` 0 erros · `gridalpha-detect` "No findings. Surface is
 clean." · as duas suítes de regressão (revisão e Fase 5 da wave)
 passando em 1440×900 e 1920×1080.
+
+## LYCEUM — ALEXANDRIA WAVE 40 — RECONCILIAR O DADO DO JOGO DO M08
+
+**Status:** fechada. A wave foi aberta sob a suspeita de que o jogo "O
+Número Impossível" divergia do conteúdo de aula. **Não divergia** — a
+auditoria contra a fonte HTML original achou 17 de 18 números
+concordando nas três. O que ela achou de verdade foram outras duas
+coisas, e as duas estão corrigidas.
+
+**Arquivos:** `src/lib/data/alexandria-modulo-08-fatos.ts` (NOVO) ·
+`alexandria-modulo-08-content.ts` · `modulo-08-game-data.ts` ·
+`tests/alexandria-games/modulo-08-fatos.test.ts` (NOVO) · `package.json`
+(uma linha de script).
+
+### Fase 1 — os 18 números, conferidos contra a FONTE, não contra o extraído
+
+| doc | valor | grandeza | fonte HTML | conteúdo | veredito |
+| --- | --- | --- | --- | --- | --- |
+| m8-01 | 64,8 GW | capacidade solar | ✓ | ✓ | concordam |
+| m8-01 | ~25 % | fatia solar na capacidade | ✓ | ✓ | concordam |
+| m8-02 | 88,1 TWh | geração solar | ✓ | ✓ | concordam |
+| m8-02 | ~11 % | fatia solar na geração | ✓ | ✓ | concordam |
+| m8-03 | 86,8 % | renovabilidade **elétrica** | ✓ | ✓ | concordam |
+| m8-04 | ~50 % | renovabilidade **energética** | ✓ | ✓ | concordam |
+| m8-05 | 4.330 / 7,6 GWh | curtailment + contrafactual | ✓ | ✓ | concordam |
+| m8-07 | **78 GW** | PDE, cenário | **✗** | **✗** | **em nenhum dos dois** |
+| m8-08 | 0,1 % → 20 % | corte 2021→2025 | ✓ | ✓ | concordam |
+| m8-09 | 37 % / 230 kV | participação AXIA | ✓ | ✓ | concordam |
+| m8-10 | 725 km, 10/09, 16/09 | Roraima | ✓ | ✓ | concordam |
+| m8-11 | 86,8 % ano-base | renovabilidade | ✓ | ✓ | concordam |
+
+**Zero divergências ativas.** Nenhum caso de "os dois erraram".
+
+### A premissa da wave estava incorreta, e a aritmética prova
+
+O brief apontava `42,2/24,8/13,3/6,7/12,2/0,8` (conteúdo) contra
+`64,8 GW`/`86,8 %` (jogo) como divergência. Não são números
+concorrentes: os primeiros são **percentuais** e o segundo é
+**capacidade em GW**. Os seis percentuais derivam exatamente dos seis
+valores em GW sobre o total de 261,0 GW:
+
+| fonte | GW | % derivada | % no gabarito | bate |
+| --- | --- | --- | --- | --- |
+| Hidrelétrica | 110,2 | 42,22 % | 42,2 % | ✓ |
+| **Solar** | **64,8** | **24,83 %** | **24,8 %** | ✓ |
+| Eólica | 34,7 | 13,30 % | 13,3 % | ✓ |
+| Biomassa | 17,5 | 6,70 % | 6,7 % | ✓ |
+| Térmica fóssil | 31,8 | 12,18 % | 12,2 % | ✓ |
+| Nuclear | 2,0 | 0,77 % | 0,8 % | ✓ |
+
+64,8 ÷ 261,0 = 24,83 %, que arredonda para os "cerca de 25 %" do jogo e
+para os 24,8 % do gabarito do Reconstrutor. **Mesmo fato, duas
+unidades.** E `86,8 %` é uma terceira grandeza — renovabilidade —, sem
+relação nenhuma com fatia de capacidade. O total de 261,0 GW é
+corroborado pelo § Erros da própria fonte ("O Brasil tem 261 GW de
+capacidade instalada").
+
+### Achado 1 — `78 GW` não existe na fonte
+
+O único casamento de "78" em `alexandria_modulo08.html` é o hexadecimal
+`A78BFA` de uma cor. A sigla "PDE" também não aparece: o módulo escreve
+"plano decenal". Era número inventado pelo jogo.
+
+**Corrigido para 269 GW**, valor real da fonte, por decisão do Aquiles.
+A **mecânica não mudou** — o slide segue sem universo, sem ano e sem
+cenário, e a resposta esperada segue `insuficiente`. A armadilha ficou
+mais rica: a fonte traz DOIS valores de planejamento que o slide
+confunde, e agora o documento os expõe (269 GW é do plano da operação
+de médio prazo do operador, previsto para 2030; o plano decenal declara
+~255 GW como ponto de partida).
+
+### Achado 2 — a tabela dos quatro universos não estava em lugar nenhum
+
+É o artefato central do módulo e literalmente o tema do jogo:
+
+| Valor | Data-base | Universo | Publicação |
+| --- | --- | --- | --- |
+| 261,0 GW | 31/12/2025 | conceito amplo | balanço energético |
+| 215,9 GW | 01/01/2026 | centralizadas outorgadas em operação | sistema da agência |
+| ~255 GW | base do plano | ponto de partida do decenal | plano decenal |
+| 269 GW | previsto 2030 | capacidade do SIN, médio prazo | plano da operação |
+
+Vive no **§ 00 Tese**, que é aparato; a extração da Wave 32 cobriu só
+corpo de aula, então ficou de fora **por escopo, não por descuido**.
+Extraída agora, e é o núcleo do módulo canônico — é o dado que dá
+sentido aos quatro `ClaimUniverse` que o jogo já usava como rótulo.
+
+### Fase 2 — o que o módulo canônico faz, e o que ele deliberadamente não faz
+
+**Não deduplica prosa.** Os 17 números duplicados vivem dentro de frase
+corrida nos dois arquivos ("a renovabilidade da matriz elétrica ficou em
+86,8%"). Templatizar cada sentença trocaria legibilidade por acoplamento
+e pioraria os dois lados. Então o módulo possui os **valores**; a frase
+continua escrita à mão dos dois lados, e o teste de invariante é quem
+cobra a concordância.
+
+**O que ficou ligado de verdade:** `M08_CAPACIDADE_POR_FONTE` mudou de
+casa (era `M08_INST02_SRC` no arquivo de conteúdo). O conteúdo reexporta
+com o nome público preservado, então a calculadora da Wave 38 não muda,
+e o jogo interpola daí. As fatias percentuais e o total de 261,0 GW são
+**derivados**, não digitados.
+
+### Fase 3 — o teste de invariante, e o defeito que a sabotagem revelou
+
+**A primeira versão do teste era fraca e a sabotagem provou.** Ela usava
+`includes`, e o caso que mais importa passava verde: `86,8%` aparece
+TRÊS vezes no conteúdo, então trocar uma delas por `87,4%` deixava as
+outras duas satisfazendo o `includes`. Trocado por **contagem de
+ocorrências** — mudar uma de três derruba de 3 para 2 e quebra.
+
+Seis sabotagens confirmadas, cada uma desfeita em seguida:
+
+| # | sabotagem | testes que falham |
+| --- | --- | --- |
+| 1 | valor canônico alterado | 2 |
+| 2 | **uma de três menções na prosa** | 2 (a que escapava) |
+| 3 | jogo volta a citar "78 GW" | 1 |
+| 4 | conteúdo redigita a tabela em vez de reexportar | 1 |
+| 5 | gabarito do Reconstrutor diverge da tabela em GW | 1 |
+| 6 | capacidade solar canônica alterada | 3 |
+
+Restaurado: 8/8 verde. **14 de 14 no total** com os 6 testes de motor do
+Codex, que seguem passando.
+
+O arquivo de conteúdo é lido como **texto**, não importado como módulo:
+ele e a cadeia que puxa usam import sem extensão (convenção do app, que
+o Vite resolve e o runner do node não). Para o que o teste precisa
+provar, texto é prova mais forte — pega inclusive alguém redigitando a
+tabela em vez de reexportá-la.
+
+### Verificação por clique real
+
+Jogo em `/alexandria/trilha/.../modulo-08/jogo`, lente Analista: DOC 01
+renderiza "cerca de 25% da capacidade, com 64,8 GW" (o 25 % agora
+DERIVADO de 24,83 %, não digitado) e DOC 07 renderiza "O plano prevê 269
+GW" com a armadilha dos dois planos. Aula 1 do Módulo 08 intacta — INST
+02 em 261 GW / 761,44 TWh/ano / solar 24,83 %, e a prosa em "ficou em
+86,8%". Zero NaN, zero erro de console.
+
+### Registrado, não resolvido
+
+- **Aspas duplas no DOC 07** (`““O plano prevê 269 GW”…`): o componente
+  envolve o `claim` em aspas e o claim traz as suas próprias, que marcam
+  a fala do slide. É **pré-existente** — o texto antigo com "78 GW"
+  renderizava igual — e corrigir exige mexer no componente, que não é
+  desta wave.
+- **Os outros números do § 00 Tese** (215,9 GW e ~255 GW) agora existem
+  na camada canônica mas nenhum documento do jogo os usa ainda. São o
+  material óbvio para um documento novo sobre cadastro regulatório.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos da wave. `gridalpha-detect`
+sobre os 3 arquivos de produto — "No findings. Surface is clean."
+`npm run test:games` — 14/14.

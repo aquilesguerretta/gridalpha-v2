@@ -33,6 +33,12 @@ interface PaisPerfilProps {
   /** null = país sem perfil no backend — painel de ausência honesta. */
   resumo: PaisResumo | null;
   aoVoltar: () => void;
+  /** No modo imersivo a barra de busca ocupa o mesmo canto superior
+   *  direito. Sem este recuo o perfil cobre a busca inteira (medido:
+   *  x 1068–1428 sobre x 1208–1428, os dois em z-index auto), e quem
+   *  monta depois vence — o usuário ficava sem conseguir buscar outro
+   *  país com um perfil aberto. */
+  recuarDoTopo?: boolean;
 }
 
 /** "Ember - Yearly Electricity Data (2026) [https://…]; Energy
@@ -115,7 +121,7 @@ function Indicador({
   );
 }
 
-export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
+export function PaisPerfil({ nome, isoA3, resumo, aoVoltar, recuarDoTopo = false }: PaisPerfilProps) {
   const [perfil, setPerfil] = useState<PerfilCompleto | null>(null);
   const [falhaFontes, setFalhaFontes] = useState(false);
   const [visivel, setVisivel] = useState(false);
@@ -182,7 +188,8 @@ export function PaisPerfil({ nome, isoA3, resumo, aoVoltar }: PaisPerfilProps) {
       aria-label={`Perfil energético: ${nome}`}
       style={{
         position: 'absolute',
-        top: AS.md,
+        // recuo: ver `recuarDoTopo` — no imersivo a busca ocupa este canto
+        top: recuarDoTopo ? '52px' : AS.md,
         right: AS.md,
         bottom: AS.md,
         width: 'min(360px, calc(100% - 96px))',

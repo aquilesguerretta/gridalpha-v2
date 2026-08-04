@@ -121,6 +121,57 @@ export function useSubmercados(ativo: boolean): FeatureSubmercado[] | null {
  *  com espessura angular), e o react-globe.gl declara que "transparent
  *  colors are not supported in Fat Lines with set width" — com rgba
  *  o traço simplesmente não aparecia, medido. */
+/** Ponto dentro de anel, por cruzamento de raio. `anel` é [lng, lat][]. */
+function dentroDoAnel(lng: number, lat: number, anel: number[][]): boolean {
+  let dentro = false;
+  for (let i = 0, j = anel.length - 1; i < anel.length; j = i++) {
+    const [xi, yi] = anel[i];
+    const [xj, yj] = anel[j];
+    if (yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) {
+      dentro = !dentro;
+    }
+  }
+  return dentro;
+}
+
+/**
+ * Qual submercado contém este ponto — ou null.
+ *
+ * Hit-testing GEODÉSICO, sobre a geometria real, em vez de um mesh
+ * invisível na cena. Duas razões medidas, as duas descobertas tentando
+ * o caminho do mesh primeiro:
+ *
+ *  1. A tampa transparente do polígono ESCREVE no depth buffer e
+ *     ocultava as quatro fronteiras desenhadas — provado por
+ *     isolamento (sem os polígonos na cena, o traço volta).
+ *  2. A triangulação por earcut destes polígonos é errada nas três
+ *     resoluções de curvatura testadas, então o mesh acertava a região
+ *     VIZINHA: um ponto do Nordeste devolvia "norte". O hit por
+ *     geometria não tem esse erro — usa os mesmos vértices do IBGE que
+ *     desenham a fronteira.
+ *
+ * Furo de anel é respeitado: o primeiro anel de cada parte é a casca,
+ * os seguintes são buracos.
+ */
+export function submercadoEm(
+  lng: number,
+  lat: number,
+  feats: FeatureSubmercado[],
+): string | null {
+  for (const f of feats) {
+    const g = f.geometry as
+      | { type: 'Polygon'; coordinates: number[][][] }
+      | { type: 'MultiPolygon'; coordinates: number[][][][] };
+    const partes = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+    for (const parte of partes) {
+      if (parte.length === 0 || !dentroDoAnel(lng, lat, parte[0])) continue;
+      const emBuraco = parte.slice(1).some((furo) => dentroDoAnel(lng, lat, furo));
+      if (!emBuraco) return f.properties.id;
+    }
+  }
+  return null;
+}
+
 export const COR_SUBMERCADO: Record<string, string> = {
   norte: '#8E9E6B',              // A2.olivaSobreNavy
   nordeste: '#CBAA6E',           // A2.ouroSobreNavy

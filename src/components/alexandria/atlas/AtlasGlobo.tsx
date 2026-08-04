@@ -37,6 +37,7 @@ import {
 } from '../../../lib/atlas/atlasDerivacoes';
 import {
   COR_SUBMERCADO,
+  submercadoEm,
   type FeatureSubmercado,
   type PropsSubmercado,
 } from './CamadaBrasil';
@@ -137,16 +138,34 @@ const FADE_FIM = 0.42;
 // geográficos reais, não ornamento. Fica ABAIXO dos polígonos em
 // altitude, então a terra passa por cima e a grade lê no mar.
 // ─────────────────────────────────────────────────────────────────────
-const GRADE: Array<Array<[number, number]>> = (() => {
-  const linhas: Array<Array<[number, number]>> = [];
+/**
+ * Ponto de caminho com altitude PRÓPRIA.
+ *
+ * `pathPointAlt` do globe.gl recebe o PONTO, não o objeto do caminho —
+ * medido depois de três tentativas frustradas de elevar a fronteira de
+ * submercado. Enquanto o acessor lia `obj.id` (sempre `undefined` num
+ * ponto), TODO traço caía no valor da grade: raio 100,2 na cena, ou
+ * seja rente à superfície e ABAIXO do polígono do país (0,006). Com a
+ * coloração desligada o país é uma lavagem com alfa e o traço aparecia
+ * por baixo; com coloração por métrica o cap vira opaco e a fronteira
+ * sumia — o defeito que o Aquiles viu, e que nenhuma mudança de
+ * altitude corrigia porque o valor nunca chegava a ser usado.
+ */
+interface PontoCaminho { lat: number; lng: number; alt: number }
+
+const ALT_GRADE = 0.002;      // rente à esfera: a terra passa por cima
+const ALT_SUBMERCADO = 0.015; // acima do cap do país (0,006)
+
+const GRADE: Array<PontoCaminho[]> = (() => {
+  const linhas: Array<PontoCaminho[]> = [];
   for (let lng = -180; lng < 180; lng += 30) {
-    const meridiano: Array<[number, number]> = [];
-    for (let lat = -88; lat <= 88; lat += 4) meridiano.push([lat, lng]);
+    const meridiano: PontoCaminho[] = [];
+    for (let lat = -88; lat <= 88; lat += 4) meridiano.push({ lat, lng, alt: ALT_GRADE });
     linhas.push(meridiano);
   }
   for (let lat = -60; lat <= 60; lat += 30) {
-    const paralelo: Array<[number, number]> = [];
-    for (let lng = -180; lng <= 180; lng += 4) paralelo.push([lat, lng]);
+    const paralelo: PontoCaminho[] = [];
+    for (let lng = -180; lng <= 180; lng += 4) paralelo.push({ lat, lng, alt: ALT_GRADE });
     linhas.push(paralelo);
   }
   return linhas;
@@ -335,10 +354,20 @@ export interface AtlasGloboProps {
    *  numa altitude acima dos países — o globo continua sendo um só. */
   submercados?: FeatureSubmercado[] | null;
   aoSelecionarSubmercado?: (id: string | null) => void;
+  /** Submercado aberto no painel — realçado no globo. O que está sob o
+   *  ponteiro vence este, para o feedback seguir a mão do usuário. */
+  submercadoAtivo?: string | null;
   /** Avisa quem está de fora qual país foi selecionado — pelo clique
    *  no globo, pela busca ou pelo pedido acima. É como o comparador
    *  recebe seleção sem duplicar a mecânica. */
   aoSelecionarPais?: (iso: string) => void;
+  /** Disparado no INÍCIO do voo, com o destino. Diferente de
+   *  `aoSelecionarPais`, que só chega quando a câmera pousa: quem
+   *  precisa reagir à MUDANÇA DE FOCO — a camada Brasil, que tem de
+   *  fechar assim que o usuário parte para outro país — não pode
+   *  esperar o voo terminar, senão os submercados ficam desenhados
+   *  sobre um país que não é o Brasil. */
+  aoFocarPais?: (iso: string | null) => void;
   aoEntrarImersivo?: () => void;
   aoSairImersivo?: () => void;
 }
@@ -355,13 +384,16 @@ export function AtlasGlobo({
   pedidoDeVoo = null,
   submercados = null,
   aoSelecionarSubmercado,
+  submercadoAtivo = null,
   aoSelecionarPais,
+  aoFocarPais,
   aoEntrarImersivo,
   aoSairImersivo,
 }: AtlasGloboProps) {
   const [mundo, setMundo] = useState<MundoAtlas | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [hover, setHover] = useState<PaisFeature | null>(null);
+  const [subHover, setSubHover] = useState<string | null>(null);
   const [selecionado, setSelecionado] = useState<{
     feature: PaisFeature;
     resumo: PaisResumo | null;
@@ -388,6 +420,8 @@ export function AtlasGlobo({
   selecionarRef.current = aoSelecionarPais;
   const selecionarSubmercadoRef = useRef(aoSelecionarSubmercado);
   selecionarSubmercadoRef.current = aoSelecionarSubmercado;
+  const focarRef = useRef(aoFocarPais);
+  focarRef.current = aoFocarPais;
   const entrarImersivoRef = useRef(aoEntrarImersivo);
   entrarImersivoRef.current = aoEntrarImersivo;
   const sairImersivoRef = useRef(aoSairImersivo);
@@ -475,6 +509,51 @@ export function AtlasGlobo({
     });
   }, [iniciarFade]);
 
+  // ── Submercado sob o ponteiro: hit-testing GEODÉSICO ──────────────
+  // Não passa por polígono na cena (ver `submercadoEm` para as duas
+  // razões medidas). Converte o pixel em lat/lng com o próprio globo e
+  // testa contra a geometria real. Só roda com a camada aberta.
+  const submercadosRef = useRef<FeatureSubmercado[] | null>(null);
+  submercadosRef.current = submercados;
+  const cliqueEmSubmercadoRef = useRef(0);
+
+  const submercadoNoPonto = useCallback((ev: MouseEvent): string | null => {
+    const feats = submercadosRef.current;
+    const globo = globoRef.current;
+    if (!feats || feats.length === 0 || !globo) return null;
+    const tela = areaRef.current?.querySelector('canvas');
+    if (!tela) return null;
+    const r = tela.getBoundingClientRect();
+    const coord = globo.toGlobeCoords(ev.clientX - r.left, ev.clientY - r.top);
+    if (!coord) return null;
+    return submercadoEm(coord.lng, coord.lat, feats);
+  }, []);
+
+  useEffect(() => {
+    const area = areaRef.current;
+    if (!area || !submercados || submercados.length === 0) {
+      setSubHover(null);
+      return;
+    }
+    const aoMover = (ev: MouseEvent) => setSubHover(submercadoNoPonto(ev));
+    // CAPTURA: precisa correr ANTES do handler de país do globe.gl, que
+    // escuta no canvas. Cair dentro de um submercado marca o instante, e
+    // `aoClicar` usa essa marca para não voar até o Brasil de novo.
+    const aoClicarArea = (ev: MouseEvent) => {
+      const id = submercadoNoPonto(ev);
+      if (id === null) return;
+      cliqueEmSubmercadoRef.current = performance.now();
+      selecionarSubmercadoRef.current?.(id);
+    };
+    area.addEventListener('mousemove', aoMover);
+    area.addEventListener('click', aoClicarArea, true);
+    return () => {
+      area.removeEventListener('mousemove', aoMover);
+      area.removeEventListener('click', aoClicarArea, true);
+      setSubHover(null);
+    };
+  }, [submercados, submercadoNoPonto]);
+
   // ── voo até um país → SÓ ENTÃO o perfil abre. Navegar antes do
   //    movimento terminar cortaria a sensação de voar até lá. ────────
   const voarAtePais = useCallback((f: PaisFeature) => {
@@ -498,6 +577,11 @@ export function AtlasGlobo({
     const altitude = Math.min(1.8, Math.max(0.9, span / 50));
 
     setSelecionado(null); // perfil anterior sai antes do voo, não durante
+    // Foco muda AGORA, não no pouso: a camada Brasil precisa fechar no
+    // instante em que o usuário parte para outro país, senão os
+    // submercados ficam desenhados sobre território que não é o Brasil
+    // durante todo o voo — e, no destino, sobre o país errado.
+    focarRef.current?.(f.properties.a3 ?? null);
     voandoRef.current = true;
     globo.pointOfView({ lat, lng, altitude }, VOO_MS);
     vooRef.current = setTimeout(() => {
@@ -511,12 +595,11 @@ export function AtlasGlobo({
   // Clique (ou busca): no modo página, primeiro ABRE o imersivo — o
   // voo fica pendente e dispara quando o palco expandido assenta.
   const aoClicar = useCallback((poligono: object) => {
-    // Camada Brasil: clicar num submercado abre o contexto dele — não
-    // voa (já estamos sobre o Brasil) e não abre perfil de país.
-    if (ehSubmercado(poligono)) {
-      selecionarSubmercadoRef.current?.((poligono as FeatureSubmercado).properties.id);
-      return;
-    }
+    // Camada Brasil: o clique já foi tratado pelo hit-testing geodésico
+    // na fase de captura, que abre o contexto da região. Aqui só
+    // impedimos o voo — senão clicar num submercado refaria o voo até o
+    // Brasil, que é onde a câmera já está.
+    if (performance.now() - cliqueEmSubmercadoRef.current < 250) return;
     const f = poligono as PaisFeature;
     if (!mundo || voandoRef.current) return;
     if (!imersivoRef.current) {
@@ -767,13 +850,13 @@ export function AtlasGlobo({
     const f = obj as PaisFeature;
     const o = opacidadesRef.current.get(chaveFeature(f)) ?? 0;
 
-    // Submercado do SIN (camada Brasil): identidade de região, não
-    // métrica — não temos dado por submercado, e a cor aqui não finge
-    // codificar nenhum. Coloração e filtro do mundo não se aplicam.
-    if (ehSubmercado(obj)) {
-      const id = (obj as FeatureSubmercado).properties.id;
-      const base = COR_SUBMERCADO[id] ?? 'rgba(242, 233, 214, 0.10)';
-      return o > 0.004 ? base.replace(/[\d.]+\)$/, '0.78)') : base;
+    // Com a camada Brasil aberta, o preenchimento de hover do PAÍS não
+    // se aplica ao Brasil: ele pintaria o território inteiro de
+    // terracota e engoliria o realce da região sob o cursor. Quem
+    // responde ao ponteiro aqui é o submercado, não o país.
+    const naCamada = submercados !== null && submercados.length > 0;
+    if (naCamada && f.properties.a3 === 'BRA') {
+      return corDoPais(mundo?.porIso.get('BRA') ?? null, modoCor).cor;
     }
 
     if (o > 0.004) return `rgba(168, 70, 42, ${(o * OPACIDADE_HOVER).toFixed(3)})`;
@@ -790,37 +873,60 @@ export function AtlasGlobo({
   // olhando renderizado contra a alternativa creme; ver relatório da
   // wave. Traço fino, mesma família do fio duplo do frontispício.
   const corContorno = useCallback(
-    (obj: object) => (ehSubmercado(obj) ? A.cremePapel : A2.ouroSobreNavy),
+    // Submercado: contorno de polígono TRANSPARENTE. A tampa dele só
+    // existe para o raycast, e o traço que o usuário vê é o `pathsData`.
+    (obj: object) => (ehSubmercado(obj) ? 'rgba(0, 0, 0, 0)' : A2.ouroSobreNavy),
     [],
   );
   const corLateral = useCallback(() => 'rgba(0, 0, 0, 0)', []);
+
+  // Submercado em destaque: o que está sob o ponteiro vence o que está
+  // aberto no painel — o feedback tem que seguir a mão do usuário.
+  const submercadoRealcado = subHover ?? submercadoAtivo ?? null;
+
   // Dois usos do mesmo mecanismo de caminho: a grade de coordenadas
   // (id null) no ouro do contorno a 16%, presente para dar estrutura ao
   // mar sem disputar com a fronteira; e a fronteira de submercado (id
   // preenchido) na cor OPACA da região — fat line com espessura não
   // aceita canal alfa, medido.
+  //
+  // O DESTAQUE mora aqui, e não na tampa: a região realçada mantém a
+  // cor cheia enquanto as outras três recuam para o ouro do contorno.
+  // É o mesmo idioma do filtro de país — quem sai de foco esmaece, nunca
+  // some.
   const corGrade = useCallback(
     (obj: object) => {
       const id = (obj as { id: string | null }).id;
-      return id ? (COR_SUBMERCADO[id] ?? A2.ouroSobreNavy) : 'rgba(203, 170, 110, 0.16)';
+      if (!id) return 'rgba(203, 170, 110, 0.16)';
+      // A cor é IDENTIDADE da região e não muda com o foco. Duas
+      // tentativas de atenuar o não-realçado foram medidas e desfeitas:
+      // por alfa (fat line com espessura não aceita canal alfa — a
+      // fronteira some inteira) e por tom escuro (#6E6244 sobre o navy
+      // também some, e o Nordeste, que tem um único anel, desaparecia
+      // por completo). O realce mora na ESPESSURA — ver abaixo.
+      return COR_SUBMERCADO[id] ?? A2.ouroSobreNavy;
     },
-    [],
+    [submercadoRealcado],
   );
   const pontosDoCaminho = useCallback(
-    (obj: object) => (obj as { pontos: Array<[number, number]> }).pontos,
+    (obj: object) => (obj as { pontos: PontoCaminho[] }).pontos,
     [],
   );
-  // fronteira de submercado sobe acima do polígono do país e ganha
-  // espessura angular; a grade continua rente à superfície, hairline.
+  const latDoPonto = useCallback((p: object) => (p as PontoCaminho).lat, []);
+  const lngDoPonto = useCallback((p: object) => (p as PontoCaminho).lng, []);
+  const altDoPonto = useCallback((p: object) => (p as PontoCaminho).alt, []);
+  // A altitude viaja no PONTO (ver PontoCaminho); aqui fica só o peso.
   // 1,2 é o piso medido em que a fronteira de submercado deixa de ler
-  // como mais um contorno de país e passa a ler como camada própria.
-  const altitudeCaminho = useCallback(
-    (obj: object) => ((obj as { id: string | null }).id ? 0.02 : 0.002),
-    [],
-  );
+  // como mais um contorno de país e passa a ler como camada própria;
+  // 2,4 no realce. O realce é só de PESO — a cor é identidade da
+  // região e não muda com o foco (ver corGrade).
   const espessuraCaminho = useCallback(
-    (obj: object) => ((obj as { id: string | null }).id ? 1.2 : null),
-    [],
+    (obj: object) => {
+      const id = (obj as { id: string | null }).id;
+      if (!id) return null;
+      return id === submercadoRealcado ? 2.4 : 1.2;
+    },
+    [submercadoRealcado],
   );
 
   // Piso, pouso e listener acompanham resize (inclusive zoom do
@@ -852,7 +958,7 @@ export function AtlasGlobo({
   // vértice (o que seria aproximar, que o brief proíbe).
   const linhasSubmercado = useMemo(() => {
     if (!submercados || submercados.length === 0) return [];
-    const linhas: Array<{ id: string; pontos: Array<[number, number]> }> = [];
+    const linhas: Array<{ id: string; pontos: PontoCaminho[] }> = [];
     for (const f of submercados) {
       const g = f.geometry as
         | { type: 'Polygon'; coordinates: number[][][] }
@@ -862,8 +968,9 @@ export function AtlasGlobo({
         for (const anel of parte) {
           linhas.push({
             id: f.properties.id,
-            // GeoJSON é [lng, lat]; pathPoints quer [lat, lng]
-            pontos: anel.map(([lng, lat]) => [lat, lng] as [number, number]),
+            // GeoJSON é [lng, lat]. A ALTITUDE viaja no próprio ponto —
+            // ver PontoCaminho para a razão medida.
+            pontos: anel.map(([lng, lat]) => ({ lat, lng, alt: ALT_SUBMERCADO })),
           });
         }
       }
@@ -884,7 +991,7 @@ export function AtlasGlobo({
   // Submercado não entra aqui: o PaisTooltip fala de país, e um
   // submercado cairia no texto de "fora do conjunto de 188
   // soberanos" — falso. O contexto dele vive no painel próprio.
-  if (hover && mundo && !ehSubmercado(hover)) {
+  if (hover && mundo && subHover === null && !ehSubmercado(hover)) {
     const a3 = hover.properties.a3;
     const resumo = a3 ? (mundo.porIso.get(a3) ?? null) : null;
     alvoTooltip = {
@@ -980,7 +1087,9 @@ export function AtlasGlobo({
             pathPoints={pontosDoCaminho}
             pathColor={corGrade}
             pathStroke={espessuraCaminho}
-            pathPointAlt={altitudeCaminho}
+            pathPointLat={latDoPonto}
+            pathPointLng={lngDoPonto}
+            pathPointAlt={altDoPonto}
             pathTransitionDuration={0}
             polygonsData={mundo.features}
             polygonAltitude={0.006}
@@ -1085,6 +1194,7 @@ export function AtlasGlobo({
 
       {selecionado !== null && (
         <PaisPerfil
+          recuarDoTopo={imersivo}
           nome={nomePaisPt(selecionado.feature.properties, selecionado.resumo?.countryName)}
           isoA3={selecionado.feature.properties.a3}
           resumo={selecionado.resumo}

@@ -216,6 +216,9 @@ import {
   M08_INST05_CAMPOS,
   M08_INST05_DADOS,
   M08_INST05_LEITURA,
+  M08_INST06_FONTES,
+  M08_INST06_DADOS,
+  M08_INST06_TXT,
 } from './alexandria-modulo-08-content';
 
 /** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
@@ -416,6 +419,51 @@ function i5renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrument
   return {
     valores: {},
     veredito: `${linhas}<br><br><b>O que a leitura lateral revela.</b> ${M08_INST05_LEITURA[sel]}`,
+  };
+}
+
+// ── Módulo 08 · INST 06 — Curvas de complementaridade (Wave 38) ──
+//
+// PORTADO do `i6render()`. O SVG de seis linhas fica de fora (não há
+// slot); as quatro leituras e o veredito são o que a fonte imprime em
+// texto e vêm inteiros. O parágrafo de escala (`I6.txt`) precede o
+// diagnóstico, na mesma ordem do original.
+function i6renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const eBruto = String(i['i6-e'] ?? 'mes');
+  const e = M08_INST06_DADOS[eBruto] ? eBruto : 'mes';
+  const d = M08_INST06_DADOS[e];
+  const n = 12;
+  const ligadas = M08_INST06_FONTES.filter((f) => String(i[`i6-on-${f.k}`] ?? 'sim') !== 'nao');
+
+  const soma: number[] = [];
+  for (let k = 0; k < n; k++) soma.push(ligadas.reduce((a, f) => a + d[f.k][k], 0));
+  const exc: number[] = [];
+  for (let k = 0; k < n; k++) exc.push(Math.max(0, soma[k] - d.liq[k]));
+  const deficit: number[] = [];
+  for (let k = 0; k < n; k++) deficit.push(Math.max(0, d.carga[k] - soma[k]));
+
+  const horasExc = exc.filter((v) => v > 0).length;
+  const maxExc = Math.max(...exc);
+  const maxDef = Math.max(...deficit);
+
+  let msg = `${M08_INST06_TXT[e]}<br><br>`;
+  if (ligadas.length === 0) {
+    msg += '<b>Nenhuma fonte ligada.</b> A distância inteira entre a linha de carga e o eixo é o que precisa ser atendido. Ligue as fontes uma a uma, na ordem em que quiser, e observe qual parte da curva cada uma cobre — e qual parte nenhuma delas cobre.';
+  } else if (horasExc === 0) {
+    msg += '<b>Sem excedente nesta configuração.</b> Toda a geração das fontes ligadas cabe abaixo da carga líquida em todos os pontos. Esse é o estado em que o sistema opera sem precisar cortar ninguém — e note que ele deixa de existir assim que você liga a solar na escala diária de domingo.';
+  } else if (horasExc <= 3) {
+    msg += `<b>Excedente em ${horasExc} ponto${horasExc > 1 ? 's' : ''}.</b> A área vermelha é energia disponível que não tem para onde ir. Nesta magnitude, ela ainda é administrável com redução das fontes despacháveis e ajuste de intercâmbio. O que muda o caráter do problema não é o tamanho do excedente — é a frequência com que ele aparece.`;
+  } else {
+    msg += `<b>Excedente em ${horasExc} dos 12 pontos.</b> Nesta frequência, o excedente deixa de ser evento e vira regime. A área vermelha representa energia que precisa ser cortada por razão energética, e reforço de transmissão não a elimina — ela existiria mesmo com rede infinita, porque não há carga em lugar nenhum do país naquela hora. As soluções que atacam esse regime são armazenamento, flexibilidade de demanda e moderação da expansão correlacionada.`;
+  }
+  return {
+    valores: {
+      'i6-ligadas': ligadas.length,
+      'i6-exc': horasExc,
+      'i6-maxexc': maxExc,
+      'i6-maxdef': maxDef,
+    },
+    veredito: msg,
   };
 }
 
@@ -2192,6 +2240,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 05 · leitura lateral · o mesmo campo nas seis fontes ──
   'm08-inst-05': i5renderM08,
+
+  // ── m08 INST 06 · curvas de complementaridade · tres escalas ──
+  'm08-inst-06': i6renderM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

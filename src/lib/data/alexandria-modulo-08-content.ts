@@ -318,6 +318,66 @@ export const M08_INST05_LEITURA: Record<string, string> = {
   cre: "Repare no que mudou nas duas últimas linhas de várias fontes: o fator limitante deixou de ser tecnologia ou custo e passou a ser rede e balanço. Essa é a transição estrutural que o bloco inteiro descreve, e ela aparece aqui de forma condensada.",
 };
 
+
+// ── INST · 06 — Curvas de complementaridade (LYCEUM Wave 38) ──
+// Escala de tempo (3 opções) mais CINCO chaves booleanas de fonte. O
+// gráfico SVG de seis linhas não tem slot no painel; as quatro leituras
+// numéricas e o veredito são o que a fonte imprime em texto, e vêm
+// inteiros.
+//
+// Séries geradas do objeto I6 do <script>, não transcritas: 3 escalas ×
+// 7 séries de 12 pontos cada.
+
+export const M08_INST06_FONTES: { k: string; nome: string }[] = [
+  { k: "hid", nome: "Hidráulica" },
+  { k: "eol", nome: "Eólica" },
+  { k: "sol", nome: "Solar" },
+  { k: "bio", nome: "Biomassa" },
+  { k: "fos", nome: "Térmica" },
+];
+
+export const M08_INST06_ESCALAS: { k: string; nome: string }[] = [
+  { k: "mes", nome: "Ano · mês a mês" },
+  { k: "dia", nome: "Dia útil · de 2 em 2 horas" },
+  { k: "dom", nome: "Domingo ensolarado · de 2 em 2 horas" },
+];
+
+export const M08_INST06_DADOS: Record<string, Record<string, number[]>> = {
+  mes: {
+    carga: [74, 73, 76, 74, 73, 72, 72, 73, 75, 78, 79, 80],
+    liq: [66, 65, 68, 67, 66, 66, 66, 66, 67, 70, 71, 72],
+    hid: [46, 48, 50, 47, 42, 38, 35, 33, 32, 34, 38, 43],
+    eol: [10, 9, 8, 9, 12, 15, 19, 21, 20, 16, 12, 10],
+    sol: [11, 11, 11, 10, 10, 9, 10, 11, 12, 12, 12, 12],
+    bio: [3, 3, 4, 7, 9, 10, 11, 11, 10, 9, 6, 3],
+    fos: [7, 7, 7, 8, 10, 12, 13, 13, 13, 12, 10, 8],
+  },
+  dia: {
+    carga: [66, 62, 60, 60, 68, 79, 84, 85, 82, 88, 92, 78],
+    liq: [66, 62, 60, 59, 60, 62, 58, 60, 66, 87, 92, 78],
+    hid: [34, 32, 31, 31, 33, 33, 30, 31, 35, 46, 50, 42],
+    eol: [17, 17, 16, 15, 13, 11, 10, 10, 11, 13, 15, 16],
+    sol: [0, 0, 0, 1, 12, 26, 34, 31, 17, 1, 0, 0],
+    bio: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+    fos: [10, 10, 10, 10, 10, 10, 10, 10, 10, 12, 14, 12],
+  },
+  dom: {
+    carga: [61, 57, 55, 54, 57, 63, 66, 66, 65, 72, 78, 68],
+    liq: [61, 57, 55, 53, 48, 44, 38, 41, 50, 71, 78, 68],
+    hid: [30, 29, 28, 28, 28, 28, 28, 28, 28, 40, 45, 37],
+    eol: [18, 18, 17, 16, 14, 12, 11, 11, 12, 14, 16, 17],
+    sol: [0, 0, 0, 1, 14, 30, 39, 36, 20, 1, 0, 0],
+    bio: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+    fos: [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 11, 10],
+  },
+};
+
+export const M08_INST06_TXT: Record<string, string> = {
+  mes: "Escala anual. A hidráulica desce de janeiro a setembro e sobe de volta com as chuvas; a eólica faz o caminho inverso, com pico entre julho e setembro; a biomassa acompanha a safra da cana, de abril a novembro; a térmica cresce exatamente quando a água encolhe. As quatro curvas defasadas somam uma linha bem mais estável que qualquer uma delas isolada, e isso não é coincidência — é a razão física de a expansão eólica no Nordeste ter sido eficiente sistemicamente.",
+  dia: "Escala diária, dia útil. Repare na distância entre a linha de carga e a de carga líquida no meio do dia: essa distância é a geração que o operador não comanda. A solar sobe e desce dentro de sete horas, e some antes do pico de consumo. O resultado é a rampa entre as dezesseis e as vinte horas, coberta principalmente por hidráulica e térmica em poucas horas.",
+  dom: "Escala diária, domingo ensolarado. A carga cai porque indústria e comércio estão parados; a solar não cai, porque o sol não sabe que dia é; a geração distribuída também não cai, e ela não está sob comando de ninguém. Oferta próxima do máximo com demanda no mínimo semanal é a definição operacional do pior dia do sistema — e é por isso que o corte de geração se concentra em domingos e feriados prolongados.",
+};
+
 const I2_INTRO =
   'Digite a capacidade instalada e o fator de capacidade de cada fonte. O instrumento devolve as duas pizzas e marca em dourado toda fonte que <b>trocou de posição</b> entre elas. Os valores iniciais são a fotografia de 2025 declarada abaixo; substitua qualquer um deles e a lição continua funcionando — é essa a razão de o instrumento existir.';
 const I2_SRCNOTE =
@@ -437,6 +497,48 @@ const M08_INST_05: Instrument[] = [
     ],
     outputs: [],
     note: 'As fichas acima se leem na vertical, uma fonte de cada vez. Este instrumento vira a tabela: escolha um campo e veja as seis fontes lado a lado. É onde os padrões do sistema aparecem — e onde fica claro que sazonalidade, e não volume, é o que organiza a operação.',
+  },
+];
+
+// `kind: 'quebra-cabeca'` pela MECÂNICA, não pelo nome — a fonte chama
+// de "Curvas". Cinco chaves booleanas independentes que montam um
+// portfólio e devolvem um diagnóstico é exatamente o Inst · 09 do
+// Módulo 03, já catalogado como quebra-cabeça. O nome "Curvas" descreve
+// o SVG, que é a parte que não porta.
+const M08_INST_06: Instrument[] = [
+  {
+    id: 'm08-inst-06',
+    kind: 'quebra-cabeca',
+    title: 'Curvas de complementaridade · três escalas sobrepostas',
+    formula: null,
+    fields: [
+      {
+        id: 'i6-e',
+        label: 'Escala de tempo',
+        unit: null,
+        kind: 'select',
+        defaultValue: 'mes',
+        options: M08_INST06_ESCALAS.map((e) => ({ value: e.k, label: e.nome })),
+      },
+      ...M08_INST06_FONTES.map((f) => ({
+        id: `i6-on-${f.k}`,
+        label: f.nome,
+        unit: null,
+        kind: 'select' as const,
+        defaultValue: 'sim',
+        options: [
+          { value: 'sim', label: 'Ligada' },
+          { value: 'nao', label: 'Desligada' },
+        ],
+      })),
+    ],
+    outputs: [
+      { id: 'i6-ligadas', label: 'Fontes ligadas', unit: 'de 5' },
+      { id: 'i6-exc', label: 'Pontos com excedente', unit: 'de 12' },
+      { id: 'i6-maxexc', label: 'Maior excedente', unit: 'un.' },
+      { id: 'i6-maxdef', label: 'Maior déficit contra a carga', unit: 'un.' },
+    ],
+    note: 'Alterne a escala de tempo e ligue ou desligue cada fonte. A linha branca é a <b>carga</b>; a linha tracejada é a <b>carga líquida</b>, ou seja, a carga menos o que o operador não comanda. Quando a soma das fontes ligadas ultrapassa a carga líquida, a área de excedente aparece em vermelho — e essa área é o corte de geração antes de ele ter nome.',
   },
 ];
 
@@ -763,7 +865,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    // Inst · 06 da fonte. O Inst · 07 é da mesma aula e entra a seguir.
+    instruments: M08_INST_06,
   },
   {
     id: 'aula-08-04',

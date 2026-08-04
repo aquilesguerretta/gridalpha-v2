@@ -219,6 +219,7 @@ import {
   M08_INST06_FONTES,
   M08_INST06_DADOS,
   M08_INST06_TXT,
+  M08_INST07_MESES,
 } from './alexandria-modulo-08-content';
 
 /** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
@@ -464,6 +465,34 @@ function i6renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrument
       'i6-maxdef': maxDef,
     },
     veredito: msg,
+  };
+}
+
+// ── Módulo 08 · INST 07 — Calendário sazonal (LYCEUM Wave 38) ──
+//
+// PORTADO do `i7render()`. Explorador: o painel da fonte é título,
+// parágrafo e cinco linhas rotuladas (chuva / vento / safra / carga /
+// risco de corte). Tudo vai no veredito, que renderiza HTML.
+function i7renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const bruto = Number(i['i7-sel'] ?? 7);
+  // A fonte indexa `I7.meses[I7.sel-1]` e só chega aqui por clique num
+  // mês existente; o grampo cobre valor fora da faixa sem inventar mês.
+  const sel = Number.isFinite(bruto) ? Math.min(Math.max(Math.trunc(bruto), 1), 12) : 7;
+  const m = M08_INST07_MESES[sel - 1];
+  const linha = (r: string, v: string) => `<b>${r}</b> — ${v}`;
+  return {
+    valores: { 'i7-mes': m.n },
+    veredito: [
+      `<b>${m.nome}</b>`,
+      m.txt,
+      [
+        linha('Chuva', m.chuva),
+        linha('Vento', m.vento),
+        linha('Safra', m.safra),
+        linha('Carga', m.carga),
+        linha('Risco de corte', m.risco),
+      ].join('<br>'),
+    ].join('<br><br>'),
   };
 }
 
@@ -2243,6 +2272,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 06 · curvas de complementaridade · tres escalas ──
   'm08-inst-06': i6renderM08,
+
+  // ── m08 INST 07 · calendario sazonal · doze meses do sistema ──
+  'm08-inst-07': i7renderM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

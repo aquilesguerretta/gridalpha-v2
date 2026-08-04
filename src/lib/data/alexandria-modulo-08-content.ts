@@ -378,6 +378,128 @@ export const M08_INST06_TXT: Record<string, string> = {
   dom: "Escala diária, domingo ensolarado. A carga cai porque indústria e comércio estão parados; a solar não cai, porque o sol não sabe que dia é; a geração distribuída também não cai, e ela não está sob comando de ninguém. Oferta próxima do máximo com demanda no mínimo semanal é a definição operacional do pior dia do sistema — e é por isso que o corte de geração se concentra em domingos e feriados prolongados.",
 };
 
+
+// ── INST · 07 — Calendário sazonal (LYCEUM Wave 38) ──────────
+// Explorador de doze meses: escolhe o mês, lê o que acontece
+// simultaneamente com chuva, vento, safra, carga e risco de corte.
+// Mês inicial na fonte: 7 (julho).
+//
+// Gerado do objeto I7 do <script>, não transcrito.
+
+export const M08_INST07_MESES: {
+  n: number; nome: string; chuva: string; vento: string;
+  safra: string; carga: string; risco: string; txt: string;
+}[] = [
+  {
+    n: 1, nome: "Janeiro",
+    chuva: "Período úmido pleno no Sudeste/Centro-Oeste",
+    vento: "Fraco no Nordeste",
+    safra: "Entressafra da cana no Centro-Sul",
+    carga: "Alta por calor e climatização",
+    risco: "Baixo risco de corte por confiabilidade; excedente diurno já aparece em fins de semana",
+    txt: "Mês de recomposição de estoque. As afluências chegam ao pico anual em boa parte das bacias do Paraná e o operador acompanha se o enchimento está aderente à média. Vento e biomassa contribuem pouco, e a carga está alta por temperatura. É o mês em que a expectativa para o ano inteiro se forma: um janeiro fraco em afluência empurra a preocupação para o segundo semestre.",
+  },
+  {
+    n: 2, nome: "Fevereiro",
+    chuva: "Úmido, com piracema em curso",
+    vento: "Fraco",
+    safra: "Entressafra",
+    carga: "Alta, com recordes mensais recentes",
+    risco: "Baixo por confiabilidade",
+    txt: "Continuação do enchimento, com restrições de defluência associadas ao período reprodutivo dos peixes em várias bacias. É um mês em que a operação tem menos liberdade de manobra hidráulica do que a hidrologia sugeriria, e essa limitação é ambiental, não elétrica.",
+  },
+  {
+    n: 3, nome: "Março",
+    chuva: "Fim do pico úmido",
+    vento: "Começando a subir",
+    safra: "Início da preparação de safra",
+    carga: "Ainda elevada",
+    risco: "Baixo",
+    txt: "Mês de fechamento do balanço úmido. O nível atingido ao fim de março e abril é o estoque com que o sistema entrará no período seco, e por isso é o número hidrológico mais consequente do ano — mais até que o mínimo de novembro, porque é ele que determina o mínimo de novembro.",
+  },
+  {
+    n: 4, nome: "Abril",
+    chuva: "Transição para o seco",
+    vento: "Subindo",
+    safra: "Início da safra da cana no Centro-Sul",
+    carga: "Cedendo com o fim do calor",
+    risco: "Começa a subir com carga menor",
+    txt: "O mês de virada. Três coisas acontecem juntas: a chuva cede, o vento começa a ganhar força e a safra da cana começa. A partir daqui, a matriz troca de configuração — a hidráulica passa a ser poupada e as outras renováveis assumem parcela crescente.",
+  },
+  {
+    n: 5, nome: "Maio",
+    chuva: "Seco iniciando",
+    vento: "Forte e subindo",
+    safra: "Safra em ritmo",
+    carga: "Moderada",
+    risco: "Moderado",
+    txt: "A complementaridade sazonal começa a operar de forma visível. A energia que a água deixa de fornecer é substituída por vento e por bagaço, e o valor implícito da água guardada sobe. É o começo do período em que a decisão de gerar hoje ou preservar para depois pesa mais.",
+  },
+  {
+    n: 6, nome: "Junho",
+    chuva: "Seco",
+    vento: "Forte",
+    safra: "Safra plena",
+    carga: "Menor do ano em várias regiões",
+    risco: "Moderado a alto",
+    txt: "Meio do período seco no Sudeste/Centro-Oeste, com afluência tipicamente abaixo da média em todos os subsistemas. A carga cede com o clima ameno, o que somado ao vento forte e à biomassa em safra produz janelas de excedente. É o mês em que armazenamento e afluência frequentemente apontam em direções opostas.",
+  },
+  {
+    n: 7, nome: "Julho",
+    chuva: "Seco pleno",
+    vento: "Início da safra dos ventos",
+    safra: "Safra plena",
+    carga: "Baixa, com férias",
+    risco: "Alto",
+    txt: "Começa a safra dos ventos no Nordeste, e com ela o período de maior tensão de escoamento do ano. Vento forte, carga baixa e sol razoável coincidem, e a fronteira de exportação da região passa a operar no limite com frequência. É o mês em que o corte por confiabilidade historicamente aparece com mais força.",
+  },
+  {
+    n: 8, nome: "Agosto",
+    chuva: "Seco pleno",
+    vento: "Pico da safra dos ventos",
+    safra: "Safra plena",
+    carga: "Baixa",
+    risco: "Máximo do ano",
+    txt: "O mês mais crítico para escoamento. Coincidem o pico eólico do Nordeste, o mínimo hidrológico do Sudeste/Centro-Oeste e a safra da cana. A matriz está no seu ponto de maior diversidade de fontes e de maior tensão de rede simultaneamente — as duas coisas são consequência uma da outra.",
+  },
+  {
+    n: 9, nome: "Setembro",
+    chuva: "Fim do seco, estoque no mínimo",
+    vento: "Ainda forte",
+    safra: "Safra em ritmo",
+    carga: "Subindo com o calor",
+    risco: "Alto",
+    txt: "O armazenamento tipicamente atinge o mínimo anual entre setembro e novembro. É o mês em que a leitura de estoque e fluxo precisa ser feita com mais cuidado: estoque baixo com afluência ainda fraca, mas com a expectativa de o período úmido começar em algumas semanas.",
+  },
+  {
+    n: 10, nome: "Outubro",
+    chuva: "Primeiras chuvas",
+    vento: "Cedendo",
+    safra: "Safra terminando",
+    carga: "Alta com calor",
+    risco: "Alto, com pico de excedente diurno",
+    txt: "Mês de expectativa. As primeiras chuvas chegam e o sistema espera para ver se o período úmido se estabelece no ritmo normal. Ao mesmo tempo, a irradiância alta e a carga de fim de semana baixa produzem alguns dos maiores excedentes diurnos do ano.",
+  },
+  {
+    n: 11, nome: "Novembro",
+    chuva: "Úmido iniciando",
+    vento: "Fraco",
+    safra: "Entressafra começando",
+    carga: "Alta",
+    risco: "Moderado",
+    txt: "Recomposição começando. O vento cede, a biomassa sai de cena e a hidráulica volta a assumir. A transição inversa à de abril, e igualmente rápida: em poucas semanas a configuração da matriz muda de forma.",
+  },
+  {
+    n: 12, nome: "Dezembro",
+    chuva: "Úmido",
+    vento: "Fraco",
+    safra: "Entressafra",
+    carga: "Alta, com mínimos em feriados",
+    risco: "Moderado, concentrado em feriados",
+    txt: "Mês de contraste extremo dentro do próprio mês. Dias úteis com carga alta e feriados com a menor carga do ano — o Natal e o Ano Novo registram os mínimos anuais de demanda do sistema. É a melhor ilustração de que o risco de excedente é de calendário, não de estação.",
+  },
+];
+
 const I2_INTRO =
   'Digite a capacidade instalada e o fator de capacidade de cada fonte. O instrumento devolve as duas pizzas e marca em dourado toda fonte que <b>trocou de posição</b> entre elas. Os valores iniciais são a fotografia de 2025 declarada abaixo; substitua qualquer um deles e a lição continua funcionando — é essa a razão de o instrumento existir.';
 const I2_SRCNOTE =
@@ -539,6 +661,31 @@ const M08_INST_06: Instrument[] = [
       { id: 'i6-maxdef', label: 'Maior déficit contra a carga', unit: 'un.' },
     ],
     note: 'Alterne a escala de tempo e ligue ou desligue cada fonte. A linha branca é a <b>carga</b>; a linha tracejada é a <b>carga líquida</b>, ou seja, a carga menos o que o operador não comanda. Quando a soma das fontes ligadas ultrapassa a carga líquida, a área de excedente aparece em vermelho — e essa área é o corte de geração antes de ele ter nome.',
+  },
+];
+
+const M08_INST_07: Instrument[] = [
+  {
+    id: 'm08-inst-07',
+    kind: 'explorador',
+    title: 'Calendário sazonal · doze meses do sistema',
+    formula: null,
+    fields: [
+      {
+        id: 'i7-sel',
+        label: 'Mês',
+        unit: null,
+        kind: 'select',
+        defaultValue: '7',
+        options: M08_INST07_MESES.map((m) => ({ value: String(m.n), label: m.nome })),
+      },
+    ],
+    // "Mês N" é o que a fonte imprime no cabeçalho do painel — número de
+    // verdade, não índice disfarçado, então cabe em `valores` sem cair na
+    // armadilha que a Wave 19 registrou (mês como inteiro cru sob rótulo
+    // textual). O NOME do mês vai no veredito, onde é legível.
+    outputs: [{ id: 'i7-mes', label: 'Mês', unit: null }],
+    note: 'Clique em qualquer mês. O painel mostra o que está acontecendo simultaneamente com chuva, vento, safra, carga e risco de corte — porque a leitura útil não é de uma variável de cada vez, é da coincidência entre elas.<br><br>Didático/ilustrativo. Regimes típicos e aproximados: o comportamento real de cada ano varia com a hidrologia, com o calendário de safra e com a carga verificada.',
   },
 ];
 
@@ -865,8 +1012,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    // Inst · 06 da fonte. O Inst · 07 é da mesma aula e entra a seguir.
-    instruments: M08_INST_06,
+    // Inst · 06 e Inst · 07 da fonte — a Aula 03 tem os dois.
+    instruments: [...M08_INST_06, ...M08_INST_07],
   },
   {
     id: 'aula-08-04',

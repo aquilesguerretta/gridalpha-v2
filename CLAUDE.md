@@ -7187,3 +7187,179 @@ medido antes de confiar em qualquer medida (§13). Screenshots das Aulas
 arquivos da wave — "No findings. Surface is clean." `git diff --stat`
 real conferido antes de cada um dos quatro commits e antes da única
 restauração em arquivo compartilhado.
+
+## LYCEUM — ALEXANDRIA WAVE 45 — MÓDULO 13 · ENTRADA NA TRILHA 3
+
+**Status:** conteúdo fechado e verificado. **Instrumentos NÃO portados** —
+por colisão de arquivo, Seção 11 do protocolo (abaixo). Primeiro módulo
+da Trilha 3, que deixa de ter contagem desconhecida.
+
+**Arquivos:** `alexandria-modulo-13-content.ts` (NOVO, 530 linhas) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+`alexandria-instrument-calculators.ts` **intocado**.
+
+**Fonte:** `alexandria_modulo13.html` — 386.583 bytes, a maior do
+currículo.
+
+### A SUPOSIÇÃO DE TRACK DO BRIEF NÃO SE SUSTENTOU
+
+O brief supunha que a travessia para a Trilha 3 traria track novo (algo
+como `'estrategica'`). O catálogo real da FOUNDRY diz outra coisa:
+
+```
+{ id: 'bloco-13', number: 13, level: 3,
+  title: 'Análise Financeira de Empresas e Projetos',
+  track: 'brasil', illustrationPrefix: null,
+  priority: 'media-alta', estimatedHours 4-5 }
+```
+
+**O track permanece `'brasil'` — a Trilha 3 NÃO introduz track novo.**
+Só o `level` muda, de 2 para 3. Confirmado por leitura antes de gerar
+qualquer aula, não herdado (Seção 6 do protocolo). As oito aulas
+carregam `track: 'brasil'`.
+
+Vocabulário medido pelo mesmo caminho: os oito seletores dos Módulos
+01-03 dão **zero**; é o dos Módulos 04-12 (`sec-id` 18, `lede` 18,
+`inst` 11, `det-bd` 22, `box` 27, `term` 180). `src-card` e `fi` dão
+zero — as estruturas dos Módulos 08 e 09 não reaparecem aqui.
+
+### Contagem real
+
+18 seções = **8 aulas + 10 de aparato**. **155 blocos de apostila.**
+§Ex "Catorze exercícios" = 14 `<details>`; §Lex "Cento e oitenta termos"
+= 180 `.term`. Prosa e markup concordam nos três.
+
+**Oito blocos `formula`** — é o primeiro módulo do currículo a usar o
+kind com peso. O Módulo 10 o estreou com uma ocorrência; aqui é
+vocabulário corrente (EV/EBITDA, dívida líquida, WACC, cobertura de
+juros, TIR, payback).
+
+### CINCO ESTRUTURAS NOVAS, e a cobertura de texto que as achou
+
+A Seção 5 do protocolo se pagou de novo, e com a maior margem da série.
+A extração inicial fechou com a **Aula 07 em 16,1% de cobertura**,
+perdendo 13.235 caracteres — a contagem de ELEMENTO teria passado.
+
+Cinco estruturas que o extrator herdado atravessava sem capturar, todas
+usando divs PURAS, sem `<p>` dentro:
+
+| classe | chars perdidos | o que é | virou |
+| --- | --- | --- | --- |
+| `emp` | **15.880** | ficha de empresa (Aula 07): cabeçalho + linhas chave/valor | titulo + tabela |
+| `fx` | 3.677 | fórmula: `fn` nome, `fe` equação, `fd` leitura | `formula` |
+| `clk` | 2.707 | cronologia: data + corpo por linha | lista |
+| `t333`/`dual` | 2.175 | três colunas e comparação lado a lado | tabela |
+| `and` | 1.324 | andaime de nav + corpo **gerado por script** | — |
+
+**`emp` é a TERCEIRA variante da mesma família** de `src-card` (Módulo
+08) e `div.fi` (Módulos 09 e 10) — mesma ficha chave/valor, terceiro
+nome de classe. A fonte renomeia a estrutura a cada dois ou três
+módulos, então varredura por nome de classe conhecido nunca basta; o que
+pega é medir volume de texto por classe não capturada.
+
+O `and` é o único resíduo legítimo: `an-bd` nasce vazio no markup e é
+populado por script, então não é capturável estaticamente.
+
+**120 → 155 blocos** depois da correção.
+
+### NOTA DE MÉTODO — a medida por trecho contíguo produz falso negativo
+
+Mesmo com tudo capturado, cinco aulas ficaram em **78-81%** pela medida
+de trecho contíguo de 40 chars. A investigação mostrou que o defeito era
+do MEDIDOR, não da extração: ele concatena elementos adjacentes da fonte
+numa string que nunca existe no extraído, porque a extração separa em
+blocos — um `<h3>` seguido de `<p>` vira `titulo` + `paragrafo`, e o
+trecho que atravessa a fronteira dos dois não casa em lugar nenhum.
+
+A medida imune a fragmentação é **cobertura por PALAVRA**, e ela fecha em
+**98,4% a 99,5% nas Aulas 01-07**. A Aula 08 fica em 92,1%, e o resíduo é
+exatamente o `and` gerado por script.
+
+Mesma família das notas de método das Waves 38 e 42: falha de verificação
+investigada até a causa se provou defeito do harness, não do produto. A
+Seção 5 do protocolo merece a distinção registrada — **cobertura por
+palavra supera cobertura por trecho** como medida de completude.
+
+### Sem gravura, e sem buraco
+
+`illustrationPrefix: null` no catálogo **e zero `<img>` no markup** — os
+dois sinais concordando, mesmo padrão do Módulo 11. `illustrations: []`
+nas oito, sem forçar biblioteca de outro bloco. Verificado na tela: zero
+`<figure>` nas oito aulas, layout intacto.
+
+`video: null` MEDIDO: zero `<video>`, `<iframe>`, youtube, vimeo, `.mp4`.
+
+### Exercício sem vínculo, sétima vez
+
+A varredura por `/[Aa]ula\s*\d+/` no enunciado E no gabarito dos catorze
+devolve **zero**. Padrão desde o Módulo 04. Vão para
+`MODULO_13_EXERCICIOS_SOLTOS`; as aulas ficam com `activities: []`.
+
+### INSTRUMENTOS NÃO PORTADOS — Seção 11, não falta de contrato
+
+São **onze**: um no § MAP (fora de aula) e dez de aula, com as Aulas 03 e
+04 tendo dois cada. Todos geram campos por script, mesmo perfil dos
+Módulos 08 e 09.
+
+A razão desta vez **não** é contrato de painel em movimento (a Wave 34
+fechou). É colisão de arquivo em tempo real: no momento da extração,
+`alexandria-instrument-calculators.ts` estava **modificado e não
+commitado** pela sessão da Wave 43 (instrumentos do Módulo 11), que
+commitou três vezes durante esta wave (`1e8197f`, `9853265`, `289ad59`).
+Tocá-lo exigiria reconciliação de três vias, e o risco de apagar trabalho
+alheio não se justifica quando o conteúdo de apostila fecha sozinho.
+`instruments: []` nas oito.
+
+### Higiene de sessão — o que o pathspec impediu
+
+Duas sessões paralelas escreveram nos MESMOS três arquivos durante esta
+wave. Dois incidentes reais, ambos contidos:
+
+1. **`git commit <path>` recusou o arquivo novo** (arquivo não rastreado
+   precisa de `git add` antes). O `git log` da tentativa revelou que a
+   sessão da Wave 43 havia commitado no intervalo — o pathspec foi o que
+   impediu os arquivos dela de entrarem no meu commit.
+2. **A âncora de registro falhou em silêncio.** O script de registro
+   ancorava os spreads em `...MODULO_12_AULAS,` seguido do fecho, mas a
+   sessão paralela havia inserido o M11 **depois** do M12. Os imports
+   entraram, os três spreads não, e o `tsc` denunciou com TS6192 ("all
+   imports unused"). Corrigido ancorando no **fecho** de cada bloco em
+   vez do último elemento — a ordem dos spreads muda quando outra sessão
+   registra um módulo, o fecho não.
+
+`git diff --stat` real rodado antes de cada commit, como o brief exigiu.
+Zero arquivo de outra sessão em commit meu.
+
+### Verificação por clique real
+
+As oito aulas abertas uma a uma em 1440×900: "AULA N DE 8" nas oito,
+títulos reais ("Por que EV/EBITDA e não P/E…" na 01, "O andaime…" na 08),
+**zero `<figure>`** (como deve ser), tabelas renderizando com a **Aula 07
+em 6** — as fichas `emp` recuperadas —, zero NaN, zero overflow
+horizontal, zero erro de página.
+
+Regressão nos módulos já fechados, com o `<main>` rolado para disparar o
+lazy: M01 a3 **3/3**, M03 a6 **3/3**, M06 a3 **3/3**, M07 a1 **2/2**,
+M09 a4 **1/1**, M11 a1 **0/0** (correto), M12 a1 **1/1** gravuras com
+`naturalWidth > 0`.
+
+### Trilha 3 tem número pela primeira vez
+
+`AULAS_POR_BLOCO['bloco-13'] = 8`. Com a Wave 46 (Módulo 14) fechando em
+paralelo, o hub mostra a Trilha 3 em **16 aulas confirmadas · 2 de 5
+módulos com fonte**, `totalAulasPartial` true — os 8 desta wave mais os 8
+dela. Registro no resolvedor foi import + três spreads pela nona vez,
+**nenhum componente tocado**.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem os
+**7 pré-existentes** em `nest/student/{ProjectSandbox,SandboxTrading}`
+(Recharts, desde a Wave 3). `gridalpha-detect` sobre os três arquivos —
+"No findings. Surface is clean."
+
+### Registrado, não resolvido
+
+- **Os onze instrumentos** — não portados, pela colisão acima.
+- **§ Lex do Módulo 13** (180 termos) — glossário é escopo próprio,
+  fechado até o Módulo 08 na Wave 34.
+- **O `and` da Aula 08** — corpo gerado por script, não capturável
+  estaticamente; é o único resíduo de cobertura da wave.

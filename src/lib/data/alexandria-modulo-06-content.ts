@@ -279,6 +279,120 @@ export const INSTRUMENTOS_MODULO_06: Instrument[] = [
 ];
 
 
+
+// ── INST · 01 — Linha do tempo · quatorze marcos (Wave 38) ───
+// Vive no § MAP, FORA de qualquer aula. A Wave 29 registrou que ele
+// existia na fonte e não entrava; a taxonomia da FOUNDRY Wave 4 o
+// listou como "mencionado em comentário, nunca materializado como
+// dado". Materializado agora como Instrument de MÓDULO, com destino em
+// Recursos do Módulo — mesmo caminho do LAB · 01 do Módulo 01.
+//
+// Quatorze marcos, cada um com ano, título, corpo e legado. O painel
+// da fonte usa textContent, então o conteúdo é texto puro sem HTML.
+//
+// Gerado do array M do <script>, não transcrito.
+
+export const M06_INST01_MARCOS: {
+  ano: string; titulo: string; corpo: string; legado: string;
+}[] = [
+  {
+    ano: "1879–1889", titulo: "A eletricidade chega, e chega local",
+    corpo: "Seis lâmpadas de arco na estação da Estrada de Ferro D. Pedro II, no Rio, em 1879. Em 1883, o primeiro serviço público de iluminação em Campos e a aplicação hidrelétrica à mineração em Diamantina. Em 1889, Marmelos Zero, em Juiz de Fora. Instalações pontuais, cada uma amarrada a um serviço urbano ou a uma atividade produtiva específica — nenhuma delas parte de um sistema.",
+    legado: "A eletrificação brasileira nasceu privada e municipal. Toda vez que alguém disser que o setor \"começou estatal\", este é o marco que desmonta a frase.",
+  },
+  {
+    ano: "1899–1930", titulo: "O capital externo assume a escala",
+    corpo: "A São Paulo Tramway, Light and Power organiza-se em 1899 e a congênere do Rio em 1904, com capital canadense e domicílio em Toronto, sob a holding Brazilian Traction. A partir dos anos 1920, a Amforp compra concessionárias do interior. Por volta de 1930, as duas dominam o suprimento das grandes cidades — trazendo capital, engenharia e velocidade, e criando uma assimetria de poder que nenhuma prefeitura conseguia arbitrar.",
+    legado: "A distribuidora do Rio de hoje descende diretamente dessa empresa, e a assimetria de informação entre regulador e regulado que o Módulo 05 descreve como conceito aparece aqui na sua primeira forma brasileira.",
+  },
+  {
+    ano: "1934", titulo: "Código de Águas: a União toma o rio",
+    corpo: "Decreto nº 24.643, de 10 de julho de 1934. Separa o potencial hidráulico da propriedade do solo, concentra na União o poder de conceder e fiscalizar, e substitui a proteção cambial das concessionárias — a cláusula-ouro, proibida em 1933 — por remuneração sobre o custo histórico do investimento.",
+    legado: "Rio, rede e segurança de suprimento são assunto federal. É a continuidade mais profunda de todo o bloco: atravessou estatização, privatização e reabertura sem jamais ser revertida.",
+  },
+  {
+    ano: "1939–1957", titulo: "Regular não é construir",
+    corpo: "CNAEE em 1939. A guerra fecha o acesso a equipamento importado enquanto a demanda urbana acelera, e o resultado são racionamentos nos anos 1940 e início dos 1950. A resposta é o Estado assumir a construção: Chesf em 1945, BNDE e Cemig em 1952, Furnas em 1957.",
+    legado: "A primeira demonstração brasileira de que sistema elétrico não responde a decreto, responde a obra concluída. A mesma lição volta em 2001.",
+  },
+  {
+    ano: "1961–1962", titulo: "Eletrobras",
+    corpo: "Proposta enviada por Vargas em 1954, sete anos de disputa no Congresso, Lei nº 3.890-A em abril de 1961 autorizando a criação, e instalação efetiva em junho de 1962. No ano seguinte, o Imposto Único sobre Energia Elétrica e o empréstimo compulsório dão à holding a base financeira que faltava.",
+    legado: "É aqui que a conta de luz brasileira passa a carregar política pública embutida — e nunca mais deixou de carregar. Toda discussão atual sobre encargos tem origem neste desenho.",
+  },
+  {
+    ano: "1964–1979", titulo: "A nacionalização se completa",
+    corpo: "Os ativos da Amforp são adquiridos pelo Estado brasileiro em 1964; os da Light, em 1979. A empresa que trouxe o capital canadense para o Rio em 1904 passa ao controle estatal setenta e cinco anos depois.",
+    legado: "Primeira virada completa de regime de propriedade numa mesma empresa. Ela ainda daria mais duas voltas — privatização em 1996 e recuperação judicial em 2023.",
+  },
+  {
+    ano: "1973–1984", titulo: "O esqueleto físico e a coordenação central",
+    corpo: "Em 1973 nascem o GCOI, para coordenar a operação interligada, e a Eletronorte, e é assinado o Tratado de Itaipu, que cria uma entidade binacional. As obras de Itaipu começam em 1975 e as de Tucuruí em 1976; as primeiras unidades de ambas entram em operação em 1984.",
+    legado: "O despacho centralizado brasileiro nasce aqui, não em 2001 — porque hidrelétrica em cascata exige coordenação intertemporal. Confundir as duas datas é erro de trinta anos.",
+  },
+  {
+    ano: "Anos 1980", titulo: "A quebra financeira do modelo estatal",
+    corpo: "Quatro vetores simultâneos: tarifa administrada usada como âncora anti-inflacionária, dívida externa impagável após o choque de juros, remuneração garantida que elimina o incentivo a controlar custo, e equalização tarifária que elimina a comparação entre empresas. Como todas pertenciam ao mesmo dono, deixar de pagar umas às outras virou saldo contábil: a dívida intrassetorial.",
+    legado: "É a razão pela qual a reforma dos anos 1990 começou por um encontro de contas, e não por uma venda. Empresa cujo fluxo financeiro ninguém consegue ler não pode ser avaliada nem recapitalizada.",
+  },
+  {
+    ano: "1993–1998", titulo: "A arquitetura da reforma",
+    corpo: "Lei nº 8.631/1993 extingue remuneração garantida e equalização e faz o encontro de contas. Leis de concessão e de outorga em 1995 criam produtor independente e consumidor livre. A ANEEL é instituída em 1996 e opera a partir de 1997. A lei de 1998 cria o ONS, sucedendo o GCOI, e o MAE.",
+    legado: "A separação entre regulação, operação e comércio que estrutura o setor até hoje. O ONS não privatizou o despacho: sucedeu um comitê numa função que já era centralizada.",
+  },
+  {
+    ano: "1996–2000", titulo: "As privatizações, e a assimetria que elas deixaram",
+    corpo: "A Light é leiloada em 21 de maio de 1996, no preço mínimo, para um consórcio com EDF, AES, Houston Industries e CSN. A Eletropaulo Metropolitana em 15 de abril de 1998, com a mesma constelação de nomes; a AES consolida o controle em 2001. Dezenas de distribuidoras estaduais seguem entre 1997 e 2000 — mas a geração permanece majoritariamente estatal.",
+    legado: "A assimetria distribuição privada / geração estatal deixou a pergunta \"quem garante a expansão\" sem dono. É o buraco por onde 2001 entrou.",
+  },
+  {
+    ano: "2001", titulo: "O racionamento",
+    corpo: "Câmara de Gestão da Crise criada em maio de 2001 sob a Casa Civil; programa compulsório de redução de consumo de junho de 2001 a fevereiro de 2002, meta média em torno de vinte por cento, com bônus e sobretarifa. A comissão de análise presidida por Jérson Kelman concluiu que ministério, agência, operador e Eletrobras conheciam o risco elevado de déficit desde meados de 1999, e que houve orientação para não divulgar as avaliações.",
+    legado: "Segurança de suprimento vira objetivo explícito do setor. E a lição institucional não foi \"planejar melhor\" — foi tirar a segurança de suprimento da dependência de uma decisão discricionária.",
+  },
+  {
+    ano: "2004", titulo: "O Novo Modelo",
+    corpo: "Leis nº 10.847 e nº 10.848, ambas de março de 2004. Criam a EPE, que devolve o planejamento a uma instituição dedicada; a CCEE, que substitui o MAE; o CMSE, que monitora continuamente a segurança de suprimento; formalizam ACR e ACL; e — a peça decisiva — obrigam a distribuidora a estar contratada para a totalidade da carga, com antecedência e lastro.",
+    legado: "É o marco que ainda rege o setor. Não foi reestatização: manteve propriedade privada, competição em geração e mercado livre, e recolocou um dono na pergunta que tinha ficado órfã em 1998.",
+  },
+  {
+    ano: "2012–2021", titulo: "A década do teste",
+    corpo: "MP 579 em 2012 tenta reduzir tarifa antecipando renovação de concessões. Vem a crise hídrica de 2013 a 2015, com Conta-ACR e bandeiras tarifárias. O GSF gera liminares a partir de 2015 e uma década de judicialização resolvida em três camadas legislativas. A abertura do mercado desce em degraus por portaria, de 2.500 kW em 2019 a 500 kW em 2023. Em 2021, hidrologia severa — e nenhum racionamento.",
+    legado: "Risco mal alocado não desaparece: vira dívida, encargo, bandeira ou processo. E a ausência de racionamento em 2021 é a melhor medida disponível do que foi aprendido desde 2001.",
+  },
+  {
+    ano: "2022–2028", titulo: "Onde a história pousa — e para onde aponta",
+    corpo: "Capitalização da Eletrobras em junho de 2022, com a União diluída de cerca de 72% para cerca de 40% do capital votante e limite legal de dez por cento de voto por acionista. Marca AXIA Energia adotada em outubro de 2025. Abertura de todo o Grupo A em 1º de janeiro de 2024, sem exigência de carga mínima. E a Lei nº 15.269/2025 dá cronograma legal à baixa tensão: até novembro de 2027 para indústria e comércio, até novembro de 2028 para todos.",
+    legado: "O mercado endereçável de qualquer produto independente de inteligência energética no Brasil nasce em 2024 e multiplica em 2027 e 2028 — condicionado a regulamentação. É este o ponto do ciclo em que a GridAlpha entra.",
+  },
+];
+
+/** Instrumento de MÓDULO: o Inst · 01 do § MAP. Não entra em
+ *   de nenhuma aula. */
+export const MODULO_06_INSTRUMENTOS: Instrument[] = [
+  {
+    id: 'm06-inst-01',
+    kind: 'explorador',
+    title: 'Linha do tempo · quatorze marcos',
+    formula: null,
+    fields: [
+      {
+        id: 'm06-i1-sel',
+        label: 'Marco',
+        unit: null,
+        kind: 'select',
+        defaultValue: '0',
+        options: M06_INST01_MARCOS.map((m, k) => ({
+          value: String(k),
+          label: `${m.ano} · ${m.titulo}`,
+        })),
+      },
+    ],
+    outputs: [],
+    note: 'Os quatorze marcos que organizam o bloco, do primeiro serviço elétrico de 1879 ao ciclo que se fecha em 2028. Escolha um marco para ler o que aconteceu e o que dele ficou.',
+  },
+];
+
 export const MODULO_06_LEAD: Record<string, string> = {
   'aula-06-01': "O setor elétrico brasileiro nasceu privado, urbano, estrangeiro e fragmentado. Quem começa a estudar o setor pelo desenho atual tem a intuição invertida: acha que o Estado sempre esteve lá e que a abertura é a novidade. É o contrário. A presença do Estado é que é a novidade — ela começa em 1934, mais de meio século depois da primeira lâmpada.",
   'aula-06-02': "Meio século em que o Brasil construiu o esqueleto físico que ainda usa. Nenhuma das grandes hidrelétricas do país, nenhuma das grandes linhas de transmissão, nenhum dos centros de operação regional é obra do mercado — todos são obra de empresa estatal financiada por imposto, empréstimo compulsório e dívida externa. Entender esse período é entender por que o setor tem a musculatura que tem, e por que ele saiu dos anos 1980 falido.",

@@ -207,6 +207,7 @@ function explorar07(chave: string, sel: unknown): string {
 // (mesma limitação das Waves 19/24/25/29). Caso "faltando": a fonte
 // limpa o readout e mostra só o aviso — aqui `valores: {}` produz o
 // mesmo efeito (o painel esconde saídas vazias).
+import { M06_INST01_MARCOS } from './alexandria-modulo-06-content';
 import {
   M08_INST04_REF,
   M08_INST04_TOL,
@@ -737,6 +738,24 @@ function i1renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrument
   return {
     valores: {},
     veredito: `<b>${no.nome}</b> · ${no.sub}<br><br>${txt}<br><br><b>Fluxo em exibição</b> — ${fluxo}`,
+  };
+}
+
+// ── Módulo 06 · INST 01 — Linha do tempo (LYCEUM Wave 38) ──
+//
+// PORTADO do bloco `INST 01 — LINHA DO TEMPO`. Instrumento de MÓDULO
+// (§ MAP). O `sel()` da fonte é `clamp(i, 0, N-1)` — grampo reproduzido.
+// O painel da fonte escreve com `textContent`, então o conteúdo é texto
+// puro; os únicos `<b>` aqui são os rótulos que a porta acrescenta,
+// mesmo idioma dos outros exploradores desta wave.
+function m06i1M08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const bruto = Number(i['m06-i1-sel'] ?? 0);
+  const n = M06_INST01_MARCOS.length;
+  const k = Number.isFinite(bruto) ? Math.min(Math.max(Math.trunc(bruto), 0), n - 1) : 0;
+  const m = M06_INST01_MARCOS[k];
+  return {
+    valores: {},
+    veredito: `<b>${m.ano}</b> · ${m.titulo}<br><br>${m.corpo}<br><br><b>O que ficou</b> — ${m.legado}`,
   };
 }
 
@@ -2507,6 +2526,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 02 · conversor de três eixos · as duas pizzas ──
   // ── m08 INST 01 · mapa fisico · geracao x escoamento (modulo) ──
+  // ── m06 INST 01 · linha do tempo · quatorze marcos (modulo) ──
+  'm06-inst-01': m06i1M08,
+
   'm08-inst-01': i1renderM08,
 
   'm08-inst-02': i2calcM08,

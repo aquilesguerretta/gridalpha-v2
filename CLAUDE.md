@@ -7363,3 +7363,150 @@ dela. Registro no resolvedor foi import + três spreads pela nona vez,
   fechado até o Módulo 08 na Wave 34.
 - **O `and` da Aula 08** — corpo gerado por script, não capturável
   estaticamente; é o único resíduo de cobertura da wave.
+
+## LYCEUM — ALEXANDRIA WAVE 43 — PROTOCOLO REAL + MÓDULO 11 COMPLETO
+
+**Status:** fechada. Os **onze** instrumentos do Módulo 11 portados e
+provados; nenhuma aula do módulo com `instruments: []` onde a fonte
+declara instrumento. O protocolo virou documento canônico de 13 seções.
+
+**Arquivos:** `docs/alexandria/extraction-protocol.md` ·
+`alexandria-modulo-11-content.ts` · `alexandria-instrument-calculators.ts`.
+
+### Fase 0 — reconciliação do protocolo
+
+A Wave 41 tinha criado o arquivo com 10 seções. A reconciliação adota a
+numeração canônica 1-11 (briefs citam por número, e a **Seção 11** é
+nova) e preserva tudo que a Wave 41 tinha a mais, nas Seções 12-13:
+
+- **§5** absorveu os "três sinais independentes" e o "markup vence a
+  prosa" com os precedentes.
+- **§12 Limitações de contrato** — saída textual fora de `valores`,
+  desenho não porta, `null` medido, campo `number` + gêmeo `range`.
+- **§13 Verificação e ambiente** — `naturalWidth` no DOM, e a nota de
+  medir `window.innerWidth` antes de acreditar em layout (painel 0×0).
+
+A tabela de falso positivo funde as duas listas: **13 casos**, cada um
+com a wave que o pegou.
+
+### O transliterador — como os cinco computacionais foram portados
+
+Os seis de lookup eram dado + composição de texto. Os cinco
+computacionais têm veredito **interpolado** (`'…em '+fmt(gap,2)+'…'`), e
+transcrever ~30 mil chars de prosa à mão é erro certo. Em vez disso, um
+**transliterador mecânico** reescreve só as chamadas de ambiente do
+`calc()` original:
+
+```
+numOf($id('x'),d,a,b)      → nm(i['x'],d,a,b)
+segVal('x','data-y')||'z'  → sv(i['x'],'z')
+$id('x').textContent = E   → OUT['x'] = E
+$id('x-vd').innerHTML = E  → VER = E
+fmt(...)                   → fmt11(...)
+```
+
+Lógica de ramo e prosa ficam **intocadas**, e um verificador confirma
+resíduo de DOM zero antes de emitir. É "portado, não rederivado" na
+forma mais forte que a série já usou: nenhuma prosa passa pelo teclado.
+
+### Fidelidade — 852 asserções, todas contra o script original
+
+Executado em DOM simulado, comparação por string, nunca inspeção visual:
+
+| Instrumento | Aula | Asserções | Cobertura |
+| --- | --- | --- | --- |
+| 01 · Mapa da proposta | §MAP | 40 | espaço inteiro: 4 lentes × 10 itens |
+| 02 · Separador de eixos | 01 | 12 | espaço inteiro |
+| 03 · Régua do marco | 02 | 7 | espaço inteiro |
+| 04 · Classificador de porte | 03 | 204 | 3 fontes × 4 arranjos × 17 potências cruzando 75/500/1000/3000/5000 e bordas ±1 |
+| 05 · Roteador de regime | 04 | 432 | 4 datas × 3 portes × 3 modalidades × 12 anos (2028, 2029, 2045) |
+| 06 · Verificador de geração | 05 | 15 | os 6 ramos de desvio |
+| 07 · Verificador de degradação | 05 | 15 | os 6 ramos |
+| 08 · Verificador de trajetória | 06 | 45 | 3 ancoragens × 4 ramos de afastamento |
+| 09 · Oito sinais | 07 | 8 | espaço inteiro |
+| 10 · Roteador de veredito | 08 | 81 | **espaço inteiro: 3⁴ combinações** |
+| 11 · Ordem em 30 minutos | 08 | 8 | espaço inteiro |
+
+Comparação numérica reaplica o `fmt` da fonte sobre o número cru de
+`valores` — a igualdade testada é de valor na precisão exibida, não de
+representação (o painel formata e põe unidade).
+
+### QUATRO defeitos que só o confronto pegou — três meus
+
+Nenhum apareceria em leitura de código:
+
+1. **INST 10, cabeçalho digitado.** Escrevi "com documentação suficiente
+   para **sustentá-lo**"; a fonte diz "**caracterizá-lo**". 23 das 81
+   combinações. Era digitação onde deveria haver extração — o texto era
+   curto demais para o extrator de literais (mínimo 120 chars).
+2. **INST 01, pontuação acrescentada.** Pus ponto após os rótulos, que a
+   fonte renderiza como TÍTULO (`div.ti`), não frase. As 40 combinações.
+3. **Bug do meu transliterador.** A regra mandava TODO `.innerHTML` para
+   o veredito — mas a fonte usa `.innerHTML` no readout `rr-estado` do
+   INST 05 (os outros dois usam `.textContent`). O valor era sobrescrito
+   e a saída **sumia da tela**; o veredito continuava certo porque a
+   atribuição real vinha depois. Corrigido pelo id (`*-vd` → veredito).
+4. **`perc` do INST 05 é string**, não número (`'0% até 31 de dezembro de
+   2045'`). Protocolo §12 — as três saídas dele abrem o veredito.
+
+Também sinalizado, não corrigido: `cls` e `pcls` são classes de ESTILO
+do original (ok/att/per, gold), sem efeito no dado. Ficam declaradas e
+explicitamente descartadas (`void`), não removidas — §10.
+
+### O cruzamento com a Wave 44, e o que ele custou
+
+**Registrado porque não pode se repetir.** Meu commit `6e41144`, com a
+mensagem "instrumento 04", **contém trabalho da Wave 44** (Módulo 12) e
+não contém o INST 04. A Wave 44 sobrescreveu o arquivo entre a minha
+verificação e o meu commit; `git commit <path>` captura o estado do
+arquivo **no instante do commit**, não o que eu tinha verificado antes.
+
+Consequência: a branch ficou com `m11-inst-04` declarado sem calculadora
+e `m11-inst-05` com calculadora sem declaração — **3 erros de `tsc` em
+HEAD**. Reparado no commit `8a77fea`, que fecha os dois lados.
+
+O que a Seção 11 já dizia cobria backup obsoleto; o que faltava e agora
+está escrito: **a janela não é só entre backup e restauração — é entre
+verificação e commit.** Rodar `git diff --stat`, depois build, teste e
+detect, e só então commitar deixa a janela aberta o tempo todo. A partir
+do reparo, a sequência virou **guardada e sem round-trip**: um script
+que escreve, roda os gates, confere que o diff não carrega linha de
+outra wave, e commita — abortando em qualquer falha. Foi ele que pegou
+os dois `void` faltando antes de commitar.
+
+Nenhum trabalho da Wave 44 se perdeu (49 referências a `MODULO_12`
+intactas em HEAD), e o histórico não foi reescrito porque os commits já
+estavam pushados numa branch com quatro sessões ativas.
+
+### Verificação — 32 asserções, 0 falha, 1440×900 e 1920×1080
+
+Clique real nas oito aulas: painéis na contagem certa (1/1/1/1/**2**/1/1/**2**),
+veredito não vazio, zero `NaN`, zero overflow, zero erro de console.
+Interação real conferida: 4000 kW solar no INST 04 → "Fora dos limites
+de porte". Regressão em M01, M02 (1.215,47 A), M03 (CMO 150), M08
+(reconstrutor), M10 (Wave 41) e M12 (Wave 44) — todos intactos.
+
+Primeira rodada acusou 19 falhas, **todas asserção minha**: heurística de
+"veredito vazio" pedindo 40 letras consecutivas (que texto real nunca
+tem) e `/INST/` numa aula do M10 que não tem instrumento. Quarta wave
+seguida em que falha de verificação investigada até a causa é defeito do
+harness — o padrão que o §10 registra.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem os
+**7 pré-existentes** em `nest/student/{ProjectSandbox,SandboxTrading}`
+(Recharts, desde a Wave 3). `gridalpha-detect` — "No findings. Surface
+is clean."
+
+**Calculadoras: 79 → 101** no registro (m11 passa de 0 a 11).
+
+### Registrado, não resolvido
+
+- **Título do Bloco 11 no catálogo** segue divergente da fonte
+  ("Energia Solar e Análise de Propostas" × "Geração Distribuída e a
+  Anatomia de uma Proposta Solar"). Posse FOUNDRY, protocolo §7.
+- **§ Lex do Módulo 11** (150 termos) não extraído — glossário é escopo
+  próprio, fechado até o Módulo 08 na Wave 34.
+- **`instrument-taxonomy.md`** não reflete os instrumentos dos Módulos
+  10-14 nem o 10º kind `reconstrutor`. Posse FOUNDRY.
+- **Commit `6e41144` com mensagem trocada** — conteúdo da Wave 44 sob
+  mensagem da 43. Não reescrito (já pushado, branch com quatro sessões).

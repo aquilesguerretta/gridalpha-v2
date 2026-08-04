@@ -3605,7 +3605,10 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
     }
     OUT['rr-classe'] = classe;
     OUT['rr-perc'] = perc;
-    VER = estado;
+    // A fonte usa `.innerHTML` neste readout (nao `.textContent`) — sem
+    // distinguir pelo id, a transliteracao mandava para o veredito e
+    // PERDIA a saida. Achado no confronto contra o original.
+    OUT['rr-estado'] = estado;
     
     VER = t.map(function(x){return '<p>'+x+'</p>';}).join('');
   

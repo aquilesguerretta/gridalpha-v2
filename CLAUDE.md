@@ -7705,3 +7705,177 @@ clean."
   o texto da fonte para caber seria perda de conteúdo.
 - **§ Lex do Módulo 14** (158 termos) não extraído — glossário é escopo
   próprio, fechado até o Módulo 08 na Wave 34.
+
+## LYCEUM — ALEXANDRIA WAVE 48 — MÓDULO 16
+
+**Status:** conteúdo fechado, verificado e registrado. **Instrumentos NÃO
+portados** — declarado, com a razão real. Quarto módulo da Trilha 3, que
+passa a 26 aulas em 3 de 5 módulos.
+
+**Arquivos:** `alexandria-modulo-16-content.ts` (NOVO, 593 linhas) ·
+`docs/alexandria/extraction-protocol.md` · `alexandria-curriculo.ts` ·
+`alexandria-trilhas.ts`. `alexandria-instrument-calculators.ts`
+**intocado**.
+
+### Fase 0 — reconciliação do protocolo, feita em cima da Wave 47
+
+A Wave 47 reconciliou primeiro (`768f6f5`) e abriu a **Seção 14 ·
+Contrato de renderização**, com o achado de que o componente `Tabela`
+trata a primeira linha como `<thead>` sempre — destrutivo para par
+chave-valor. Esta wave acrescentou:
+
+- **§5** — a medida de cobertura é por **token**, não por trecho
+  contíguo (trecho contíguo dá falso negativo sistemático porque a
+  extração quebra o texto em blocos), e desconta o markup de instrumento
+  do denominador.
+- **§10** — transliteração mecânica quando o veredito tem interpolação,
+  e o cuidado com o alvo do `.innerHTML`.
+- **§11** — a janela não é só entre backup e restauração, é entre
+  **verificação e commit**; a sequência guardada sem round-trip; o blob
+  sintetizado; e **índice velho mente**.
+- **§14** — a tabela completa de campo por regra de render, como
+  subseção da seção que a Wave 47 abriu.
+
+### Catálogo e título — confirmados
+
+`bloco-16`: **level 3, track `'brasil'`, título "Tendências e
+Disrupções", `illustrationPrefix: null`**. O título da FONTE bate com o
+catálogo. Trilha 3 no início da wave: 2 de 5 (blocos 13 e 14).
+
+### A diferença estrutural desta fonte: 7.842 entidades HTML nomeadas
+
+O achado que mais importava, e que nenhuma contagem de bloco pegaria:
+**29 tipos de entidade nomeada, 7.842 ocorrências** — `&atilde;` 1.936,
+`&ccedil;` 1.412, `&mdash;` 559, `&eta;` 3 —, contra **4 no Módulo 14 e
+ZERO no Módulo 12**. Sem decodificar, todo texto extraído sairia
+corrompido, e o defeito só apareceria na leitura.
+
+O walker decodifica as 29 mais as básicas, e o gate de fechamento é zero
+entidade sem tradução — verificado no arquivo gerado (as quatro que
+sobram estão dentro do comentário que documenta o achado) e na tela, nas
+dez aulas.
+
+### Contagem por três sinais, e cobertura
+
+21 seções = **10 aulas + 11 de aparato** (o §Fichas · Seis tendências é
+seção própria, 12.951 chars). Hero e markup concordam: 10 aulas, 11
+instrumentos (1 no §MAP, 10 em aula), 16 exercícios, 184 termos.
+
+**167 blocos**, cobertura por token entre **99,2% e 99,9% nas dez**:
+
+| aula | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cobertura | 99,2 | 99,6 | 99,9 | 99,8 | 99,9 | 99,8 | 99,6 | 99,7 | 99,6 | 99,8 |
+| blocos | 7 | 7 | 24 | 25 | 18 | 13 | 22 | 22 | 15 | 14 |
+
+A **a10 media 91,6%** na primeira rodada — passava o gate de 85%, mas
+destoava das outras nove. A causa era minha: o ramo de `div.chain` usava
+as chaves de `cn5-*`, que não existem lá, e produzia par vazio; 93
+tokens perdidos. Corrigido, `chain` virou `lista`, e a a10 subiu para
+99,8%.
+
+### Par chave-valor vai para `nota`, nunca `tabela`
+
+Aplicação direta da §14 da Wave 47. `div.tri`, `div.grg`, `div.cad`,
+`div.cn5` e `div.par` viram `nota` com as linhas em `<b>chave</b> —
+valor`. Só as seis `div.scroll > table`, que têm `<th>` real na fonte,
+viram `tabela`. Verificado na tela: os cinco estágios da fila da Aula 08
+renderizam com os cinco pares íntegros, nenhum comido por cabeçalho.
+
+Por kind: 49 titulo · 57 paragrafo · 44 nota · 7 formula · 6 tabela ·
+4 lista.
+
+### Vocabulário de maturidade tecnológica — a pista se confirma
+
+O módulo é um **radar de seis tendências lido por três lentes**, e a
+lente é o que o `sec-id` de cada aula declara: **Lente de Estágio**
+(a01, a07), **Lente de Gargalo** (a02, a05, a06, a09), **Lente de
+Carga** (a03, a04, a08) e **Síntese** (a10). Vocabulário que nenhum
+módulo anterior teve motivo de usar: estágio de maturidade, anúncio ×
+outorga × solicitação × implantação, gargalo vinculante, carga rígida ×
+flexível, fila de conexão em cinco estágios, atrás × à frente do
+medidor.
+
+### Título vem do `<h2>` — inversão deliberada, e é da fonte
+
+Nos módulos anteriores o `sec-id` carrega o título. Aqui ele carrega o
+**rótulo da lente** — "Aula 03 · Lente de Carga". Três aulas dizem
+"Lente de Carga" e quatro dizem "Lente de Gargalo", então usar o
+`sec-id` como `title` deixaria a lista de aulas com títulos repetidos e
+o aluno sem saber qual é qual. O `<h2>` carrega o título real e distinto
+de cada uma, e é ele que vira `title`; a lente vira `subtitle`. Os dois
+campos seguem literais da fonte — só trocaram de lugar. Verificado na
+tela: a lista mostra as dez com títulos distintos.
+
+### Exercícios e nulos
+
+Os 16 exercícios são **todos soltos** — varredura por `/[Aa]ula\s*\d+/`
+nos três campos devolve zero. **Oitavo módulo seguido.**
+
+A **a08 não tem `lede`** na fonte (9 de 10 têm) — lead vazio é o estado
+real, não perda. `video`, `durationMinutes` e `difficulty`: null
+MEDIDOS. Gravura zero, com `illustrationPrefix: null` e zero `<img>`
+concordando.
+
+### Higiene de sessão — dois incidentes reais, ambos contidos
+
+1. **A Wave 47 reescreveu o protocolo por cima das minhas edições na
+   árvore.** O `git diff --stat` acusou +10/−76 — a árvore tinha PERDIDO
+   76 linhas que o HEAD tinha. Antes de restaurar, verifiquei como passo
+   separado que o HEAD já continha TUDO dela (a §14) e tudo meu (as três
+   extensões), e que a árvore não tinha nada dela que o HEAD não
+   tivesse. Só então restaurei do HEAD e reapliquei a minha subseção.
+2. **Índice velho** acusou 98 linhas modificadas em dois arquivos
+   compartilhados na entrada da wave, que se provaram normalização de
+   fim de linha pendente — `git update-index --refresh` resolveu, e ler
+   o diff real evitou reconciliação sobre nada. É a mesma armadilha que
+   a Wave 46 registrou, agora na §11.
+
+Os quatro commits usaram **sequência guardada**: um script que roda
+`tsc -b` escopado, `gridalpha-detect`, confere que o staged não tem
+arquivo fora da posse nem linha adicionada de wave vizinha, e só então
+commita — abortando em qualquer falha, sem janela entre verificar e
+commitar.
+
+### INSTRUMENTOS NÃO PORTADOS
+
+A fonte tem **onze**: um no § MAP (fora de aula) e dez em aula, com a
+a07 e a a10 tendo dois cada, e a a06 e a a09 nenhum. São ~96 KB de
+lógica de script, com os dois maiores (INST·10 Grade de mapeamento,
+13.048 chars; INST·11 Verificador de estágio e gargalo, 12.128) na
+escala dos maiores já portados.
+
+Diferente das Waves 46 e 37, **o arquivo compartilhado estava limpo** —
+a Wave 47 já havia commitado o trabalho dela nele. A razão aqui é
+orçamento de sessão, não colisão: portar onze instrumentos com prova de
+fidelidade ramo a ramo é wave própria, e entregar metade produziria a
+inconsistência que as Waves 32 e 37 evitaram. `instruments: []`
+**declarado**, nunca silencioso.
+
+### Verificação por clique real (1440×900)
+
+`window.innerWidth` medido em 1440 antes de acreditar em qualquer medida
+(§13 — a primeira leitura deu 1083 e o resize foi refeito). As dez aulas
+abertas uma a uma: "AULA N DE 10", **zero HTML literal**, **zero
+entidade não decodificada**, zero `<figure>`, zero NaN, tabelas
+renderizando, 4,6 mil a 14,2 mil caracteres de corpo. Zero erro de
+console, zero overflow horizontal de página.
+
+Hub → Trilha 3: **"26 aulas confirmadas · 3 de 5 módulos com fonte"**.
+
+Regressão nos módulos já fechados, com `naturalWidth` lido no DOM:
+M01 a3 3/3 · M03 a6 3/3 · M06 a3 3/3 · M07 a1 2/2 · M09 a4 1/1 ·
+M12 a1 1/1 · M13 a1 0/0 · M14 a5 0/0.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos da wave**. `gridalpha-detect`
+sobre os arquivos da wave — "No findings. Surface is clean."
+
+### Registrado, não resolvido
+
+- **Os onze instrumentos** — medidos e localizados, não portados.
+- **§ Lex do Módulo 16** (184 termos) e o **§Fichas · Seis tendências**
+  (12.951 chars de aparato) não extraídos — os dois são escopo próprio.
+- **As fichas de rota do Módulo 14 estão sob a §14 da Wave 47**: elas
+  mapeiam par chave-valor em `tabela`, então o primeiro par ("Insumo e
+  origem") está sendo renderizado como cabeçalho. Módulos 9, 10 e 12 têm
+  o mesmo. Corrigir é wave de revisão, fora da posse desta.

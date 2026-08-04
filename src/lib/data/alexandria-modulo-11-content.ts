@@ -489,6 +489,15 @@ export const M11_E4: Record<string, string> = {
   ausente: "O Eixo 4 não foi avaliado: o contrato ou os anexos não foram fornecidos.",
 };
 
+/** INST · 04 — as quatro modalidades, com definição, o que a proposta
+ *  precisa provar e se exige documento societário (`esp`). */
+export const M11_MOD_ARRANJO: Record<string, { n: string; d: string; prova: string; esp: boolean }> = {
+  local: { n: "Autoconsumo local", d: "Geração eletricamente junto à carga, com excedente e crédito integralmente compensados pela mesma unidade consumidora. Definida no inciso I do artigo 1º da lei de 2022 e incorporada ao artigo 2º da norma de condições gerais pela resolução de julho de 2024.", prova: "Documento que demonstre que a unidade geradora e a unidade consumidora são a mesma, com o número de instalação. Se a proposta menciona beneficiar outras unidades, o enquadramento declarado está incorreto.", esp: false },
+  remoto: { n: "Autoconsumo remoto", d: "Unidades de titularidade de uma mesma pessoa física ou jurídica, incluídas matriz e filial, com a geração em local diferente das beneficiárias e todas atendidas pela mesma distribuidora. Definida no inciso II do artigo 1º e incorporada ao artigo 2º da norma pela resolução de fevereiro de 2023.", prova: "Prova documental de titularidade idêntica de todas as unidades envolvidas e confirmação de que todas são atendidas pela mesma distribuidora. Grupo econômico com pessoas jurídicas distintas não satisfaz o requisito de titularidade.", esp: true },
+  compart: { n: "Geração compartilhada", d: "Reunião de consumidores por consórcio, cooperativa, condomínio civil voluntário ou edilício ou outra associação civil instituída para esse fim, com todas as unidades atendidas pela mesma distribuidora. Definida no inciso X do artigo 1º.", prova: "Instrumento associativo com data, lista de participantes, participação de cada titular no excedente, e confirmação de distribuidora comum. A participação do maior titular é o campo que determina se incide o regime agravado.", esp: true },
+  emuc: { n: "Empreendimento com múltiplas unidades consumidoras", d: "Conjunto de unidades em mesma propriedade ou propriedades contíguas, sem separação por via pública, passagem aérea ou subterrânea ou propriedade de terceiro, com as instalações de uso comum constituindo unidade consumidora distinta. Definido no inciso VII do artigo 1º.", prova: "Comprovação de contiguidade, existência de unidade consumidora distinta para as áreas de uso comum e responsabilidade formal do condomínio, administração ou proprietário sobre ela.", esp: false },
+};
+
 /** Os instrumentos do módulo. INST 01 vive no § MAP — fora de qualquer
  *  aula —, e por isso é exportado à parte, para os Recursos do Módulo,
  *  mesmo caminho do `lab-01` do Módulo 01. */
@@ -573,6 +582,19 @@ const M11_INSTRUMENTOS_TODOS: Instrument[] = [
     outputs: [],
     note: null,
   },
+  {
+    id: "m11-inst-04",
+    kind: "simulador",
+    title: "Classificador de porte e modalidade — produto cartesiano completo",
+    formula: null,
+    fields: [
+      { id: "cl-pot", label: "Potência instalada em corrente alternada", unit: "kW", kind: "range", defaultValue: 180, min: 1, max: 6000, step: 1 },
+      { id: "cl-fonte", label: "Fonte", unit: null, kind: "select", defaultValue: "solar", options: [{ value: "solar", label: "Solar sem baterias" }, { value: "solarbat", label: "Solar com baterias qualificadas" }, { value: "desp", label: "Outra fonte despachável" }] },
+      { id: "cl-arr", label: "Arranjo", unit: null, kind: "select", defaultValue: "local", options: [{ value: "local", label: "Gera e consome na mesma unidade" }, { value: "remoto", label: "Outras unidades, mesmo titular" }, { value: "compart", label: "Titulares distintos em associação" }, { value: "emuc", label: "Mesma propriedade, área comum" }] },
+    ],
+    outputs: [],
+    note: null,
+  },
 ];
 
 const porId = (id: string): Instrument =>
@@ -637,7 +659,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-04')],
   },
   {
     id: 'aula-11-04',

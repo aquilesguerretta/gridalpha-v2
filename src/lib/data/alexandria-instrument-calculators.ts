@@ -1267,6 +1267,357 @@ import {
   M11_E4,
 } from './alexandria-modulo-11-content';
 
+// ── Módulo 12 · dado do módulo (LYCEUM Wave 44) ──
+// As tabelas vivem no arquivo de conteúdo — fonte única, importada dos
+// dois lados. Mesma direção de MODULO_06_TRAUMA_CICATRIZ e MODULO_10_*.
+import {
+  MODULO_12_VETORES,
+  MODULO_12_FRENTES,
+  MODULO_12_NUMEROS,
+  MODULO_12_MARCOS,
+  MODULO_12_PARCEIROS,
+  MODULO_12_INSTRUMENTOS_COMERCIAIS,
+  MODULO_12_CLASSES_PRODUTO,
+  MODULO_12_FRONTEIRA_INVENTARIO,
+  MODULO_12_VERIFICACAO_INVENTARIO,
+  MODULO_12_DADO_PRECURSOR,
+  MODULO_12_CARBONO_DOMESTICO,
+  MODULO_12_ITENS_MATURIDADE,
+  MODULO_12_ENTIDADES,
+  MODULO_12_CATEGORIAS_NOME,
+  MODULO_12_MOVIMENTOS,
+} from './alexandria-modulo-12-content';
+
+
+// ══════════════════════════════════════════════════════════════════
+// MÓDULO 12 — Geopolítica Energética do Brasil (LYCEUM Wave 44)
+//
+// Portados do `<script>` de `alexandria_modulo12.html`. Namespaçados
+// `m12-inst-NN` pela mesma razão de sempre: a fonte numera instrumento
+// por módulo, reiniciando do 01.
+//
+// Helpers replicados com o comportamento do original:
+//   numOf(el, def, a, b) → `nOu12` — vazio ou NaN vira o DEFAULT, e só
+//                          então é preso em [a,b].
+//   fmt(n, d)            → `fm12`  — pt-BR, `—` para NaN/Infinity.
+//   pc(v)                → `pc12`  — precisão VARIÁVEL por magnitude, um
+//                          detalhe do INST 09 que existe para que
+//                          participação de 0,005% não vire "0,0%".
+// ══════════════════════════════════════════════════════════════════
+
+const nOu12 = (v: EntradaInstrumento | undefined, def: number, a: number, b: number): number => {
+  if (v === undefined || v === '') return def;
+  const x = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));
+  if (Number.isNaN(x)) return def;
+  return x < a ? a : x > b ? b : x;
+};
+
+const fm12 = (x: number, d = 0): string =>
+  !Number.isFinite(x) ? '—' : x.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const s12 = (v: EntradaInstrumento | undefined, def: string): string =>
+  v === undefined || v === '' ? def : String(v);
+
+/** `pc` do INST 09 — casas decimais conforme a magnitude. */
+const pc12 = (v: number): string => {
+  if (!Number.isFinite(v)) return '—';
+  if (v === 0) return '0%';
+  if (v < 0.01) return v.toFixed(4).replace('.', ',') + '%';
+  if (v < 1) return v.toFixed(3).replace('.', ',') + '%';
+  return v.toFixed(1).replace('.', ',') + '%';
+};
+
+const VETOR_NOME12: Record<string, string> = {
+  cap: 'Capital', reg: 'Regulação e diplomacia', cad: 'Cadeia de valor',
+};
+
+// ── m12 INST 01 · Tabuleiro geopolítico ───────────────────────
+// Vetor × frente → texto. Consulta pura.
+const i1m12: CalculateFn = (i) => {
+  const vet = s12(i['tb-seg'], 'cap') as 'cap' | 'reg' | 'cad';
+  const fk = s12(i['tb-frente'], MODULO_12_FRENTES[0].k);
+  const f = MODULO_12_FRENTES.find((x) => x.k === fk) ?? MODULO_12_FRENTES[0];
+  const vl = VETOR_NOME12[vet];
+  const pergunta = vet === 'cap'
+    ? 'Qual é a moeda, a condicionalidade, o horizonte e a governança que acompanham esse capital?'
+    : vet === 'reg'
+      ? 'Isso é lei em vigor, lei sem regulamento, projeto em tramitação, ou compromisso sem força vinculante? E com que data?'
+      : 'O Brasil está na etapa de recurso ou na etapa de transformação? E onde exatamente está o gargalo que impede o salto?';
+  return {
+    valores: {},
+    veredito:
+      `<b>Vetor ${vl.toLowerCase()}.</b> ${MODULO_12_VETORES[vet]}` +
+      `<br><br><b>${f.n} pelo vetor ${vl.toLowerCase()}.</b> ${f[vet]}` +
+      `<br><br><b>Pergunta de verificação.</b> ${pergunta}`,
+  };
+};
+
+// ── m12 INST 02 · Separador de grandeza ───────────────────────
+// Original: w = pe/100 · ag = w·el + (1−w)·ne · di = el − ag
+//           de = ag − of · co = w·el.
+const i2m12: CalculateFn = (i) => {
+  const el = nOu12(i['sg-el'], 86.8, 0, 100);
+  const pe = nOu12(i['sg-pe'], 19, 1, 100);
+  const ne = nOu12(i['sg-ne'], 41, 0, 100);
+  const of = nOu12(i['sg-of'], 50, 0, 100);
+
+  const w = pe / 100;
+  const ag = w * el + (1 - w) * ne;
+  const di = el - ag;
+  const de = ag - of;
+  const co = w * el;
+  const ad = Math.abs(de);
+
+  const txt = ad <= 2
+    ? `<b>Consistente.</b> A renovabilidade agregada implícita fica dentro de dois pontos percentuais do valor oficial que você informou. Isso significa que os três parâmetros de entrada descrevem a mesma economia que a estatística oficial descreve — e que a diferença de ${fm12(Math.abs(di), 1)} pontos entre matriz elétrica e matriz energética é real, não artefato de conta. É essa distância que precisa ser dita sempre que um percentual de renovabilidade for citado.`
+    : ad <= 6
+      ? `<b>Divergência moderada.</b> A agregada implícita está a ${fm12(ad, 1)} pontos do valor oficial informado. Antes de concluir qualquer coisa, verifique a fronteira contábil do peso da eletricidade: consumo final de eletricidade contra oferta interna de energia dá um número; oferta interna de energia elétrica contra oferta interna de energia total dá outro, porque a segunda inclui as perdas de transformação. Divergência dessa ordem quase sempre é escolha de fronteira, não erro de dado.`
+      : `<b>Divergência alta.</b> A agregada implícita está a ${fm12(ad, 1)} pontos do valor oficial. Nessa faixa não se trata mais de fronteira contábil: pelo menos um dos três parâmetros não pertence à mesma base estatística dos outros — ano-base diferente, país diferente, ou grandeza trocada. A conduta correta não é ajustar o parâmetro até fechar: é <b>voltar à fonte de cada um dos três</b> e conferir ano-base e denominador antes de usar qualquer resultado.`;
+
+  return {
+    valores: { 'sg-ag': ag, 'sg-di': di, 'sg-de': de, 'sg-co': co },
+    veredito: txt,
+  };
+};
+
+// ── m12 INST 03 · Verificador de fonte de número ──────────────
+const i3m12: CalculateFn = (i) => {
+  const k = s12(i['vn-sel'], MODULO_12_NUMEROS[0].k);
+  const o = MODULO_12_NUMEROS.find((x) => x.k === k) ?? MODULO_12_NUMEROS[0];
+  return {
+    valores: {},
+    veredito:
+      `<b>${o.n}.</b>` +
+      `<br><br><b>Fonte provável.</b> ${o.f}` +
+      `<br><br><b>O que a grandeza mede.</b> ${o.m}` +
+      `<br><br><b>Erro típico de citação.</b> ${o.e}` +
+      `<br><br><b>O que verificar antes de repetir.</b> ${o.v}`,
+  };
+};
+
+// ── m12 INST 04 · Régua diplomático-regulatória ───────────────
+const i4m12: CalculateFn = (i) => {
+  const k = s12(i['rd-sel'], MODULO_12_MARCOS[0].k);
+  const idx = Math.max(0, MODULO_12_MARCOS.findIndex((x) => x.k === k));
+  const m = MODULO_12_MARCOS[idx];
+  return {
+    valores: {},
+    veredito:
+      `<b>${m.y} · marco ${idx + 1} de ${MODULO_12_MARCOS.length} — ${m.n}.</b>` +
+      `<br><br><b>O que é.</b> ${m.o}` +
+      `<br><br><b>Estado em 2 de agosto de 2026.</b> ${m.e}` +
+      `<br><br><b>O que ainda falta.</b> ${m.f}`,
+  };
+};
+
+// ── m12 INST 05 · Comparador de parceiros bilaterais ──────────
+const i5m12: CalculateFn = (i) => {
+  const p = s12(i['cb-par'], 'china') as keyof typeof MODULO_12_PARCEIROS;
+  const v = s12(i['cb-vet'], 'cap') as 'cap' | 'reg' | 'cad';
+  const C = MODULO_12_PARCEIROS[p];
+  const d = C[v];
+  const vl = VETOR_NOME12[v];
+  return {
+    valores: {},
+    veredito:
+      `<b>${C.n} pelo vetor ${vl.toLowerCase()}.</b> Troque o vetor mantendo o parceiro e observe que a leitura muda inteiramente. Nenhum parceiro é melhor em abstrato: a avaliação depende do vetor pelo qual se pergunta e do interesse de quem faz a pergunta — e dizer isso, numa conversa, é mais informativo do que qualquer ranking.` +
+      `<br><br><b>Estrutura principal.</b> ${d.a}` +
+      `<br><br><b>Segundo elemento.</b> ${d.b}` +
+      `<br><br><b>Fricção ou ressalva.</b> ${d.c}` +
+      `<br><br><b>Leitura operacional.</b> ${d.d}`,
+  };
+};
+
+// ── m12 INST 06 · Roteador de instrumento comercial ───────────
+// As quatro saídas do original são TEXTO (autoridade, prazo, controle
+// judicial, reversibilidade) — vão no veredito, não em `valores`.
+const i6m12: CalculateFn = (i) => {
+  const ik = s12(i['rt-inst'], 'emerg') as keyof typeof MODULO_12_INSTRUMENTOS_COMERCIAIS;
+  const pk = s12(i['rt-prod'], 'energia') as keyof typeof MODULO_12_CLASSES_PRODUTO;
+  const d = MODULO_12_INSTRUMENTOS_COMERCIAIS[ik];
+  const q = MODULO_12_CLASSES_PRODUTO[pk] as Record<string, string>;
+  return {
+    valores: {},
+    veredito:
+      `<b>${q.n} sob ${d.n.toLowerCase()}.</b> ${q[ik]}` +
+      '<br><br>Antes de repetir qualquer alíquota: a incidência é definida por <b>código tarifário</b>, produto a produto, e a sobretaxa se <b>soma</b> à tarifa regular já aplicável. Um produto com 5% de tarifa regular sob uma sobretaxa de 25% passa a pagar 30%, não 25%.' +
+      `<br><br><b>Autoridade.</b> ${d.aut}` +
+      `<br><br><b>Prazo típico.</b> ${d.pra}` +
+      `<br><br><b>Controle judicial.</b> ${d.jud}` +
+      `<br><br><b>Reversibilidade.</b> ${d.rev}` +
+      `<br><br><b>${d.n}.</b> ${d.nota}`,
+  };
+};
+
+// ── m12 INST 07 · Prontidão de dado de carbono ────────────────
+// Quatro eixos pontuados; a posição sai da soma dos TRÊS primeiros
+// (o preço de carbono doméstico não entra na base, só no desconto).
+const i7m12: CalculateFn = (i) => {
+  const f = s12(i['pc-fr'], 'corp') as keyof typeof MODULO_12_FRONTEIRA_INVENTARIO;
+  const v = s12(i['pc-vr'], 'nao') as keyof typeof MODULO_12_VERIFICACAO_INVENTARIO;
+  const p = s12(i['pc-pr'], 'nao') as keyof typeof MODULO_12_DADO_PRECURSOR;
+  const c = s12(i['pc-cd'], 'nao') as keyof typeof MODULO_12_CARBONO_DOMESTICO;
+  const sf = MODULO_12_FRONTEIRA_INVENTARIO[f].s;
+  const sv = MODULO_12_VERIFICACAO_INVENTARIO[v].s;
+  const sp = MODULO_12_DADO_PRECURSOR[p].s;
+  const sc = MODULO_12_CARBONO_DOMESTICO[c].s;
+  const base = sf + sv + sp;
+
+  const pos = sf === 0 ? 'Não atribuível a produto'
+    : base >= 5 ? 'Defensável' : base >= 3 ? 'Parcial' : 'Frágil';
+  const blq = sf === 0 ? 'Fronteira do inventário'
+    : sv === 0 ? 'Ausência de verificação'
+    : sp === 0 ? 'Ausência de dado de precursor'
+    : sv === 1 ? 'Verificação apenas interna'
+    : sp === 1 ? 'Cobertura parcial de precursor'
+    : sf === 1 ? 'Fronteira pode ser insuficiente para o produto'
+    : 'Nenhum eixo bloqueia o dado';
+  const vpd = (sf === 0 || sp === 0) ? 'Alto — valor padrão provável'
+    : sv === 0 ? 'Alto — dado sem verificação'
+    : base >= 5 ? 'Baixo' : 'Moderado';
+  const des = sc === 0 ? 'Indisponível — sem regime no país'
+    : sc === 1 ? 'Indisponível hoje, previsível no futuro'
+    : 'Potencialmente aplicável, sujeito a reconhecimento';
+
+  const cabeca = sf === 0
+    ? `<b>Bloqueio na fronteira, e nenhum outro eixo compensa.</b> ${MODULO_12_FRONTEIRA_INVENTARIO[f].d}`
+    : base >= 5
+      ? '<b>Dado defensável.</b> Os três eixos que compõem a base estão em posição que sustenta atribuição por produto diante de um comprador ou de uma autoridade de fronteira.'
+      : base >= 3
+        ? '<b>Posição parcial.</b> Há base, mas com lacuna identificável — e é ela que decide se o importador aceita o dado declarado ou aplica valor padrão.'
+        : '<b>Posição frágil.</b> A combinação informada não sustenta atribuição por produto; o resultado provável é a aplicação de valor padrão, que costuma ser punitivo por construção.';
+
+  return {
+    valores: { 'pc-base': base },
+    veredito:
+      cabeca +
+      `<br><br><b>Posição do dado.</b> ${pos}` +
+      `<br><br><b>Eixo que bloqueia.</b> ${blq}` +
+      `<br><br><b>Risco de valor padrão.</b> ${vpd}` +
+      `<br><br><b>Desconto de carbono doméstico.</b> ${des}`,
+  };
+};
+
+// ── m12 INST 08 · Régua de maturidade de projeto ──────────────
+// Nove itens numa escala de TRÊS estados (0/1/2), máximo 18. Três
+// deles são críticos (`crit`) e zerá-los bloqueia.
+const i8m12: CalculateFn = (i) => {
+  let pts = 0;
+  let vin = 0;
+  const blq: string[] = [];
+  for (const o of MODULO_12_ITENS_MATURIDADE) {
+    const v = Number(s12(i[`mp-e-${o.k}`], '0')) || 0;
+    pts += v;
+    if (v === 2) vin += 1;
+    if ((o as { crit?: boolean }).crit && v === 0) blq.push(o.n);
+  }
+  const est = pts <= 3 ? 'Anúncio'
+    : pts <= 7 ? 'Estudo'
+    : pts <= 11 ? 'Desenvolvimento'
+    : pts <= 15 ? 'Estruturação avançada'
+    : 'Pronto para implantação';
+
+  const foco = s12(i['mp-sel'], MODULO_12_ITENS_MATURIDADE[0].k);
+  const F = MODULO_12_ITENS_MATURIDADE.find((x) => x.k === foco) ?? MODULO_12_ITENS_MATURIDADE[0];
+
+  const cabeca = blq.length === 3
+    ? '<b>Anúncio, não projeto.</b> Os três itens críticos — energia contratada, comprador contratado e decisão final de investimento — estão ausentes. Nessa configuração o que existe é intenção pública, e tratá-la como capacidade instalada futura é o erro que produz as somas de gigawatt anunciado que nunca se materializam.'
+    : blq.length > 0
+      ? `<b>${est}, com ${blq.length} bloqueio${blq.length > 1 ? 's' : ''} crítico${blq.length > 1 ? 's' : ''}.</b> Ausentes: ${blq.join(', ')}. Um item crítico em zero domina a leitura — o restante da pontuação descreve preparo, não compromisso.`
+      : `<b>${est}.</b> Nenhum item crítico em zero. A pontuação de ${pts} em 18 descreve o quanto do projeto já está contratado em vez de planejado.`;
+
+  return {
+    valores: { 'mp-pts': pts, 'mp-vin': vin },
+    veredito:
+      cabeca +
+      `<br><br><b>Itens vinculantes:</b> ${vin} de 9. <b>Bloqueios críticos:</b> ${blq.length === 0 ? 'nenhum' : `${blq.length} de 3`}.` +
+      `<br><br><b>${F.n}.</b> ${(F as { nota?: string }).nota ?? 'Item sem nota na fonte.'}`,
+  };
+};
+
+// ── m12 INST 09 · Razão reserva-produção ──────────────────────
+// Ramo por ramo como no original, inclusive os dois casos-limite
+// (entrada incoerente e produção nula) que vêm ANTES das faixas.
+const i9m12: CalculateFn = (i) => {
+  const rn = nOu12(i['rp-rn'], 21, 0.1, 200);
+  const rm = nOu12(i['rp-rm'], 85, 1, 500);
+  const pn = nOu12(i['rp-pn'], 0.02, 0, 500);
+  const pm = nOu12(i['rp-pm'], 390, 1, 5000);
+
+  const sr = (rn / rm) * 100;
+  const sp = (pn / pm) * 100;
+  const incons = rn > rm || pn > pm;
+  const ra = sp > 0 ? sr / sp : Infinity;
+  const anos = pn > 0 ? (rn * 1000) / pn : Infinity;
+
+  let txt: string;
+  if (incons) {
+    txt = '<b>Entrada inconsistente.</b> ' +
+      (rn > rm ? 'A reserva nacional informada é maior que a reserva mundial. ' : '') +
+      (pn > pm ? 'A produção nacional informada é maior que a produção mundial. ' : '') +
+      'O instrumento não corrige a entrada porque o objetivo é justamente esse: quando duas fontes diferentes são combinadas sem checagem de coerência, a aritmética continua funcionando e o resultado continua parecendo um número. Confira se os dois valores vêm da mesma metodologia e do mesmo ano-base antes de dividir um pelo outro.';
+  } else if (pn === 0) {
+    txt = '<b>Produção nacional nula: a assimetria é máxima e a razão é indefinida.</b> Este é o caso-limite que o módulo existe para nomear. Um país pode deter parcela relevante da reserva mundial de um mineral e produzir zero, e nessa situação a reserva não confere nenhuma posição de barganha — confere apenas a <b>possibilidade</b> de construir uma, ao custo e no prazo de uma cadeia industrial que ainda não existe. Reserva no subsolo não é oferta no mercado.';
+  } else if (ra >= 100) {
+    txt = `<b>Assimetria extrema: participação na reserva ${ra >= 1000 ? fm12(Math.round(ra)) : ra.toFixed(0)} vezes maior que na produção.</b> Este é aproximadamente o caso brasileiro em terras-raras nos valores de referência: parcela expressiva da reserva mundial e produção de ordem de grandeza desprezível. A leitura correta não é "o Brasil é uma potência mineral" nem "o Brasil não tem nada" — é que o país tem <b>dotação sem cadeia</b>. E o gargalo, na maioria dos minerais críticos, não está na mina: está na separação, no refino e na manufatura do componente final, etapas que exigem capital, escala, tecnologia e demanda contratada.`;
+  } else if (ra >= 5) {
+    txt = `<b>Assimetria alta.</b> A participação na reserva excede a participação na produção por fator de ${ra.toFixed(1).replace('.', ',')}. Há produção real, mas muito abaixo do que a dotação permitiria. Neste intervalo, a pergunta de política pública deixa de ser "como começar" e passa a ser "o que limita a expansão" — e as respostas típicas são licenciamento, infraestrutura de escoamento, capital e ausência de comprador de longo prazo, não ausência de recurso.`;
+  } else if (ra >= 1.5) {
+    txt = `<b>Assimetria moderada.</b> Fator de ${ra.toFixed(1).replace('.', ',')} entre reserva e produção. O país produz aquém da sua dotação, mas está no jogo. Neste intervalo, participação de mercado passa a ser objeto de negociação comercial e não apenas de política industrial, e a posição de barganha começa a existir de fato.`;
+  } else if (ra >= 0.8) {
+    txt = '<b>Participações proporcionais.</b> A parcela na produção corresponde aproximadamente à parcela na reserva. É a situação do Brasil em minério de ferro e, em outra ordem de grandeza, em nióbio — dotação convertida em cadeia. Vale notar que mesmo aqui a pergunta de valor agregado permanece aberta: produzir na proporção da reserva não significa capturar a etapa de maior margem.';
+  } else {
+    txt = `<b>Produção acima da parcela na reserva.</b> Fator de ${ra.toFixed(2).replace('.', ',')}. O país extrai proporcionalmente mais do que detém, o que pode indicar cadeia madura, custo competitivo ou depleção mais rápida do estoque conhecido. As três hipóteses exigem verificação separada, e nenhuma delas se resolve por esta razão isoladamente.`;
+  }
+  if (pn > 0) {
+    txt += ` <br><br><b>Sobre "anos de reserva ao ritmo atual":</b> ${fm12(Math.round(anos))} anos é uma razão entre estoque e fluxo, não uma previsão. Números na casa das centenas de milhares não descrevem abundância eterna — descrevem produção quase nula em relação ao estoque, que é exatamente o mesmo fato que a razão de assimetria já mostrou, expresso em outra unidade.`;
+  }
+
+  return {
+    // `rp-ra` e `rp-an` ficam fora quando indefinidos: Infinity não é
+    // número exibível, e o veredito já diz "indefinida".
+    valores: {
+      'rp-pr': sr, 'rp-pp': sp,
+      ...(Number.isFinite(ra) ? { 'rp-ra': ra } : {}),
+      ...(Number.isFinite(anos) ? { 'rp-an': Math.round(anos) } : {}),
+    },
+    veredito: `${txt}<br><br><b>Participação na reserva:</b> ${pc12(sr)} · <b>na produção:</b> ${pc12(sp)}.`,
+  };
+};
+
+// ── m12 INST 10 · Classificador de nome ───────────────────────
+const i10m12: CalculateFn = (i) => {
+  const k = s12(i['cn-sel'], MODULO_12_ENTIDADES[0].k);
+  const e = MODULO_12_ENTIDADES.find((x) => x.k === k) ?? MODULO_12_ENTIDADES[0];
+  const cat = MODULO_12_CATEGORIAS_NOME[String(e.cat) as keyof typeof MODULO_12_CATEGORIAS_NOME];
+  return {
+    valores: {},
+    veredito:
+      `<b>${e.n} — ${cat.n}.</b> <b>${cat.st}.</b>` +
+      `<br><br><b>Onde aparece.</b> ${e.ond}` +
+      `<br><br><b>Substituição recomendada.</b> ${e.sub}` +
+      `<br><br><b>Por quê.</b> ${e.por}`,
+  };
+};
+
+// ── m12 INST 11 · Andaime de conversa ─────────────────────────
+// Oito movimentos de trinta minutos. Consulta pura; o `t` do item é o
+// rótulo de tempo, não um número somável.
+const i11m12: CalculateFn = (i) => {
+  const t = s12(i['an-sel'], MODULO_12_MOVIMENTOS[0].t);
+  const idx = Math.max(0, MODULO_12_MOVIMENTOS.findIndex((x) => x.t === t));
+  const m = MODULO_12_MOVIMENTOS[idx];
+  return {
+    valores: {},
+    veredito:
+      `<b>${m.lb} — movimento ${idx + 1} de ${MODULO_12_MOVIMENTOS.length}.</b>` +
+      `<br><br><b>A pergunta que o governa.</b> ${m.q}` +
+      `<br><br><b>Âncoras.</b> ${m.anc}` +
+      `<br><br><b>A ponte para o próximo.</b> ${m.br}` +
+      `<br><br><b>O que NÃO dizer aqui.</b> ${m.no}`,
+  };
+};
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -3193,5 +3544,22 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
     };
   },
 
+
+  // ══ MÓDULO 12 — Geopolítica Energética do Brasil (Wave 44) ══
+  // O `m12-inst-01` é do § MAP, fora de aula — alcançado por Recursos
+  // do Módulo, mesmo caminho do `lab-01` e dos `Inst · 01` anteriores.
+  'm12-inst-01': i1m12,
+  'm12-inst-02': i2m12,
+  'm12-inst-03': i3m12,
+  'm12-inst-04': i4m12,
+  'm12-inst-05': i5m12,
+  'm12-inst-06': i6m12,
+  'm12-inst-07': i7m12,
+  'm12-inst-08': i8m12,
+  'm12-inst-09': i9m12,
+  'm12-inst-10': i10m12,
+  'm12-inst-11': i11m12,
+
 };
+
 export const temCalculadora = (id: string) => id in INSTRUMENT_CALCULATORS;

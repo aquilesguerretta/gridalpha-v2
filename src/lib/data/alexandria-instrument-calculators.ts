@@ -3767,6 +3767,72 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
       veredito: VER,
     };
   },
+  // ── m11 INST 08 · Verificador de trajetória tarifária ──
+  // Transliteração mecânica do `calc()` da fonte: só as chamadas de DOM
+  // foram reescritas (`numOf`→`nm`, `segVal`→`sv`, `textContent`→OUT,
+  // `innerHTML`→VER). Lógica de ramo e prosa intocadas.
+  'm11-inst-08': (i) => {
+    const OUT: Record<string, string> = {};
+    let VER = '';
+    
+
+    let p=nm(i['tt-prop'], 9, 0, 20);
+    let h=nm(i['tt-hist'], 6, 0, 20);
+    let hz=Math.round(nm(i['tt-hz'], 20, 5, 30));
+    let anc=sv(i['tt-anc'], 'fonte');
+    let ip=Math.pow(1+p/100,hz), ih=Math.pow(1+h/100,hz);
+    let gap=p-h;
+    let exc=(ip/ih-1)*100;
+
+    OUT['tt-gap'] = (gap>=0?'+':'')+fmt11(gap,2)+' p.p.';
+    OUT['tt-i1'] = fmt11(ip*100,0);
+    OUT['tt-exc'] = (exc>=0?'+':'')+fmt11(exc,1)+'%';
+
+    let cls,t=[];
+    if(gap>1.5){
+      cls='per';
+      t.push('<b>A premissa da proposta supera a ancoragem histórica em '+fmt11(gap,2)+' ponto percentual ao ano.</b> Composta por '+hz+' anos, essa diferença faz o índice final da premissa ficar '+fmt11(exc,1)+' por cento acima do índice que a própria série histórica da concessionária produziria. Não é uma diferença de opinião sobre o futuro: é uma diferença que carrega sozinha uma parte relevante do resultado apresentado.');
+      t.push('<b>Por que isso é premissa e não fato.</b> Reajuste tarifário anual é ato homologatório da agência reguladora, calculado por área de concessão a partir de itens que não se repetem: variação de custos não gerenciáveis, componentes financeiros de períodos anteriores, quotas de encargos e o resultado do processo tarifário da distribuidora específica. Nenhuma dessas parcelas tem trajetória garantida, e a série passada é a única ancoragem disponível — não porque preveja o futuro, mas porque é a única coisa auditável.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Os atos homologatórios de reajuste anual da distribuidora que atende a unidade são públicos e estão no sítio da agência reguladora. Levantar a série dos últimos dez anos leva poucos minutos e produz o número que este instrumento pede como ancoragem. Feito isso, a pergunta ao vendedor é direta e específica: de onde veio a taxa da planilha.');
+      t.push('<b>O que ainda exige análise especializada.</b> Projetar trajetória tarifária com fundamento exige modelar revisão tarifária periódica, base de remuneração regulatória e a evolução dos encargos — e nem isso produz garantia. Por isso a saída deste instrumento é índice adimensional e afastamento, e nunca valor monetário: o objetivo é medir a distância entre a premissa e a ancoragem, não substituir uma previsão por outra.');
+    } else if(gap>0.5){
+      cls='att';
+      t.push('<b>Afastamento de '+fmt11(gap,2)+' ponto percentual ao ano acima da ancoragem.</b> Faixa de atenção. O índice final da premissa fica '+fmt11(exc,1)+' por cento acima do índice histórico ao longo de '+hz+' anos. Um afastamento nesta ordem pode ser defendido — pressão de encargos, ciclo de investimento da distribuidora, expectativa de inflação acima da média da série — mas precisa ser defendido explicitamente, e não embutido.');
+      t.push('<b>Por que a faixa importa.</b> Diferença pequena ao ano vira diferença grande no horizonte porque a composição é multiplicativa. É a mesma aritmética da degradação, e produz o mesmo tipo de ilusão: a premissa parece razoável quando lida isolada e domina o resultado quando lida composta.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Levante a média dos reajustes homologados da concessionária nos últimos dez anos e informe aqui. Se o afastamento se fechar com a série real, a premissa era ancorada e o achado se resolve. Se persistir, o que resta é pedir a justificativa por escrito.');
+      t.push('<b>O que ainda exige análise especializada.</b> Separar, dentro da série histórica, o que foi reajuste ordinário do que foi revisão tarifária periódica ou componente financeiro extraordinário. Essa decomposição muda a média e é a diferença entre uma ancoragem bem feita e uma ancoragem ingênua.');
+    } else if(gap>=-0.5){
+      cls='ok';
+      t.push('<b>Premissa alinhada à ancoragem histórica.</b> Afastamento de '+fmt11(Math.abs(gap),2)+' ponto percentual ao ano, dentro do que a própria dispersão da série explica. O índice final da premissa fica '+fmt11(exc,1)+' por cento em relação ao índice histórico ao longo de '+hz+' anos — uma diferença que não carrega o resultado.');
+      t.push('<b>O que isso libera.</b> Este é o item do Eixo 3 mais fácil de inflar e o menos verificável por quem não conhece o processo tarifário, o que o torna o teste mais informativo sobre a disciplina metodológica de quem escreveu a proposta. Uma trajetória ancorada é indício de que as demais premissas financeiras também foram construídas, e não escolhidas.');
+      t.push('<b>O que o comprador ainda confirma sozinho.</b> Que a ancoragem informada é da distribuidora que efetivamente atende a unidade, e não uma média nacional. Trajetória tarifária varia por área de concessão pela mesma razão que a tarifa varia: o processo tarifário é individual.');
+      t.push('<b>Redação recomendada do achado.</b> A trajetória tarifária assumida é compatível com a série homologada da concessionária que atende a unidade, no horizonte declarado. Premissa do Eixo 3 ancorada neste item.');
+    } else {
+      cls='ok';
+      t.push('<b>A premissa está abaixo da ancoragem histórica em '+fmt11(Math.abs(gap),2)+' ponto percentual ao ano.</b> A proposta projeta trajetória mais lenta do que a série da concessionária sugere, o que é a direção conservadora e reduz, e não aumenta, o resultado apresentado.');
+      t.push('<b>O que observar mesmo assim.</b> Premissa conservadora num item e agressiva em outro produz um documento que parece equilibrado no agregado e é frágil em cada parte. Se a trajetória está conservadora, vale conferir se a geração e a degradação também estão — o padrão relevante é a consistência de método, não a soma dos otimismos.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Se a proposta declara conservadorismo deliberado, peça que a premissa e sua justificativa constem por escrito. Premissa favorável ao comprador também é premissa, e também precisa de rastro.');
+      t.push('<b>O que ainda exige análise especializada.</b> Nada de imediato neste item. A verificação relevante passa a ser de consistência entre os três verificadores, e é essa leitura cruzada que o roteador de veredito organiza.');
+    }
+    if(anc==='soi'){
+      t.push('<b>Sobre a declaração da premissa.</b> A proposta declara a taxa mas não a origem. Isso mantém o número auditável quanto ao efeito e inauditável quanto à fundamentação: dá para medir o que ele produz, não dá para saber se ele foi construído. A pergunta ao vendedor é única e específica — de qual série, de qual concessionária, em qual período.');
+      if(cls==='ok')cls='att';
+    } else if(anc==='nada'){
+      t.push('<b>Sobre a declaração da premissa.</b> A taxa não está declarada: ela está embutida no resultado. Uma premissa embutida não é uma premissa conservadora nem agressiva — é uma premissa que não pode ser discutida, e essa é a característica que importa. Enquanto ela não for explicitada, o Eixo 3 permanece não verificado, qualquer que seja o valor que este instrumento devolva.');
+      cls='per';
+    } else {
+      t.push('<b>Sobre a declaração da premissa.</b> A proposta declara a taxa e a fonte da ancoragem. Isso é a condição mínima para que o item seja verificável, e é o que permite que a conversa mude de "esse número está certo?" para "essa fonte é a certa?" — que é uma pergunta com resposta.');
+    }
+     
+    VER = t.map(function(x){return '<p>'+x+'</p>';}).join('');
+  
+    void cls;
+    void VER;
+    return {
+      valores: { 'tt-gap': gap, 'tt-i1': ip*100, 'tt-exc': exc },
+      veredito: VER,
+    };
+  },
   'm11-inst-01': (i) => {
     const lente = String(i['mp-lente'] ?? 'eixo');
     const item = M11_MAPA_ITENS.find((x) => x.k === String(i['mp-item'] ?? M11_MAPA_ITENS[0].k)) ?? M11_MAPA_ITENS[0];

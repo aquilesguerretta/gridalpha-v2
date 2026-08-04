@@ -655,6 +655,24 @@ const M11_INSTRUMENTOS_TODOS: Instrument[] = [
     ],
     note: null,
   },
+  {
+    id: "m11-inst-08",
+    kind: "calculadora",
+    title: "Verificador de trajetória tarifária — premissa contra ancoragem histórica",
+    formula: null,
+    fields: [
+      { id: "tt-prop", label: "Reajuste anual assumido na proposta", unit: "%/ano", kind: "range", defaultValue: 9, min: 0, max: 20, step: 0.25 },
+      { id: "tt-hist", label: "Média histórica homologada da concessionária", unit: "%/ano", kind: "range", defaultValue: 6, min: 0, max: 20, step: 0.25 },
+      { id: "tt-hz", label: "Horizonte da projeção", unit: "anos", kind: "range", defaultValue: 20, min: 5, max: 30, step: 1 },
+      { id: "tt-anc", label: "Ancoragem declarada na proposta", unit: null, kind: "select", defaultValue: "fonte", options: [{ value: "fonte", label: "Série histórica com fonte citada" }, { value: "soi", label: "Índice oficial genérico" }, { value: "nada", label: "Sem ancoragem declarada" }] },
+    ],
+    outputs: [
+      { id: "tt-gap", label: "Afastamento anual da ancoragem", unit: "p.p." },
+      { id: "tt-i1", label: "Índice final sob a premissa da proposta", unit: null },
+      { id: "tt-exc", label: "Excesso acumulado sobre a ancoragem", unit: "%" },
+    ],
+    note: null,
+  },
 ];
 
 const porId = (id: string): Instrument =>
@@ -776,7 +794,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-08')],
   },
   {
     id: 'aula-11-07',

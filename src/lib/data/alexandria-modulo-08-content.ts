@@ -500,6 +500,159 @@ export const M08_INST07_MESES: {
   },
 ];
 
+
+// ── INST · 11 — Roteador de recorte (LYCEUM Wave 38) ─────────
+// Fecha o ciclo aberto no Modulo 07. Tres eixos — tema (6), 
+// granularidade (3) e uso pretendido (2) — que roteiam para a base
+// certa: 36 combinacoes, todas com base, universo, defasagem,
+// armadilha e forma de citacao proprias.
+//
+// Gerado do objeto I11DB do <script>, nao transcrito: 18 fichas de
+// cinco campos cada.
+
+export const M08_INST11_DB: Record<string, Record<string, {
+  base: string; uni: string; def: string; arm: string; cit: string;
+}>> = {
+  cap: {
+    tr: {
+      base: "Sistema de informações de geração da agência reguladora",
+      uni: "Usinas centralizadas outorgadas, em construção e em operação, por empreendimento",
+      def: "Atualização contínua, praticamente diária",
+      arm: "Não inclui geração distribuída nem autoprodução. O total nacional daqui é dezenas de gigawatts menor que o do balanço energético, e as duas coisas estão certas.",
+      cit: "Sistema de informações de geração da agência reguladora, capacidade em operação de usinas centralizadas, posição em [data], consulta em [data].",
+    },
+    me: {
+      base: "Relatório de acompanhamento da expansão da oferta de geração",
+      uni: "Empreendimentos com previsão de entrada em operação, por fonte e por ano",
+      def: "Mensal, com revisão de datas de tendência",
+      arm: "Previsão de entrada não é entrada. Classifique o pipeline por estágio — outorgado sem obra, em construção, em teste, em operação — antes de somar qualquer coisa.",
+      cit: "Relatório de acompanhamento da expansão da oferta de geração, edição de [mês/ano], previsão de entrada em operação sujeita a revisão, consulta em [data].",
+    },
+    an: {
+      base: "Balanço energético nacional e anuário estatístico",
+      uni: "Conceito amplo: centralizada mais autoprodução mais geração distribuída",
+      def: "Anual, com ano-base no ano anterior e síntese publicada no primeiro semestre",
+      arm: "É o universo mais abrangente e o que produz os maiores totais. Declare sempre que se trata do conceito amplo, ou o número parecerá inflado para quem estiver comparando com a base de outorgas.",
+      cit: "Balanço energético nacional [edição], ano-base [ano], capacidade instalada no conceito amplo, incluindo autoprodução e geração distribuída, consulta em [data].",
+    },
+  },
+  ger: {
+    tr: {
+      base: "Portal de dados abertos do operador nacional",
+      uni: "Geração das usinas supervisionadas, por fonte e por submercado",
+      def: "Horária, com dado operativo praticamente do dia anterior",
+      arm: "Dado operativo não é fechamento contábil. A geração distribuída entra por estimativa e não por medição, e a soma anual desta série não coincide com a do balanço.",
+      cit: "Portal de dados abertos do operador nacional, geração horária verificada por fonte e por submercado, período [de–até], dado operativo sujeito a consolidação, consulta em [data].",
+    },
+    me: {
+      base: "Resenha mensal do mercado de energia elétrica",
+      uni: "Consumo e geração consolidados preliminarmente pelos agentes",
+      def: "Mensal, com defasagem de aproximadamente um mês",
+      arm: "É conjuntural e sujeito a revisão. Útil para acompanhar tendência, insuficiente para afirmar fechamento.",
+      cit: "Resenha mensal do mercado de energia elétrica, base [mês/ano], dado preliminar sujeito a revisão, consulta em [data].",
+    },
+    an: {
+      base: "Balanço energético nacional, relatório síntese e completo",
+      uni: "Geração nacional por fonte, mais importação líquida na oferta interna",
+      def: "Anual, síntese no primeiro semestre e completo depois",
+      arm: "Geração nacional e oferta interna de energia elétrica são números diferentes: a segunda inclui o saldo líquido de importação. Trocá-los é erro frequente e detectável.",
+      cit: "Balanço energético nacional [edição], ano-base [ano], geração nacional por fonte — não confundir com oferta interna de energia elétrica, que inclui importação líquida. Consulta em [data].",
+    },
+  },
+  hid: {
+    tr: {
+      base: "Informe diário da operação e painéis do operador",
+      uni: "Afluência, armazenamento, carga e intercâmbio por subsistema",
+      def: "Diária",
+      arm: "Nível de reservatório sem data não significa nada. E armazenamento sozinho não permite diagnóstico: precisa vir com a afluência do período em percentual da média de longo termo daquele mês.",
+      cit: "Informe diário da operação do operador nacional, posição de [data], energia armazenada por subsistema em percentual do volume útil, consulta em [data].",
+    },
+    me: {
+      base: "Programa mensal de operação e suas revisões semanais",
+      uni: "Previsão de afluência e de energia armazenada por reservatório equivalente",
+      def: "Mensal com revisão semanal",
+      arm: "É previsão sob cenários, não medição. As revisões semanais podem alterar significativamente a projeção do fim do mês.",
+      cit: "Programa mensal de operação, revisão de [data], previsão de afluência em percentual da média de longo termo daquele mês e subsistema, consulta em [data].",
+    },
+    an: {
+      base: "Séries históricas de afluência e armazenamento do operador",
+      uni: "Série longa por subsistema, base do cálculo da média de longo termo",
+      def: "Anual consolidada, com histórico completo disponível",
+      arm: "A média de longo termo é mensal e regionalizada. Comparar a afluência de um mês contra a média anual do país produz conclusão sem sentido.",
+      cit: "Séries históricas de afluência e armazenamento do operador nacional, período [de–até], por subsistema, consulta em [data].",
+    },
+  },
+  cor: {
+    tr: {
+      base: "Séries de restrição de geração do operador",
+      uni: "Corte de usinas eólicas e fotovoltaicas centralizadas, por causa",
+      def: "Diária a semanal",
+      arm: "Classifique por causa antes de interpretar: razão energética, confiabilidade e indisponibilidade externa têm soluções e regras de ressarcimento diferentes.",
+      cit: "Séries de restrição de geração do operador nacional, período [de–até], usinas eólicas e fotovoltaicas centralizadas, com repartição por causa, consulta em [data].",
+    },
+    me: {
+      base: "Séries de restrição do operador e informações de contabilização da câmara",
+      uni: "Volume restrito e efeito comercial associado",
+      def: "Mensal",
+      arm: "Volume físico cortado e efeito comercial do corte são grandezas distintas, e a regra de rateio está em discussão regulatória — o que vale hoje pode não valer no próximo ciclo.",
+      cit: "Séries de restrição do operador nacional, base [mês/ano], volume restrito — declarar se físico ou com efeito comercial. Consulta em [data].",
+    },
+    an: {
+      base: "Relatório do grupo de trabalho de cortes de geração e anuário estatístico",
+      uni: "Série anual com repartição por causa e projeções",
+      def: "Anual, com estudos pontuais",
+      arm: "A série tem quebra metodológica: até março de 2024 considerava apenas usinas eólicas. Emendar edições sem marcar a quebra transforma mudança de universo em fenômeno físico.",
+      cit: "Séries de restrição do operador nacional, [período], com ressalva de quebra metodológica: usinas fotovoltaicas integram a série a partir de abril de 2024. Consulta em [data].",
+    },
+  },
+  con: {
+    tr: {
+      base: "Carga verificada no portal de dados abertos do operador",
+      uni: "Carga do sistema por subsistema, líquida da geração não comandada",
+      def: "Horária",
+      arm: "Carga supervisionada não é consumo da sociedade. A diferença entre as duas cresce à medida que a geração distribuída cresce.",
+      cit: "Portal de dados abertos do operador nacional, carga horária verificada por subsistema, líquida da geração não comandada, período [de–até], consulta em [data].",
+    },
+    me: {
+      base: "Resenha mensal e boletim trimestral de consumo",
+      uni: "Consumo na rede por classe, região e ambiente de contratação",
+      def: "Mensal, preliminar",
+      arm: "Migração entre ambientes redistribui consumo sem alterar consumo físico. Queda do mercado regulado com alta do livre é redistribuição, não retração.",
+      cit: "Resenha mensal do mercado de energia elétrica, base [mês/ano], consumo na rede por classe, dado preliminar, consulta em [data].",
+    },
+    an: {
+      base: "Anuário estatístico de energia elétrica",
+      uni: "Consumo na rede por classe, com séries históricas e número de consumidores",
+      def: "Anual, publicado no primeiro semestre seguinte",
+      arm: "Consumo na rede exclui autoprodução consumida no local; o consumo final do balanço inclui outros universos. Declare qual dos dois está usando.",
+      cit: "Anuário estatístico de energia elétrica [edição], ano-base [ano], consumo na rede — não inclui autoprodução consumida no local. Consulta em [data].",
+    },
+  },
+  exp: {
+    tr: {
+      base: "Não existe fonte de expansão em tempo real",
+      uni: "—",
+      def: "—",
+      arm: "Expansão é objeto de planejamento com ciclo anual. Se a pergunta exige tempo real, ela provavelmente foi mal formulada: o que muda em tempo real é a operação, não a expansão. Reformule para acompanhamento de obra, e aí a base é o relatório de acompanhamento da agência.",
+      cit: "Não citável: não existe série de expansão em tempo real. Se a intenção é acompanhar obra, cite o relatório de acompanhamento da expansão com a data da edição.",
+    },
+    me: {
+      base: "Relatório de acompanhamento da expansão e plano de outorgas de transmissão",
+      uni: "Cronograma de obras de geração e indicação de instalações a licitar",
+      def: "Mensal para geração, por ciclo para transmissão",
+      arm: "Cronograma anunciado não é cronograma cumprido. Licenciamento, servidão e litígio são a variável dominante de prazo em transmissão, e nenhuma projeção nominal os captura.",
+      cit: "Relatório de acompanhamento da expansão da oferta de geração, edição de [mês/ano], data de tendência de entrada em operação — declarar que é previsão sujeita a revisão. Consulta em [data].",
+    },
+    an: {
+      base: "Plano decenal de expansão e plano da operação elétrica de médio prazo",
+      uni: "Cenários de expansão de geração, transmissão e demanda em horizontes de dez e cinco anos",
+      def: "Anual, com consulta pública prévia no caso do decenal",
+      arm: "Plano decenal é indicativo, não determinativo. Compare sempre referência, inferior e superior, e nunca trate o cenário central como certeza.",
+      cit: "Plano decenal de expansão de energia [horizonte], cenário [referência, inferior ou superior], caderno de [tema], aprovado por portaria ministerial em [data]. Declarar que o plano é indicativo, não determinativo. Consulta em [data].",
+    },
+  },
+};
+
 const I2_INTRO =
   'Digite a capacidade instalada e o fator de capacidade de cada fonte. O instrumento devolve as duas pizzas e marca em dourado toda fonte que <b>trocou de posição</b> entre elas. Os valores iniciais são a fotografia de 2025 declarada abaixo; substitua qualquer um deles e a lição continua funcionando — é essa a razão de o instrumento existir.';
 const I2_SRCNOTE =
@@ -800,6 +953,45 @@ const M08_INST_10: Instrument[] = [
       { id: 'i10-solar', label: 'Cobertura solar teórica', unit: '%' },
     ],
     note: 'Duas plantas com o mesmo consumo anual podem ter custo e risco completamente diferentes. Monte um perfil e veja o fator de carga resultante, a demanda de ponta implícita e qual fonte casa melhor com a curva — e qual introduz descasamento que precisaria ser coberto.<br><br>Didático/ilustrativo. O modelo é simplificado e trabalha com perfil retangular por turno; a curva real de uma planta tem picos de partida, paradas e sazonalidade de produção que só a medição de quinze minutos revela. Não trata de estrutura tarifária nem de modalidade, que são matéria do Bloco 10.',
+  },
+];
+
+const M08_INST_11: Instrument[] = [
+  {
+    id: 'm08-inst-11',
+    kind: 'explorador',
+    title: 'Roteador de recorte · qual base responde a qual pergunta',
+    formula: null,
+    fields: [
+      {
+        id: 'i11-tema', label: 'Sobre o que é a pergunta', unit: null, kind: 'select', defaultValue: 'cap',
+        options: [
+          { value: 'cap', label: 'Capacidade instalada' },
+          { value: 'ger', label: 'Geração por fonte' },
+          { value: 'hid', label: 'Condição hidrológica' },
+          { value: 'cor', label: 'Corte de geração' },
+          { value: 'con', label: 'Consumo e mercado' },
+          { value: 'exp', label: 'Expansão futura' },
+        ],
+      },
+      {
+        id: 'i11-gran', label: 'Granularidade', unit: null, kind: 'select', defaultValue: 'tr',
+        options: [
+          { value: 'tr', label: 'Tempo real ou diária' },
+          { value: 'me', label: 'Mensal' },
+          { value: 'an', label: 'Anual consolidada' },
+        ],
+      },
+      {
+        id: 'i11-uso', label: 'Uso pretendido', unit: null, kind: 'select', defaultValue: 'int',
+        options: [
+          { value: 'int', label: 'Análise interna' },
+          { value: 'pub', label: 'Material publicado' },
+        ],
+      },
+    ],
+    outputs: [],
+    note: 'Diga que pergunta você precisa responder e com que granularidade. O instrumento devolve qual base abrir, qual universo ela cobre, com que defasagem publica e qual é a armadilha específica daquela série. É o fechamento do ciclo aberto no Módulo 07.<br><br>Didático/ilustrativo. O roteador indica a base de referência mais apropriada e as cadências típicas; datas exatas de publicação e nomes de arquivo mudam a cada ciclo, e a nomenclatura das séries pode ser revista. Confirme sempre no portal da fonte antes de citar.',
   },
 ];
 
@@ -1206,7 +1398,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    // Inst · 11 da fonte.
+    instruments: M08_INST_11,
   },
 ];
 

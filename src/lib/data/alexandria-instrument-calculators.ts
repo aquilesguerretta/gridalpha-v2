@@ -220,6 +220,7 @@ import {
   M08_INST06_DADOS,
   M08_INST06_TXT,
   M08_INST07_MESES,
+  M08_INST11_DB,
 } from './alexandria-modulo-08-content';
 
 /** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
@@ -682,6 +683,34 @@ function i10calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento
     },
     veredito: msg,
   };
+}
+
+// ── Módulo 08 · INST 11 — Roteador de recorte (LYCEUM Wave 38) ──
+//
+// PORTADO do `i11render()`. A ficha de cinco campos e o veredito de uso
+// vêm inteiros; `valores` fica vazio porque a fonte não imprime número
+// nenhum. O eixo `uso` NÃO altera a ficha — só troca o veredito, e essa
+// independência é do original.
+function i11renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const tBruto = String(i['i11-tema'] ?? 'cap');
+  const tema = M08_INST11_DB[tBruto] ? tBruto : 'cap';
+  const gBruto = String(i['i11-gran'] ?? 'tr');
+  const gran = M08_INST11_DB[tema][gBruto] ? gBruto : 'tr';
+  const d = M08_INST11_DB[tema][gran];
+  const pub = String(i['i11-uso'] ?? 'int') === 'pub';
+
+  const ficha = [
+    `<b>Base indicada</b> — ${d.base}`,
+    `<b>Universo que ela cobre</b> — ${d.uni}`,
+    `<b>Cadência e defasagem</b> — ${d.def}`,
+    `<b>Armadilha específica</b> — ${d.arm}`,
+    `<b>Forma de citação</b> — ${d.cit}`,
+  ].join('<br>');
+  const uso = pub
+    ? '<b>Uso em material publicado — três exigências adicionais.</b> Primeira: registre universo, data-base e data de consulta junto ao número, no próprio material, e não em documento separado. Segunda: se a série for preliminar ou operativa, diga isso explicitamente — publicar dado conjuntural como fechamento é o erro mais fácil de cometer e o mais difícil de desfazer. Terceira: se o assunto envolver processo administrativo em curso, descreva o estágio do processo e nunca o desfecho. A trava de dados verificados existe para o material publicado, e não para a análise interna, justamente porque só o publicado é oponível a você.'
+    : '<b>Uso em análise interna.</b> Aqui a exigência é menor em forma e igual em substância: você pode trabalhar com dado preliminar e com estimativa, desde que o recorte esteja anotado. A regra prática que evita retrabalho é anotar o recorte no momento da coleta, e não no momento da publicação — recorte reconstruído de memória semanas depois é a origem mais comum de erro em relatório.';
+
+  return { valores: {}, veredito: `${ficha}<br><br>${uso}` };
 }
 
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
@@ -2472,6 +2501,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 10 · perfil de carga · casamento com a geracao ──
   'm08-inst-10': i10calcM08,
+
+  // ── m08 INST 11 · roteador de recorte · qual base responde o que ──
+  'm08-inst-11': i11renderM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

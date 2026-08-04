@@ -32,6 +32,7 @@ import {
 import {
   corDoPais,
   passaNoFiltro,
+  COR_FONTE,
   type FiltroFonte,
   type ModoCor,
 } from '../../../lib/atlas/atlasDerivacoes';
@@ -865,6 +866,14 @@ export function AtlasGlobo({
     const pais = a3 ? (mundo?.porIso.get(a3) ?? null) : null;
 
     if (!passaNoFiltro(pais, filtro)) return 'rgba(242, 233, 214, 0.03)';
+
+    // Filtro SEM coloração por métrica: quem passa recebe a cor da
+    // fonte filtrada, cheia. Antes o filtro só trocava a lavagem de
+    // creme de 0,10 para 0,03 entre quem passa e quem não passa — uma
+    // diferença que não se vê, e o usuário lia como "o filtro não faz
+    // nada". Com um modo de coloração ativo o país já tem cor própria,
+    // e aí o filtro continua agindo só por recuo dos demais.
+    if (filtro !== null && modoCor === 'nenhum') return COR_FONTE[filtro];
 
     return corDoPais(pais, modoCor).cor;
   };

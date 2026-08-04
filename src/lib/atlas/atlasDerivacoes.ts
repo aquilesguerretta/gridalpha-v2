@@ -222,15 +222,22 @@ export function rankearPor(
  *  lavagem uniforme de creme. */
 export type ModoCor = 'nenhum' | 'matriz' | 'intensidade' | 'renovavel';
 
-/** Cor de cada fonte de energia. Deriva da paleta do sistema: navy e
- *  seus tons para o que é fóssil/estrutural, oliva para o que é
- *  biológico, ouro para o solar, terracota para o nuclear (cor de
- *  estado forte, usada aqui porque nuclear é a categoria mais
- *  distintiva do conjunto). Sem verde-vermelho de dashboard. */
+/** Cor de cada fonte de energia. Deriva da paleta do sistema: oliva
+ *  para o que é biológico, ouro para o solar, terracota para o nuclear
+ *  (cor de estado forte, usada aqui porque nuclear é a categoria mais
+ *  distintiva do conjunto). Sem verde-vermelho de dashboard.
+ *
+ *  FÓSSIL e HIDRÁULICA foram trocadas depois do render: as duas
+ *  primeiras versões vinham direto da paleta de TINTA (#2A2620) e do
+ *  NAVY (#0D2340) — e a esfera do globo É navy, então país hidráulico
+ *  ficava literalmente invisível e fóssil quase preto sobre fundo
+ *  escuro. As duas precisam ler sobre navy E como quadrado de legenda
+ *  sobre creme; por isso subiram de luminância e ganharam matiz
+ *  própria (carvão quente e água), em vez de repetir cor de fundo. */
 export const COR_FONTE: Record<ChaveFonte, string> = {
-  fossilPct: '#2A2620',                   // A.tintaSobreCreme — carvão
+  fossilPct: '#736A5C',                   // carvão quente, lê sobre navy
   nuclearPct: '#A8462A',                  // A.terracota
-  hydroPct: '#0D2340',                    // A.navy
+  hydroPct: '#357B73',                    // água — distinto do navy da esfera
   windPct: '#5C7A99',                     // azul-aço, entre navy e céu
   solarPct: '#CBAA6E',                    // A2.ouroSobreNavy
   biofuelPct: '#55663F',                  // A.oliva

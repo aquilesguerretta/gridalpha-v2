@@ -25,9 +25,11 @@ interface ModuloAulaListProps {
   trilha: CurriculumTrilha;
   /** O router é quem conhece as rotas — este componente só diz qual aula. */
   onAbrirAula: (numero: number) => void;
+  /** Só existe quando o módulo possui uma expedição decisória implementada. */
+  onAbrirJogo?: () => void;
 }
 
-export function ModuloAulaList({ item, trilha, onAbrirAula }: ModuloAulaListProps) {
+export function ModuloAulaList({ item, trilha, onAbrirAula, onAbrirJogo }: ModuloAulaListProps) {
   const navigate = useNavigate();
   const { modulo, estado, aulasFeitas } = item;
 
@@ -59,6 +61,47 @@ export function ModuloAulaList({ item, trilha, onAbrirAula }: ModuloAulaListProp
 
         <h1 style={{ ...AT.h1, color: A.tintaSobreCreme, margin: 0 }}>{modulo.title}</h1>
       </div>
+
+      {onAbrirJogo && (
+        <section
+          aria-labelledby="expedicao-m08-title"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: AS.lg,
+            padding: AS.lg,
+            borderTop: `3px double ${A.fioSobreCreme}`,
+            borderBottom: `1px solid ${A.fioSobreCreme}`,
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xs }}>
+            <span style={{ ...AT.rotulo, color: A.terracota }}>Expedição decisória · M08</span>
+            <h2 id="expedicao-m08-title" style={{ ...AT.h3, margin: 0, color: A.tintaSobreCreme }}>
+              O Número Impossível
+            </h2>
+            <span style={{ ...AT.dado, color: A.tintaSuave }}>
+              Reconcilie fontes aparentemente contraditórias em três lentes.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onAbrirJogo}
+            style={{
+              ...AT.rotulo,
+              padding: `${AS.md} ${AS.lg}`,
+              border: `1px solid ${A.navy}`,
+              borderRadius: AR.none,
+              background: A.navy,
+              color: A.tintaSobreNavy,
+              cursor: 'pointer',
+            }}
+          >
+            Abrir jogo
+          </button>
+        </section>
+      )}
 
       {modulo.totalAulas === null ? (
         <EmProducao />

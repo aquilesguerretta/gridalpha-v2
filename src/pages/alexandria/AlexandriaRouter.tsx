@@ -16,6 +16,7 @@
 //      wave: `CurriculumAula` não tem registro nenhum, então não existe
 //      aula para contar por submercado e qualquer total seria invenção.
 
+import { lazy, Suspense } from 'react';
 import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { AlexandriaShell } from '@/components/alexandria/shell/AlexandriaShell';
 import { TrilhasHub } from '@/components/alexandria/navigation/TrilhasHub';
@@ -46,6 +47,8 @@ import {
 } from '@/lib/data/alexandria-trilhas';
 import { ALEXANDRIA_BADGES } from '@/lib/data/alexandria-badges';
 import { MOCK_BADGE_PROGRESS, MOCK_USER_PROGRESS } from '@/lib/data/alexandria-progress-mock';
+
+const Modulo08GamePage = lazy(() => import('./Modulo08GamePage'));
 
 export { MOCK_USER_PROGRESS };
 
@@ -182,6 +185,7 @@ export function AlexandriaRouter({ trackDeEntrada }: AlexandriaRouterProps) {
       <Route index element={<HubRoute trilhaSugeridaId={sugerida} />} />
       <Route path="trilha/:trilhaId" element={<TrilhaRoute />} />
       <Route path="trilha/:trilhaId/modulo/:moduloId" element={<ModuloRoute />} />
+      <Route path="trilha/:trilhaId/modulo/:moduloId/jogo" element={<JogoRoute />} />
       <Route path="trilha/:trilhaId/modulo/:moduloId/aula/:aulaNumero" element={<AulaRoute />} />
       <Route path="biblioteca" element={<BibliotecaView />} />
       <Route path="perfil" element={<PerfilStub />} />
@@ -271,11 +275,41 @@ function ModuloRoute() {
       <ModuloAulaList
         item={item}
         trilha={trilha}
+        onAbrirJogo={modulo.id === 'modulo-08'
+          ? () => navigate(`/alexandria/trilha/${trilha.id}/modulo/${modulo.id}/jogo`)
+          : undefined}
         onAbrirAula={(numero) =>
           navigate(`/alexandria/trilha/${trilha.id}/modulo/${modulo.id}/aula/${numero}`)
         }
       />
     </AlexandriaShell>
+  );
+}
+
+function JogoRoute() {
+  const { trilhaId, moduloId } = useParams();
+  const trilha = trilhaId ? getTrilhaById(trilhaId) : null;
+  const modulo = moduloId ? getModuleById(moduloId) : null;
+
+  if (!trilha || !modulo || modulo.trilhaId !== trilha.id || modulo.id !== 'modulo-08') {
+    return <NaoEncontrado titulo="Expedição não encontrada" />;
+  }
+
+  return (
+    <AlexandriaShell>
+      <Suspense fallback={<GameLoading />}>
+        <Modulo08GamePage trilhaId={trilha.id} />
+      </Suspense>
+    </AlexandriaShell>
+  );
+}
+
+function GameLoading() {
+  return (
+    <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+      <span style={{ ...AT.rotulo, color: A.terracota }}>Abrindo caixa documental</span>
+      <span style={{ ...AT.corpo, color: A.tintaSuave }}>Preparando a expedição decisória do Módulo 08…</span>
+    </div>
   );
 }
 

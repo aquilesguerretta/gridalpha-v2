@@ -10,8 +10,8 @@ import type {
   GameLens,
   GameRubric,
   RubricBand,
-} from './alexandria-game-types';
-import { LENS_DOCUMENT_LIMIT } from './alexandria-game-types';
+} from './alexandria-game-types.ts';
+import { LENS_DOCUMENT_LIMIT } from './alexandria-game-types.ts';
 
 const CLASSIFICATION_FIELDS: readonly ClassificationField[] = [
   'magnitude',
@@ -187,4 +187,3 @@ export function completeGame(params: {
     artifact: buildArtifact(scenario, lens, documents, evaluations, conclusion),
   };
 }
-

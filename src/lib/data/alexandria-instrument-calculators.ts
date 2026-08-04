@@ -213,6 +213,9 @@ import {
   M08_INST04_FONTES,
   M08_INST02_SRC,
   M08_INST03_FAIXAS,
+  M08_INST05_CAMPOS,
+  M08_INST05_DADOS,
+  M08_INST05_LEITURA,
 } from './alexandria-modulo-08-content';
 
 /** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
@@ -392,6 +395,27 @@ function i3calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento 
       'i3-fx-hi': fx.hi,
     },
     veredito: msg,
+  };
+}
+
+// ── Módulo 08 · INST 05 — Leitura lateral (LYCEUM Wave 38) ──
+//
+// PORTADO do `i5render()`. Explorador puro: zero saída numérica, porque
+// a fonte não imprime nenhum número aqui — o instrumento inteiro é a
+// tabela mais o parágrafo de leitura.
+//
+// A tabela das seis fontes é `<div class="src-row">` na fonte; aqui vai
+// no veredito, que o painel renderiza como HTML desde a Wave 34. Sem
+// esse canal a tabela se perderia inteira.
+function i5renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const bruto = String(i['i5-sel'] ?? 'saz');
+  const sel = M08_INST05_CAMPOS.some((c) => c.k === bruto) ? bruto : 'saz';
+  const linhas = Object.keys(M08_INST05_DADOS)
+    .map((f) => `<b>${f}</b> — ${M08_INST05_DADOS[f][sel]}`)
+    .join('<br><br>');
+  return {
+    valores: {},
+    veredito: `${linhas}<br><br><b>O que a leitura lateral revela.</b> ${M08_INST05_LEITURA[sel]}`,
   };
 }
 
@@ -2165,6 +2189,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 03 · fator de capacidade com faixa típica por fonte ──
   'm08-inst-03': i3calcM08,
+
+  // ── m08 INST 05 · leitura lateral · o mesmo campo nas seis fontes ──
+  'm08-inst-05': i5renderM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

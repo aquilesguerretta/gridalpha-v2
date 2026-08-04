@@ -230,6 +230,94 @@ export const M08_INST03_FAIXAS: Record<
   },
 };
 
+
+// ── INST · 05 — Leitura lateral (LYCEUM Wave 38) ──────────────
+// Explorador puro: sete campos, e cada campo vira uma tabela das seis
+// fontes lado a lado mais o parágrafo 'o que a leitura lateral revela'.
+// Zero saída numérica — a fonte não imprime número nenhum aqui.
+//
+// Os três blocos abaixo são GERADOS do objeto `I5` do <script> (parse
+// do literal + emissão), não transcritos à mão: 7 campos, 6 fontes, 7
+// parágrafos de leitura, sem risco de erro de digitação.
+// Campo inicial na fonte: 'saz'.
+
+export const M08_INST05_CAMPOS: { k: string; nome: string }[] = [
+  { k: "cap", nome: "Participação em capacidade" },
+  { k: "ger", nome: "Participação em geração" },
+  { k: "fc", nome: "Fator de capacidade típico" },
+  { k: "geo", nome: "Concentração geográfica" },
+  { k: "saz", nome: "Perfil sazonal" },
+  { k: "dia", nome: "Perfil intradiário" },
+  { k: "cre", nome: "O que a faz crescer ou parar" },
+];
+
+export const M08_INST05_DADOS: Record<string, Record<string, string>> = {
+  "Hidrelétrica": {
+    cap: "A maior fatia isolada, mas abaixo da metade — cerca de 42% no conceito amplo, contra mais de metade uma década antes.",
+    ger: "Cerca de 52%. Sobe dez pontos ao trocar de pizza: o maior salto absoluto de todas as fontes, e a razão de a hidráulica continuar sendo descrita como a base do sistema mesmo tendo caído abaixo da metade em capacidade.",
+    fc: "Faixa de 45% a 60%, com forte variação interanual. Não é limitação técnica: é despacho somado à hidrologia.",
+    geo: "Armazenamento na bacia do Paraná; grandes usinas a fio d'água no Norte; São Francisco no Nordeste; Iguaçu e Uruguai no Sul.",
+    saz: "Segue o regime de chuvas de cada bacia. Úmido de novembro a abril no Sudeste/Centro-Oeste. A diversidade entre bacias é o que a integração nacional existe para aproveitar.",
+    dia: "Modulável quando há reservatório — é a fonte que cobre a rampa do fim de tarde. Tem piso: vazão mínima, estabilidade e operação das máquinas impedem redução indefinida.",
+    cre: "Cresce por repotenciação, pouco por usina nova. Para por hidrologia adversa e por restrição de uso múltiplo da água.",
+  },
+  "Eólica": {
+    cap: "Cerca de 13%, com 34,7 GW instalados após expansão de 17,5% no ano.",
+    ger: "Cerca de 15%, com 116,5 TWh. Sobe ligeiramente ao trocar de pizza, o que já é atestado de recurso: subir significa ter fator de capacidade acima da média ponderada do parque.",
+    fc: "Faixa de 35% a 50% nos bons sítios do Nordeste. A energia no vento cresce com o cubo da velocidade, então um fator regional não se aplica a um município.",
+    geo: "Fortemente concentrada no Nordeste, com litoral do Rio Grande do Norte e do Ceará e interior da Bahia e do Piauí. Sul tem parque relevante com regime distinto.",
+    saz: "No Nordeste, ventos se fortalecem no segundo semestre, com pico entre julho e setembro — dentro do período seco do Sudeste/Centro-Oeste. É a complementaridade estrutural mais importante da matriz.",
+    dia: "Tende a ser mais forte à noite e de madrugada em boa parte do Nordeste, comportamento oposto ao da solar. Varia por sítio e por estação.",
+    cre: "Cresceu por leilão e por custo declinante. Passou a parar por capacidade de escoamento e de absorção — o limite deixou de ser a turbina.",
+  },
+  "Solar fotovoltaica": {
+    cap: "Cerca de 25% no conceito amplo — a segunda maior categoria isolada, com mais de dois terços em geração distribuída.",
+    ger: "Cerca de 11%, com 88,1 TWh. Despenca catorze pontos ao trocar de pizza: a maior queda de todas as fontes, e a origem direta do erro de leitura mais comum do setor brasileiro.",
+    fc: "Faixa de 20% a 30%. A potência é medida no pico de irradiância e a produção só existe de dia.",
+    geo: "Centralizada no Nordeste e norte de Minas. Distribuída espalhada por todo o país — é a única fonte cuja geografia acompanha o consumo em vez do recurso.",
+    saz: "Variação anual modesta. É a fonte mais previsível em base sazonal e a menos previsível em base horária.",
+    dia: "Concentrada entre nove e dezesseis horas, com pico ao meio-dia. É essa concentração, e não o volume anual, que reorganiza a operação do sistema.",
+    cre: "Cresce por custo de módulo, compensação na distribuição e prazo curto de obra. A parcela distribuída não é comandada, então quem para é a centralizada.",
+  },
+  "Biomassa": {
+    cap: "Entra agregada ao total térmico nas séries de capacidade — armadilha de leitura, porque a pizza de geração as separa.",
+    ger: "Ordem de 8% da matriz elétrica, com recorde sucessivo. Bagaço de cana e licor preto respondem pela quase totalidade. Atenção ao recorte: a rubrica biomassa do balanço e a rubrica bioeletricidade do anuário agregam de formas diferentes e produzem percentuais distintos para o mesmo ano — sem que nenhuma esteja errada.",
+    fc: "Faixa de 35% a 55%, limitada pela safra e pelo processo industrial, não pelo equipamento.",
+    geo: "São Paulo, Goiás, Minas Gerais e Mato Grosso do Sul para cana; Sul, Sudeste e Bahia para celulose.",
+    saz: "Segue a safra da cana, de abril a novembro no Centro-Sul — ou seja, dentro do período seco. É a segunda complementaridade estrutural, e a mais esquecida.",
+    dia: "Relativamente plano dentro do dia de operação, com alguma modulação quando o processo industrial permite.",
+    cre: "Cresce com caldeira de alta pressão e preço que justifique exportar excedente. Para com entressafra e com limitação de conexão local.",
+  },
+  "Térmica fóssil": {
+    cap: "Agregada ao total térmico. É a fonte cuja fatia de capacidade menos informa, porque ela existe para não ser usada o tempo todo.",
+    ger: "Ordem de 10% somando gás, carvão e derivados, com o gás crescendo mais de vinte por cento — espelho direto da queda hidrelétrica do ano. É a única fonte cuja variação anual se lê melhor olhando a chuva do que olhando o próprio setor.",
+    fc: "Extremamente variável, de menos de 10% a mais de 70%. É a única fonte em que fator baixo pode indicar sistema saudável.",
+    geo: "Gás no Sudeste, Nordeste e litoral com gasoduto ou terminal; carvão no Sul junto às jazidas; derivados em sistemas isolados.",
+    saz: "Contracíclica à hidrologia. Não tem sazonalidade própria — tem sazonalidade emprestada da água.",
+    dia: "Ciclo combinado sustenta operação prolongada; ciclo simples responde rápido e sustenta rampa. Parte é inflexível e gera mesmo sem necessidade.",
+    cre: "Cresce quando o sistema precisa de potência e flexibilidade. Para por custo variável e por ordem de mérito — exceto a parcela inflexível.",
+  },
+  "Nuclear": {
+    cap: "Menos de 1% — cerca de 2 GW em duas unidades.",
+    ger: "Cerca de 2%, com 15,8 TWh. Mais que dobra de fatia ao trocar de pizza, pelo fator de capacidade alto — é a maior variação relativa entre as duas pizzas, ainda que a menor em pontos absolutos.",
+    fc: "Faixa de 75% a 90% fora de parada programada. É o maior fator de capacidade do parque brasileiro.",
+    geo: "Um único sítio, no litoral sul do Rio de Janeiro.",
+    saz: "Nenhuma sazonalidade de recurso. A variação anual vem de parada programada.",
+    dia: "Plano. Baixa flexibilidade relativa por projeto e por regime operacional.",
+    cre: "Participação pequena não é irrelevância: a saída simultânea das unidades altera reserva regional. Decidida por política e capital, não por mercado de curto prazo.",
+  },
+};
+
+export const M08_INST05_LEITURA: Record<string, string> = {
+  cap: "Leia esta coluna de cima a baixo e observe a armadilha central: duas das seis fontes — biomassa e térmica fóssil — não aparecem separadas na pizza de capacidade, porque as séries agregam tudo sob o rótulo térmico. Quem compara a pizza de capacidade com a de geração linha a linha sem perceber essa desagregação conclui que houve troca de posição onde houve apenas mudança de classificação.",
+  ger: "Aqui as fontes aparecem desagregadas, e a soma das duas maiores já passa de dois terços. A ordem desta coluna difere da anterior em pelo menos duas posições, e toda a diferença é explicada pela coluna seguinte. Repare também numa assimetria fácil de perder: as fontes que sobem entre as duas pizzas sobem porque produzem mais do que o tamanho sugere, e as que descem descem porque o recurso não está disponível o tempo todo. Nenhuma das duas coisas é mérito ou demérito da tecnologia — é a diferença entre medir tamanho e medir utilização, e é exatamente por isso que citar uma pizza como se fosse a outra é erro de ordem, não de arredondamento.",
+  fc: "Esta é a coluna que explica as outras duas. Ordene mentalmente as fontes por fator de capacidade e você terá previsto quem sobe e quem desce entre as duas pizzas. Repare também na amplitude: a térmica fóssil tem a faixa mais larga de todas, e essa largura não é imprecisão de medida — é a natureza da fonte, que existe para operar em regimes muito diferentes conforme o ano.",
+  geo: "A leitura lateral desta coluna revela o problema estruturante da Aula 05: cinco das seis fontes têm concentração geográfica marcada, e só uma delas — a solar distribuída — segue o consumo em vez do recurso. Todas as outras precisam de rede para chegar onde há carga.",
+  saz: "Esta é a coluna mais valiosa do instrumento. Três fontes têm sazonalidade forte e defasada entre si — chuva, vento e cana —, uma tem sazonalidade emprestada, uma não tem sazonalidade de recurso e uma tem variação anual modesta. A defasagem entre as três primeiras é a complementaridade brasileira, e ela não aparece em nenhum gráfico de pizza.",
+  dia: "Compare esta coluna com a anterior e a lição da Aula 03 fica evidente: quem resolve o problema da escala anual não é quem resolve o da escala diária. A solar não tem papel sazonal e o vento não tem papel intradiário confiável. Somar potência de fontes que resolvem o mesmo problema na mesma hora não diversifica nada.",
+  cre: "Repare no que mudou nas duas últimas linhas de várias fontes: o fator limitante deixou de ser tecnologia ou custo e passou a ser rede e balanço. Essa é a transição estrutural que o bloco inteiro descreve, e ela aparece aqui de forma condensada.",
+};
+
 const I2_INTRO =
   'Digite a capacidade instalada e o fator de capacidade de cada fonte. O instrumento devolve as duas pizzas e marca em dourado toda fonte que <b>trocou de posição</b> entre elas. Os valores iniciais são a fotografia de 2025 declarada abaixo; substitua qualquer um deles e a lição continua funcionando — é essa a razão de o instrumento existir.';
 const I2_SRCNOTE =
@@ -328,6 +416,27 @@ const M08_INST_03: Instrument[] = [
       { id: 'i3-fx-hi', label: 'Faixa típica · teto', unit: '%' },
     ],
     note: `${I3_INTRO}<br><br>${I3_DISC}`,
+  },
+];
+
+const M08_INST_05: Instrument[] = [
+  {
+    id: 'm08-inst-05',
+    kind: 'explorador',
+    title: 'Leitura lateral · o mesmo campo nas seis fontes',
+    formula: null,
+    fields: [
+      {
+        id: 'i5-sel',
+        label: 'Campo em exibição',
+        unit: null,
+        kind: 'select',
+        defaultValue: 'saz',
+        options: M08_INST05_CAMPOS.map((c) => ({ value: c.k, label: c.nome })),
+      },
+    ],
+    outputs: [],
+    note: 'As fichas acima se leem na vertical, uma fonte de cada vez. Este instrumento vira a tabela: escolha um campo e veja as seis fontes lado a lado. É onde os padrões do sistema aparecem — e onde fica claro que sazonalidade, e não volume, é o que organiza a operação.',
   },
 ];
 
@@ -634,8 +743,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    // Inst · 04 da fonte, nas duas rodadas — ver o bloco M08_INST_04 acima.
-    instruments: M08_INST_04,
+    // Inst · 04 (nas duas rodadas) e Inst · 05 — a Aula 02 tem os dois.
+    instruments: [...M08_INST_04, ...M08_INST_05],
   },
   {
     id: 'aula-08-03',

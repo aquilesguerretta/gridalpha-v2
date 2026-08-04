@@ -95,6 +95,14 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // sec-id, das quais 10 casam "Aula NN". Cobertura de texto por
   // token entre 99,2% e 99,9% nas dez. LYCEUM Wave 48.
   'bloco-16': 10,  // Tendências e Disrupções
+  // ÚLTIMO bloco do currículo planejado (level 3). O track segue
+  // 'brasil' pelo terceiro módulo seguido da Trilha 3 — comparar
+  // jurisdições estrangeiras não muda de quem é o currículo.
+  // 22 seções `sec-id`: 11 casam `Aula NN` e 11 são aparato (uma a
+  // mais que o padrão de dez — existe um §Fichas próprio). Onze é
+  // o maior número de aulas de um módulo do currículo. Cobertura
+  // de texto por palavra 99,8-100% nas onze. LYCEUM Wave 49.
+  'bloco-17': 11,  // Cenário Internacional Comparativo
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

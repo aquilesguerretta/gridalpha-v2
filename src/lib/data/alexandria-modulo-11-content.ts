@@ -619,6 +619,24 @@ const M11_INSTRUMENTOS_TODOS: Instrument[] = [
     outputs: [],
     note: null,
   },
+  {
+    id: "m11-inst-06",
+    kind: "calculadora",
+    title: "Verificador de geração estimada — desvio contra referência independente",
+    formula: null,
+    fields: [
+      { id: "gv-pot", label: "Potência instalada declarada", unit: "kWp", kind: "range", defaultValue: 100, min: 1, max: 3000, step: 1 },
+      { id: "gv-ger", label: "Geração anual declarada na proposta", unit: "MWh/ano", kind: "range", defaultValue: 175, min: 1, max: 6000, step: 1 },
+      { id: "gv-irr", label: "Irradiação da localidade, plano dos módulos", unit: "kWh/m²·dia", kind: "range", defaultValue: 5.2, min: 2, max: 7.5, step: 0.05 },
+      { id: "gv-pr", label: "Desempenho global de referência adotado na conferência", unit: "%", kind: "range", defaultValue: 78, min: 50, max: 92, step: 1 },
+    ],
+    outputs: [
+      { id: "gv-ref", label: "Geração de referência reconstruída", unit: "MWh/ano" },
+      { id: "gv-dev", label: "Desvio da declarada sobre a referência", unit: "%" },
+      { id: "gv-prim", label: "Desempenho global implícito na proposta", unit: "%" },
+    ],
+    note: null,
+  },
 ];
 
 const porId = (id: string): Instrument =>
@@ -721,7 +739,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-06')],
   },
   {
     id: 'aula-11-06',

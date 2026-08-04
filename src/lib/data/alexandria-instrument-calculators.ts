@@ -3620,6 +3620,76 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
       veredito: '<b>Classe de faturamento.</b> ' + (OUT['rr-classe'] ?? '') + '<br><br>' + '<b>Componentes de distribuicao sobre a energia compensada.</b> ' + (OUT['rr-perc'] ?? '') + '<br><br>' + '<b>Estado da regra no ano informado.</b> ' + (OUT['rr-estado'] ?? '') + '<br><br>' + VER,
     };
   },
+  // ── m11 INST 06 · Verificador de geração estimada ──
+  // Transliteração mecânica do `calc()` da fonte: só as chamadas de DOM
+  // foram reescritas (`numOf`→`nm`, `segVal`→`sv`, `textContent`→OUT,
+  // `innerHTML`→VER). Lógica de ramo e prosa intocadas.
+  'm11-inst-06': (i) => {
+    const OUT: Record<string, string> = {};
+    let VER = '';
+    
+
+    let pot=nm(i['gv-pot'], 100, 1, 3000);
+    let ger=nm(i['gv-ger'], 175, 1, 6000);
+    let irr=nm(i['gv-irr'], 5.2, 2, 7.5);
+    let pr =nm(i['gv-pr'], 78, 50, 92);
+    let refkWh=pot*irr*365*(pr/100);
+    let refMWh=refkWh/1000;
+    let dev=(ger*1000/refkWh-1)*100;
+    let prImp=(ger*1000)/(pot*irr*365)*100;
+
+    OUT['gv-ref'] = fmt11(refMWh,1)+' MWh/ano';
+    OUT['gv-dev'] = (dev>=0?'+':'')+fmt11(dev,1)+'%';
+    OUT['gv-prim'] = fmt11(prImp,1)+'%';
+
+    let cls,t=[];
+    if(prImp>95){
+      cls='per';
+      t.push('<b>A proposta declara um desempenho global implícito de '+fmt11(prImp,1)+' por cento.</b> Esse número não é uma opinião: ele é o que sobra quando se divide a geração declarada pela energia que a irradiação informada entrega à potência instalada. Nenhum sistema fotovoltaico em operação de campo entrega desempenho global nessa ordem, e por isso a faixa está acima do teto do valor de referência que esta conferência admite como entrada. Um sistema fotovoltaico real perde energia em toda a cadeia — temperatura de operação da célula acima da condição de ensaio, sujidade acumulada entre limpezas, descasamento elétrico entre módulos da mesma série, queda ôhmica nos condutores, rendimento de conversão do inversor, indisponibilidade por manutenção e por desligamento da rede. A soma dessas perdas não desaparece por escolha comercial.');
+      t.push('<b>O que costuma causar.</b> Três origens, em ordem de frequência. A primeira é usar a irradiação no plano horizontal quando a estimativa deveria usar a irradiação no plano dos módulos, ou o contrário, sem declarar qual foi usada. A segunda é adotar desempenho global de catálogo de fabricante, medido em condição de laboratório, como se fosse desempenho de campo. A terceira é simplesmente arbitrar a geração a partir do resultado financeiro desejado e apresentar o número como se tivesse saído de um modelo.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Pergunte qual irradiação foi usada, em que plano, e de qual base de dados. Consulte o mesmo município no Atlas Brasileiro de Energia Solar ou na ferramenta de consulta do centro de referência para energia solar e eólica, e compare. Depois peça, por escrito, o valor de desempenho global adotado. Uma proposta que não sabe informar esses dois números não fez estimativa: fez arredondamento.');
+      t.push('<b>O que ainda exige análise especializada.</b> A conferência de ordem de grandeza feita aqui não substitui simulação com sombreamento do terreno, orientação e inclinação reais da cobertura, e curva de temperatura local. Se o desvio for material, o passo seguinte é exigir o relatório de simulação com as premissas visíveis, não recalcular por conta própria.');
+    } else if(dev>30){
+      cls='per';
+      t.push('<b>Desvio de '+fmt11(dev,1)+' por cento acima da referência reconstruída.</b> Nesta faixa não se trata mais de divergência de premissa: a geração declarada e a geração que a irradiação informada sustenta para essa potência instalada são grandezas diferentes. Toda a planilha de resultado da proposta foi construída sobre o número maior, o que significa que nenhuma linha financeira dela é aproveitável enquanto a geração não for reconciliada.');
+      t.push('<b>O que costuma causar.</b> Confusão entre potência de pico dos módulos em corrente contínua e potência instalada em corrente alternada é a causa mais comum e a mais fácil de verificar. Também aparece a soma de geração de mais de um arranjo quando só um foi orçado, e o uso de irradiação de outro município — em geral um município mais ensolarado da mesma região, o que torna o erro invisível para quem não consultou a base.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Some a potência dos módulos listados na proposta e compare com a potência declarada. Consulte a irradiação do município exato da instalação, não do município da sede da empresa nem da capital do estado. Esses dois cruzamentos, feitos em cinco minutos, resolvem a maior parte dos casos desta faixa.');
+      t.push('<b>O que ainda exige análise especializada.</b> Se a proposta insistir no número após a reconciliação, o desempate é o relatório de simulação assinado por profissional habilitado, com as premissas de perda explicitadas item a item. Sem esse documento não há como concluir, e o resultado correto da avaliação é a solicitação dele.');
+    } else if(dev>15){
+      cls='per';
+      t.push('<b>Desvio de '+fmt11(dev,1)+' por cento acima da referência.</b> Esta é a faixa de desvio material: grande o suficiente para mudar toda a conversa de resultado, pequeno o suficiente para passar despercebido em leitura rápida. É exatamente por caber dentro da margem em que uma estimativa otimista ainda parece razoável que este é o sinal de alerta mais frequente de todos.');
+      t.push('<b>O que costuma causar.</b> Empilhamento de premissas favoráveis, cada uma defensável isoladamente: irradiação do melhor mês tratada como média anual, desempenho global no teto da faixa técnica, ausência de perda por sujidade, disponibilidade de cem por cento. Nenhuma dessas escolhas é mentira, e a soma delas produz um número que o sistema não entrega.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Peça a decomposição da estimativa: irradiação adotada, plano de referência, desempenho global e a lista de perdas consideradas. Se a proposta apresentar geração anual sem essa decomposição, o pedido dela já é a verificação — e a recusa em fornecê-la é, ela própria, um achado.');
+      t.push('<b>O que ainda exige análise especializada.</b> Distinguir entre desvio de premissa e desvio de projeto exige o levantamento da cobertura ou do terreno. Um sistema bem projetado com premissa otimista e um sistema mal orientado com premissa correta produzem desvios parecidos na conferência de ordem de grandeza e problemas completamente diferentes na operação.');
+    } else if(dev>6){
+      cls='att';
+      t.push('<b>Desvio de '+fmt11(dev,1)+' por cento acima da referência.</b> Faixa de atenção, não de rejeição. Um sistema pode legitimamente superar a referência reconstruída aqui: orientação e inclinação otimizadas, módulos bifaciais sobre superfície refletiva, limpeza programada com frequência alta, ou simplesmente um desempenho global melhor que o adotado nesta conferência. O que a faixa exige é que a proposta declare qual dessas condições está assumindo.');
+      t.push('<b>O que costuma causar.</b> Na maior parte dos casos, um desempenho global adotado alguns pontos acima do usado aqui como referência de conferência — o que é legítimo se estiver declarado e justificado. Em minoria dos casos, o início de empilhamento de premissas favoráveis que ainda não chegou à faixa material.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Ajuste o desempenho global desta conferência para o valor que a proposta declara e observe se o desvio fecha. Se fechar, o desvio era de premissa declarada e a proposta é consistente consigo mesma. Se não fechar, a diferença está na irradiação ou na potência, e essas duas são verificáveis contra fonte externa.');
+      t.push('<b>O que ainda exige análise especializada.</b> A confirmação de ganho por bifacialidade, por rastreamento ou por orientação privilegiada depende de medição no local e de projeto executivo. Nada disso invalida a proposta nesta faixa; apenas transfere o ônus de declarar a condição para quem a está assumindo.');
+    } else if(dev>=-12){
+      cls='ok';
+      t.push('<b>Desvio de '+(dev>=0?'+':'')+fmt11(dev,1)+' por cento.</b> A geração declarada é compatível com a irradiação informada para a potência instalada proposta. Este é o resultado que a maior parte das propostas bem feitas produz, e reconhecê-lo com naturalidade é parte do critério de domínio: a conferência serve tanto para apontar problema quanto para liberar o Eixo 1 e permitir que a avaliação avance.');
+      t.push('<b>O que isso libera e o que não libera.</b> Libera a discussão de premissa financeira, que só é julgável depois que a premissa técnica que a sustenta foi confirmada. Não libera nada sobre degradação, sobre certificação do equipamento nem sobre o texto do contrato, que são verificações independentes desta.');
+      t.push('<b>O que o comprador ainda confirma sozinho.</b> Que a irradiação usada nesta conferência é a do município da instalação, e que a potência informada é a potência instalada em corrente alternada, que é a grandeza que decide a classificação de porte no Eixo 2. Compatibilidade calculada sobre a potência errada não é compatibilidade.');
+      t.push('<b>Redação recomendada do achado.</b> A estimativa de geração é compatível com a irradiação da localidade, verificada em base de dados nacional pública, para a potência declarada. Premissa do Eixo 1 confirmada na ordem de grandeza; segue para verificação de degradação.');
+    } else {
+      cls='att';
+      t.push('<b>Desvio de '+fmt11(dev,1)+' por cento abaixo da referência.</b> Declarar menos do que a irradiação sustenta não é problema comercial para o comprador, mas é sinal de que alguma coisa não foi dita. Uma estimativa conservadora deliberada é uma boa prática; uma estimativa deprimida por restrição física do local é uma informação que muda o dimensionamento e o preço justo do sistema.');
+      t.push('<b>O que costuma causar.</b> Sombreamento parcial conhecido pelo projetista e não declarado na proposta, orientação da cobertura distante do ideal, limitação de potência do inversor em relação à potência dos módulos, ou restrição de injeção acordada com a distribuidora. Também pode ser simples conservadorismo de quem prefere entregar acima do prometido.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Pergunte diretamente se há sombreamento, qual é a orientação e a inclinação previstas, e qual é a relação entre a potência dos módulos e a potência do inversor. Se a resposta for conservadorismo deliberado, peça que conste por escrito — porque a estimativa declarada é a base de qualquer garantia de performance que venha a ser negociada.');
+      t.push('<b>O que ainda exige análise especializada.</b> Quantificar perda por sombreamento exige levantamento no local com medição de horizonte. Nesta faixa, o achado correto não é um veredito sobre a proposta: é a pergunta que ainda não foi respondida.');
+    }
+     
+    VER = t.map(function(x){return '<p>'+x+'</p>';}).join('');
+  
+    void cls; // classe de estilo do original; sem efeito no dado
+    void VER;
+    return {
+      valores: { 'gv-ref': refMWh, 'gv-dev': dev, 'gv-prim': prImp },
+      veredito: VER,
+    };
+  },
   'm11-inst-01': (i) => {
     const lente = String(i['mp-lente'] ?? 'eixo');
     const item = M11_MAPA_ITENS.find((x) => x.k === String(i['mp-item'] ?? M11_MAPA_ITENS[0].k)) ?? M11_MAPA_ITENS[0];

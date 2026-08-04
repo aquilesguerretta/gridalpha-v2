@@ -209,6 +209,10 @@ function explorar07(chave: string, sel: unknown): string {
 // mesmo efeito (o painel esconde saídas vazias).
 import { M06_INST01_MARCOS } from './alexandria-modulo-06-content';
 import {
+  M07_INST01_ORGAOS,
+  M07_INST01_LEGENDAS,
+} from './alexandria-modulo-07-content';
+import {
   M08_INST04_REF,
   M08_INST04_TOL,
   M08_INST04_FONTES,
@@ -757,6 +761,30 @@ function m06i1M08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
     valores: {},
     veredito: `<b>${m.ano}</b> · ${m.titulo}<br><br>${m.corpo}<br><br><b>O que ficou</b> — ${m.legado}`,
   };
+}
+
+// ── Módulo 07 · INST 01 — Mapa institucional (LYCEUM Wave 38) ──
+//
+// PORTADO do bloco `INST 01 — MAPA INSTITUCIONAL`. Instrumento de
+// MÓDULO (§ MAP). A ficha do órgão vem do `panel(k,t,b,r,l)` da fonte:
+// kicker, título, corpo, linhas chave/valor e leitura.
+//
+// O fluxo NÃO altera a ficha — na fonte ele só redesenha o SVG e troca
+// a legenda. A legenda porta; o SVG não. Confirmado por leitura do
+// `show()`, que ignora `flow`.
+function m07i1M08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const idBruto = String(i['m07-i1-sel'] ?? 'cnpe');
+  const o = M07_INST01_ORGAOS.find((x) => x.id === idBruto) ?? M07_INST01_ORGAOS[0];
+  const flowBruto = String(i['m07-i1-flow'] ?? 'aut');
+  const flow = M07_INST01_LEGENDAS[flowBruto] ? flowBruto : 'aut';
+
+  const ficha = o.linhas.map(([k, v]) => `<b>${k}</b> — ${v}`).join('<br>');
+  const partes = [`<b>${o.kicker}</b>`, `<b>${o.titulo}</b>`];
+  if (o.corpo) partes.push(o.corpo);
+  if (ficha) partes.push(ficha);
+  if (o.leitura) partes.push(`<b>Leitura</b> — ${o.leitura}`);
+  partes.push(`<b>Fluxo em exibição</b> — ${M07_INST01_LEGENDAS[flow]}`);
+  return { valores: {}, veredito: partes.join('<br><br>') };
 }
 
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
@@ -2528,6 +2556,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── m08 INST 01 · mapa fisico · geracao x escoamento (modulo) ──
   // ── m06 INST 01 · linha do tempo · quatorze marcos (modulo) ──
   'm06-inst-01': m06i1M08,
+
+  // ── m07 INST 01 · mapa institucional · autoridade x dado (modulo) ──
+  'm07-inst-01': m07i1M08,
 
   'm08-inst-01': i1renderM08,
 

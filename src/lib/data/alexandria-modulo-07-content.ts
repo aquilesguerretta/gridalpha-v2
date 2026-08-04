@@ -298,6 +298,181 @@ export const INSTRUMENTOS_MODULO_07: Instrument[] = [
 ];
 
 
+
+// ── INST · 01 — Mapa institucional (LYCEUM Wave 38) ──────────
+// Vive no § MAP, FORA de qualquer aula. A Wave 30 registrou que ele
+// existia e nao entrava; a taxonomia da FOUNDRY Wave 4 o listou como
+// nunca materializado como dado. Materializado agora como Instrument
+// de MODULO, com destino em Recursos do Modulo.
+//
+// Oito orgaos na ordem da fonte (ORD), cada um com kicker, titulo,
+// corpo, seis linhas de ficha (cinco no ultimo) e leitura. Mais as
+// tres legendas de fluxo (autoridade / dado / os dois).
+//
+// O fluxo NAO altera a ficha do orgao na fonte — ele muda o desenho
+// do SVG e a legenda. O SVG nao porta; a legenda sim, e e por isso
+// que o eixo continua sendo um campo em vez de sumir.
+//
+// Gerado dos objetos N / ORD / INFO / LEGS do <script>.
+
+export const M07_INST01_ORGAOS: {
+  id: string; sigla: string; kicker: string; titulo: string; corpo: string;
+  linhas: [string, string][]; leitura: string;
+}[] = [
+  {
+    id: "cnpe", sigla: "CNPE",
+    kicker: "Assessoramento · política", titulo: "Conselho Nacional de Política Energética",
+    corpo: "Órgão de assessoramento da Presidência da República para a política energética, presidido pelo titular do ministério e composto por outros ministérios e por representantes indicados na norma de criação. Delibera por resolução; a resolução é homologada pela Presidência e publicada no diário oficial.",
+    linhas: [
+      ["Natureza", "Órgão colegiado de assessoramento da Presidência da República. <b>Não é agência, não é empresa, não é executor.</b>"],
+      ["Autoridade que exerce", "Fixa diretriz de política. Direciona a atuação do ministério e o desenho de programas e de certames — quase sempre por delegação a quem regulamenta."],
+      ["Autoridade que sofre", "Homologação presidencial; coordenação de governo; limites da lei."],
+      ["O que publica", "Resoluções e, quando disponibilizadas, atas e pautas."],
+      ["Defasagem típica", "A resolução aparece publicada depois da homologação. Pauta e data de reunião nem sempre são antecipadas."],
+      ["O que <b>não</b> faz", "Não regula, não fiscaliza, não outorga, não opera o sistema, não liquida contrato."],
+    ],
+    leitura: "A resolução do conselho é o ato de maior densidade política do setor e um dos menos autoexecutáveis. Ler uma resolução de conselho e concluir que \"a regra mudou\" é o erro clássico: na maioria dos casos ela determina que alguém <em>faça</em> a regra mudar, e o evento contratável só aparece meses depois, no ato regulatório.",
+  },
+  {
+    id: "mme", sigla: "MME",
+    kicker: "Política · poder concedente", titulo: "Ministério de Minas e Energia",
+    corpo: "Órgão da administração direta federal. Formula e implementa a política energética, exerce o poder concedente do setor elétrico — diretamente ou por delegação à agência —, expede portarias, define diretrizes de certame, supervisiona a empresa de planejamento, preside o conselho de política e preside o comitê de monitoramento, cuja secretaria-executiva é exercida pela secretaria de energia elétrica.",
+    linhas: [
+      ["Natureza", "Administração direta. Titular nomeado pela Presidência, sem mandato fixo."],
+      ["Autoridade que exerce", "Política setorial, diretrizes de leilão, portarias, supervisão da empresa de planejamento, condução do comitê de monitoramento."],
+      ["Autoridade que sofre", "Presidência, coordenação de governo, áreas econômica e ambiental, controle externo e judicial."],
+      ["O que publica", "Portarias e portarias normativas, boletins de monitoramento, notas técnicas, consultas públicas de política."],
+      ["Estrutura interna", "Duas secretarias nacionais concentram hoje transição energética e planejamento, de um lado, e energia elétrica, de outro — verificado em fonte oficial em <b>julho de 2026</b>. Nome e recorte de secretaria mudam por decreto: é número vivo."],
+      ["O que <b>não</b> faz", "Não homologa tarifa, não fiscaliza agente, não despacha usina, não contabiliza nem liquida contrato."],
+    ],
+    leitura: "Formalmente o conselho está acima; operacionalmente o ministério é quem move a máquina — prepara os estudos, redige as minutas, coordena os órgãos setoriais e conduz a implementação. É por isso que o ministério manda mais do que o organograma sugere.",
+  },
+  {
+    id: "anl", sigla: "ANEEL",
+    kicker: "Regulação · fiscalização", titulo: "Agência Nacional de Energia Elétrica",
+    corpo: "Autarquia em regime especial vinculada ao ministério, com autonomia decisória, mandatos fixos e decisão colegiada. Regula e fiscaliza a produção, a transmissão, a distribuição e a comercialização; outorga concessões, permissões e autorizações por delegação do poder concedente; homologa tarifas; aprova as regras técnicas propostas pelo operador e as regras comerciais aplicadas pela câmara; e julga em primeira instância administrativa.",
+    linhas: [
+      ["Natureza", "Autarquia especial. Diretoria colegiada com mandatos não coincidentes; decisão por voto em reunião pública."],
+      ["Autoridade que exerce", "Produz obrigação direta e oponível ao agente. Regula, outorga, homologa tarifa, fiscaliza, sanciona e decide recurso administrativo."],
+      ["Autoridade que sofre", "Lei, controle judicial, controle externo. Não recebe ordem de mérito técnico do ministério — vinculação não é subordinação."],
+      ["O que publica", "Resoluções normativas, homologatórias e autorizativas; despachos; tarifas homologadas; cadastro de geração; processos de consulta e audiência pública; módulos de procedimentos de regulação tarifária e de distribuição."],
+      ["Estrutura interna", "A organização por superintendências foi reorganizada por resolução normativa de <b>abril de 2023</b>, com efeitos em maio de 2023, agrupando as áreas por eixo — regulação econômica, relações com a sociedade, outorgas, fiscalização, regulação técnica e gestão. Lista de sigla de superintendência é número vivo."],
+      ["O que <b>não</b> faz", "Não opera o sistema, não calcula o preço de curto prazo, não define política energética."],
+    ],
+    leitura: "É a única instituição do setor que produz obrigação diretamente oponível ao agente <em>e</em> a única cujo processo tem janela formal de participação antes da decisão. As duas coisas andam juntas: onde há poder de obrigar, há dever de motivar e de ouvir. Quem descobre a norma pela conta de luz perdeu a janela em que ela era alterável.",
+  },
+  {
+    id: "epe", sigla: "EPE",
+    kicker: "Planejamento indicativo", titulo: "Empresa de Pesquisa Energética",
+    corpo: "Empresa pública federal vinculada ao ministério, criada para prestar serviços de estudos e pesquisa que subsidiam o planejamento do setor energético. Produz o plano decenal, o balanço energético anual, os estudos de longo prazo, notas técnicas de premissas e o cadastramento e a habilitação técnica de empreendimentos para certames.",
+    linhas: [
+      ["Natureza", "Empresa pública vinculada ao ministério. Escopo definido por demanda ministerial."],
+      ["Autoridade que exerce", "<b>Nenhuma sobre agente.</b> Este é o ponto pedagógico do nó: no fluxo de autoridade a empresa de planejamento é folha, e no fluxo de dado é uma das fontes mais citadas do setor."],
+      ["Autoridade que sofre", "Supervisão ministerial; escopo e prazos definidos por quem demanda o estudo."],
+      ["O que publica", "Plano decenal de expansão, balanço energético nacional, plano nacional de longo prazo, notas técnicas, estudos de inventário e viabilidade, resultados de cadastramento para certame."],
+      ["Defasagem típica", "Balanço anual com ano-base anterior. Plano decenal com ciclo anual e consulta pública prévia. Cada caderno tem a própria data de corte — e elas não coincidem."],
+      ["O que <b>não</b> faz", "Não decide, não regula, não fiscaliza, não outorga, não constrói nada."],
+    ],
+    leitura: "Indicativo não é determinativo. O plano decenal não obriga ninguém a construir nada — e mesmo assim é o documento que mais move expectativa no setor, porque sinaliza para onde a política aponta. Confundir sinalização com compromisso é o erro que transforma um plano em previsão.",
+  },
+  {
+    id: "ons", sigla: "ONS",
+    kicker: "Operação do sistema", titulo: "Operador Nacional do Sistema Elétrico",
+    corpo: "Pessoa jurídica de direito privado, associação civil sem fins lucrativos, criada em 1998 e reformulada em 2004, que coordena e controla a operação das instalações de geração e transmissão do sistema interligado sob autorização e fiscalização da agência. Composto por agentes associados, agentes participantes, representação do ministério e conselhos de consumidores.",
+    linhas: [
+      ["Natureza", "Direito privado, sem fins lucrativos. Não é autarquia e não é empresa estatal — e ainda assim sua instrução operativa vincula o agente."],
+      ["Autoridade que exerce", "Autoridade estreita e profunda: coordena e controla a operação, programa e determina o despacho, opera o sistema em tempo real e propõe os procedimentos de rede."],
+      ["Autoridade que sofre", "A agência aprova seus procedimentos e o fiscaliza. O comitê de monitoramento acompanha o suprimento."],
+      ["O que publica", "Programa mensal da operação e suas revisões, programação diária, boletins de carga e de geração, intercâmbios, armazenamento de reservatórios, séries históricas, dados abertos."],
+      ["Defasagem típica", "De intradiária a diária no dado operativo; consolidações mensais nos boletins. É a fonte mais rápida do setor."],
+      ["O que <b>não</b> faz", "Não regula, não fiscaliza agente, não calcula o preço de liquidação, não compra nem vende energia."],
+    ],
+    leitura: "Não regula nada e manda ligar e desligar usina. É o contraexemplo mais eficiente contra a leitura hierárquica ingênua do setor: autoridade aqui não vem de posição no organograma, vem de competência funcional atribuída em lei e detalhada em procedimento aprovado pelo regulador.",
+  },
+  {
+    id: "ccee", sigla: "CCEE",
+    kicker: "Contabilização · liquidação", titulo: "Câmara de Comercialização de Energia Elétrica",
+    corpo: "Pessoa jurídica de direito privado sem fins lucrativos, sob autorização e fiscalização da agência, que viabiliza a comercialização de energia elétrica no sistema interligado. Registra agentes, ativos e contratos; recebe a medição; aplica as regras e procedimentos de comercialização; apura e divulga o preço de curto prazo conforme a metodologia aprovada; contabiliza, exige garantia financeira e liquida.",
+    linhas: [
+      ["Natureza", "Direito privado, sem fins lucrativos. Estatuto social homologado pela agência — o estatuto vigente foi homologado em <b>janeiro de 2026</b>, com separação entre conselho de administração e diretoria executiva."],
+      ["Autoridade que exerce", "Obrigação comercial sobre o agente: registro, aporte de garantia, contabilização e liquidação. Quem não aporta não liquida."],
+      ["Autoridade que sofre", "A agência aprova as regras e os procedimentos de comercialização, homologa o estatuto e fiscaliza."],
+      ["O que publica", "Preço de curto prazo, resultados de contabilização e liquidação, séries de mercado, dados de migração para o ambiente livre, boletins."],
+      ["Defasagem típica", "Preço em cadência curta; contabilização e liquidação em ciclo mensal fechado, com calendário de operações publicado."],
+      ["O que <b>não</b> faz", "Não despacha usina, não regula, não outorga, não fiscaliza agente no sentido sancionador."],
+    ],
+    leitura: "É o nó em que os dois mapas mais divergem. No fluxo de autoridade, a câmara é ponta de linha — recebe regra de cima e aplica. No fluxo de dado, é uma das duas maiores fontes do setor. Um analista que ordena as instituições por importância usando o organograma vai subestimar exatamente a instituição que mais alimenta a própria análise.",
+  },
+  {
+    id: "cmse", sigla: "CMSE",
+    kicker: "Monitoramento · recomendação", titulo: "Comitê de Monitoramento do Setor Elétrico",
+    corpo: "Comitê criado por lei em 2004 e regulamentado por decreto no mesmo ano, no âmbito do ministério e sob a presidência do titular da pasta, com secretaria-executiva exercida pela secretaria de energia elétrica. Reúne representantes do ministério e os titulares da agência de energia elétrica, da agência de petróleo, da câmara de comercialização, da empresa de planejamento e do operador. Reúne-se ordinariamente uma vez por mês.",
+    linhas: [
+      ["Natureza", "Comitê interinstitucional de acompanhamento. Não tem personalidade jurídica própria nem poder normativo."],
+      ["Autoridade que exerce", "<b>Recomenda.</b> Acompanha e avalia permanentemente a continuidade e a segurança do suprimento e propõe ações preventivas ou saneadoras."],
+      ["Autoridade que sofre", "Opera sob a presidência do ministério; a execução das recomendações depende de quem tem competência para agir."],
+      ["O que publica", "Comunicado ou ata resumida após a reunião ordinária mensal."],
+      ["Defasagem típica", "Publicação após a reunião. A cadência mensal é o que torna o documento útil como série temporal de tom."],
+      ["O que <b>não</b> faz", "Não emite ato normativo, não fiscaliza, não despacha, não contrata."],
+    ],
+    leitura: "Não manda em ninguém e é o melhor termômetro público de tensão de suprimento que existe no setor. Ler três comunicados seguidos e comparar o vocabulário — o que entrou, o que saiu, o que ganhou parágrafo próprio — antecipa movimento melhor do que qualquer manchete.",
+  },
+  {
+    id: "ag", sigla: "Agentes e mercado",
+    kicker: "Regulado · fonte de dado", titulo: "Agentes e mercado",
+    corpo: "Geradores, transmissoras, distribuidoras, comercializadoras, consumidores livres e especiais e autoprodutores. É o nó em que toda a arquitetura desemboca — e o único que aparece nas duas pontas dos dois mapas.",
+    linhas: [
+      ["Natureza", "Pessoas jurídicas de direito privado ou público, sujeitas a outorga, registro e regras setoriais conforme a atividade."],
+      ["Autoridade que exerce", "Nenhuma autoridade institucional. Mas participa formalmente: consulta e audiência pública, associações setoriais, conselhos de consumidores, e contribuição técnica documentada que o regulador precisa responder de forma fundamentada."],
+      ["Autoridade que sofre", "Obrigação regulatória da agência, instrução operativa do operador e obrigação comercial da câmara — três fontes distintas, com ritos e prazos distintos."],
+      ["O que informa", "Medição, registro de contratos, declarações e informações regulatórias obrigatórias; dados de ativos ao operador. <b>O agente também é fonte.</b>"],
+      ["O que <b>não</b> faz", "Não escolhe qual regra cumprir, não negocia despacho e não interpreta a própria contabilização com efeito vinculante."],
+    ],
+    leitura: "A seta de volta é a parte esquecida do mapa. Quem só desenha as flechas descendo do topo subestima duas coisas ao mesmo tempo: o custo regulatório de operar no setor e a quantidade de dado público que existe justamente porque alguém foi obrigado a informar.",
+  },
+];
+
+export const M07_INST01_LEGENDAS: Record<string, string> = {
+  aut: "Fluxo de autoridade — quem obriga, homologa, aprova ou fiscaliza quem",
+  dad: "Fluxo de dado — quem publica ou informa o quê, e para quem",
+  amb: "AutoridadeDadoRótulos ocultos no modo combinado — selecione um fluxo para lê-los",
+};
+
+/** Instrumento de MÓDULO: o Inst · 01 do § MAP. Não entra em
+ *  `instruments` de nenhuma aula. */
+export const MODULO_07_INSTRUMENTOS: Instrument[] = [
+  {
+    id: 'm07-inst-01',
+    kind: 'explorador',
+    title: 'Mapa institucional · autoridade × dado',
+    formula: null,
+    fields: [
+      {
+        id: 'm07-i1-flow',
+        label: 'Fluxo exibido',
+        unit: null,
+        kind: 'select',
+        defaultValue: 'aut',
+        options: [
+          { value: 'aut', label: 'Autoridade' },
+          { value: 'dad', label: 'Dado' },
+          { value: 'amb', label: 'Os dois' },
+        ],
+      },
+      {
+        id: 'm07-i1-sel',
+        label: 'Órgão',
+        unit: null,
+        kind: 'select',
+        defaultValue: 'cnpe',
+        options: M07_INST01_ORGAOS.map((o) => ({ value: o.id, label: o.sigla })),
+      },
+    ],
+    outputs: [],
+    note: 'Os oito órgãos que governam o setor, lidos em dois fluxos que não coincidem: quem manda em quem, e quem publica o quê. Escolha o órgão para abrir a ficha — natureza, autoridade que exerce, autoridade que sofre e o que publica.',
+  },
+];
+
 export const MODULO_07_LEAD: Record<string, string> = {
   'aula-07-01': "Política escolhe direção. Regulação transforma direção em regra aplicável. São camadas diferentes, com instrumentos diferentes, prazos diferentes e efeitos diferentes — e confundir as duas é a origem de metade dos erros de leitura do setor.",
   'aula-07-02': "Duas palavras que parecem detalhe de vocabulário e que definem a instituição inteira. Um plano indicativo aponta necessidade e alternativa; ele não autoriza, não obriga e não contrata. Quem lê o plano decenal como lista de obras aprovadas está a um passo de errar uma decisão de investimento.",

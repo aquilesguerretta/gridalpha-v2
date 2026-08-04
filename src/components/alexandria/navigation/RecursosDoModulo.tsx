@@ -38,7 +38,10 @@ import {
   MODULO_06_EXERCICIOS_SOLTOS,
   MODULO_06_INSTRUMENTOS,
 } from '@/lib/data/alexandria-modulo-06-content';
-import { MODULO_07_EXERCICIOS_SOLTOS } from '@/lib/data/alexandria-modulo-07-content';
+import {
+  MODULO_07_EXERCICIOS_SOLTOS,
+  MODULO_07_INSTRUMENTOS,
+} from '@/lib/data/alexandria-modulo-07-content';
 import {
   MODULO_08_EXERCICIOS_SOLTOS,
   MODULO_08_INSTRUMENTOS,
@@ -64,7 +67,7 @@ const RECURSOS: Record<string, Recursos> = {
   'modulo-04': { exercicios: MODULO_04_EXERCICIOS_SOLTOS, instrumentos: [] },
   'modulo-05': { exercicios: MODULO_05_EXERCICIOS_SOLTOS, instrumentos: [] },
   'modulo-06': { exercicios: MODULO_06_EXERCICIOS_SOLTOS, instrumentos: MODULO_06_INSTRUMENTOS },
-  'modulo-07': { exercicios: MODULO_07_EXERCICIOS_SOLTOS, instrumentos: [] },
+  'modulo-07': { exercicios: MODULO_07_EXERCICIOS_SOLTOS, instrumentos: MODULO_07_INSTRUMENTOS },
   'modulo-08': { exercicios: MODULO_08_EXERCICIOS_SOLTOS, instrumentos: MODULO_08_INSTRUMENTOS },
   'modulo-09': { exercicios: MODULO_09_EXERCICIOS_SOLTOS, instrumentos: [] },
 };

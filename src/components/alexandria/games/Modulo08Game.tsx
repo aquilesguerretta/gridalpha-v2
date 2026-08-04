@@ -59,6 +59,9 @@ const CRITICAL_LABELS: Record<CriticalErrorCode, string> = {
   'universos-incompativeis': 'Universos incompatíveis foram comparados sem normalização.',
 };
 
+const LOCAL_EVIDENCE_NOTICE =
+  'Sua evidência de desempenho fica só neste navegador — não sincroniza com sua conta nem com outros aparelhos.';
+
 const buttonBase = {
   ...AT.rotulo,
   borderRadius: AR.none,
@@ -161,7 +164,7 @@ export function Modulo08Game({ onBack }: Modulo08GameProps) {
       setDebrief(result);
       try {
         persistGameEvidence(result.evidence);
-        setMessage('Evidência de desempenho registrada localmente. Nenhum estado de domínio foi promovido.');
+        setMessage(LOCAL_EVIDENCE_NOTICE);
       } catch {
         setMessage('Debriefing concluído, mas o navegador não permitiu salvar a evidência local.');
       }
@@ -213,6 +216,16 @@ export function Modulo08Game({ onBack }: Modulo08GameProps) {
             <h2 id="lens-title" style={{ ...AT.h2, margin: `${AS.sm} 0`, color: A.tintaSobreCreme }}>Escolha a lente</h2>
             <p style={{ ...AT.corpo, margin: 0, color: A.tintaSuave }}>A competência é a mesma. Quantidade de evidência, assistência e exigência da nota mudam.</p>
           </div>
+          <aside
+            role="note"
+            aria-label="Persistência local da evidência"
+            style={{ padding: AS.lg, borderLeft: `3px solid ${A.terracota}`, background: A2.cremeSuperficie }}
+          >
+            <span style={{ ...AT.rotulo, color: A.terracota }}>Antes de começar</span>
+            <p style={{ ...AT.corpo, fontSize: '14px', margin: `${AS.sm} 0 0`, color: A.tintaSobreCreme }}>
+              {LOCAL_EVIDENCE_NOTICE}
+            </p>
+          </aside>
           <div className="m8-lens-grid">
             {(Object.keys(LENS_COPY) as GameLens[]).map((option) => {
               const selected = lens === option;
@@ -393,6 +406,9 @@ function Debriefing({ debrief, documents, onReplay }: { debrief: GameDebrief; do
             <span style={{ ...AT.rotulo, color: A.oliva }}>Evidência emitida</span>
             <p style={{ ...AT.dado, margin: `${AS.sm} 0`, color: A.tintaSobreCreme }}>{debrief.evidence.documentCount} documentos · {debrief.evidence.correctlyClassifiedDocuments} classificações integrais · {debrief.evidence.assistanceCount} assistências.</p>
             <p style={{ ...AT.corpo, fontSize: '14px', margin: 0, color: A.tintaSuave }}>Tipo: desempenho. Retenção observada: não. Promoção de domínio: nenhuma.</p>
+            <p style={{ ...AT.corpo, fontSize: '14px', margin: `${AS.md} 0 0`, paddingTop: AS.md, borderTop: `1px solid ${A.fioSobreCreme}`, color: A.tintaSobreCreme }}>
+              {LOCAL_EVIDENCE_NOTICE}
+            </p>
           </section>
         </div>
         <section style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: AS.md }}>

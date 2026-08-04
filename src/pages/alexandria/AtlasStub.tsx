@@ -24,6 +24,11 @@ import { carregarMundo, nomePaisPt, type MundoAtlas } from '@/lib/atlas/worldApi
 import type { FiltroFonte, ModoCor } from '@/lib/atlas/atlasDerivacoes';
 import { AtlasControles } from '@/components/alexandria/atlas/AtlasControles';
 import { ComparadorPaises } from '@/components/alexandria/atlas/ComparadorPaises';
+import {
+  CONTEXTO_SUBMERCADO,
+  COR_SUBMERCADO,
+  useSubmercados,
+} from '@/components/alexandria/atlas/CamadaBrasil';
 
 const AtlasGlobo = lazy(() => import('@/components/alexandria/atlas/AtlasGlobo'));
 
@@ -98,6 +103,12 @@ export function AtlasStub() {
   // lista curta a partir dele, sem inventar segundo mecanismo.
   const [selecionado, setSelecionado] = useState<string | null>(null);
   const [comparados, setComparados] = useState<string[]>([]);
+  // ── Camada Brasil (Wave 36) ──────────────────────────────────────
+  // Abre quando o voo até o Brasil pousa — dentro do movimento que já
+  // existe, não numa navegação nova.
+  const [camadaBrasil, setCamadaBrasil] = useState(false);
+  const [submercadoAberto, setSubmercadoAberto] = useState<string | null>(null);
+  const submercados = useSubmercados(camadaBrasil);
 
   /** Nome em pt-BR pelo ISO — mesma função do tooltip e do perfil,
    *  para o comparador não dizer "United States" ao lado de um
@@ -318,7 +329,13 @@ export function AtlasStub() {
                 modoCor={modoCor}
                 filtro={filtro}
                 pedidoDeVoo={pedidoDeVoo}
-                aoSelecionarPais={setSelecionado}
+                aoSelecionarPais={(iso) => {
+                  setSelecionado(iso);
+                  // o voo até o Brasil continua: revela os submercados
+                  if (iso === 'BRA') setCamadaBrasil(true);
+                }}
+                submercados={camadaBrasil ? submercados : null}
+                aoSelecionarSubmercado={setSubmercadoAberto}
                 aoEntrarImersivo={entrarImersivo}
                 aoSairImersivo={sairImersivo}
               />
@@ -415,7 +432,7 @@ export function AtlasStub() {
             inverso do desejado e a origem do defeito consertado na
             Fase 2 (invisível porém alcançável). Agora ele é montado e
             desmontado de verdade: nada de controle fantasma. */}
-        {imersivo && (
+        {imersivo && !camadaBrasil && (
           <div
             ref={painelRef}
             style={{
@@ -527,6 +544,145 @@ export function AtlasStub() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Camada Brasil: os quatro submercados do SIN (Wave 36) ──
+            Ocupa o lugar do painel analítico porque é uma sub-superfície
+            do mesmo instrumento, não um segundo painel disputando a
+            tela. Geometria REAL (GeoJSON do ARCHITECT); contexto
+            LITERAL da tabela do Módulo 08; nenhum número por
+            submercado, porque nenhum existe. */}
+        {imersivo && camadaBrasil && (
+          <div
+            style={{
+              position: 'absolute',
+              left: AS.md,
+              top: '64px',
+              bottom: AS.md,
+              width: '268px',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: AS.md,
+              background: A2.cremeSuperficie,
+              border: `1px solid ${A.fioSobreCreme}`,
+              padding: AS.md,
+              pointerEvents: 'auto',
+              opacity: painelVisivel ? 1 : 0,
+              transition: `opacity ${AE.estado} ${AE.easing}`,
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: AS.xs }}>
+              <span style={{ ...AT.rotulo, fontSize: '8px', letterSpacing: '0.13em', color: A.terracota }}>
+                Brasil · Sistema Interligado Nacional
+              </span>
+              <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.5, color: A.tintaSuave }}>
+                Quatro submercados. Clique em cada um no globo ou na
+                lista para ler o que caracteriza a região.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {['sudesteCentroOeste', 'sul', 'nordeste', 'norte'].map((id) => {
+                const f = submercados?.find((x) => x.properties.id === id);
+                const ctx = CONTEXTO_SUBMERCADO[id];
+                const aberto = submercadoAberto === id;
+                return (
+                  <div key={id}>
+                    <button
+                      type="button"
+                      onClick={() => setSubmercadoAberto(aberto ? null : id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: AS.sm,
+                        width: '100%',
+                        padding: `${AS.xs} 0`,
+                        background: 'none',
+                        border: 'none',
+                        borderBottom: aberto ? `1px solid ${A.terracota}` : `1px solid ${A2.fioClaroSobreCreme}`,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      aria-expanded={aberto}
+                    >
+                      <span
+                        aria-hidden="true"
+                        style={{ width: '10px', height: '10px', background: COR_SUBMERCADO[id], flex: 'none' }}
+                      />
+                      <span style={{ ...AT.dado, fontSize: '12px', flex: 1, color: A.tintaSobreCreme }}>
+                        {f?.properties.nome ?? id}
+                      </span>
+                      <span style={{ ...AT.rotulo, fontSize: '8px', color: A2.tintaMetadado }}>
+                        {f?.properties.sigla ?? ''}
+                      </span>
+                    </button>
+                    {aberto && ctx && (
+                      <div style={{ padding: `${AS.sm} 0 ${AS.md} ${AS.md}`, display: 'flex', flexDirection: 'column', gap: AS.sm }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ ...AT.rotulo, fontSize: '8px', color: A2.tintaMetadado }}>Característica</span>
+                          <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.5, color: A.tintaSobreCreme }}>
+                            {ctx.caracteristica}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ ...AT.rotulo, fontSize: '8px', color: A2.tintaMetadado }}>Papel no sistema</span>
+                          <span style={{ ...AT.dado, fontSize: '11px', lineHeight: 1.5, color: A.tintaSobreCreme }}>
+                            {ctx.papel}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Roraima: no contorno, sem submercado. Declarado, não
+                escondido — o `ufsIbge` do GeoJSON confirma a ausência. */}
+            <span style={{ ...AT.dado, fontSize: '10px', lineHeight: 1.5, color: A2.tintaMetadado }}>
+              Roraima aparece no contorno e não recebe submercado: a
+              definição CCEE documentada não a atribui a nenhum dos
+              quatro.
+            </span>
+
+            {/* A pendência nomeada, não escondida. */}
+            <div
+              style={{
+                border: `1px dashed ${A.terracota}`,
+                padding: `${AS.xs} ${AS.sm}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '2px',
+              }}
+            >
+              <span style={{ ...AT.rotulo, fontSize: '8px', color: A.terracota }}>Sem dado por submercado</span>
+              <span style={{ ...AT.dado, fontSize: '10px', lineHeight: 1.5, color: A.tintaSuave }}>
+                Não há matriz, preço ou intercâmbio por submercado nesta
+                camada — a fonte atual traz esses números só em nível
+                nacional. Geometria e contexto são reais; nenhum
+                percentual foi estimado.
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { setCamadaBrasil(false); setSubmercadoAberto(null); }}
+              style={{
+                alignSelf: 'flex-start',
+                background: 'none',
+                border: `1px solid ${A.fioSobreCreme}`,
+                borderRadius: 0,
+                padding: `${AS.xs} ${AS.md}`,
+                cursor: 'pointer',
+                ...AT.rotulo,
+                fontSize: '9px',
+                color: A.tintaSobreCreme,
+              }}
+            >
+              ← Voltar ao globo mundial
+            </button>
           </div>
         )}
 

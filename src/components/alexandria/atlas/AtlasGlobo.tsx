@@ -26,6 +26,7 @@ import {
   nomePaisPt,
   type MundoAtlas,
   type PaisFeature,
+  type PaisFeatureProps,
   type PaisResumo,
 } from '../../../lib/atlas/worldApi';
 import {
@@ -34,6 +35,11 @@ import {
   type FiltroFonte,
   type ModoCor,
 } from '../../../lib/atlas/atlasDerivacoes';
+import {
+  COR_SUBMERCADO,
+  type FeatureSubmercado,
+  type PropsSubmercado,
+} from './CamadaBrasil';
 import { PaisTooltip, type AlvoTooltip } from './PaisTooltip';
 import { PaisPerfil } from './PaisPerfil';
 import { BuscaPais } from './BuscaPais';
@@ -283,8 +289,17 @@ interface AnimHover {
   t0: number;
 }
 
-function chaveFeature(f: PaisFeature): string {
-  return f.properties.a3 ?? f.properties.name;
+/** Chave estável do polígono para o fade de hover. Tolera as duas
+ *  formas que convivem no mesmo array: país (a3/name) e submercado
+ *  do SIN (id), que a camada Brasil acrescenta na Wave 36. */
+function chaveFeature(f: PaisFeature | FeatureSubmercado): string {
+  const p = f.properties as Partial<PaisFeatureProps> & Partial<PropsSubmercado>;
+  return p.a3 ?? p.id ?? p.name ?? '—';
+}
+
+/** O polígono é um submercado do SIN, e não um país? */
+function ehSubmercado(f: unknown): f is FeatureSubmercado {
+  return (f as FeatureSubmercado)?.properties?.ehSubmercado === true;
 }
 
 export interface AtlasGloboProps {
@@ -315,6 +330,11 @@ export interface AtlasGloboProps {
    *  Reusa `voarAtePais` — o mesmo movimento do clique e da busca,
    *  nunca um segundo mecanismo de seleção. */
   pedidoDeVoo?: { iso: string; nonce: number } | null;
+  /** Camada Brasil (Wave 36): os quatro submercados do SIN, com a
+   *  geometria REAL do ARCHITECT. Entram no MESMO array de polígonos,
+   *  numa altitude acima dos países — o globo continua sendo um só. */
+  submercados?: FeatureSubmercado[] | null;
+  aoSelecionarSubmercado?: (id: string | null) => void;
   /** Avisa quem está de fora qual país foi selecionado — pelo clique
    *  no globo, pela busca ou pelo pedido acima. É como o comparador
    *  recebe seleção sem duplicar a mecânica. */
@@ -333,6 +353,8 @@ export function AtlasGlobo({
   modoCor = 'nenhum',
   filtro = null,
   pedidoDeVoo = null,
+  submercados = null,
+  aoSelecionarSubmercado,
   aoSelecionarPais,
   aoEntrarImersivo,
   aoSairImersivo,
@@ -364,6 +386,8 @@ export function AtlasGlobo({
   const aoVoltarRef = useRef<(() => void) | null>(null);
   const selecionarRef = useRef(aoSelecionarPais);
   selecionarRef.current = aoSelecionarPais;
+  const selecionarSubmercadoRef = useRef(aoSelecionarSubmercado);
+  selecionarSubmercadoRef.current = aoSelecionarSubmercado;
   const entrarImersivoRef = useRef(aoEntrarImersivo);
   entrarImersivoRef.current = aoEntrarImersivo;
   const sairImersivoRef = useRef(aoSairImersivo);
@@ -487,6 +511,12 @@ export function AtlasGlobo({
   // Clique (ou busca): no modo página, primeiro ABRE o imersivo — o
   // voo fica pendente e dispara quando o palco expandido assenta.
   const aoClicar = useCallback((poligono: object) => {
+    // Camada Brasil: clicar num submercado abre o contexto dele — não
+    // voa (já estamos sobre o Brasil) e não abre perfil de país.
+    if (ehSubmercado(poligono)) {
+      selecionarSubmercadoRef.current?.((poligono as FeatureSubmercado).properties.id);
+      return;
+    }
     const f = poligono as PaisFeature;
     if (!mundo || voandoRef.current) return;
     if (!imersivoRef.current) {
@@ -736,6 +766,16 @@ export function AtlasGlobo({
   const corTopo = (obj: object): string => {
     const f = obj as PaisFeature;
     const o = opacidadesRef.current.get(chaveFeature(f)) ?? 0;
+
+    // Submercado do SIN (camada Brasil): identidade de região, não
+    // métrica — não temos dado por submercado, e a cor aqui não finge
+    // codificar nenhum. Coloração e filtro do mundo não se aplicam.
+    if (ehSubmercado(obj)) {
+      const id = (obj as FeatureSubmercado).properties.id;
+      const base = COR_SUBMERCADO[id] ?? 'rgba(242, 233, 214, 0.10)';
+      return o > 0.004 ? base.replace(/[\d.]+\)$/, '0.78)') : base;
+    }
+
     if (o > 0.004) return `rgba(168, 70, 42, ${(o * OPACIDADE_HOVER).toFixed(3)})`;
 
     const a3 = f.properties.a3;
@@ -749,11 +789,39 @@ export function AtlasGlobo({
   // Contorno: ouro-sépia sobre navy (A2.ouroSobreNavy) — decidido
   // olhando renderizado contra a alternativa creme; ver relatório da
   // wave. Traço fino, mesma família do fio duplo do frontispício.
-  const corContorno = useCallback(() => A2.ouroSobreNavy, []);
+  const corContorno = useCallback(
+    (obj: object) => (ehSubmercado(obj) ? A.cremePapel : A2.ouroSobreNavy),
+    [],
+  );
   const corLateral = useCallback(() => 'rgba(0, 0, 0, 0)', []);
-  // Grade: o mesmo ouro do contorno, a 16% — presente para dar
-  // estrutura ao mar, longe de disputar com a fronteira.
-  const corGrade = useCallback(() => 'rgba(203, 170, 110, 0.16)', []);
+  // Dois usos do mesmo mecanismo de caminho: a grade de coordenadas
+  // (id null) no ouro do contorno a 16%, presente para dar estrutura ao
+  // mar sem disputar com a fronteira; e a fronteira de submercado (id
+  // preenchido) na cor OPACA da região — fat line com espessura não
+  // aceita canal alfa, medido.
+  const corGrade = useCallback(
+    (obj: object) => {
+      const id = (obj as { id: string | null }).id;
+      return id ? (COR_SUBMERCADO[id] ?? A2.ouroSobreNavy) : 'rgba(203, 170, 110, 0.16)';
+    },
+    [],
+  );
+  const pontosDoCaminho = useCallback(
+    (obj: object) => (obj as { pontos: Array<[number, number]> }).pontos,
+    [],
+  );
+  // fronteira de submercado sobe acima do polígono do país e ganha
+  // espessura angular; a grade continua rente à superfície, hairline.
+  // 1,2 é o piso medido em que a fronteira de submercado deixa de ler
+  // como mais um contorno de país e passa a ler como camada própria.
+  const altitudeCaminho = useCallback(
+    (obj: object) => ((obj as { id: string | null }).id ? 0.02 : 0.002),
+    [],
+  );
+  const espessuraCaminho = useCallback(
+    (obj: object) => ((obj as { id: string | null }).id ? 1.2 : null),
+    [],
+  );
 
   // Piso, pouso e listener acompanham resize (inclusive zoom do
   // browser) E qualquer init tardio do three-render-objects que recrie
@@ -766,9 +834,57 @@ export function AtlasGlobo({
     return () => timers.forEach(clearTimeout);
   }, [mundo, comp, configurarCamera]);
 
+  // ── polígonos do globo: países + (quando a camada Brasil está
+  //    aberta) os quatro submercados do SIN, no MESMO array. O globo
+  //    continua sendo um só; o que muda é a altitude, que põe o
+  //    submercado acima do país que ele recorta. ────────────────────
+  // ── Submercados: CONTORNO, não preenchimento ────────────────────
+  // Medido: o three-globe não tritura bem estes polígonos (342–718
+  // vértices, multipart com furos, ~40° de extensão). Com o cap ligado
+  // saía malha de blocos em resolução 5°, fecho convexo em 90° e casca
+  // oca em 2° — o STROKE, porém, saía perfeito em todos. Três valores
+  // testados, três resultados errados, sempre no preenchimento.
+  //
+  // Então os submercados entram como PATHS, o mesmo mecanismo que
+  // desenha a grade de coordenadas e que já é confiável aqui. Não é
+  // recuo: um atlas gravado delimita região por fio, não por chapado —
+  // e é o único jeito de manter a geometria REAL sem simplificar
+  // vértice (o que seria aproximar, que o brief proíbe).
+  const linhasSubmercado = useMemo(() => {
+    if (!submercados || submercados.length === 0) return [];
+    const linhas: Array<{ id: string; pontos: Array<[number, number]> }> = [];
+    for (const f of submercados) {
+      const g = f.geometry as
+        | { type: 'Polygon'; coordinates: number[][][] }
+        | { type: 'MultiPolygon'; coordinates: number[][][][] };
+      const partes = g.type === 'Polygon' ? [g.coordinates] : g.coordinates;
+      for (const parte of partes) {
+        for (const anel of parte) {
+          linhas.push({
+            id: f.properties.id,
+            // GeoJSON é [lng, lat]; pathPoints quer [lat, lng]
+            pontos: anel.map(([lng, lat]) => [lat, lng] as [number, number]),
+          });
+        }
+      }
+    }
+    return linhas;
+  }, [submercados]);
+
+  const caminhos = useMemo(
+    () => [
+      ...GRADE.map((pontos) => ({ id: null as string | null, pontos })),
+      ...linhasSubmercado,
+    ],
+    [linhasSubmercado],
+  );
+
   // ── alvo do tooltip: derivado do hover + índice O(1) por ISO ──────
   let alvoTooltip: AlvoTooltip | null = null;
-  if (hover && mundo) {
+  // Submercado não entra aqui: o PaisTooltip fala de país, e um
+  // submercado cairia no texto de "fora do conjunto de 188
+  // soberanos" — falso. O contexto dele vive no painel próprio.
+  if (hover && mundo && !ehSubmercado(hover)) {
     const a3 = hover.properties.a3;
     const resumo = a3 ? (mundo.porIso.get(a3) ?? null) : null;
     alvoTooltip = {
@@ -860,10 +976,11 @@ export function AtlasGlobo({
             showAtmosphere={false}
             globeMaterial={materialRef.current}
             onGlobeReady={aoGloboPronto}
-            pathsData={GRADE}
+            pathsData={caminhos}
+            pathPoints={pontosDoCaminho}
             pathColor={corGrade}
-            pathStroke={null}
-            pathPointAlt={0.002}
+            pathStroke={espessuraCaminho}
+            pathPointAlt={altitudeCaminho}
             pathTransitionDuration={0}
             polygonsData={mundo.features}
             polygonAltitude={0.006}

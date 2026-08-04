@@ -6409,3 +6409,33 @@ decisão que o Aquiles reverteu, não uma regressão).
 "No findings. Surface is clean." · `vite build` exit 0 com a fronteira
 lazy confirmada por grep do bundle de entrada (`polygonCapColor`,
 `pathPointAlt`, `pathsData`: 0 no entry, 6/6/7 no chunk).
+
+### Correção seguinte — cor de fonte e filtro visível
+
+Dois defeitos apontados pelo Aquiles vendo o produto rodar, depois da
+revisão acima. Commit `3c631a0`.
+
+**Cores que repetiam o fundo.** `hydroPct` era `#0D2340` — **exatamente
+o navy da esfera** —, então país hidráulico ficava literalmente
+invisível; `fossilPct` era `#2A2620`, quase preto sobre fundo escuro.
+As duas vinham direto da paleta de tinta/navy sem checar que o globo
+usa a mesma cor. Trocadas por carvão quente (`#736A5C`) e água
+(`#357B73`): leem sobre o navy do globo E como quadrado de legenda
+sobre o creme do painel, e se distinguem das outras cinco. Conferido
+com as sete na mesma tela, no modo Matriz dominante — antes o mapa
+inteiro era escuro sobre escuro.
+
+**Filtro que não mudava nada.** Sem coloração por métrica, o filtro só
+trocava a lavagem de creme de `0,10` para `0,03` entre quem passa e
+quem não passa — diferença que não se vê, e o usuário lia como "o
+filtro não faz nada". Agora, com filtro ativo e coloração "Nenhuma",
+quem passa recebe a **cor cheia da fonte filtrada**; com um modo de
+coloração ligado o país já tem cor própria, e aí o filtro continua
+agindo só por recuo dos demais. Verificado por hash de screenshot: os
+cinco estados (sem filtro · Todos · Fóssil · Hidráulica · Nuclear ·
+Eólica) produzem renders distintos, e Todos coincide com sem-filtro
+como deve.
+
+**Gates:** `tsc` 0 erros · `gridalpha-detect` "No findings. Surface is
+clean." · as duas suítes de regressão (revisão e Fase 5 da wave)
+passando em 1440×900 e 1920×1080.

@@ -787,6 +787,470 @@ function m07i1M08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
   return { valores: {}, veredito: partes.join('<br><br>') };
 }
 
+
+import {
+  MODULO_10_LENTES,
+  MODULO_10_LINHAS_FATURA,
+  MODULO_10_PERFIS_CARGA,
+  MODULO_10_ELEGIBILIDADE,
+  MODULO_10_SUBGRUPOS,
+  MODULO_10_CELULAS_MODALIDADE,
+  MODULO_10_ENCARGOS,
+  MODULO_10_ETAPAS_CICLO,
+  MODULO_10_BLOCOS_FATURA,
+  MODULO_10_VIESES_COMPOSICAO,
+  MODULO_10_PASSOS_LEITURA,
+  MODULO_10_ACHADOS,
+  MODULO_10_FAIXAS_DEMANDA,
+  MODULO_10_FAIXAS_ULTRAPASSAGEM,
+  MODULO_10_FAIXAS_DESLOCAMENTO,
+  MODULO_10_FAIXAS_REATIVO,
+} from './alexandria-modulo-10-content';
+
+
+// ══════════════════════════════════════════════════════════════════
+// MÓDULO 10 — Tarifas e a Conta de Luz Industrial (LYCEUM Wave 41)
+//
+// Portados do `<script>` de `alexandria_modulo10.html`, nunca
+// rederivados do enunciado. Os onze são namespaçados `m10-inst-NN`
+// pela mesma razão das waves anteriores: a fonte numera instrumento
+// por módulo, reiniciando do 01.
+//
+// Os helpers do original, replicados aqui com o mesmo comportamento:
+//   numOf(el, def, a, b) → `nOu10` — valor vazio ou NaN vira o DEFAULT
+//                          (não zero), e depois é preso em [a,b].
+//   fmt(n, d)            → `fm10`  — pt-BR, `—` para NaN/Infinity.
+//
+// SINALIZADO, não corrigido: o original de vários instrumentos ESCREVE
+// de volta no campo do usuário quando o valor sai da faixa
+// (`$id('dl-pta').value=pta`). Função pura não faz isso; o clamp é
+// aplicado ao valor calculado e o campo do aluno fica como ele
+// digitou. O resultado numérico é idêntico.
+// ══════════════════════════════════════════════════════════════════
+
+/** `numOf` do original: NaN vira o default declarado, depois clamp. */
+const nOu10 = (v: EntradaInstrumento | undefined, def: number, a: number, b: number): number => {
+  if (v === undefined || v === '') return def;
+  const x = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));
+  if (Number.isNaN(x)) return def;
+  return x < a ? a : x > b ? b : x;
+};
+
+/** `fmt` do original — pt-BR com casas fixas. */
+const fm10 = (x: number, d = 0): string =>
+  !Number.isFinite(x) ? '—' : x.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const s10 = (v: EntradaInstrumento | undefined, def: string): string =>
+  v === undefined || v === '' ? def : String(v);
+
+/** Os quatro campos fixos que o original imprime em `.ocard` abaixo do
+ *  veredito. Aqui entram no próprio veredito, porque
+ *  `ResultadoInstrumento` não tem slot para painel lateral. */
+type Faixa10 = { readonly t: string; readonly sig: string; readonly causa: string; readonly ctrl: string; readonly falta: string };
+const detalhe10 = (F: Faixa10): string =>
+  `<br><br><b>O que este resultado significa.</b> ${F.sig}` +
+  `<br><br><b>O que costuma causá-lo.</b> ${F.causa}` +
+  `<br><br><b>O que a empresa controla.</b> ${F.ctrl}` +
+  `<br><br><b>O que ainda falta saber.</b> ${F.falta}`;
+
+// ── m10 INST 01 · Mapa da fatura — três lentes ────────────
+// Consulta pura: lente × linha → texto. Sem número a devolver.
+const i1m10: CalculateFn = (i) => {
+  const lente = s10(i['mf-seg'], 'unit') as 'unit' | 'qtd' | 'ciclo';
+  const linhaId = s10(i['mf-linha'], MODULO_10_LINHAS_FATURA[0].id);
+  const L = MODULO_10_LINHAS_FATURA.find((x) => x.id === linhaId) ?? MODULO_10_LINHAS_FATURA[0];
+  const LE = MODULO_10_LENTES[lente];
+  const outras = (['unit', 'qtd', 'ciclo'] as const)
+    .filter((k) => k !== lente)
+    .map((k) => `<b>${MODULO_10_LENTES[k].t}:</b> ${L[k].replace(/<[^>]+>/g, '')}`)
+    .join('<br>');
+  return {
+    valores: {},
+    veredito:
+      `<b>${LE.t}.</b> ${LE.d}` +
+      `<br><br><b>${L.c} · ${L.n}.</b> ${L[lente]}` +
+      `<br><br><b>As outras duas lentes.</b><br>${outras}`,
+  };
+};
+
+// ── m10 INST 02 · Comparador de modalidades ───────────────
+// Três seleções → elegibilidade + célula por linha. Zero número.
+const i2m10: CalculateFn = (i) => {
+  const perf = s10(i['cm-perf'], 'plana') as keyof typeof MODULO_10_PERFIS_CARGA;
+  const mod = s10(i['cm-mod'], 'azul') as 'azul' | 'verde' | 'conv';
+  const sg = s10(i['cm-sg'], 'a4') as keyof typeof MODULO_10_ELEGIBILIDADE;
+
+  const cel = MODULO_10_CELULAS_MODALIDADE[`${mod}|${perf}` as keyof typeof MODULO_10_CELULAS_MODALIDADE];
+  const elegivel = (MODULO_10_ELEGIBILIDADE[sg] as readonly string[]).includes(mod);
+  const nomeSg = MODULO_10_SUBGRUPOS[sg];
+
+  // Três cabeças distintas no original, nesta ordem de precedência.
+  const cabeca = mod === 'conv'
+    ? '<b>Não é opção ordinária de enquadramento.</b> A modalidade convencional binômia não figura na relação vigente de modalidades disponíveis ao grupo A. Subsiste como estrutura no arcabouço metodológico tarifário e em situações contratuais específicas, e por isso não entra na comparação entre alternativas contratáveis.'
+    : !elegivel
+      ? `<b>Modalidade indisponível ao subgrupo ${nomeSg}.</b> A modalidade de demanda única é disponível apenas aos subgrupos A3a, A4 e AS. Simular esta modalidade para o subgrupo ${nomeSg} é erro de elegibilidade, não de premissa — e é verificável no cadastro da própria fatura antes de qualquer cálculo.`
+      : `<b>Modalidade elegível ao subgrupo ${nomeSg}.</b> Perfil considerado: ${MODULO_10_PERFIS_CARGA[perf]}. As direções abaixo são estruturais e derivam da forma de cobrança; a magnitude depende das tarifas homologadas da concessionária e do perfil medido real.`;
+
+  return {
+    valores: {},
+    veredito:
+      cabeca +
+      `<br><br><b>Direção estrutural.</b> ${cel.dir}` +
+      `<br><br><b>Linhas que mudariam.</b> ${cel.linhas}` +
+      `<br><br><b>Risco dominante.</b> ${cel.risco}` +
+      `<br><br><b>O que falta para concluir.</b> ${cel.falta}` +
+      '<br><br><b>O que este instrumento não devolve.</b> Valor de economia, percentual de redução ou qualquer conclusão financeira. Sem doze meses de medição e sem as tarifas homologadas da concessionária específica, qualquer número seria estimativa apresentada como resultado.',
+  };
+};
+
+// ── m10 INST 03 · Dimensionador de demanda ────────────────
+// Original: util = max/ctr·100 · fc = med/max·100 · lim = ctr·(1+tol/100)
+//           folga = lim − max. Faixa escolhida por `util`.
+const i3m10: CalculateFn = (i) => {
+  const ctr = nOu10(i['dd-ctr'], 1200, 10, 20000);
+  const max = nOu10(i['dd-max'], 1010, 10, 20000);
+  const med = nOu10(i['dd-med'], 720, 1, 20000);
+  const mes = nOu10(i['dd-mes'], 12, 1, 36);
+  const tol = nOu10(i['dd-tol'], 5, 0, 20);
+
+  const util = ctr > 0 ? (max / ctr) * 100 : 0;
+  const fc = max > 0 ? (med / max) * 100 : 0;
+  const lim = ctr * (1 + tol / 100);
+  const folga = lim - max;
+
+  const F = MODULO_10_FAIXAS_DEMANDA.find((f) => util <= f.max)
+    ?? MODULO_10_FAIXAS_DEMANDA[MODULO_10_FAIXAS_DEMANDA.length - 1];
+
+  let hist = '';
+  if (mes < 6) {
+    hist = ` <b>Atenção ao histórico:</b> com ${fm10(mes)} mes${mes === 1 ? '' : 'es'} de série, nenhum diagnóstico de dimensionamento é concluível. A faixa acima descreve o que se vê, não o que se pode afirmar.`;
+  } else if (mes < 12) {
+    hist = ` <b>Histórico parcial:</b> ${fm10(mes)} meses não cobrem um ciclo anual completo. Sazonalidade, parada programada e retomada após interrupção podem estar fora da janela observada.`;
+  }
+
+  let zona = '';
+  if (util > 80 && util <= 95 && mes >= 12) {
+    zona = '<br><br><b>Zona de decisão de risco.</b> Esta é a faixa em que a resposta correta frequentemente é <b>depende do plano de produção</b>. A série histórica sozinha não distingue um contrato bem calibrado de um contrato que ficará apertado com a expansão do ano seguinte. Sem o plano, o instrumento descreve; ele não recomenda.';
+  }
+  if (mes < 12) {
+    zona = '<br><br><b>Não é possível concluir.</b> Com menos de doze meses, a distinção entre folga estrutural e mês atípico não é possível. Em muitas operações industriais, o mês atípico é justamente o que define o contrato — retomada após interrupção, teste de carga, coincidência de partidas. A saída correta aqui é a lista do que falta, não um número recomendado.';
+  }
+
+  return {
+    valores: { 'dd-util': util, 'dd-fc': fc, 'dd-lim': lim, 'dd-folga': folga },
+    veredito:
+      `<b>${F.t}.</b> Utilização do contrato em ${fm10(util, 1)}%, com fator de carga aparente de ${fm10(fc, 1)}%.${hist}` +
+      detalhe10(F) + zona,
+  };
+};
+
+// ── m10 INST 04 · Simulador de ultrapassagem ──────────────
+// A base da parcela é (medida − CONTRATADA), não o excedente acima da
+// tolerância — é a não linearidade que a aula existe para corrigir.
+const i4m10: CalculateFn = (i) => {
+  const ctr = nOu10(i['ul-ctr'], 1000, 10, 20000);
+  const med = nOu10(i['ul-med'], 1060, 10, 20000);
+  const tol = nOu10(i['ul-tol'], 5, 0, 20);
+  const mul = nOu10(i['ul-mul'], 2, 1, 4);
+  const tar = nOu10(i['ul-tar'], 40, 1, 300);
+
+  const lim = ctr * (1 + tol / 100);
+  const disparou = med > lim;
+  const base = disparou ? med - ctr : 0;
+  const normal = ctr * tar;
+  const pen = base * mul * tar;
+  const total = normal + pen;
+  const peso = total > 0 ? (pen / total) * 100 : 0;
+  const exc = ctr > 0 ? (med / ctr - 1) * 100 : 0;
+
+  // Original: sem disparo, margem>2 → faixa 0, senão faixa 1;
+  //           com disparo, exc<=15 → faixa 2, senão faixa 3.
+  const margem = ((lim - med) / ctr) * 100;
+  const F = !disparou
+    ? (margem > 2 ? MODULO_10_FAIXAS_ULTRAPASSAGEM[0] : MODULO_10_FAIXAS_ULTRAPASSAGEM[1])
+    : (exc <= 15 ? MODULO_10_FAIXAS_ULTRAPASSAGEM[2] : MODULO_10_FAIXAS_ULTRAPASSAGEM[3]);
+
+  const cabeca = disparou
+    ? `<b>${F.t}.</b> A medição de ${fm10(med)} kW superou o limite de disparo de ${fm10(lim)} kW. A base da parcela é <b>${fm10(base)} kW</b> — a diferença entre medida e contratada, e não os ${fm10(med - lim)} kW acima da tolerância. Essa é a distinção que material comercial mais frequentemente inverte.`
+    : `<b>${F.t}.</b> A medição de ${fm10(med)} kW ficou abaixo do limite de disparo de ${fm10(lim)} kW. Nenhuma parcela de ultrapassagem é gerada neste ciclo. Margem disponível: ${fm10(lim - med)} kW.`;
+
+  return {
+    valores: { 'ul-lim': lim, 'ul-base': base, 'ul-norm': normal, 'ul-pen': pen, 'ul-peso': peso },
+    veredito:
+      cabeca + detalhe10(F) +
+      '<br><br><b>Parâmetros que você precisa confirmar.</b> Tolerância e multiplicador são parâmetros normativos e vêm aqui como entrada editável por decisão de projeto. A tolerância difere conforme a natureza da demanda contratada, e há material em circulação reproduzindo multiplicador de redação anterior à consolidação de 2021. Confirme no texto compilado vigente e no contrato de uso da unidade antes de qualquer uso externo.',
+  };
+};
+
+// ── m10 INST 05 · Deslocador de carga entre postos ────────
+// O original PRENDE `pta` em `tot` reescrevendo o campo; aqui o clamp
+// é aplicado ao valor calculado (ver nota do cabeçalho).
+const i5m10: CalculateFn = (i) => {
+  const tot = nOu10(i['dl-tot'], 420, 1, 20000);
+  const ptaBruto = nOu10(i['dl-pta'], 42, 0, 20000);
+  const des = nOu10(i['dl-des'], 30, 0, 100);
+  const hrs = nOu10(i['dl-hrs'], 63, 1, 200);
+
+  const pta = ptaBruto > tot ? tot : ptaBruto;
+  const p0 = tot > 0 ? (pta / tot) * 100 : 0;
+  const vol = (pta * des) / 100;
+  const pta1 = pta - vol;
+  const p1 = tot > 0 ? (pta1 / tot) * 100 : 0;
+  const pot = hrs > 0 ? (pta * 1000) / hrs : 0;
+
+  const F = MODULO_10_FAIXAS_DESLOCAMENTO.find((f) => p0 <= f.max)
+    ?? MODULO_10_FAIXAS_DESLOCAMENTO[MODULO_10_FAIXAS_DESLOCAMENTO.length - 1];
+
+  return {
+    valores: { 'dl-p0': p0, 'dl-p1': p1, 'dl-vol': vol, 'dl-pot': pot },
+    veredito:
+      `<b>${F.t}.</b> A ponta representa ${fm10(p0, 1)}% do consumo do ciclo. Deslocando ${fm10(des)}% desse volume, a participação cairia para ${fm10(p1, 1)}%, com <b>${fm10(vol, 1)} MWh</b> transferidos para fora da janela. A potência média demandada dentro da janela é de aproximadamente ${fm10(pot)} kW — número que não deve ser confundido com a demanda máxima registrada no posto.` +
+      detalhe10(F) +
+      '<br><br><b>Por que não há valor em dinheiro aqui.</b> Converter volume deslocado em valor exigiria a diferença entre as tarifas de energia dos dois postos na concessionária específica, e, na modalidade que separa demanda por posto, também o efeito sobre a demanda de ponta. Nenhuma dessas informações está na fatura sozinha. O volume é o que o instrumento pode afirmar; o valor é o que o processo tarifário determina.',
+  };
+};
+
+// ── m10 INST 06 · Apurador de excedente reativo ───────────
+// Duas janelas com sentidos opostos: indutiva de dia, capacitiva de
+// noite. A chave do diagnóstico é combinatória, não numérica.
+const i6m10: CalculateFn = (i) => {
+  const ref = nOu10(i['fp-ref'], 0.92, 0.5, 1);
+  const ind = nOu10(i['fp-ind'], 0.87, 0.3, 1);
+  const cap = nOu10(i['fp-cap'], 0.95, 0.3, 1);
+  const hrs = nOu10(i['fp-hrs'], 6, 1, 10);
+
+  const totNoite = hrs * 30;
+  const totDia = (24 - hrs) * 30;
+  const vdi = Math.min(nOu10(i['fp-vd1'], 180, 0, 600), Math.round(totDia));
+  const vno = Math.min(nOu10(i['fp-vn1'], 0, 0, 200), Math.round(totNoite));
+
+  const pd = totDia > 0 ? (vdi / totDia) * 100 : 0;
+  const pn = totNoite > 0 ? (vno / totNoite) * 100 : 0;
+  const dd = ref - ind;
+  const dn = ref - cap;
+
+  const temInd = vdi > 0 && ind < ref;
+  const temCap = vno > 0 && cap < ref;
+  const chave = temInd && temCap ? 'ambas' : temCap ? 'cap' : temInd ? (pd > 25 ? 'ind-estr' : 'ind-pont') : 'limpo';
+  const F = MODULO_10_FAIXAS_REATIVO.find((f) => f.k === chave) ?? MODULO_10_FAIXAS_REATIVO[0];
+
+  let nota = '';
+  if (vdi > 0 && ind >= ref) {
+    nota = ' <b>Inconsistência de entrada:</b> foram informados intervalos em violação na janela indutiva, mas o fator típico informado está dentro da referência. Verifique se a violação ocorre em intervalos específicos que a média não representa — o que é comum e é justamente por isso que a apuração é por intervalo.';
+  }
+  if (vno > 0 && cap >= ref) {
+    nota += ' <b>Inconsistência de entrada:</b> foram informados intervalos em violação na janela capacitiva com fator típico dentro da referência. O mesmo raciocínio se aplica: a média mensal esconde violação por intervalo.';
+  }
+
+  return {
+    valores: { 'fp-pd': pd, 'fp-pn': pn, 'fp-dd': dd, 'fp-dn': dn },
+    veredito:
+      `<b>${F.t}.</b> ${fm10(pd, 1)}% dos intervalos da janela indutiva e ${fm10(pn, 1)}% dos intervalos da janela capacitiva foram informados como em violação, considerando janela noturna de ${fm10(hrs)} horas e referência de ${fm10(ref, 2)}.${nota}` +
+      detalhe10(F) +
+      '<br><br><b>Onde a fatura para de servir.</b> A fatura prova que houve cobrança; ela não prova qual banco instalar, em que ponto, com quantos estágios nem com que proteção. Entre o achado e a solução existe um estudo elétrico com medição de qualidade de energia, inventário de cargas e verificação de risco de ressonância, conduzido por profissional habilitado. Este instrumento caracteriza o problema — ele não dimensiona a solução.',
+  };
+};
+
+// ── m10 INST 07 · Anatomia dos encargos ───────────────────
+// Consulta pura sobre os onze itens, com os quatro campos fixos.
+const i7m10: CalculateFn = (i) => {
+  const sel = s10(i['en-sel'], MODULO_10_ENCARGOS[0].id);
+  const E = MODULO_10_ENCARGOS.find((x) => x.id === sel) ?? MODULO_10_ENCARGOS[0];
+  return {
+    valores: {},
+    veredito:
+      `<b>${E.tag} · ${E.n}.</b>` +
+      `<br><br><b>O que financia.</b> ${E.fin}` +
+      `<br><br><b>Quem paga.</b> ${E.paga}` +
+      `<br><br><b>Como aparece na fatura.</b> ${E.fat}` +
+      `<br><br><b>O que mudou ou pode mudar.</b> ${E.mud}`,
+  };
+};
+
+// ── m10 INST 08 · Régua do ciclo tarifário ────────────────
+// Na fonte o mesmo chip seleciona E marca (segundo clique alterna
+// "verificada"). Aqui são dois controles: um select de foco e oito
+// chaves independentes — o primitivo que o painel renderiza. Mesmo
+// tratamento que a Wave 38 deu ao grid de seleção do Módulo 08.
+const i8m10: CalculateFn = (i) => {
+  const sel = s10(i['rc-sel'], MODULO_10_ETAPAS_CICLO[0].id);
+  const E = MODULO_10_ETAPAS_CICLO.find((x) => x.id === sel) ?? MODULO_10_ETAPAS_CICLO[0];
+  const nVer = MODULO_10_ETAPAS_CICLO.filter((x) => s10(i[`rc-v-${x.id}`], 'nao') === 'sim').length;
+  const total = MODULO_10_ETAPAS_CICLO.length;
+
+  const estado = nVer === 0 ? 'Dossiê não iniciado'
+    : nVer < 4 ? 'Dossiê parcial'
+    : nVer < 8 ? 'Dossiê em construção'
+    : 'Dossiê completo';
+
+  const veredito = nVer === 0
+    ? '<b>Nenhuma etapa verificada.</b> Sem o dossiê do ciclo tarifário da concessionária, qualquer comparação entre dois períodos atribui a decisões da empresa efeitos que podem ter sido do calendário.'
+    : nVer < 4
+      ? `<b>Dossiê parcial — ${fm10(nVer)} de ${total}.</b> Ainda não é possível decompor variação entre efeito preço e efeito quantidade com segurança. As etapas de estrutura, homologação e aplicação são as que mais frequentemente explicam variação inesperada.`
+      : nVer < 8
+        ? `<b>Dossiê em construção — ${fm10(nVer)} de ${total}.</b> Já há base para explicar parte da variação. Verifique especialmente se a etapa de definição de estrutura foi coberta: é nela que o intervalo de ponta pode ter mudado, e essa mudança invalida silenciosamente qualquer simulação de deslocamento.`
+        : '<b>Dossiê completo.</b> Com as oito etapas verificadas, uma comparação de doze meses pode declarar o que mudou no meio, componente a componente. Este é o estado mínimo para que um relatório atribua corretamente cada parcela de variação a preço, a quantidade ou a calendário.';
+
+  return {
+    valores: { 'rc-cnt': nVer },
+    veredito:
+      `${veredito}<br><br><b>Situação do dossiê:</b> ${estado}.` +
+      `<br><br><b>${E.et} · ${E.n}.</b>` +
+      `<br><br><b>O que acontece.</b> ${E.oq}` +
+      `<br><br><b>Quem decide.</b> ${E.quem}` +
+      `<br><br><b>O que pode surpreender.</b> ${E.surp}` +
+      `<br><br><b>O que arquivar.</b> ${E.arq}`,
+  };
+};
+
+// ── m10 INST 09 · Reconstrutor de fatura ──────────────────
+// NÃO é o Reconstrutor de matriz do Módulo 08: aqui os DOIS vetores
+// vêm do usuário, não há referência no código nem tolerância, e o
+// original calcula a cada input desde o load. Por isso não leva
+// `correcaoSobDemanda` e o kind é `comparador`.
+const i9m10: CalculateFn = (i) => {
+  const est: number[] = [];
+  const real: number[] = [];
+  for (let k = 1; k <= 6; k += 1) {
+    est.push(nOu10(i[`rb-e${k}`], 0, 0, 100));
+    real.push(nOu10(i[`rb-r${k}`], 0, 0, 100));
+  }
+  const se = est.reduce((a, b) => a + b, 0);
+  const sr = real.reduce((a, b) => a + b, 0);
+
+  let errTot = 0;
+  let maiorV = 0;
+  let maiorI = 0;
+  const linhas: string[] = [];
+  for (let k = 0; k < 6; k += 1) {
+    const d = est[k] - real[k];
+    errTot += Math.abs(d);
+    if (Math.abs(d) > Math.abs(maiorV)) { maiorV = d; maiorI = k; }
+    linhas.push(`${MODULO_10_BLOCOS_FATURA[k]}: ${d > 0 ? '+' : ''}${fm10(d)} p.p.`);
+  }
+
+  // Chave de diagnóstico, ramo por ramo como no original.
+  let chave: keyof typeof MODULO_10_VIESES_COMPOSICAO = 'equilibrado';
+  if (Math.abs(maiorV) >= 6) {
+    if (maiorI === 0 && maiorV > 0) chave = 'energia';
+    else if (maiorI === 2 && maiorV < 0) chave = 'demanda';
+    else if (maiorI === 1) chave = 'rede';
+    else if (maiorI === 4) chave = 'tributos';
+    else if (maiorI === 0 && maiorV < 0) chave = 'rede';
+    else if (maiorI === 2 && maiorV > 0) chave = 'demanda';
+    else chave = 'equilibrado';
+  }
+  const D = MODULO_10_VIESES_COMPOSICAO[chave];
+
+  let somaAviso = '';
+  if (Math.abs(se - 100) > 2 || Math.abs(sr - 100) > 2) {
+    somaAviso = ` <b>Atenção às somas:</b> a estimativa soma ${fm10(se)}% e o real soma ${fm10(sr)}%. Enquanto as duas não fecharem próximo de cem, o erro por bloco mistura distorção de composição com distorção de escala, e o diagnóstico de viés fica contaminado.`;
+  }
+
+  return {
+    valores: { 'rb-se': se, 'rb-sr': sr, 'rb-err': errTot },
+    veredito:
+      `<b>${D.t}.</b> Erro absoluto total de ${fm10(errTot)} pontos percentuais, com o maior desvio em <b>${MODULO_10_BLOCOS_FATURA[maiorI]}</b> (${maiorV > 0 ? '+' : ''}${fm10(maiorV)} p.p.).${somaAviso}` +
+      `<br><br><b>Erro por bloco.</b> ${linhas.join(' · ')}` +
+      `<br><br><b>O que este padrão significa.</b> ${D.sig}` +
+      `<br><br><b>O efeito prático do viés.</b> ${D.efeito}` +
+      `<br><br><b>Como se corrige.</b> ${D.ctrl}` +
+      `<br><br><b>O que ainda falta.</b> ${D.falta}`,
+  };
+};
+
+// ── m10 INST 10 · Ordem de leitura cronometrada ───────────
+// Nove passos, cada um com tempo declarado. Mesmo desdobramento em
+// foco + chaves do INST 08.
+const i10m10: CalculateFn = (i) => {
+  const sel = s10(i['ol-sel'], MODULO_10_PASSOS_LEITURA[0].id);
+  const P = MODULO_10_PASSOS_LEITURA.find((x) => x.id === sel) ?? MODULO_10_PASSOS_LEITURA[0];
+  const feitos = MODULO_10_PASSOS_LEITURA.filter((x) => s10(i[`ol-f-${x.id}`], 'nao') === 'sim');
+  const nFeitos = feitos.length;
+  const tempo = feitos.reduce((a, x) => a + x.t, 0);
+
+  const estado = nFeitos === 0 ? 'Não iniciada'
+    : nFeitos < 3 ? 'Triagem incompleta'
+    : nFeitos < 7 ? 'Leitura parcial'
+    : nFeitos < 9 ? 'Quase completa'
+    : 'Leitura completa';
+
+  const veredito = nFeitos === 0
+    ? '<b>Leitura não iniciada.</b> A ordem importa mais do que a completude: o erro que custa caro não é a linha esquecida, é a ordem errada, porque ela faz perder o achado que tornaria os demais irrelevantes.'
+    : nFeitos < 3
+      ? `<b>Triagem incompleta — ${fm10(nFeitos)} de 9.</b> Os três primeiros passos consomem menos de um minuto e meio somados e respondem à maior parte das perguntas de triagem. Cadastro antes de valores, período antes de comparação: essa é a regra que organiza a sequência inteira.`
+      : nFeitos < 7
+        ? `<b>Leitura parcial — ${fm10(nFeitos)} de 9, com ${fm10(Math.floor(tempo / 60))} min ${fm10(tempo % 60)} s acumulados.</b> As hipóteses já estão levantadas. Falta a camada de verificação: reconciliação de uma linha e composição tributária são o que distingue hipótese de achado.`
+        : nFeitos < 9
+          ? `<b>Quase completa — ${fm10(nFeitos)} de 9.</b> Falta o passo que nunca pode ser pulado: o inventário do que não está na fatura.`
+          : `<b>Leitura completa — nove de nove, em ${fm10(Math.floor(tempo / 60))} min ${fm10(tempo % 60)} s.</b> A sequência inteira foi percorrida na ordem.`;
+
+  return {
+    valores: { 'ol-cnt': nFeitos, 'ol-tempo': tempo },
+    veredito:
+      `${veredito}<br><br><b>Estado da leitura:</b> ${estado}.` +
+      `<br><br><b>${P.n} — ${P.t} s.</b>` +
+      `<br><br><b>O que olhar.</b> ${P.olh}` +
+      `<br><br><b>Critério de parada.</b> ${P.par}` +
+      `<br><br><b>Achado que muda tudo.</b> ${P.irr}` +
+      `<br><br><b>O que registrar.</b> ${P.reg}`,
+  };
+};
+
+// ── m10 INST 11 · Roteador de diagnóstico ─────────────────
+// Três seleções pontuam o material disponível (score 0-8) e a quarta
+// nomeia o achado. O veredito cruza os dois.
+const i11m10: CalculateFn = (i) => {
+  const h = s10(i['rt-hist'], 'uma');
+  const m = s10(i['rt-mm'], 'nao');
+  const p = s10(i['rt-plano'], 'nao');
+  const a = s10(i['rt-ach'], 'enq') as keyof typeof MODULO_10_ACHADOS;
+  const A = MODULO_10_ACHADOS[a];
+
+  let s = 0;
+  if (h === 'doze') s += 3; else if (h === 'seis') s += 1;
+  if (m === 'sim') s += 3; else if (m === 'parcial') s += 1;
+  if (p === 'estavel') s += 2; else if (p === 'mudanca') s += 1;
+
+  const falta: string[] = [];
+  if (h === 'uma') falta.push('doze meses de faturas consecutivas, com refaturamentos e ajustes preservados e vinculados ao período de origem');
+  else if (h === 'seis') falta.push('os meses restantes para completar um ciclo anual, sem o qual sazonalidade e paradas programadas ficam fora da janela observada');
+  if (m === 'nao') falta.push('a memória de massa por intervalo, que é o único registro capaz de mostrar quando e por quanto tempo cada pico ocorreu');
+  else if (m === 'parcial') falta.push('a complementação da memória de massa nos períodos ausentes, com verificação de quebra de série por troca de medidor');
+  if (p === 'nao') falta.push('o plano de produção com expansões, paradas programadas e mudanças de turno previstas');
+  else if (p === 'mudanca') falta.push('o cronograma detalhado da mudança prevista, com potência e simultaneidade das cargas novas');
+  falta.push('as tarifas homologadas da concessionária nos períodos analisados, com número e data da resolução de referência');
+  if (a === 'fp') falta.push('medição de qualidade de energia, se houver carga não linear relevante na instalação');
+  if (a === 'amb') falta.push('o custo entregue consolidado dos dois lados, no mesmo período e na mesma unidade de medida');
+
+  let titulo: string;
+  let corpo: string;
+  if (a === 'nada' && s >= 6) {
+    titulo = 'Não vale investigar nas condições informadas';
+    corpo = 'Com histórico e medição disponíveis e nenhum achado observado na leitura, o material sustenta um <b>parecer de adequação</b>. Essa é a saída mais difícil de emitir e a mais valiosa comercialmente: quem só sabe encontrar problema não tem como ser acreditado quando encontra um. Registre a base sobre a qual a adequação foi afirmada e a data — adequação é afirmação sobre um momento, não sobre o futuro.';
+  } else if (s >= 6) {
+    titulo = 'Vale investigar';
+    corpo = `O material disponível sustenta o avanço para análise completa sobre o achado <b>${A.n}</b>. Há histórico e medição suficientes para distinguir padrão estrutural de evento isolado, que é a condição mínima para qualquer conclusão dimensional.`;
+  } else if (s >= 3) {
+    titulo = 'Vale investigar, com ressalva de material';
+    corpo = `O achado <b>${A.n}</b> justifica avançar, mas o material disponível ainda não sustenta conclusão dimensional. A saída honesta nesta condição é hipótese com lista do que falta, nunca número recomendado.`;
+  } else {
+    titulo = 'Material insuficiente para diagnóstico';
+    corpo = `Não há base para afirmar nada sobre <b>${A.n}</b>. Com uma fatura isolada e sem memória de massa, qualquer número produzido seria extrapolação apresentada como medição.`;
+  }
+
+  return {
+    valores: { 'rt-score': s },
+    veredito:
+      `<b>${titulo}.</b> ${corpo}` +
+      `<br><br><b>Achado observado.</b> ${A.n}` +
+      `<br><br><b>O que exige.</b> ${A.exige}` +
+      `<br><br><b>O mínimo que já responde.</b> ${A.minimo}` +
+      `<br><br><b>Sem os dados.</b> ${A.semDados}` +
+      `<br><br><b>O que ainda falta.</b> ${falta.map((x) => `— ${x}`).join('<br>')}`,
+  };
+};
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -2592,6 +3056,20 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),
   'm08-inst-04-ger': (i) => i4checkM08('ger', i),
 
-};
+  // ══ MÓDULO 10 — Tarifas e a Conta de Luz Industrial (Wave 41) ══
+  // O `m10-inst-01` é do § MAP, fora de aula — alcançado por Recursos
+  // do Módulo, mesmo caminho do `lab-01` e dos `Inst · 01` dos M06/M07.
+  'm10-inst-01': i1m10,
+  'm10-inst-02': i2m10,
+  'm10-inst-03': i3m10,
+  'm10-inst-04': i4m10,
+  'm10-inst-05': i5m10,
+  'm10-inst-06': i6m10,
+  'm10-inst-07': i7m10,
+  'm10-inst-08': i8m10,
+  'm10-inst-09': i9m10,
+  'm10-inst-10': i10m10,
+  'm10-inst-11': i11m10,
 
+};
 export const temCalculadora = (id: string) => id in INSTRUMENT_CALCULATORS;

@@ -312,10 +312,279 @@ export const MODULO_10_CORPO: Record<string, AulaBloco[]> = {
   ],
 };
 
-/** Os onze itens da linha de encargos do `Inst · 07`, os oito estágios
- *  do ciclo do `Inst · 08` e os nove passos do `Inst · 10` vivem no
- *  `<script>` da fonte — o markup traz só o container vazio. Extraídos
- *  literais, mesmo tratamento que `MODULO_06_TRAUMA_CICATRIZ` recebeu. */
+// ── DADO QUE VIVE NO <script>, NÃO NO MARKUP ─────────────────────────
+// Onze das estruturas abaixo são populadas por JavaScript na fonte: o
+// markup traz apenas o container vazio (`<div class="tr-grid" id="…">`).
+// Extraídas literais e geradas por parse do literal JS — zero
+// transcrição manual. Mesmo tratamento que `MODULO_06_TRAUMA_CICATRIZ`
+// recebeu na Wave 29.
+//
+// Ficam aqui, e não no arquivo de calculadoras, porque são o DADO do
+// módulo: alimentam tanto as opções de select dos instrumentos quanto o
+// texto que a calculadora devolve. Fonte única, importada dos dois
+// lados.
+/** As três lentes do `Inst · 01`. */
+export const MODULO_10_LENTES = {
+  "unit": {
+    "t": "Quem define o valor unitário",
+    "d": "Esta lente separa o Eixo 3 de todo o resto. O valor unitário de cada componente vem de uma de quatro origens: processo tarifário conduzido pela agência reguladora para aquela concessionária específica, lei federal que institui encargo, legislação de ente federativo que institui tributo, ou ato da agência que fixa o adicional de bandeira. <b>Nenhuma decisão da empresa move qualquer um desses valores.</b> Repare, ao percorrer as catorze linhas, que a resposta desta lente é sempre a mesma para famílias inteiras — e que isso é justamente o que torna inútil qualquer conversa de negociação sobre elas."
+  },
+  "qtd": {
+    "t": "Quem define a quantidade",
+    "d": "Esta é a lente do Eixo 1, e é onde mora o trabalho. A quantidade sobre a qual cada valor unitário incide é determinada por decisões da empresa em quase todas as linhas: quanto de energia consome, em que posto consome, quanto de demanda reservou, quanto de reativo excedeu, quanto tempo o ciclo durou. <b>Toda melhoria aqui se propaga automaticamente pelo Eixo 3</b>, porque reduz a base sobre a qual preços não controláveis incidem. Percorra as linhas e conte quantas têm resposta \"a empresa\" nesta lente: é o tamanho real da alavanca."
+  },
+  "ciclo": {
+    "t": "Em que ciclo aquilo muda",
+    "d": "Esta é a lente do Eixo 4, a lente do tempo, e ela existe para impedir o erro analítico mais frequente do setor: comparar dois meses sem declarar o que mudou no meio. Quatro relógios rodam em paralelo — reajuste anual da concessionária na data de aniversário dela, revisão periódica em ciclo contratual mais espaçado, acionamento mensal de bandeira, e calendário legal de mudança de regra. <b>Uma linha cuja resposta aqui é \"mensal\" nunca deve ser comparada entre dois meses sem verificar a cor da bandeira em cada um.</b>"
+  }
+} as const;
+
+/** As catorze famílias de componente da fatura, cada uma respondida pelas três lentes. */
+export const MODULO_10_LINHAS_FATURA = [
+  {
+    "id": "te-p",
+    "n": "Consumo de energia — ponta",
+    "c": "Energia",
+    "unit": "Tarifa de energia do posto de ponta, homologada no processo tarifário da concessionária que atende a unidade. Não existe valor nacional: o mesmo componente tem valor diferente em cada área de concessão, e muda na data de aniversário tarifário de cada uma.",
+    "qtd": "A empresa, integralmente. É a energia efetivamente medida dentro da janela de três horas diárias em dias úteis. Duas alavancas atuam sobre ela: eficiência do processo, que reduz o total, e deslocamento de carga, que transfere volume para fora da janela.",
+    "ciclo": "Valor unitário muda no reajuste anual da concessionária e pode mudar de estrutura na revisão periódica. A própria janela de ponta é aprovada na revisão, o que significa que a quantidade faturada neste posto pode mudar sem que a planta tenha alterado nada."
+  },
+  {
+    "id": "te-fp",
+    "n": "Consumo de energia — fora de ponta",
+    "c": "Energia",
+    "unit": "Tarifa de energia do posto fora de ponta, homologada no mesmo processo. Estruturalmente inferior à de ponta, e é dessa diferença que nasce o sinal econômico de deslocamento de carga.",
+    "qtd": "A empresa. É o volume medido em todas as horas complementares à ponta, incluindo fins de semana e os feriados relacionados em norma. Deslocamento de carga aumenta esta quantidade ao reduzir a anterior — o total não cai, apenas se reorganiza.",
+    "ciclo": "Reajuste anual e revisão periódica, como o componente de ponta. Uma mudança na definição do posto de ponta redistribui automaticamente volume entre esta linha e a anterior."
+  },
+  {
+    "id": "tusd-e",
+    "n": "Uso do sistema — parcela sobre energia",
+    "c": "Rede",
+    "unit": "Componente da tarifa de uso do sistema de distribuição aplicado por unidade de energia, homologado no processo tarifário. Carrega dentro de si componentes de fio e itens setoriais que não aparecem desagregados na fatura.",
+    "qtd": "A empresa, pela mesma via da energia: é o volume consumido. Esta é a linha que melhor demonstra a assimetria do Eixo 3 — a empresa não move o valor unitário, mas cada megawatt-hora economizado reduz esta linha na mesma proporção.",
+    "ciclo": "Reajuste anual e revisão periódica. Os itens setoriais embutidos podem mudar por lei fora do ciclo tarifário, e o efeito aparece no processo seguinte."
+  },
+  {
+    "id": "tusd-d",
+    "n": "Uso do sistema — parcela sobre demanda",
+    "c": "Rede",
+    "unit": "Componente da tarifa de uso aplicado por unidade de potência, homologado no processo tarifário. Na modalidade que separa demanda por posto, há valores distintos para ponta e fora de ponta, e o de ponta é o mais alto da estrutura.",
+    "qtd": "A empresa, pela demanda contratada e pela demanda medida, conforme a regra de faturamento aplicável. É a quantidade mais diretamente contratual de toda a fatura, e a que mais frequentemente carrega uma decisão de anos atrás.",
+    "ciclo": "Reajuste anual e revisão periódica no valor unitário. A quantidade só muda por alteração contratual, com prazo de comunicação à distribuidora — ou seja, é decisão com efeito rápido, mas não instantâneo."
+  },
+  {
+    "id": "dem",
+    "n": "Demanda faturada",
+    "c": "Demanda",
+    "unit": "Aplica-se a tarifa de demanda homologada, por posto quando a modalidade separar. O valor unitário é o mesmo para toda a área de concessão dentro do subgrupo e da modalidade.",
+    "qtd": "A empresa, com nuance importante: a quantidade faturada decorre das regras contratuais e pode ser a contratada, a medida ou outra referência. É por isso que a fatura pode cobrar capacidade que a planta não usou, e isso não é irregularidade.",
+    "ciclo": "Valor unitário no ciclo anual. A quantidade é revisitável a qualquer momento por decisão da empresa, respeitados prazo e procedimento — e é a única linha da fatura em que errar em qualquer das duas direções custa dinheiro."
+  },
+  {
+    "id": "ultr",
+    "n": "Demanda de ultrapassagem",
+    "c": "Demanda",
+    "unit": "Tarifa de demanda multiplicada pelo fator previsto em norma. O multiplicador é parâmetro normativo, não negociável, e há material em circulação reproduzindo a redação anterior à consolidação de 2021.",
+    "qtd": "A empresa, integralmente e de forma não linear. A base é a diferença entre demanda medida e demanda contratada, e ela só é cobrada quando o gatilho de tolerância é superado — de modo que um único intervalo de quinze minutos determina a linha inteira do mês.",
+    "ciclo": "Valor unitário no ciclo anual. A ocorrência é mensal e depende de um evento operacional; nenhuma outra linha da fatura tem essa característica de tudo ou nada."
+  },
+  {
+    "id": "ere",
+    "n": "Energia reativa excedente",
+    "c": "Reativo",
+    "unit": "Valorada por referência normativa vinculada à tarifa de energia da bandeira verde do subgrupo residencial de baixa tensão. É a única linha da fatura industrial cujo valor unitário se ancora numa tarifa de outro grupo.",
+    "qtd": "A empresa, pela apuração intervalo a intervalo do fator de potência abaixo da referência. A quantidade é integralmente controlável por compensação adequada — e integralmente descontrolável se a compensação instalada não acompanhar a variação da carga.",
+    "ciclo": "A referência de valoração acompanha o ciclo tarifário. A ocorrência é mensal e reflete o regime de operação do mês, o que torna a série de várias faturas mais informativa que qualquer fatura isolada."
+  },
+  {
+    "id": "dre",
+    "n": "Demanda reativa excedente",
+    "c": "Reativo",
+    "unit": "Aplicada sobre a demanda corrigida pelo fator de potência do intervalo, conforme a fórmula normativa. Como no caso anterior, o parâmetro é regulatório e não admite tratamento individual.",
+    "qtd": "A empresa, pelo mesmo mecanismo, mas com efeito sobre a grandeza de potência e não de energia. Uma unidade pode ter cobrança de uma e não da outra, e o padrão distingue problema difuso de problema concentrado em picos.",
+    "ciclo": "Igual à linha anterior. Vale a observação de que a nomenclatura exibida na fatura pode ser um rótulo herdado de norma anterior, e mapeá-lo ao conceito vigente é a primeira tarefa da leitura."
+  },
+  {
+    "id": "band",
+    "n": "Adicional de bandeira",
+    "c": "Curto prazo",
+    "unit": "Fixado pela agência reguladora, atualizado ao final do período úmido para o ciclo seguinte, e uniforme nacionalmente dentro do sistema interligado. É a única linha da fatura com valor unitário nacional.",
+    "qtd": "A empresa, pelo volume de energia consumida no período. Aplica-se ao consumidor do ambiente regulado; o consumidor do ambiente livre tem exposição a custo de geração por outro caminho.",
+    "ciclo": "<b>Mensal.</b> Esta é a única linha cujo valor unitário efetivo pode mudar de um mês para o outro sem qualquer processo tarifário, e é a explicação mais frequente para variação de conta com consumo estável."
+  },
+  {
+    "id": "enc",
+    "n": "Encargos setoriais",
+    "c": "Encargos",
+    "unit": "Instituídos por lei e rateados por metodologia regulada. Na maior parte dos leiautes de fatura, estão embutidos no valor unitário da tarifa de uso e não aparecem como linha própria — a ausência de linha não significa ausência de custo.",
+    "qtd": "A empresa, pela energia consumida na maioria dos casos. Há um fator adicional que não é de decisão operacional: desde 2026, o rateio da quota do principal encargo é diferenciado por nível de tensão de conexão da unidade.",
+    "ciclo": "As quotas são fixadas por ciclo anual e envelhecem em doze meses. Mudanças estruturais vêm por lei, com vigência própria, e podem não coincidir com o calendário tarifário da concessionária."
+  },
+  {
+    "id": "trib-f",
+    "n": "Tributos federais",
+    "c": "Tributos",
+    "unit": "Alíquotas definidas em legislação federal, com regime de apuração que admite crédito conforme o regime do contribuinte. Em 2026, convivem com a alíquota de calibração dos tributos novos.",
+    "qtd": "A empresa, indiretamente: a base é o faturamento, que decorre de todas as quantidades anteriores. Não há decisão que altere a alíquota, mas toda redução de base se propaga aqui automaticamente.",
+    "ciclo": "Ciclo legislativo, e em 2026 um <b>calendário legal de substituição</b> em curso. Um modelo de custo projetado além de 2026 que assuma permanência do regime anterior está assumindo premissa contra a lei."
+  },
+  {
+    "id": "trib-e",
+    "n": "Imposto estadual",
+    "c": "Tributos",
+    "unit": "Alíquota fixada em legislação da unidade federativa, sujeita à tese vinculante sobre essencialidade quando adotada a técnica da seletividade. Varia de estado para estado, o que explica diferenças entre plantas do mesmo grupo empresarial.",
+    "qtd": "A empresa, indiretamente, pela base. A composição dessa base é objeto de controvérsia ativa quanto à inclusão das tarifas de uso da rede, e há entendimento consolidado separando demanda utilizada de demanda contratada e não utilizada.",
+    "ciclo": "Ciclo legislativo estadual, mais decisão judicial com modulação de efeitos, mais o calendário de transição do regime. É a linha da fatura com maior número de fontes de mudança simultâneas."
+  },
+  {
+    "id": "cip",
+    "n": "Contribuição de iluminação pública",
+    "c": "Tributos",
+    "unit": "Instituída por lei municipal, com regra de cálculo local que pode ser valor fixo por faixa, percentual ou combinação. Não remunera consumo da planta: financia a iluminação pública do município.",
+    "qtd": "Depende da regra municipal. Em muitos municípios a base é o consumo; em outros, é faixa de valor da fatura. É a linha em que a empresa tem menos influência de todas.",
+    "ciclo": "Ciclo legislativo municipal, independente de qualquer calendário setorial. Duas plantas da mesma empresa em municípios vizinhos podem ter regras completamente distintas."
+  },
+  {
+    "id": "fin",
+    "n": "Componentes financeiros e ajustes",
+    "c": "Ajustes",
+    "unit": "Resultam de apuração de exercícios anteriores incorporada ao processo tarifário, ou de refaturamento específico da unidade. Não têm valor unitário no sentido usual: são valores apurados.",
+    "qtd": "Nem a empresa nem a decisão corrente. São ajustes de período passado que aparecem no presente, e por isso são a causa mais comum de série temporal que não reconcilia.",
+    "ciclo": "Irregular por natureza. <b>Regra operacional: nunca excluir da série.</b> O correto é preservar o ajuste, vinculá-lo ao período de origem e declarar a diferença entre competência e caixa na apresentação."
+  }
+] as const;
+
+/** Os cinco perfis de carga do `Inst · 02`. */
+export const MODULO_10_PERFIS_CARGA = {
+  "plana": "carga plana em turnos contínuos, com demanda de ponta próxima da demanda fora de ponta e fator de carga elevado",
+  "diurna": "operação diurna com pico concentrado na tarde e redução parcial no fim do dia",
+  "pontabaixa": "planta que reduz processos de forma controlada e confiável durante a janela de ponta",
+  "erratica": "carga errática, com picos episódicos não previsíveis e baixo controle automático",
+  "sazonal": "operação sazonal de safra, com meses de carga alta e meses de carga muito reduzida"
+} as const;
+
+/** Elegibilidade de modalidade por subgrupo. */
+export const MODULO_10_ELEGIBILIDADE = {
+  "a4": [
+    "azul",
+    "verde"
+  ],
+  "a3a": [
+    "azul",
+    "verde"
+  ],
+  "a3": [
+    "azul"
+  ],
+  "a2": [
+    "azul"
+  ]
+} as const;
+
+/** Nome por subgrupo. */
+export const MODULO_10_SUBGRUPOS = {
+  "a4": "A4",
+  "a3a": "A3a",
+  "a3": "A3",
+  "a2": "A2"
+} as const;
+
+/** A célula de comparação por linha × modalidade. */
+export const MODULO_10_CELULAS_MODALIDADE = {
+  "azul|plana": {
+    "dir": "Separaria a demanda em dois contratos com valores próximos entre si, o que multiplica pontos de exposição a ultrapassagem sem capturar diferença estrutural de perfil.",
+    "linhas": "Demanda passaria a duas linhas contratadas e duas faturadas. Energia permaneceria em duas linhas por posto, sem alteração de estrutura.",
+    "risco": "Dois pontos independentes de verificação de ultrapassagem, cada um com gatilho próprio. Não utilizar a contratada em um posto não elimina a cobrança no outro.",
+    "falta": "Demanda máxima por posto em doze meses, para verificar se a diferença entre postos justifica a separação, e as tarifas homologadas da concessionária."
+  },
+  "azul|diurna": {
+    "dir": "A demanda de ponta pode ser inferior à de fora de ponta se o pico da tarde estiver fora da janela homologada, o que favorece a separação.",
+    "linhas": "Demanda separada por posto, com a de ponta possivelmente contratada em valor bem menor. Energia sem alteração de estrutura.",
+    "risco": "Depende inteiramente de onde a janela de ponta cai em relação ao pico interno. Se o pico da tarde estiver dentro da janela, a vantagem desaparece.",
+    "falta": "O intervalo de ponta homologado da área de concessão e a demanda máxima registrada dentro dele, separada da demanda máxima do dia."
+  },
+  "azul|pontabaixa": {
+    "dir": "É o perfil para o qual a separação foi desenhada: demanda de ponta baixa e controlável permite contratar pouco no posto caro.",
+    "linhas": "Demanda de ponta contratada em valor substancialmente inferior. Energia de ponta também reduzida, se a redução de processos for real e não apenas de demanda.",
+    "risco": "A palavra decisiva é controlável. Um único evento fora de controle na janela de ponta produz ultrapassagem sobre a tarifa mais cara da estrutura.",
+    "falta": "Confiabilidade demonstrada do controle de carga, registro de eventos de falha do controle, e o plano de contingência para retomada após interrupção."
+  },
+  "azul|erratica": {
+    "dir": "Multiplicaria a exposição: duas contratadas, duas verificações de gatilho, sobre um perfil que por definição não é previsível.",
+    "linhas": "Duas linhas de demanda contratada e a possibilidade de duas linhas simultâneas de ultrapassagem no mesmo ciclo.",
+    "risco": "O maior da matriz. Perfil errático com demanda separada por posto combina o pior de duas características: tarifa alta na ponta e imprevisibilidade.",
+    "falta": "A causa operacional dos picos episódicos. Sem isso, nenhum contrato é dimensionável e a discussão de modalidade é prematura."
+  },
+  "azul|sazonal": {
+    "dir": "A separação por posto interage com a sazonalidade de forma que só a série completa revela; meses de safra e de entressafra podem indicar direções opostas.",
+    "linhas": "Demanda separada por posto, com a questão adicional de se há tratamento sazonal aplicável ao enquadramento e ao contrato.",
+    "risco": "Dimensionar sobre a média anual produz ultrapassagem na safra e ociosidade na entressafra, simultaneamente.",
+    "falta": "Doze meses completos cobrindo pelo menos um ciclo de safra, e a verificação de possibilidade e procedimento de tratamento sazonal no contrato."
+  },
+  "verde|plana": {
+    "dir": "Um único contrato de demanda e uma única verificação de gatilho, alinhado a um perfil em que a separação por posto não capturaria diferença.",
+    "linhas": "Uma linha de demanda contratada e uma faturada. Energia permanece em duas linhas por posto — a diferenciação horária da energia não desaparece.",
+    "risco": "A energia de ponta continua sendo o componente caro. Perfil plano significa consumo proporcional na ponta, e isso não é resolvido pela modalidade.",
+    "falta": "A relação entre as tarifas de demanda das duas modalidades na concessionária específica, e a participação real da ponta no consumo total."
+  },
+  "verde|diurna": {
+    "dir": "Simplifica o contrato, mas abre mão da possibilidade de contratar pouco no posto caro se o pico da tarde estiver de fato fora da janela.",
+    "linhas": "Uma linha de demanda. Se o pico interno for muito superior à demanda dentro da janela de ponta, a tarifa única é aplicada sobre o pico maior.",
+    "risco": "Pagar tarifa única sobre um pico que ocorre fora da janela cara pode ser mais oneroso que separar, dependendo da relação entre tarifas.",
+    "falta": "Demanda máxima total do ciclo e demanda máxima dentro da janela de ponta, separadamente — dois números que a fatura da modalidade única não distingue."
+  },
+  "verde|pontabaixa": {
+    "dir": "Abre mão da principal vantagem disponível a este perfil: a tarifa única incide sobre o pico total, inclusive o que ocorre fora da ponta.",
+    "linhas": "Uma linha de demanda contratada, dimensionada pelo maior pico do ciclo, independentemente do posto em que ocorreu.",
+    "risco": "Baixo em termos de ultrapassagem, alto em termos de oportunidade não capturada. É o caso em que a simplicidade custa caro.",
+    "falta": "A confirmação de que a redução na ponta é sistemática e não sazonal, e a relação entre as tarifas de demanda de ponta e única na concessionária."
+  },
+  "verde|erratica": {
+    "dir": "Concentra a imprevisibilidade num único ponto de verificação, o que reduz a superfície de erro do dimensionamento.",
+    "linhas": "Uma linha de demanda contratada e uma única possibilidade de ultrapassagem por ciclo.",
+    "risco": "A imprevisibilidade permanece; o que muda é que ela produz um evento de cobrança em vez de dois. A causa dos picos continua sendo o problema real.",
+    "falta": "Registro de eventos operacionais associado a cada pico da série. A modalidade não resolve perfil errático — apenas simplifica a exposição."
+  },
+  "verde|sazonal": {
+    "dir": "Contrato único facilita a gestão da sazonalidade, mas ainda exige decisão sobre dimensionar para a safra ou para a entressafra.",
+    "linhas": "Uma linha de demanda contratada, com a questão de tratamento sazonal aplicável conforme enquadramento e contrato.",
+    "risco": "Dimensionar para a safra gera ociosidade paga na entressafra; dimensionar para a entressafra gera ultrapassagem recorrente na safra.",
+    "falta": "Calendário produtivo com demanda máxima mês a mês, antecedência exigida para alteração contratual, e verificação de tratamento sazonal disponível."
+  },
+  "conv|plana": {
+    "dir": "Não é opção ordinária de enquadramento na relação vigente de modalidades disponíveis ao grupo A. A comparação não se aplica.",
+    "linhas": "Estrutura sem distinção horária em energia e em demanda, que subsiste no arcabouço metodológico tarifário e em situações contratuais específicas.",
+    "risco": "Tratá-la como alternativa disponível numa análise nova é o erro mais visível que um material tarifário pode cometer diante de alguém do setor.",
+    "falta": "Se a unidade estiver efetivamente nela, o contrato de uso e o ato de enquadramento, para entender a origem da situação antes de qualquer conclusão."
+  },
+  "conv|diurna": {
+    "dir": "Não é opção ordinária de enquadramento na relação vigente. A comparação não se aplica.",
+    "linhas": "Energia e demanda em linha única, sem qualificação de posto, numa unidade cujo cadastro indica grupo A.",
+    "risco": "Simular esta estrutura como alternativa produz números que não correspondem a nenhuma opção contratável.",
+    "falta": "Verificação do cadastro e do contrato de uso, para confirmar se o que se está vendo é situação contratual específica ou leitura equivocada do leiaute."
+  },
+  "conv|pontabaixa": {
+    "dir": "Não é opção ordinária de enquadramento na relação vigente. A comparação não se aplica.",
+    "linhas": "Ausência de diferenciação horária, o que anularia justamente a característica que este perfil tem de mais valiosa.",
+    "risco": "Para um perfil que reduz processos na ponta, estrutura sem distinção horária desperdiça integralmente o esforço operacional.",
+    "falta": "Nada a levantar para efeito de simulação. O que cabe é confirmar a situação cadastral e as opções efetivamente elegíveis ao subgrupo."
+  },
+  "conv|erratica": {
+    "dir": "Não é opção ordinária de enquadramento na relação vigente. A comparação não se aplica.",
+    "linhas": "Linha única de demanda e linha única de energia, sem os postos que estruturam as modalidades vigentes.",
+    "risco": "Reproduzir esta estrutura numa proposta comercial denuncia leitura de fonte desatualizada.",
+    "falta": "Confirmação do subgrupo e das modalidades elegíveis, que é sempre o primeiro campo de qualquer análise."
+  },
+  "conv|sazonal": {
+    "dir": "Não é opção ordinária de enquadramento na relação vigente. A comparação não se aplica.",
+    "linhas": "Estrutura sem distinção horária, cuja interação com sazonalidade não chega a ser questão prática porque a modalidade não é contratável.",
+    "risco": "O mesmo de todas as células desta coluna: apresentar como alternativa algo que não está disponível.",
+    "falta": "Verificação do enquadramento vigente e das opções elegíveis ao subgrupo, antes de qualquer simulação sazonal."
+  }
+} as const;
+
+/** Os onze itens da linha de encargos do `Inst · 07`. */
 export const MODULO_10_ENCARGOS = [
   {
     "id": "cde",
@@ -418,6 +687,7 @@ export const MODULO_10_ENCARGOS = [
   }
 ] as const;
 
+/** Os oito estágios do ciclo tarifário do `Inst · 08`. */
 export const MODULO_10_ETAPAS_CICLO = [
   {
     "id": "e1",
@@ -493,6 +763,56 @@ export const MODULO_10_ETAPAS_CICLO = [
   }
 ] as const;
 
+/** Os seis blocos de composição do `Inst · 09`. */
+export const MODULO_10_BLOCOS_FATURA = [
+  "Energia",
+  "Uso da rede",
+  "Demanda",
+  "Encargos",
+  "Tributos",
+  "Reativo e outros"
+] as const;
+
+/** Os cinco diagnósticos de viés do `Inst · 09`. */
+export const MODULO_10_VIESES_COMPOSICAO = {
+  "energia": {
+    "t": "Viés de superestimação da energia",
+    "sig": "Você atribui à energia peso maior do que ela tem. É o viés de quem raciocina a partir do mercado atacadista, onde o preço da energia é o objeto de negociação — e portanto parece ser o objeto do custo.",
+    "efeito": "Produz expectativa irrealista sobre o efeito de mudança de ambiente de contratação. Se a energia é uma fração menor do total do que se supunha, a alavanca de negociação de preço é proporcionalmente menor.",
+    "ctrl": "Corrige-se com disciplina de extração: transcrever a fatura linha a linha antes de formar opinião sobre composição, em vez de estimar a partir do que se conhece do setor.",
+    "falta": "A composição real de faturas de vários perfis, subgrupos e concessionárias. Não existe composição típica nacional, e a intuição formada numa única planta não transfere."
+  },
+  "demanda": {
+    "t": "Viés de subestimação da demanda",
+    "sig": "Você atribui à demanda peso menor do que ela tem. É o viés de quem raciocina em energia acumulada e esquece que a parcela de capacidade é cobrada mesmo quando não utilizada.",
+    "efeito": "Produz diagnósticos que ignoram a alavanca contratual mais acessível de toda a fatura. Em plantas com fator de carga baixo, a parcela de capacidade pode ser o maior bloco isolado.",
+    "ctrl": "Corrige-se olhando primeiro o cadastro e a linha de demanda, antes de olhar consumo. A ordem de leitura deste módulo foi desenhada exatamente para forçar essa inversão.",
+    "falta": "O fator de carga da unidade. Sem ele, não há como antecipar se a parcela de capacidade será relevante ou marginal naquela fatura específica."
+  },
+  "rede": {
+    "t": "Viés na leitura do uso da rede",
+    "sig": "Seu desvio maior está no bloco de uso da rede. É o bloco mais opaco da fatura, porque agrega componentes de fio e itens setoriais sem desagregação visível.",
+    "efeito": "Produz erro em qualquer modelagem de migração de ambiente ou de geração distribuída, que dependem justamente da desagregação desse bloco.",
+    "ctrl": "Corrige-se com a planilha tarifária do processo tarifário da concessionária, que desagrega os componentes. Para auditoria de primeira camada, a desagregação não é necessária; para modelagem, é indispensável.",
+    "falta": "A planilha tarifária vigente da concessionária, no subgrupo e na modalidade corretos."
+  },
+  "tributos": {
+    "t": "Viés na leitura da carga tributária",
+    "sig": "Seu desvio maior está no bloco de tributos. É o bloco cuja composição mais varia entre estados e municípios, e o que está em transição de regime em 2026.",
+    "efeito": "Produz erro de reconciliação: a maior parte das divergências entre tarifa homologada e tarifa aparente da fatura se explica por tributo compondo o valor unitário exibido.",
+    "ctrl": "Corrige-se verificando o demonstrativo de bases e valores da fatura, e a legislação da unidade federativa e do município da unidade.",
+    "falta": "A alíquota efetiva aplicável e a composição da base, incluindo a separação entre demanda utilizada e demanda contratada não utilizada."
+  },
+  "equilibrado": {
+    "t": "Estimativa calibrada",
+    "sig": "Seus desvios estão distribuídos e nenhum bloco isolado carrega distorção relevante. Isso indica que a intuição sobre composição de fatura está razoavelmente formada.",
+    "efeito": "Reduz o risco de aplicar viés sistemático a uma conta de cliente. Não elimina: a composição varia enormemente por perfil e por concessionária, e calibração num caso não transfere automaticamente.",
+    "ctrl": "Mantém-se repetindo o exercício com faturas de perfis diferentes — subgrupos distintos, modalidades distintas, fatores de carga distintos.",
+    "falta": "Um conjunto de faturas de perfis variados. Uma calibração formada num único perfil é sorte, não competência."
+  }
+} as const;
+
+/** Os nove passos da ordem de leitura do `Inst · 10`. */
 export const MODULO_10_PASSOS_LEITURA = [
   {
     "id": "p1",
@@ -574,6 +894,218 @@ export const MODULO_10_PASSOS_LEITURA = [
     "par": "Nenhum. Este passo sempre produz saída, e é o único da sequência do qual isso é verdade.",
     "irr": "Nada. Este é o passo que determina o veredito do roteador de diagnóstico e, em consequência, se o caso avança ou encerra com parecer.",
     "reg": "A lista específica: quantos meses de histórico faltam, se há memória de massa, se há plano de produção, se há contrato de uso, e quais tarifas homologadas precisam ser buscadas."
+  }
+] as const;
+
+/** As cinco classes de achado do `Inst · 11`. */
+export const MODULO_10_ACHADOS = {
+  "enq": {
+    "n": "Enquadramento suspeito",
+    "exige": "Perfil de demanda e de energia por posto ao longo de doze meses, mais as tarifas homologadas vigentes da concessionária no subgrupo e nas modalidades comparadas.",
+    "minimo": "O cadastro da fatura já basta para verificar elegibilidade da modalidade ao subgrupo — e essa verificação isolada pode encerrar o caso com um achado.",
+    "semDados": "Indicar em quais linhas o resultado mudaria e em que direção, sem magnitude. Direção é afirmação sobre estrutura de cobrança e é defensável com uma fatura; magnitude não é."
+  },
+  "dem": {
+    "n": "Demanda descolada",
+    "exige": "Série de doze meses com memória de massa por intervalo, explicação operacional de cada pico, e o plano de produção com expansões previstas.",
+    "minimo": "Uma fatura mostra a folga do ciclo, o que é indício de direção. Não distingue folga estrutural de mês atípico — e em muitas operações o mês atípico é o que define o contrato.",
+    "semDados": "Declarar que não é concluível e entregar a lista específica do que falta. Recomendar um valor de demanda sem a série é recomendar um número que não sobrevive à primeira retomada após interrupção."
+  },
+  "fp": {
+    "n": "Excedente reativo presente",
+    "exige": "Perfil de fator de potência por intervalo nas duas janelas de apuração e, havendo carga não linear na instalação, medição de qualidade de energia com análise de distorção.",
+    "minimo": "A presença da linha na fatura é fato e basta para caracterizar o achado. O padrão temporal, quando a fatura o detalha, já distingue estrutural de pontual.",
+    "semDados": "Classificar entre estrutural e pontual conforme o padrão observado e recomendar o estudo elétrico. A fatura prova a cobrança; ela não dimensiona a solução."
+  },
+  "amb": {
+    "n": "Volume compatível com ambiente livre",
+    "exige": "Série horária de consumo, custo entregue completo dos dois lados incluindo rede, encargos, tributos, representação e garantias, e apetite de risco declarado pela empresa.",
+    "minimo": "Volume, tensão de conexão e perfil declarado permitem verificar elegibilidade. Elegibilidade não é conveniência.",
+    "semDados": "Veredito de investigação, sem comparar preço de contrato com total cativo. Essa comparação específica compara uma parte com o todo e produz diferença que não existe."
+  },
+  "nada": {
+    "n": "Nada fora do esperado",
+    "exige": "Para afirmar adequação com segurança, a mesma série de doze meses — o diagnóstico negativo tem exigência de evidência idêntica à do positivo.",
+    "minimo": "Uma fatura sem linha de ultrapassagem, sem excedente reativo e com demanda coerente é indício de adequação, não prova.",
+    "semDados": "Registrar que nada foi identificado com o material disponível, e declarar o que seria necessário para confirmar adequação. É diferente de dizer que está adequado."
+  }
+} as const;
+
+/** As faixas de diagnóstico dos quatro instrumentos numéricos. Cada
+ *  entrada traz o teto da faixa e os quatro campos fixos que o original
+ *  imprime — significado, causa provável, o que a empresa controla, e o
+ *  que ainda falta saber. */
+export const MODULO_10_FAIXAS_DEMANDA = [
+  {
+    "max": 60,
+    "cls": "per",
+    "t": "Folga muito ampla",
+    "sig": "A demanda medida está muito abaixo da contratada. A unidade paga, todos os meses, por capacidade que não utiliza — e essa é a única linha da fatura em que o desperdício é recorrente e silencioso, porque nada na conta o sinaliza como anomalia.",
+    "causa": "Costuma decorrer de contrato dimensionado para uma planta que desde então reduziu produção, desativou linha, migrou processo ou substituiu equipamento por versão mais eficiente. Também aparece após entrada de geração própria, quando ninguém revisitou o contrato.",
+    "ctrl": "A empresa controla integralmente: a redução de demanda contratada é decisão contratual, sem investimento, com prazo de comunicação à distribuidora e procedimento previsto em norma e no contrato de uso.",
+    "falta": "A confirmação de que a folga é estrutural e não sazonal, o que exige a série completa; e o plano de produção, porque uma expansão prevista pode justificar manter a reserva."
+  },
+  {
+    "max": 80,
+    "cls": "att",
+    "t": "Folga relevante",
+    "sig": "Há espaço identificável entre o que foi reservado e o que se usa. É a faixa em que o diagnóstico costuma encontrar a alavanca mais acessível de toda a fatura, porque não exige investimento nem mudança operacional.",
+    "causa": "Tipicamente, contrato dimensionado com margem generosa em momento de incerteza, ou dimensionado pelo pico histórico de um evento que não se repetiu. Também ocorre quando o controle de carga foi implantado depois do contrato e nunca motivou revisão.",
+    "ctrl": "A empresa controla, mas a decisão exige calibrar risco: reduzir o contrato aproxima a operação do gatilho de ultrapassagem, e a folga tem valor de seguro em processos com partidas pesadas.",
+    "falta": "A explicação operacional de cada pico da série, a criticidade do processo e o custo de parada — sem os três, o número recomendado seria arbitrário."
+  },
+  {
+    "max": 95,
+    "cls": "ok",
+    "t": "Dimensionamento ajustado",
+    "sig": "A utilização do contrato está numa faixa que indica dimensionamento coerente com a operação. Há folga suficiente para absorver variação normal e não há ociosidade contratada relevante.",
+    "causa": "É o resultado esperado de um contrato revisitado com base em série histórica, ou de uma operação estável cujo perfil não mudou desde a contratação.",
+    "ctrl": "A empresa controla, e a ação correta aqui é monitorar, não mexer. Alarme configurado abaixo do limite de disparo e revisão antes de qualquer expansão.",
+    "falta": "Nada para concluir sobre adequação atual. Para projeção, o plano de produção — e essa é a única lacuna relevante nesta faixa."
+  },
+  {
+    "max": 105,
+    "cls": "att",
+    "t": "Operação na borda",
+    "sig": "A demanda medida está muito próxima do limite de disparo, ou já o superou. A unidade opera sem margem, e um único evento adicional converte o mês em cobrança de ultrapassagem sobre a diferença inteira entre medida e contratada.",
+    "causa": "Contrato apertado por decisão anterior de redução, crescimento de carga não acompanhado por revisão contratual, ou entrada de equipamento novo sem recontratação prévia.",
+    "ctrl": "A empresa controla nas duas pontas: pode elevar a demanda contratada, respeitados prazo e procedimento, ou implantar controle de carga com alarme escalonado abaixo do limite.",
+    "falta": "A tendência da série — se a demanda está crescendo, o problema é estrutural e a solução é contratual; se é ruído em torno de um patamar, a solução é controle."
+  },
+  {
+    "max": 1000000000,
+    "cls": "per",
+    "t": "Contrato insuficiente",
+    "sig": "A demanda medida excede a contratada de forma substancial. Além da cobrança de ultrapassagem, há risco operacional: a distribuidora reserva capacidade conforme o contratado, e operar sistematicamente acima disso é matéria de contrato de uso, não apenas de custo.",
+    "causa": "Crescimento de carga não acompanhado de recontratação, expansão comissionada sem aviso prévio, ou contrato reduzido sem controle de carga que sustentasse a redução.",
+    "ctrl": "A empresa controla, e a ação é urgente e contratual. Reduzir contrato sem controle transforma economia aparente em penalidade recorrente — o inverso também vale: manter contrato insuficiente por inércia é a forma mais cara de não decidir.",
+    "falta": "A verificação de que a medição está correta, incluindo fator de multiplicação e ponto de medição, antes de recontratar sobre um número que pode estar escalado."
+  }
+] as const;
+
+export const MODULO_10_FAIXAS_ULTRAPASSAGEM = [
+  {
+    "max": 0,
+    "cls": "ok",
+    "t": "Sem cobrança e com margem",
+    "sig": "A demanda medida está abaixo do limite de disparo e a parcela de ultrapassagem não é gerada neste ciclo. O que a fatura cobra de demanda é apenas a parcela normal.",
+    "causa": "Contrato dimensionado com folga compatível com a variação do processo, ou controle de carga efetivo mantendo o pico dentro do envelope contratado.",
+    "ctrl": "A empresa controla, e a questão que se abre aqui é a oposta: quanto dessa folga é seguro necessário e quanto é ociosidade paga todo mês. As duas perguntas convivem na mesma linha da fatura.",
+    "falta": "A série completa, para distinguir margem estrutural de coincidência de um mês tranquilo, e o registro de eventos operacionais dos meses de maior demanda."
+  },
+  {
+    "max": 2,
+    "cls": "att",
+    "t": "Na borda do gatilho",
+    "sig": "A medição ficou muito próxima do limite de disparo, sem superá-lo. Não há cobrança, mas a operação não tem margem: qualquer evento adicional no próximo ciclo converte a diferença inteira em base de ultrapassagem.",
+    "causa": "Contrato apertado após redução deliberada, ou crescimento gradual de carga que ainda não motivou revisão contratual.",
+    "ctrl": "A empresa controla nas duas direções. Alarme configurado em patamares escalonados abaixo do limite é a intervenção de menor custo, e é operacional, não contratual.",
+    "falta": "A tendência da série de demanda medida. Se ela está subindo mês a mês, o problema é estrutural e a solução é recontratação, não alarme."
+  },
+  {
+    "max": 15,
+    "cls": "per",
+    "t": "Ultrapassagem disparada",
+    "sig": "O gatilho foi superado e a parcela de ultrapassagem incide sobre a diferença entre demanda medida e demanda contratada — não sobre o excedente acima da tolerância. É a não linearidade que torna essa linha desproporcional ao evento que a causou.",
+    "causa": "Tipicamente um evento operacional isolado: retomada após interrupção com partida simultânea de motores, teste de carga, coincidência de processos batch, ou falha de geração própria que existia para cortar o pico.",
+    "ctrl": "A empresa controla, e a ordem de intervenção importa: primeiro identificar o evento, depois decidir entre controle operacional e recontratação. Recontratar sem entender o evento é comprar margem para um problema que pode se repetir maior.",
+    "falta": "A memória de massa do intervalo do pico, com data, hora e duração, e o registro operacional do que ocorria na planta naquele quarto de hora."
+  },
+  {
+    "max": 1000000000,
+    "cls": "per",
+    "t": "Descolamento substancial",
+    "sig": "A demanda medida excede a contratada de forma que a parcela de ultrapassagem se torna componente relevante da fatura. Além do custo, há matéria de contrato de uso: a distribuidora reserva capacidade conforme o contratado.",
+    "causa": "Expansão comissionada sem recontratação prévia, crescimento sustentado de carga, ou contrato reduzido sem que o controle que sustentava a redução tenha sido implantado ou tenha funcionado.",
+    "ctrl": "A empresa controla, e a ação é contratual e urgente. Manter contrato insuficiente por inércia é a forma mais cara de não decidir, porque a penalidade se repete a cada ciclo.",
+    "falta": "A verificação prévia da medição — fator de multiplicação, transformadores e ponto de medição — antes de recontratar sobre um número que pode estar escalado por erro de constante."
+  }
+] as const;
+
+export const MODULO_10_FAIXAS_DESLOCAMENTO = [
+  {
+    "max": 4,
+    "cls": "ok",
+    "t": "Participação estruturalmente baixa",
+    "sig": "A participação do consumo de ponta no total é baixa por natureza do regime operacional. Deslocar carga produz efeito marginal, porque já há pouco volume dentro da janela cara.",
+    "causa": "Operação que já reduz processos na ponta, ou regime com poucas horas de ponta faturadas em relação ao ciclo, ou planta com paradas coincidindo com a janela homologada.",
+    "ctrl": "A empresa controla, mas a alavanca está em outro lugar. Insistir em deslocamento aqui é gastar esforço gerencial onde o retorno é estruturalmente pequeno.",
+    "falta": "Confirmação do intervalo de ponta homologado da área de concessão e do número de horas de ponta efetivamente faturadas no ciclo, descontados os feriados aplicáveis."
+  },
+  {
+    "max": 10,
+    "cls": "ok",
+    "t": "Participação compatível com regime contínuo",
+    "sig": "A participação está próxima do que se espera de uma operação contínua: a proporção de horas de ponta no ciclo. O consumo não está concentrado na janela cara, apenas distribuído.",
+    "causa": "Regime de turnos contínuos com carga plana. É o perfil típico de processo industrial de fluxo, em que o consumo acompanha as horas de operação sem preferência horária.",
+    "ctrl": "A empresa controla o volume total pela eficiência do processo; o deslocamento é limitado pela flexibilidade real dos processos, não pela vontade de deslocar.",
+    "falta": "A classificação de flexibilidade dos processos que operam na janela: quanto é armazenável, quanto tem janela de qualidade e quanto é fluxo acoplado à produção."
+  },
+  {
+    "max": 18,
+    "cls": "att",
+    "t": "Concentração acima do proporcional",
+    "sig": "A participação da ponta excede o que a proporção de horas explicaria. Há concentração real de carga dentro da janela cara, e isso é um achado — não uma conclusão sobre o que fazer.",
+    "causa": "Turno que inicia ou intensifica dentro da janela, processo batch programado sem consideração ao posto, ou pico de climatização e cargas auxiliares coincidindo com o fim de tarde.",
+    "ctrl": "A empresa controla parcialmente. A pergunta operacional é qual processo específico está dentro da janela e se ele pode ser reprogramado sem perda de produção ou qualidade.",
+    "falta": "A curva de carga por intervalo cruzada com o calendário de produção, para identificar quais processos ocupam a janela — a fatura mostra o agregado, não a atribuição."
+  },
+  {
+    "max": 1000000000,
+    "cls": "per",
+    "t": "Concentração elevada",
+    "sig": "Parcela expressiva do consumo ocorre dentro da janela de três horas diárias em dias úteis. Isso indica programação de produção que ignora sistematicamente o posto tarifário, ou processo com pico obrigatório naquele horário.",
+    "causa": "Programação de turnos definida sem referência ao posto homologado, ou processo cujo ciclo térmico ou logístico impõe operação naquele intervalo.",
+    "ctrl": "A empresa controla se o motivo for programação; não controla se o motivo for restrição de processo. Distinguir os dois casos é a única pergunta que importa aqui.",
+    "falta": "O custo de oportunidade de deslocar cada processo: produção perdida, retrabalho, perda de rendimento térmico ou risco de qualidade. Sem isso, o volume deslocável é hipotético."
+  }
+] as const;
+
+export const MODULO_10_FAIXAS_REATIVO = [
+  {
+    "k": "limpo",
+    "cls": "ok",
+    "t": "Sem violação nas duas janelas",
+    "sig": "Os fatores típicos informados estão dentro da referência nas duas janelas e não há intervalos em violação. Não há base tarifária para cobrança de excedente reativo neste ciclo.",
+    "causa": "Compensação adequadamente dimensionada e com regime de acionamento que acompanha a variação da carga, ou perfil de carga com baixa exigência de reativo.",
+    "ctrl": "A empresa controla, e a ação correta é manter: verificar periodicamente o regime de acionamento da compensação e reavaliar após qualquer entrada de carga nova, especialmente carga não linear.",
+    "falta": "Ausência de cobrança não prova ausência de problema técnico. Aquecimento anormal, disparo de proteção ou distorção harmônica podem existir sem reflexo tarifário, e exigem medição de qualidade de energia para serem descartados."
+  },
+  {
+    "k": "ind-pont",
+    "cls": "att",
+    "t": "Violação indutiva pontual",
+    "sig": "Há intervalos em violação na janela indutiva, mas em proporção pequena do período. O padrão sugere evento concentrado e não deficiência permanente de compensação.",
+    "causa": "Partida simultânea de motores de porte, entrada de carga indutiva em regime específico, ou falha temporária de estágio da compensação automática.",
+    "ctrl": "A empresa controla pela sequência de partidas, pela compensação local junto às cargas de maior porte e pela verificação do funcionamento dos estágios existentes.",
+    "falta": "A distribuição dos intervalos em violação ao longo do ciclo. Concentrados em poucos dias, o problema é evento; espalhados em todos os dias no mesmo horário, o problema é regime."
+  },
+  {
+    "k": "ind-estr",
+    "cls": "per",
+    "t": "Violação indutiva estrutural",
+    "sig": "A proporção de intervalos em violação na janela indutiva indica deficiência permanente de compensação durante a operação. A cobrança tende a se repetir em todos os ciclos com o mesmo regime.",
+    "causa": "Compensação subdimensionada para a carga indutiva instalada, ausência de compensação, ou banco automático com estágios fora de operação sem que ninguém tenha notado.",
+    "ctrl": "A empresa controla, mas a solução é de projeto. Este é o único achado deste módulo cuja correção tipicamente exige investimento em ativo — e por isso vem depois de contrato e operação na ordem de intervenção.",
+    "falta": "Inventário de cargas, medição por intervalo e, se houver acionamento de velocidade variável, retificadores ou fornos, avaliação de distorção harmônica e risco de ressonância antes de qualquer dimensionamento."
+  },
+  {
+    "k": "cap",
+    "cls": "per",
+    "t": "Violação capacitiva — sobrecompensação",
+    "sig": "Há intervalos em violação na janela noturna de apuração capacitiva. Este é o achado mais mal interpretado do módulo: ele indica compensação em excesso, não em falta.",
+    "causa": "Banco de capacitores fixo permanecendo energizado quando a carga indutiva que ele compensava já foi desligada — tipicamente em unidade com operação diurna e madrugada de baixa carga.",
+    "ctrl": "A empresa controla, e frequentemente sem investimento: lógica de intertravamento com o regime de operação, reconfiguração de estágios, ou simplesmente desligamento programado do banco fora do turno.",
+    "falta": "O regime de acionamento do banco existente e a configuração de estágios. A recomendação errada e frequente é adicionar capacitores, o que agrava exatamente o que se pretendia corrigir."
+  },
+  {
+    "k": "ambas",
+    "cls": "per",
+    "t": "Violação nas duas janelas",
+    "sig": "Há intervalos em violação tanto na janela indutiva quanto na capacitiva. A instalação está fora da referência nos dois sentidos, em momentos diferentes do dia.",
+    "causa": "Combinação de compensação insuficiente sob carga e compensação excessiva sem carga — assinatura clássica de banco fixo dimensionado para um regime que a planta já não pratica.",
+    "ctrl": "A empresa controla, e a solução é de projeto: compensação automática com estágios que acompanhem a variação real da carga, o que resolve os dois lados simultaneamente.",
+    "falta": "Perfil completo por intervalo nas duas janelas e inventário do que está instalado. Este é o caso em que a fatura sozinha é menos suficiente que em qualquer outro achado do módulo."
   }
 ] as const;
 
@@ -1002,7 +1534,6 @@ export const INSTRUMENTOS_MODULO_10: Instrument[] = [
     ],
     outputs: [
       { id: "rc-cnt", label: "Etapas verificadas", unit: null },
-      { id: "rc-est", label: "Situação do dossiê", unit: null },
     ],
     note: "Oito etapas, do início do processo tarifário até o efeito na fatura da unidade. Para cada uma: o que acontece, quem decide, o que pode surpreender o consumidor industrial naquela etapa, e o que o analista deve arquivar. Marque as etapas já verificadas para a concessionária que estiver analisando. Instrumento didático. A cadência da revisão periódica é definida no contrato de concessão de cada distribuidora e varia; confirme no contrato e no calendário de processos tarifários publicado pela agência reguladora.",
   },
@@ -1137,7 +1668,6 @@ export const INSTRUMENTOS_MODULO_10: Instrument[] = [
       { id: "rb-se", label: "Soma da estimativa", unit: null },
       { id: "rb-sr", label: "Soma do real", unit: null },
       { id: "rb-err", label: "Erro absoluto total", unit: null },
-      { id: "rb-maior", label: "Maior desvio", unit: null },
     ],
     note: "Distribua cem pontos entre os seis blocos de uma fatura industrial cativa típica do grupo A. Depois informe a composição real da sua fatura nos mesmos seis blocos. O instrumento devolve o erro por bloco, a direção do viés e o diagnóstico do padrão — não uma nota. O objetivo é que o analista descubra a própria distorção antes de aplicá-la a uma conta de cliente. Instrumento didático. A composição real varia enormemente por concessionária, subgrupo, modalidade, fator de carga e estado — não existe composição típica nacional, e os valores iniciais servem apenas para que o instrumento abra funcionando. Preencha com a sua fatura.",
   },
@@ -1231,7 +1761,6 @@ export const INSTRUMENTOS_MODULO_10: Instrument[] = [
     outputs: [
       { id: "ol-cnt", label: "Passos executados", unit: null },
       { id: "ol-tempo", label: "Tempo acumulado estimado", unit: null },
-      { id: "ol-est", label: "Estado da leitura", unit: null },
     ],
     note: "Percorra os nove passos na ordem. Marque cada um conforme executa. Para cada passo, o instrumento mostra o que olhar, o critério de parada, o achado que torna os demais irrelevantes e o que registrar. O contador acompanha o progresso e o painel indica em que estado a análise está. Instrumento didático. Os tempos são orientativos e supõem fatura em formato legível e legenda disponível. Faturas com leiaute atípico ou sem demonstrativo de tributos exigem tempo adicional e, frequentemente, solicitação de segunda via detalhada.",
   },

@@ -3690,6 +3690,83 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
       veredito: VER,
     };
   },
+  // ── m11 INST 07 · Verificador de degradação declarada ──
+  // Transliteração mecânica do `calc()` da fonte: só as chamadas de DOM
+  // foram reescritas (`numOf`→`nm`, `segVal`→`sv`, `textContent`→OUT,
+  // `innerHTML`→VER). Lógica de ramo e prosa intocadas.
+  'm11-inst-07': (i) => {
+    const OUT: Record<string, string> = {};
+    let VER = '';
+    
+    const serie = (y1: number, d: number, hz: number) => {
+    let acc=0,fin=1;
+    for(let k=1;k<=hz;k++){
+      let p=(1-y1/100)*Math.pow(1-d/100,k-1);
+      acc+=p; if(k===hz)fin=p;
+    }
+    return {acc:acc,fin:fin};
+  };
+
+    let prop=nm(i['dg-prop'], 0.4, 0, 2);
+    let ds  =nm(i['dg-ds'], 0.55, 0, 2);
+    let y1  =nm(i['dg-y1'], 2, 0, 5);
+    let hz  =Math.round(nm(i['dg-hz'], 25, 5, 30));
+    let A=serie(y1,prop,hz), B=serie(y1,ds,hz);
+    let gap=A.acc>0?((A.acc-B.acc)/A.acc*100):0;
+    let delta=ds-prop;
+
+    OUT['dg-p1'] = fmt11(A.fin*100,1)+'%';
+    OUT['dg-p2'] = fmt11(B.fin*100,1)+'%';
+    OUT['dg-gap'] = (gap>=0?'':'')+fmt11(gap,1)+'%';
+
+    let cls,t=[];
+    if(prop===0){
+      cls='per';
+      t.push('<b>A projeção não aplica degradação nenhuma.</b> Isso não é uma premissa otimista: é a ausência de uma premissa obrigatória. Módulo fotovoltaico perde desempenho ao longo da vida por processos físicos conhecidos e o próprio termo de garantia do fabricante reconhece essa perda — é justamente por isso que a garantia de performance é escrita como uma curva decrescente, e não como um valor único. Uma planilha sem degradação projeta, no ano vinte e cinco, a mesma energia do primeiro ano.');
+      t.push('<b>O que costuma causar.</b> Planilha construída a partir de uma geração anual única, replicada por linha, sem coluna de ano. É o formato mais comum de proposta comercial e o mais difícil de auditar, porque a ausência da coluna esconde a ausência da premissa. Em propostas de porte maior, aparece também como degradação aplicada só sobre a geração e não sobre o resultado, o que produz o mesmo efeito.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Abra o termo de garantia do módulo especificado e leia a taxa máxima de perda anual garantida e a perda do primeiro ano. Esses dois números estão sempre no documento, e informá-los neste instrumento já mostra a distância entre o que a proposta projetou e o que o fabricante se obriga a entregar.');
+      t.push('<b>O que ainda exige análise especializada.</b> Nada, neste caso. A ausência de degradação é verificável por leitura, não por cálculo, e o achado correto é objetivo: a projeção precisa ser refeita com a curva do termo de garantia do modelo efetivamente especificado.');
+    } else if(y1===0){
+      cls='att';
+      t.push('<b>A projeção ignora a perda do primeiro ano.</b> A taxa anual está declarada, mas a queda inicial não. Termos de garantia de performance separam essas duas grandezas justamente porque elas têm origens físicas diferentes: a perda inicial é rápida e ocorre nos primeiros meses de exposição, a degradação anual é lenta e acumulativa. Tratar só a segunda subestima a perda ao longo de todo o horizonte, porque toda a curva parte de um patamar mais alto do que o real.');
+      t.push('<b>O que costuma causar.</b> Uso da taxa anual do datasheet sem ler o parágrafo anterior, que declara a garantia do primeiro ano em separado. É um erro de leitura, não de intenção, e aparece tanto em proposta agressiva quanto em proposta honesta.');
+      t.push('<b>O que o comprador confirma sozinho.</b> No termo de garantia, procure o percentual garantido ao fim do primeiro ano. A diferença entre cem por cento e esse percentual é a perda inicial. Informe esse valor aqui e observe o deslocamento de toda a curva.');
+      t.push('<b>O que ainda exige análise especializada.</b> Nenhuma, para a correção da premissa. A verificação de que o módulo entregue corresponde ao modelo cujo termo de garantia foi lido é outra verificação, e pertence ao eixo de certificação.');
+    } else if(delta<=0){
+      cls='ok';
+      t.push('<b>A proposta assume degradação igual ou maior que a garantida pelo fabricante.</b> Divergência de '+fmt11(Math.abs(delta),2)+' ponto percentual ao ano na direção conservadora. Este é o resultado que uma proposta bem construída produz, e dizê-lo é parte do trabalho: a projeção não está apoiada em desempenho que o fabricante não se obriga a entregar.');
+      t.push('<b>O que isso significa na prática.</b> A produção no fim do horizonte declarado fica em '+fmt11(A.fin*100,1)+' por cento da produção inicial pela premissa da proposta, contra '+fmt11(B.fin*100,1)+' por cento pelo piso garantido. A proposta está abaixo do piso, o que dá margem em vez de consumir margem.');
+      t.push('<b>O que o comprador ainda confirma sozinho.</b> Que o termo de garantia lido é o do modelo efetivamente listado na proposta, e não o de um modelo equivalente do mesmo fabricante. Substituição de modelo entre a proposta e a entrega é um evento comum e é matéria de cláusula contratual, não de planilha.');
+      t.push('<b>Redação recomendada do achado.</b> A premissa de degradação é conservadora em relação ao termo de garantia de performance do módulo especificado. Eixo 3 ancorado neste item; verificar se a mesma disciplina se repete na trajetória tarifária e no custo de operação e manutenção.');
+    } else if(delta<=0.1){
+      cls='ok';
+      t.push('<b>Premissa alinhada ao termo de garantia.</b> Divergência de '+fmt11(delta,2)+' ponto percentual ao ano, dentro do que se explica por arredondamento ou por uso de valor típico em vez do valor garantido do modelo. A projeção não depende de desempenho melhor do que o fabricante assegura em grau relevante.');
+      t.push('<b>O que isso significa na prática.</b> A energia acumulada no horizonte pela premissa da proposta excede em '+fmt11(gap,1)+' por cento a energia acumulada pelo piso garantido. Uma diferença nessa ordem não muda a natureza da decisão; ela apenas indica que a proposta usou o valor esperado e não o valor garantido, que é uma escolha metodológica defensável desde que declarada.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Pergunte se a taxa usada é a esperada ou a garantida. As duas respostas são aceitáveis; o que não é aceitável é a proposta não saber qual das duas está na planilha.');
+      t.push('<b>O que ainda exige análise especializada.</b> Nada aqui. A distinção entre taxa esperada e taxa garantida é documental, e o documento é público — acompanha o módulo e costuma estar disponível no sítio do fabricante.');
+    } else if(delta<=0.3){
+      cls='att';
+      t.push('<b>Divergência de '+fmt11(delta,2)+' ponto percentual ao ano entre a planilha e o piso garantido.</b> Faixa de atenção. A proposta está projetando desempenho melhor do que o fabricante se obriga a entregar, e a diferença, composta ao longo de '+hz+' anos, acumula '+fmt11(gap,1)+' por cento de energia que a garantia não assegura.');
+      t.push('<b>O que costuma causar.</b> Adoção de taxa média de mercado em vez da taxa do modelo especificado. Como a taxa média circula em material técnico e a taxa do modelo está num documento anexo, a substituição é silenciosa e quase nunca é intencional.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Substitua a taxa da planilha pela taxa do termo de garantia neste instrumento e observe o deslocamento. Se a decisão mudar de natureza com essa substituição, a premissa não era detalhe. Se não mudar, o achado é registrado e a avaliação segue.');
+      t.push('<b>O que ainda exige análise especializada.</b> Estimar degradação real de um modelo específico em condição de campo brasileira exige série de medição, que não existe para equipamento novo. Por isso o piso garantido é a referência correta: não é o valor mais provável, é o único valor que alguém se obrigou a entregar.');
+    } else {
+      cls='per';
+      t.push('<b>Divergência de '+fmt11(delta,2)+' ponto percentual ao ano.</b> Nesta faixa a projeção deixa de ser otimista e passa a ser incompatível com o documento que a sustenta. A planilha conta com '+fmt11(gap,1)+' por cento a mais de energia acumulada no horizonte do que o termo de garantia do próprio módulo especificado assegura — e o termo de garantia é o único documento com efeito jurídico entre os dois.');
+      t.push('<b>O que costuma causar.</b> Taxa escolhida a partir do resultado desejado, ou taxa copiada de material de um modelo de linha superior ao efetivamente orçado. A segunda hipótese é verificável imediatamente: basta conferir se o modelo do datasheet anexo é o mesmo da lista de materiais.');
+      t.push('<b>O que o comprador confirma sozinho.</b> Confira o código exato do modelo na lista de materiais contra o código no termo de garantia anexo. Depois peça a planilha refeita com a taxa garantida. Uma proposta que se recusa a refazer a projeção com o piso do próprio fabricante está declarando que o resultado não sobrevive a ele.');
+      t.push('<b>O que ainda exige análise especializada.</b> Se a proposta oferecer garantia de performance própria, superior à do fabricante, a análise passa a ser de solidez do garantidor e de execução da garantia — matéria do Eixo 4, não do Eixo 3, e que exige leitura do contrato e não da planilha.');
+    }
+     
+    VER = t.map(function(x){return '<p>'+x+'</p>';}).join('');
+  
+    void cls;
+    void VER;
+    return {
+      valores: { 'dg-p1': A.fin*100, 'dg-p2': B.fin*100, 'dg-gap': gap },
+      veredito: VER,
+    };
+  },
   'm11-inst-01': (i) => {
     const lente = String(i['mp-lente'] ?? 'eixo');
     const item = M11_MAPA_ITENS.find((x) => x.k === String(i['mp-item'] ?? M11_MAPA_ITENS[0].k)) ?? M11_MAPA_ITENS[0];

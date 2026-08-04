@@ -637,6 +637,24 @@ const M11_INSTRUMENTOS_TODOS: Instrument[] = [
     ],
     note: null,
   },
+  {
+    id: "m11-inst-07",
+    kind: "calculadora",
+    title: "Verificador de degradação declarada — planilha contra garantia do fabricante",
+    formula: null,
+    fields: [
+      { id: "dg-prop", label: "Degradação anual usada na proposta", unit: "%/ano", kind: "range", defaultValue: 0.4, min: 0, max: 2, step: 0.05 },
+      { id: "dg-ds", label: "Degradação máxima garantida no datasheet", unit: "%/ano", kind: "range", defaultValue: 0.55, min: 0, max: 2, step: 0.05 },
+      { id: "dg-y1", label: "Perda declarada no primeiro ano", unit: "%", kind: "range", defaultValue: 2, min: 0, max: 5, step: 0.1 },
+      { id: "dg-hz", label: "Horizonte da projeção da proposta", unit: "anos", kind: "range", defaultValue: 25, min: 5, max: 30, step: 1 },
+    ],
+    outputs: [
+      { id: "dg-p1", label: "Produção final sob a premissa da proposta", unit: "%" },
+      { id: "dg-p2", label: "Produção final sob a garantia do fabricante", unit: "%" },
+      { id: "dg-gap", label: "Energia acumulada a menos no horizonte", unit: "%" },
+    ],
+    note: null,
+  },
 ];
 
 const porId = (id: string): Instrument =>
@@ -739,7 +757,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [porId('m11-inst-06')],
+    instruments: [porId('m11-inst-06'), porId('m11-inst-07')],
   },
   {
     id: 'aula-11-06',

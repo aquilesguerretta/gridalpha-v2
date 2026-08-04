@@ -195,21 +195,6 @@ vira bloco de apostila; deixá-lo no denominador rebaixa a cobertura de
 toda aula que tenha um, e esconde perda real atrás de um número baixo
 que se explica sozinho.
 
-**A medida é por TOKEN, não por trecho contíguo.** Medir cobertura
-procurando trechos contíguos da fonte no extraído produz **falso
-negativo sistemático**: a extração quebra o texto em blocos, então um
-`<h3>` seguido de `<p>` vira `titulo` + `paragrafo` e qualquer trecho
-que atravesse a fronteira dos dois não casa em lugar nenhum. Cinco aulas
-do Módulo 13 mediram 78-81% por trecho contíguo e 98,4-99,5% por
-palavra, com a extração idêntica — o defeito era do medidor. Conta token
-com baixa: cada palavra da fonte precisa de uma palavra correspondente
-no extraído, consumida uma vez.
-
-**Desconta o markup dos instrumentos do denominador.** Instrumento não
-vira bloco de apostila; deixá-lo no denominador rebaixa a cobertura de
-toda aula que tenha um, e esconde perda real atrás de um número baixo
-que se explica sozinho.
-
 ## 6. Vocabulário de classe — nunca presume, mede toda vez
 
 Confirmado: Módulos 1-3 usam um vocabulário (`aula-marker`,
@@ -311,19 +296,6 @@ veredito" quebra quando a fonte usa `.innerHTML` num readout comum — o
 valor era sobrescrito e a saída sumia da tela (Wave 43, INST 05 do
 Módulo 11). Discrimina pelo id (`*-vd` → veredito), não pelo método.
 
-**Transliteração mecânica quando o veredito tem interpolação.** Reescreve
-só as chamadas de ambiente do original (`$id(x).textContent = E` → `OUT[x] = E`,
-`$id(x).innerHTML = E` → `VER = E`, `numOf`/`segVal` → leitores do mapa de
-entrada) e deixa **lógica de ramo e prosa intocadas**. Um verificador
-confirma resíduo de DOM zero antes de emitir. É o que torna possível
-portar 30 mil caracteres de veredito sem que nenhuma palavra passe pelo
-teclado (Wave 43).
-
-**Cuidado com o alvo do `.innerHTML`.** A regra "todo `.innerHTML` vira
-veredito" quebra quando a fonte usa `.innerHTML` num readout comum — o
-valor era sobrescrito e a saída sumia da tela (Wave 43, INST 05 do
-Módulo 11). Discrimina pelo id (`*-vd` → veredito), não pelo método.
-
 ## 11. Backup local fica obsoleto no instante em que outra sessão escreve — verifica antes de restaurar
 
 Um backup tirado no início de uma operação **não é garantia contra
@@ -408,31 +380,6 @@ modificadas que são só normalização de fim de linha pendente, não
 trabalho alheio. `git update-index --refresh` antes de concluir qualquer
 coisa — senão a reação é stash ou reconciliação sobre nada (Wave 46).
 
-**A janela não é só entre backup e restauração — é entre verificação e
-commit.** `git commit <path>` captura o estado do arquivo **no instante
-do commit**, não o que foi verificado antes dele. Rodar diff, build,
-teste e detect e só então commitar deixa a janela aberta o tempo todo:
-o commit `6e41144` saiu com trabalho de outra wave sob a mensagem
-errada exatamente assim. A sequência tem que ser **guardada e sem
-round-trip** — um script que escreve, roda os gates, confere que o diff
-não carrega linha de outra wave, e commita, abortando em qualquer falha.
-
-**Quando a escrita paralela for rápida demais para ler-modificar-escrever
-com segurança, não reconcilia: sintetiza.** Aplica a inserção na árvore
-de trabalho de forma ADITIVA (ao lado da alheia, sem sobrescrever) e
-estagia um blob construído a partir do `HEAD` corrente mais **somente a
-própria inserção**, via `git hash-object -w` + `git update-index
---cacheinfo`. A árvore de trabalho nunca é tocada, então nada em voo se
-perde, e o commit não carrega trabalho alheio. Verifica sempre, como
-passo separado, que o staged tem **zero deleção** e nenhuma linha
-adicionada pertencente à outra wave (Wave 46, com o HEAD mudando duas
-vezes durante a wave).
-
-**Índice velho mente.** `git status` pode acusar dezenas de linhas
-modificadas que são só normalização de fim de linha pendente, não
-trabalho alheio. `git update-index --refresh` antes de concluir qualquer
-coisa — senão a reação é stash ou reconciliação sobre nada (Wave 46).
-
 ---
 
 ## 12. Limitações de contrato conhecidas
@@ -471,20 +418,6 @@ Fallback que funciona quando o painel não compõe frames:
 `--enable-unsafe-swiftshader`, servidor próprio em porta dedicada
 declarada no `.claude/launch.json`.
 
-## 14. Contrato de renderização — campo e kind têm regra própria, confirma antes de gerar
-
-O componente `Tabela` trata a primeira linha como `<thead>`, sempre —
-destrutivo pra estrutura de par chave-valor, onde a "primeira linha" é
-dado real. Confirmado afetando Módulos 9, 10 e 12. Estrutura nova
-identificada como par chave-valor mapeia pra `nota`, nunca `tabela`, até
-o componente ser corrigido — fora de posse de wave de extração.
-
-`formula.desc` e `formula.eq` são texto puro, nunca HTML — diferente de
-`paragrafo`, `nota`, `lista` e célula de tabela, que aceitam HTML, o
-painel renderiza esses dois campos como texto React puro. Tag HTML
-aparece literal na tela, defeito só visível por clique real. Gera esses
-campos sem marcação embutida.
-
 ## 14. Contrato de renderização — qual campo aceita HTML e qual não aceita
 
 Nem todo campo de `AulaBloco` passa por `dangerouslySetInnerHTML`.
@@ -510,26 +443,21 @@ HTML recebe `inline()` (só as tags de estrutura removidas, o inline
 preservado). Confere na tela depois de extrair — a varredura é
 `/<b>|<\/b>|&lt;/` no `innerText` da aula, e tem que dar zero.
 
-Fora da apostila, o mesmo cuidado vale para o veredito de instrumento,
-que **passa** por HTML desde a Wave 34 — ali o inline da fonte deve ser
-preservado, não removido.
-
-### A tabela completa, medida em `ApostilaPanel.tsx`
-
-| campo | renderização |
-| --- | --- |
-| `paragrafo.html` | **HTML** |
-| `nota.html` | **HTML** |
-| `lista.itens[]` | **HTML** |
-| `tabela.linhas[][]` (células) | **HTML** |
-| `formula.eq` | texto puro |
-| `formula.desc` | texto puro |
-| `titulo.texto` / `titulo.numero` | texto puro |
-
-Campo de texto puro recebe `texto()` (tags removidas); campo de HTML
-recebe `inline()` (só as tags de estrutura removidas). A varredura de
-fechamento é `/<b>|</b>|&lt;/` no `innerText` da aula, e tem que dar
-zero (Wave 46, sete fórmulas do Módulo 14 mostrando a tag literal).
-
 Fora da apostila vale o inverso: o veredito de instrumento **passa** por
 HTML desde a Wave 34 — ali o inline da fonte se preserva, não se remove.
+
+## 15. Par chave-valor vai para `nota`, nunca para `tabela`
+
+O componente `Tabela` trata a primeira linha como `<thead>`, **sempre**.
+Numa estrutura de par chave-valor a "primeira linha" é dado real, então
+mapear para `tabela` consome um par como cabeçalho — ou obriga a
+inventar um cabeçalho que a fonte não tem. Confirmado afetando os
+Módulos 08, 09, 10 e 12, cujas fichas (`src-card`, `fi`) já estão no ar
+com o primeiro par promovido a cabeçalho: não há perda de texto, só de
+hierarquia visual, e corrigir é wave própria.
+
+Estrutura nova identificada como par chave-valor mapeia para `nota`
+(label + html), que é exatamente o que modela rótulo mais prosa —
+decisão da Wave 47 para os `gcmp`, `tax` e `dual` do Módulo 12 e para
+os `par-col` do Módulo 15. `tabela` fica para o que a fonte escreve
+como tabela de verdade, com cabeçalho próprio.

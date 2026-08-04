@@ -7,10 +7,22 @@
 > Todo brief de extração lê isto na Fase 1, em vez de reescrever a
 > lista.
 >
+> Reconciliado de novo na Wave 48: extensões às Seções 5 (cobertura
+> por token), 10 (transliteração mecânica) e 11 (a janela entre
+> verificação e commit; blob sintetizado), mais a Seção 14 nova
+> (contrato de renderização). Tudo derivado de fechamento real das
+> Waves 43-46.
+>
 > Reconciliado na Wave 43 a partir da versão da Wave 41: a numeração
 > 1-11 abaixo é a canônica e briefs a citam por número (a Seção 11 é
 > nova nesta reconciliação). As Seções 12-13 preservam material que a
 > Wave 41 tinha e que o texto canônico não cobre.
+>
+> Wave 47 acrescenta: cobertura por PALAVRA na §5 (trecho contíguo dá
+> falso negativo), transliteração mecânica na §10, quatro lições de
+> concorrência na §11 (diff que mente, pathspec que não protege o
+> intervalo, blob sintetizado, índice desatualizado) e a §14 nova —
+> contrato de renderização, que vem dos Módulos 9/10/12 e 14.
 
 ---
 
@@ -139,6 +151,15 @@ investigação — geralmente é estrutura nova que o extrator ainda não sabe
 capturar. Cobertura saudável fecha em 90-99%; o resíduo é pontuação de
 aparato e normalização de entidade.
 
+**Cobertura por trecho contíguo produz falso negativo quando a extração
+fragmenta a fonte em blocos separados** — `<h3>` seguido de `<p>` na
+fonte vira `titulo` + `paragrafo` na extração, então a string
+concatenada que o medidor procura nunca existe no resultado, mesmo com o
+conteúdo inteiro presente. **Cobertura por palavra é a medida imune a
+isso** — confirmado no Módulo 13, onde cinco aulas pareciam em 78-81% de
+perda real e na verdade estavam em 98-99% depois de medir por palavra em
+vez de trecho.
+
 Regex simples não dá conta de estrutura aninhada — usa walker de árvore
 de DOM real quando a perda for identificada. Regex não-guloso fecha no
 lugar errado em `div` aninhada (lição do Módulo 04).
@@ -153,6 +174,21 @@ Quando prosa e markup divergem, **o markup vence** e a divergência é
 registrada, não corrigida. Precedentes: Módulo 01 ("seis dos oito", há
 8), Módulo 02 ("Oito exercícios", há 10), glossário do Módulo 01 ("Vinte
 e oito termos", há 38).
+
+**A medida é por TOKEN, não por trecho contíguo.** Medir cobertura
+procurando trechos contíguos da fonte no extraído produz **falso
+negativo sistemático**: a extração quebra o texto em blocos, então um
+`<h3>` seguido de `<p>` vira `titulo` + `paragrafo` e qualquer trecho
+que atravesse a fronteira dos dois não casa em lugar nenhum. Cinco aulas
+do Módulo 13 mediram 78-81% por trecho contíguo e 98,4-99,5% por
+palavra, com a extração idêntica — o defeito era do medidor. Conta token
+com baixa: cada palavra da fonte precisa de uma palavra correspondente
+no extraído, consumida uma vez.
+
+**Desconta o markup dos instrumentos do denominador.** Instrumento não
+vira bloco de apostila; deixá-lo no denominador rebaixa a cobertura de
+toda aula que tenha um, e esconde perda real atrás de um número baixo
+que se explica sozinho.
 
 ## 6. Vocabulário de classe — nunca presume, mede toda vez
 
@@ -227,12 +263,33 @@ Texto de veredito com interpolação numérica se transcreve por extração
 programática, não digitação — 62,6 mil caracteres de prosa num módulo só
 (11) é volume onde erro de digitação é certeza estatística.
 
+**Para instrumento computacional com saída em texto, transliteração
+mecânica supera porte por leitura.** Reescreve só as chamadas de DOM do
+script original, deixa lógica e prosa completamente intocadas — o texto
+verbatim nunca passa pelo teclado de quem porta. Confirmado expondo erro
+que porte por leitura não pegaria (cabeçalho digitado errado, pontuação
+acrescentada a rótulo que a fonte trata como título) — achado só porque a
+prova rodou contra o espaço de entrada inteiro, não amostra.
+
 **Nota de método (Waves 38 e 42):** toda falha de fidelidade investigada
 até a causa se provou **defeito do harness de teste**, nunca da porta —
 tipicamente chamar a calculadora com entrada vazia quando o painel
 sempre semeia os `defaultValue`, ou contar elementos que não são os do
 alvo (as gravuras `orn-` do rodapé entrando na contagem de gravura de
 aula).
+
+**Transliteração mecânica quando o veredito tem interpolação.** Reescreve
+só as chamadas de ambiente do original (`$id(x).textContent = E` → `OUT[x] = E`,
+`$id(x).innerHTML = E` → `VER = E`, `numOf`/`segVal` → leitores do mapa de
+entrada) e deixa **lógica de ramo e prosa intocadas**. Um verificador
+confirma resíduo de DOM zero antes de emitir. É o que torna possível
+portar 30 mil caracteres de veredito sem que nenhuma palavra passe pelo
+teclado (Wave 43).
+
+**Cuidado com o alvo do `.innerHTML`.** A regra "todo `.innerHTML` vira
+veredito" quebra quando a fonte usa `.innerHTML` num readout comum — o
+valor era sobrescrito e a saída sumia da tela (Wave 43, INST 05 do
+Módulo 11). Discrimina pelo id (`*-vd` → veredito), não pelo método.
 
 ## 11. Backup local fica obsoleto no instante em que outra sessão escreve — verifica antes de restaurar
 
@@ -256,6 +313,67 @@ sobrescrita direta.
 Corolário: `cp arquivo backup && operação` numa árvore com sessão
 paralela ativa é a própria armadilha — o `&&` cria a janela. Faz a
 leitura de estado como passo separado, imediatamente antes da escrita.
+
+**O tamanho do diff também pode mentir.** Um diff de milhares de linhas
+pode ser quase inteiro ruído de fim de linha, não mudança real — já
+aconteceu (6.477 linhas brutas, 83 reais, medido com
+`-w --ignore-cr-at-eol` antes de decidir qualquer ação). Se o merge de
+três vias falhar porque o arquivo inteiro aparenta estar em conflito,
+isso é sintoma de ruído de fim de linha — troca pra patch por âncora de
+texto, não por número de linha. Depois de qualquer restauração, confirma
+por `git show --numstat` no próprio commit antes de concluir que algo foi
+perdido — inserção pura é evidência real, mais forte que suposição.
+
+**Pathspec protege contra pegar staged alheio, mas não contra o próprio
+path mudar entre verificação e commit.** `git commit <path>` lê o estado
+do arquivo no disco no instante em que o commit executa, não o que foi
+verificado momentos antes — sessão paralela pode escrever no mesmo path
+nesse intervalo e o commit captura o dela, não o seu (já aconteceu:
+commit rotulado "instrumento 04" continha trabalho de outra wave e não
+continha o INST 04). A defesa é rodar escrita, gates de verificação e
+commit como sequência única e guardada, sem passo separado com espaço pra
+escrita alheia entre eles — aborta em qualquer falha em vez de seguir pro
+próximo passo.
+
+**Se a sessão paralela está reescrevendo o arquivo compartilhado mais
+rápido do que dá pra ler-modificar-escrever com segurança** (diagnóstico:
+duas leituras seguidas do mesmo trecho voltam diferentes), não toca mais
+o arquivo de trabalho — constrói o blob alvo direto via
+`git hash-object` a partir do HEAD atual mais só a própria inserção, e
+estagia com `git update-index --cacheinfo`, sem escrever na árvore em
+momento nenhum. Verifica antes de commitar que o blob contém o trabalho
+alheio já commitado e zero linha removida.
+
+**`git status`/`git diff --stat` também pode acusar arquivo modificado
+sem mudança real nenhuma** — índice desatualizado com normalização de fim
+de linha pendente produz o mesmo sinal que trabalho real de sessão
+paralela. `git update-index --refresh` resolve; confirma antes de stashar
+ou reagir como se fosse colisão real.
+
+**A janela não é só entre backup e restauração — é entre verificação e
+commit.** `git commit <path>` captura o estado do arquivo **no instante
+do commit**, não o que foi verificado antes dele. Rodar diff, build,
+teste e detect e só então commitar deixa a janela aberta o tempo todo:
+o commit `6e41144` saiu com trabalho de outra wave sob a mensagem
+errada exatamente assim. A sequência tem que ser **guardada e sem
+round-trip** — um script que escreve, roda os gates, confere que o diff
+não carrega linha de outra wave, e commita, abortando em qualquer falha.
+
+**Quando a escrita paralela for rápida demais para ler-modificar-escrever
+com segurança, não reconcilia: sintetiza.** Aplica a inserção na árvore
+de trabalho de forma ADITIVA (ao lado da alheia, sem sobrescrever) e
+estagia um blob construído a partir do `HEAD` corrente mais **somente a
+própria inserção**, via `git hash-object -w` + `git update-index
+--cacheinfo`. A árvore de trabalho nunca é tocada, então nada em voo se
+perde, e o commit não carrega trabalho alheio. Verifica sempre, como
+passo separado, que o staged tem **zero deleção** e nenhuma linha
+adicionada pertencente à outra wave (Wave 46, com o HEAD mudando duas
+vezes durante a wave).
+
+**Índice velho mente.** `git status` pode acusar dezenas de linhas
+modificadas que são só normalização de fim de linha pendente, não
+trabalho alheio. `git update-index --refresh` antes de concluir qualquer
+coisa — senão a reação é stash ou reconciliação sobre nada (Wave 46).
 
 ---
 
@@ -294,3 +412,46 @@ Fallback que funciona quando o painel não compõe frames:
 `playwright-core` no scratchpad dirigindo o Chrome do sistema com
 `--enable-unsafe-swiftshader`, servidor próprio em porta dedicada
 declarada no `.claude/launch.json`.
+
+## 14. Contrato de renderização — campo e kind têm regra própria, confirma antes de gerar
+
+O componente `Tabela` trata a primeira linha como `<thead>`, sempre —
+destrutivo pra estrutura de par chave-valor, onde a "primeira linha" é
+dado real. Confirmado afetando Módulos 9, 10 e 12. Estrutura nova
+identificada como par chave-valor mapeia pra `nota`, nunca `tabela`, até
+o componente ser corrigido — fora de posse de wave de extração.
+
+`formula.desc` e `formula.eq` são texto puro, nunca HTML — diferente de
+`paragrafo`, `nota`, `lista` e célula de tabela, que aceitam HTML, o
+painel renderiza esses dois campos como texto React puro. Tag HTML
+aparece literal na tela, defeito só visível por clique real. Gera esses
+campos sem marcação embutida.
+
+## 14. Contrato de renderização — qual campo aceita HTML e qual não aceita
+
+Nem todo campo de `AulaBloco` passa por `dangerouslySetInnerHTML`.
+Preservar HTML inline da fonte num campo que o painel renderiza como
+texto puro faz a tag **aparecer literal na tela** — e é defeito que
+leitura de código não pega, só verificação por clique (Wave 46: as sete
+fórmulas do Módulo 14 mostrando `<b>não equivale</b>` como texto).
+
+Medido em `ApostilaPanel.tsx`:
+
+| campo | renderização |
+| --- | --- |
+| `paragrafo.html` | **HTML** |
+| `nota.html` | **HTML** |
+| `lista.itens[]` | **HTML** |
+| `tabela.linhas[][]` (células) | **HTML** |
+| `formula.eq` | texto puro |
+| `formula.desc` | texto puro |
+| `titulo.texto` / `titulo.numero` | texto puro |
+
+Regra: campo de texto puro recebe `texto()` (tags removidas); campo de
+HTML recebe `inline()` (só as tags de estrutura removidas, o inline
+preservado). Confere na tela depois de extrair — a varredura é
+`/<b>|<\/b>|&lt;/` no `innerText` da aula, e tem que dar zero.
+
+Fora da apostila, o mesmo cuidado vale para o veredito de instrumento,
+que **passa** por HTML desde a Wave 34 — ali o inline da fonte deve ser
+preservado, não removido.

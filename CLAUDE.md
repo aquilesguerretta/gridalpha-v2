@@ -6792,3 +6792,183 @@ tocar componente nenhum.
 (Recharts, desde a Wave 3). `gridalpha-detect` sobre os arquivos da wave
 — "No findings. Surface is clean." `git status` conferido antes de cada
 um dos quatro commits.
+
+## LYCEUM — ALEXANDRIA WAVE 42 — MÓDULO 11
+
+**Status:** conteúdo fechado e verificado. **Instrumentos NÃO portados** —
+por colisão de arquivo com a Wave 41, em voo (ver abaixo). Sexto módulo
+da Trilha 2.
+
+**Arquivos:** `alexandria-modulo-11-content.ts` (NOVO, 520 linhas) ·
+`alexandria-curriculo.ts` · `alexandria-trilhas.ts`.
+`alexandria-instrument-calculators.ts` **intocado**.
+
+### O TÍTULO DO CATÁLOGO ESTÁ ERRADO — achado principal da wave
+
+O brief mandou não herdar a suposição. O catálogo da FOUNDRY traz
+
+```
+{ id: 'bloco-11', title: 'Energia Solar e Análise de Propostas',
+  priority: 'confirmar', illustrationPrefix: null }
+```
+
+e `priority: 'confirmar'` é exatamente o marcador de "derivado de
+evidência circunstancial na Wave 1, nunca confirmado em cabeçalho
+literal". A fonte, que agora existe, declara **outro título**, nos dois
+lugares:
+
+| sinal | valor |
+| --- | --- |
+| `<title>` | Alexandria · Módulo 11 — **Geração Distribuída e a Anatomia de uma Proposta Solar** |
+| `<h1>` | **Geração Distribuída e a Anatomia de uma Proposta Solar** |
+
+Não é sinônimo: o do catálogo é mais estreito. O módulo trata de
+**geração distribuída inteira** — marco legal, porte, modalidades,
+regimes de compensação, cronograma do Fio B — e a análise de proposta é
+a aplicação, não o assunto. `alexandria-blocks.ts` é somente-leitura
+nesta wave, então a interface segue mostrando o título do catálogo
+(confirmado na verificação por clique) e a divergência fica registrada
+no cabeçalho do arquivo de conteúdo. **Pendência para a FOUNDRY.**
+
+### Terceira variante de vocabulário da série
+
+Seletores dos Módulos 01-03: zero. É o vocabulário abreviado dos 04-09,
+com duas inversões que só a medição pega:
+
+- `sec-id` inverte o negrito — `§Ex · <b>Exercícios</b>` aqui, contra
+  `<b>§Ex</b> · Exercícios` nos anteriores;
+- `inst-hd` inverte a ordem — `span.id` antes de `span.nm`.
+
+O extrator da wave anterior daria zero nos dois casos.
+
+### Cobertura de texto — o gate do protocolo, e o que ele pegou
+
+18 seções = **8 aulas + 10 de aparato**. Primeira medição de cobertura:
+**cinco das oito abaixo de 85%**, a pior em 61,9%. A contagem de
+ELEMENTO teria passado — os `<p>` aninhados em `box`/`lv` inflam o
+número e mascaram a perda, exatamente como o protocolo §2 descreve.
+
+Cinco estruturas eram descartadas em silêncio, todas recuperadas:
+
+| estrutura | ocorrências | virou | precedente |
+| --- | --- | --- | --- |
+| `div.lv` | 4 | nota com os três níveis rotulados dentro | Módulos 04-06 |
+| `div.box[ gd\|rd]` | 28 | nota (`tom` gold/neutro, label do `span.tag`) | Módulos 04-09 |
+| `div.chain` > `.ck2` | 2 | lista, cada passo com seu rótulo | novo |
+| `p.srcnote` | 9 | nota rotulada 'Fonte' | novo |
+| `div.fi` | 10 (44 pares) | titulo + tabela | Módulo 09 |
+
+| aula | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cobertura inicial | **61,9%** | 97,6 | **81,1** | **78,9** | 98,4 | **78,0** | 93,9 | **79,9** |
+| cobertura final | 99,8 | 99,7 | 99,6 | 99,7 | 99,7 | 99,8 | 99,4 | 99,7 |
+
+**169 blocos** ao todo, 99,7% no agregado.
+
+### Contagem, gravura, vídeo
+
+§Ex anuncia "Quatorze exercícios" e há 14 `div.box` com `<details>` de
+gabarito — prosa e markup concordam. Os catorze são **todos soltos**: a
+varredura por `/[Aa]ula\s*\d+/` no enunciado E no gabarito devolve zero,
+padrão desde o Módulo 04 (protocolo §5).
+
+**Gravura: nenhuma, e é o estado correto.** `illustrationPrefix: null`
+no catálogo e **zero `<img>`** no markup — os dois sinais concordando.
+`illustrations: []` nas oito, sem forçar biblioteca de outro bloco
+(mesmo caso dos Blocos 04 e 05). `video: null` medido: zero `<video>`,
+`<iframe>`, youtube, vimeo, `.mp4`.
+
+§Lex tem 150 `.term`, **não extraídos** — glossário é escopo próprio,
+fechado até o Módulo 08 na Wave 34.
+
+### INSTRUMENTOS — a medição está feita, o porte não
+
+A fonte tem **onze** `div.inst`: um no § MAP (fora de aula) e dez de
+aula, com as **Aulas 05 e 08 tendo dois cada**. Mecânica de cada um
+inspecionada na Fase 1, não presumida pelo nome (protocolo §4):
+
+| Inst | Aula | mecânica real | `kind` indicado |
+| --- | --- | --- | --- |
+| 01 | §MAP | 4 lentes × 10 itens, revela texto | `explorador` |
+| 02 | 01 | 12 afirmações, revela eixo/método/limite | `explorador` |
+| 03 | 02 | 7 marcos, revela norma/vigência/efeito | `explorador` |
+| 04 | 03 | 1 numérico + 2 seg → classificação + veredito | `simulador` |
+| 05 | 04 | 1 numérico + 3 seg → regime + veredito | `simulador` |
+| 06 | 05 | 4 numéricos → 3 readouts + veredito | `simulador` |
+| 07 | 05 | 4 numéricos → 3 readouts + veredito | `simulador` |
+| 08 | 06 | 3 numéricos + 1 seg → 3 readouts + veredito | `simulador` |
+| 09 | 07 | 8 sinais, revela caracterização/fonte/pergunta | `explorador` |
+| 10 | 08 | 4 chaves × 3 estados → veredito composto | `quebra-cabeca` |
+| 11 | 08 | 8 passos, revela janela/ação/fonte/erro | `explorador` |
+
+**Por que não entraram, e não é o motivo de sempre.** A Wave 34 está
+fechada, então o contrato do painel não era o impedimento. O que
+impediu foi **colisão de arquivo em tempo real**: a Wave 41 (Módulo 10)
+estava com **494 linhas não commitadas** em
+`alexandria-instrument-calculators.ts` durante toda esta wave.
+`git commit <path>` commita o estado do arquivo inteiro — commitar ali
+teria varrido o trabalho dela para dentro do meu commit, que é
+exatamente o incidente `f955e62` que o protocolo §10 documenta.
+
+**Groundwork entregue, para o porte custar pouco:** a medição acima,
+mais os artefatos no scratchpad desta sessão — `dados.json` (os literais
+`LENTES`/`ITENS`/`A`/`M`/`MOD`/`ESC`/`S`/`E1-E4`/`P` do script original
+**avaliados**, não transcritos), `textos.json` (62.602 chars de prosa de
+veredito, extraídos com scanner de string), `defs-ts.txt` (as 6
+definições de instrumento de lookup já emitidas) e `harness.mjs`, que
+executa o script ORIGINAL com DOM shimado e já foi validado contra o
+INST 06 (defaults da fonte → 148,0 MWh/ano · +18,2% · 92,2%).
+
+Os cinco computacionais (04-08) são os caros: os vereditos deles são
+**templates com interpolação numérica** (`'…em '+fmt(gap,2)+' ponto
+percentual…'`), ~30 mil chars em construtores ramificados, e portá-los
+exige a disciplina ramo-a-ramo da Wave 38. Os seis de lookup são
+mecânicos e estão prontos para colar.
+
+### Trilha 2
+
+`AULAS_POR_BLOCO['bloco-11'] = 8`. Com a Wave 41 fechando o Módulo 10 em
+paralelo, a Trilha 2 fica em **6 de 7 módulos com fonte** (confirmado na
+tela: "45 aulas confirmadas · 6 de 7 módulos com fonte"), restando só o
+Bloco 12. Registro no resolvedor foi import + três spreads pela sétima
+vez, **nenhum componente tocado**.
+
+### Verificação — 48 asserções, 0 falha, nas duas viewports
+
+Hub → Trilha 2 → Módulo 11 → aula, por clique real em 1440×900 e
+1920×1080: título do catálogo na tela (divergência confirmada), títulos
+reais das Aulas 01 e 08, "AULA 1 DE 8" e "AULA 8 DE 8", explicador de
+três níveis e cadeia de precedência renderizando, Aula 03 com 4 tabelas
+e Aula 07 com 6 (as fichas `div.fi` recuperadas), zero `<figure>`, zero
+overflow horizontal, zero `NaN`, zero erro de console.
+
+Regressão nos seis módulos já fechados, com o `<main>` rolado para
+disparar o lazy: M01 a3 **3/3**, M02 a3 **3/3**, M03 a6 **3/3**, M06 a3
+**3/3**, M07 a1 **2/2**, M09 a4 **1/1** gravuras com `naturalWidth > 0`,
+nenhuma com NaN.
+
+**Nota de método:** a primeira rodada acusou 18 falhas que eram todas
+**bugs das minhas asserções**, não do produto — o contador de gravura
+incluía as quatro `orn-` da cartela do rodapé (Wave 10), e o filtro de
+console não excluía o `aula_iniciada` sem sessão, que é best-effort por
+design (Wave 31). Mesma lição que a Wave 38 registrou: falha de
+verificação investigada até a causa costuma ser defeito do harness.
+
+**Nota de ambiente:** o painel Browser desta sessão nasceu **0×0** —
+`window.innerWidth` medido antes de acreditar em qualquer layout, como o
+protocolo §10 manda. `resize_window` não recuperou (o `<main>` seguia
+ausente), e a verificação foi por `playwright-core` no scratchpad
+dirigindo o Chrome do sistema.
+
+**Gates:** `tsc -b` — **0 erros nos arquivos desta wave**; permanecem os
+**7 pré-existentes** em `nest/student/{ProjectSandbox,SandboxTrading}`
+(Recharts, desde a Wave 3). `gridalpha-detect` sobre os três arquivos —
+"No findings. Surface is clean."
+
+### Registrado, não resolvido
+
+- **Título do Bloco 11 no catálogo** — divergente da fonte;
+  `alexandria-blocks.ts` é posse FOUNDRY.
+- **Os onze instrumentos** — medidos e com dado extraído, não portados.
+- **§ Lex do Módulo 11** (150 termos) — glossário é escopo próprio.
+- **Módulos 09-11 têm HTML no repositório**; o Bloco 12 fecha a Trilha 2.

@@ -73,6 +73,7 @@
 
 import type { CurriculumAula, Instrument, LessonActivity } from '@/lib/types/alexandria';
 import type { AulaBloco } from './alexandria-modulo-01-content';
+import { M08_CAPACIDADE_POR_FONTE } from './alexandria-modulo-08-fatos';
 
 // ── INST · 04 — referência e tolerância, literais do <script> (I4.ref /
 // I4.tol). Exportadas porque a calculadora importa DAQUI (mesma direção
@@ -178,18 +179,15 @@ const M08_INST_04: Instrument[] = [
 // 37 aplicou aos `src-card` quando descobriu a perda silenciosa. O que
 // se perde é só o desenho, não o dado.
 /** As seis fontes do INST 02 com a fotografia de 2025 declarada na fonte
- *  (`I2.src`) — capacidade em GW e fator de capacidade em %. Exportada
- *  porque a calculadora importa DAQUI, mesma direção de `M08_INST04_REF`:
- *  uma fonte de verdade só, sem cópia que possa divergir.
- *  A cor por fonte do original é da pizza SVG e não tem consumidor aqui. */
-export const M08_INST02_SRC: { k: string; nome: string; cap: number; fc: number }[] = [
-  { k: 'hid', nome: 'Hidrelétrica', cap: 110.2, fc: 41.6 },
-  { k: 'sol', nome: 'Solar', cap: 64.8, fc: 15.5 },
-  { k: 'eol', nome: 'Eólica', cap: 34.7, fc: 38.3 },
-  { k: 'bio', nome: 'Biomassa', cap: 17.5, fc: 41.1 },
-  { k: 'fos', nome: 'Térmica fóssil', cap: 31.8, fc: 27.5 },
-  { k: 'nuc', nome: 'Nuclear', cap: 2.0, fc: 90.4 },
-];
+ *  (`I2.src`) — capacidade em GW e fator de capacidade em %.
+ *
+ *  LYCEUM Wave 40: o VALOR mudou de casa. A tabela agora mora em
+ *  `alexandria-modulo-08-fatos.ts`, porque o jogo do Módulo 08 cita a
+ *  capacidade solar (`64,8 GW`) e era a MESMA grandeza digitada duas
+ *  vezes. Aqui fica só o reexport, com o nome público preservado — a
+ *  calculadora importa por ele desde a Wave 38 e não precisa saber que
+ *  a origem mudou. */
+export const M08_INST02_SRC = M08_CAPACIDADE_POR_FONTE;
 
 /** INST · 03 — faixas típicas de fator de capacidade por fonte, com o
  *  texto de leitura de "abaixo" e "acima" da faixa. Literal de

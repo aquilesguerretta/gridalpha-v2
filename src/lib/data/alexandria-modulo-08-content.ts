@@ -191,6 +191,45 @@ export const M08_INST02_SRC: { k: string; nome: string; cap: number; fc: number 
   { k: 'nuc', nome: 'Nuclear', cap: 2.0, fc: 90.4 },
 ];
 
+/** INST · 03 — faixas típicas de fator de capacidade por fonte, com o
+ *  texto de leitura de "abaixo" e "acima" da faixa. Literal de
+ *  `I3.faixas` do <script>. Exportada porque a calculadora importa daqui. */
+export const M08_INST03_FAIXAS: Record<
+  string,
+  { nome: string; lo: number; hi: number; baixo: string; alto: string }
+> = {
+  hid: {
+    nome: 'Hidrelétrica', lo: 40, hi: 60,
+    baixo: "Para hidrelétrica, fator abaixo da faixa sugere ano hidrológico fraco, usina a fio d'água em período de vazão baixa, restrição de uso múltiplo da água, ou decisão de despacho que preservou reservatório. Raramente indica problema de equipamento.",
+    alto: 'Acima da faixa é possível em ano de afluência muito favorável ou em usina operando próximo do máximo por posição na cascata. Verifique se o denominador não está subestimado — capacidade fiscalizada divergente da outorgada é a causa mais comum.',
+  },
+  eol: {
+    nome: 'Eólica', lo: 35, hi: 50,
+    baixo: 'Para eólica, fator abaixo da faixa aponta para quatro suspeitos, nesta ordem de frequência: corte de geração por restrição, indisponibilidade de turbinas, recurso de sítio abaixo do estimado no projeto, e entrada em operação ao longo do período inflando o denominador. Separar corte de recurso é a primeira coisa a fazer.',
+    alto: 'Acima da faixa é plausível em sítios excepcionais do Nordeste, especialmente no segundo semestre. Se o valor for anual e muito alto, confirme se a série não está medida na barra sem descontar perdas.',
+  },
+  sol: {
+    nome: 'Solar', lo: 20, hi: 30,
+    baixo: 'Para solar, fator abaixo da faixa quase sempre tem causa aritmética antes de ter causa física: usar a potência de fim de período como denominador de uma usina que entrou em operação durante o ano. Depois disso, investigue sujidade, degradação, indisponibilidade de inversor e corte de geração.',
+    alto: 'Acima da faixa é raro para fotovoltaica fixa. Verifique se a potência informada é de módulos ou de inversores — a razão entre as duas muda o resultado — e se há rastreamento solar no arranjo.',
+  },
+  bio: {
+    nome: 'Biomassa', lo: 35, hi: 55,
+    baixo: 'Para biomassa, fator baixo é o comportamento esperado fora da safra, e não indica problema. A leitura correta separa o período de safra do período de entressafra em vez de calcular o fator anual, que mistura dois regimes distintos.',
+    alto: 'Acima da faixa sugere operação com combustível complementar fora da safra, ou cogeração com processo industrial contínuo. Confirme se a energia informada é a exportada para a rede ou a total gerada, incluindo o consumo da própria planta.',
+  },
+  gas: {
+    nome: 'Gás natural', lo: 15, hi: 70,
+    baixo: 'Para térmica a gás, fator baixo é frequentemente sinal de sistema saudável: a usina existe para os momentos em que o sistema precisa dela, e não ser acionada significa que a hidrologia foi boa. A pergunta relevante não é por que gerou pouco, é se estava disponível quando foi chamada.',
+    alto: 'Acima da faixa indica despacho prolongado, típico de ano hidrológico ruim, ou inflexibilidade contratual que obriga a geração independentemente da ordem de mérito. As duas causas têm implicações econômicas opostas e precisam ser distinguidas.',
+  },
+  nuc: {
+    nome: 'Nuclear', lo: 75, hi: 92,
+    baixo: 'Para nuclear, fator abaixo da faixa aponta para parada programada de reabastecimento ou manutenção prolongada dentro do período. Em base anual, uma parada de algumas semanas já desloca o valor vários pontos.',
+    alto: 'Acima da faixa é o comportamento de referência de operação em base sem parada no período. É o maior fator de capacidade do parque brasileiro e serve de teto prático para leitura comparativa.',
+  },
+};
+
 const I2_INTRO =
   'Digite a capacidade instalada e o fator de capacidade de cada fonte. O instrumento devolve as duas pizzas e marca em dourado toda fonte que <b>trocou de posição</b> entre elas. Os valores iniciais são a fotografia de 2025 declarada abaixo; substitua qualquer um deles e a lição continua funcionando — é essa a razão de o instrumento existir.';
 const I2_SRCNOTE =
@@ -243,6 +282,52 @@ const M08_INST_02: Instrument[] = [
       })),
     ],
     note: `${I2_INTRO}<br><br>${I2_SRCNOTE}<br><br>${I2_DISC}`,
+  },
+];
+
+// ── INST · 03 — Calculadora de fator de capacidade (LYCEUM Wave 38) ──
+// Três campos numéricos com deslizador gêmeo (um campo lógico cada,
+// mesmo tratamento do Módulo 02) mais o grupo segmentado de fonte de
+// referência, que é select de escolha única renderizado como botões.
+//
+// A quarta leitura do original ("Faixa típica · <fonte>") imprime
+// "40% a 60%" — duas fronteiras, não um número. Sai como DUAS saídas
+// numéricas em vez de virar texto perdido.
+const I3_INTRO =
+  'Entre com a potência instalada, a energia gerada e o período. O instrumento devolve o fator de capacidade e o compara com a faixa típica da fonte selecionada — e diz o que um valor fora da faixa costuma indicar.';
+const I3_DISC =
+  'Didático/ilustrativo. As faixas típicas são ordens de grandeza para leitura rápida, não parâmetros de projeto: o valor real varia por sítio, ano, altura de torre, tecnologia, disponibilidade e corte de geração. Um fator fora da faixa é sinal para investigar, nunca prova de erro.';
+
+const M08_INST_03: Instrument[] = [
+  {
+    id: 'm08-inst-03',
+    kind: 'calculadora',
+    title: 'Calculadora de fator de capacidade · com faixa típica por fonte',
+    formula: 'FC = energia gerada ÷ (potência × período) × 100',
+    fields: [
+      {
+        id: 'i3-s',
+        label: 'Fonte de referência',
+        unit: null,
+        kind: 'select',
+        defaultValue: 'hid',
+        options: Object.entries(M08_INST03_FAIXAS).map(([value, f]) => ({
+          value,
+          label: f.nome,
+        })),
+      },
+      { id: 'i3-p', label: 'Potência instalada', unit: 'MW', kind: 'range', defaultValue: 300, min: 1, max: 15000, step: 1 },
+      { id: 'i3-e', label: 'Energia gerada no período', unit: 'GWh', kind: 'range', defaultValue: 1200, min: 1, max: 80000, step: 1 },
+      { id: 'i3-h', label: 'Período', unit: 'horas', kind: 'range', defaultValue: 8760, min: 24, max: 8784, step: 1 },
+    ],
+    outputs: [
+      { id: 'i3-teor', label: 'Energia teórica máxima', unit: 'GWh' },
+      { id: 'i3-fc', label: 'Fator de capacidade', unit: '%' },
+      { id: 'i3-heq', label: 'Horas equivalentes a plena carga', unit: 'h' },
+      { id: 'i3-fx-lo', label: 'Faixa típica · piso', unit: '%' },
+      { id: 'i3-fx-hi', label: 'Faixa típica · teto', unit: '%' },
+    ],
+    note: `${I3_INTRO}<br><br>${I3_DISC}`,
   },
 ];
 
@@ -529,8 +614,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    // Inst · 02 da fonte. O Inst · 03 é da mesma aula e entra a seguir.
-    instruments: M08_INST_02,
+    // Inst · 02 e Inst · 03 da fonte — a Aula 01 tem os dois.
+    instruments: [...M08_INST_02, ...M08_INST_03],
   },
   {
     id: 'aula-08-02',

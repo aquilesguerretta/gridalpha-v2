@@ -212,6 +212,7 @@ import {
   M08_INST04_TOL,
   M08_INST04_FONTES,
   M08_INST02_SRC,
+  M08_INST03_FAIXAS,
 } from './alexandria-modulo-08-content';
 
 /** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
@@ -352,6 +353,46 @@ function i2calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento 
     msg = `<b>${trocas.length} trocas de posição.</b> Este é o cenário que torna qualquer afirmação sobre "a segunda maior fonte do Brasil" indefensável sem qualificação. Com essa dispersão de fatores de capacidade, o ranking da pizza de capacidade e o da pizza de geração são objetos diferentes, e citar um como se fosse o outro produz um erro que não é de arredondamento — é de ordem. A fonte que mais sobe é <b>${sub.nm}</b> e a que mais desce é <b>${que.nm}</b>.`;
   }
   return { valores, veredito: msg };
+}
+
+// ── Módulo 08 · INST 03 — Fator de capacidade (LYCEUM Wave 38) ──
+//
+// PORTADO do `i3calc()`. Os três campos passam pelo `pairSlider` da
+// fonte, cujo getter é `clamp(value, min, max)` — o grampo é do
+// deslizador, não do cálculo, e é reproduzido aqui.
+//
+// `f0` da fonte arredonda; as saídas saem cruas e o painel formata.
+function i3calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const p = clampM08(i['i3-p'] ?? 300, 1, 15000);
+  const e = clampM08(i['i3-e'] ?? 1200, 1, 80000);
+  const h = clampM08(i['i3-h'] ?? 8760, 24, 8784);
+  const chave = String(i['i3-s'] ?? 'hid');
+  const fx = M08_INST03_FAIXAS[chave] ?? M08_INST03_FAIXAS.hid;
+
+  const teor = (p * h) / 1000;
+  const fc = teor > 0 ? (e / teor) * 100 : 0;
+  const horasEq = p > 0 ? (e * 1000) / p : 0;
+
+  let msg: string;
+  if (fc > 100) {
+    msg = '<b>Fator acima de 100% — impossível fisicamente.</b> A energia informada excede a que a potência declarada consegue produzir no período. Três causas cobrem quase todos os casos: unidade trocada entre MWh e GWh, período menor que o efetivo de geração, ou potência informada abaixo da real. Antes de investigar qualquer coisa no ativo, confira as unidades.';
+  } else if (fc < fx.lo) {
+    msg = `<b>Abaixo da faixa típica de ${fx.nome}.</b> ${fx.baixo} Lembre que o fator de capacidade é sintoma, não diagnóstico: ele mistura recurso, disponibilidade, despacho e restrição numa razão só, e separar essas causas exige a série horária, não o total do período.`;
+  } else if (fc > fx.hi) {
+    msg = `<b>Acima da faixa típica de ${fx.nome}.</b> ${fx.alto} Um valor fora da faixa é sinal para investigar, nunca prova de erro — as faixas são ordens de grandeza para leitura rápida, não parâmetros de projeto.`;
+  } else {
+    msg = `<b>Dentro da faixa típica de ${fx.nome}.</b> As ${String(Math.round(horasEq))} horas equivalentes a plena carga são a tradução mais intuitiva do resultado: é como se a usina tivesse operado no máximo durante esse número de horas e ficado parada no resto do período. Guarde essa leitura — ela torna a comparação entre fontes imediata sem precisar de percentual.`;
+  }
+  return {
+    valores: {
+      'i3-teor': teor,
+      'i3-fc': fc,
+      'i3-heq': horasEq,
+      'i3-fx-lo': fx.lo,
+      'i3-fx-hi': fx.hi,
+    },
+    veredito: msg,
+  };
 }
 
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
@@ -2121,6 +2162,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 02 · conversor de três eixos · as duas pizzas ──
   'm08-inst-02': i2calcM08,
+
+  // ── m08 INST 03 · fator de capacidade com faixa típica por fonte ──
+  'm08-inst-03': i3calcM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

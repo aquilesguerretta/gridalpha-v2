@@ -68,6 +68,11 @@ import {
   MODULO_09_CORPO,
   MODULO_09_LEAD,
 } from './alexandria-modulo-09-content';
+import {
+  MODULO_10_AULAS,
+  MODULO_10_CORPO,
+  MODULO_10_LEAD,
+} from './alexandria-modulo-10-content';
 
 // ── Agregação. Acrescentar módulo novo é acrescentar aqui. ─────────
 //
@@ -84,6 +89,7 @@ const AULAS: CurriculumAula[] = [
   ...MODULO_07_AULAS,
   ...MODULO_08_AULAS,
   ...MODULO_09_AULAS,
+  ...MODULO_10_AULAS,
   ...MODULO_11_AULAS,
 ];
 const CORPO: Record<string, AulaBloco[]> = {
@@ -96,6 +102,7 @@ const CORPO: Record<string, AulaBloco[]> = {
   ...MODULO_07_CORPO,
   ...MODULO_08_CORPO,
   ...MODULO_09_CORPO,
+  ...MODULO_10_CORPO,
   ...MODULO_11_CORPO,
 };
 const LEAD: Record<string, string> = {
@@ -108,6 +115,7 @@ const LEAD: Record<string, string> = {
   ...MODULO_07_LEAD,
   ...MODULO_08_LEAD,
   ...MODULO_09_LEAD,
+  ...MODULO_10_LEAD,
   ...MODULO_11_LEAD,
 };
 

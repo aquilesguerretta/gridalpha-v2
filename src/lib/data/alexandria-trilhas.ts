@@ -58,6 +58,11 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // `sec-id`, das quais 8 casam `Aula NN` e 10 são aparato.
   // LYCEUM Wave 37.
   'bloco-09': 8,   // Mercado ACR e ACL
+  // Quinto módulo da Trilha 2. 19 seções `sec-id` — 9 casam `Aula NN`,
+  // 10 são aparato. A cobertura de TEXTO ficou entre 93,0% e 96,6% nas
+  // nove, medida depois de recuperar `div.fi`, `div.chain` e `div.form`,
+  // que o extrator herdado descartava em silêncio. LYCEUM Wave 41.
+  'bloco-10': 9,   // Tarifas e a Conta de Luz Industrial
   // Sexto módulo da Trilha 2. 18 seções `sec-id` — 8 casam `Aula NN`,
   // 10 são aparato. Terceira variante de vocabulário da série. O título
   // real da fonte ("Geração Distribuída e a Anatomia de uma Proposta

@@ -218,7 +218,24 @@ export function AtlasStub() {
   // header e rodapé. Style direto no DOM, zero re-render por frame.
   const aoMudarOpacidadeAmbiente = useCallback((o: number) => {
     const coluna = colunaRef.current;
-    if (coluna) coluna.style.opacity = o.toFixed(3);
+    if (!coluna) return;
+    coluna.style.opacity = o.toFixed(3);
+    // ── Wave 36: esmaecer NÃO bastava ────────────────────────────────
+    // Medido: com `opacity: 0` a coluna continuava `visibility:
+    // visible`, `pointerEvents: auto` e com 26 botões focáveis por Tab.
+    // Os controles ficavam invisíveis mas plenamente alcançáveis — um
+    // Tab ou clique acidental trocava a coloração do globo sem NENHUMA
+    // causa visível na tela, que é o que se lia como "a cor muda
+    // sozinha / não aparece de forma confiável".
+    //
+    // `inert` tira o bloco da ordem de foco E do hit-testing de uma vez
+    // (é o mecanismo padrão para isto); visibility/pointerEvents ficam
+    // como reforço explícito. Só some de verdade quando já está
+    // praticamente invisível, para o fade continuar suave.
+    const oculto = o < 0.05;
+    coluna.inert = oculto;
+    coluna.style.visibility = oculto ? 'hidden' : 'visible';
+    coluna.style.pointerEvents = oculto ? 'none' : 'auto';
   }, []);
 
   return (

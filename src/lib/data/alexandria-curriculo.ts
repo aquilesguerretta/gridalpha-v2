@@ -83,6 +83,11 @@ import {
   MODULO_10_CORPO,
   MODULO_10_LEAD,
 } from './alexandria-modulo-10-content';
+import {
+  MODULO_14_AULAS,
+  MODULO_14_CORPO,
+  MODULO_14_LEAD,
+} from './alexandria-modulo-14-content';
 
 // ── Agregação. Acrescentar módulo novo é acrescentar aqui. ─────────
 //
@@ -103,6 +108,7 @@ const AULAS: CurriculumAula[] = [
   ...MODULO_12_AULAS,
   ...MODULO_11_AULAS,
   ...MODULO_13_AULAS,
+  ...MODULO_14_AULAS,
 ];
 const CORPO: Record<string, AulaBloco[]> = {
   ...MODULO_01_CORPO,
@@ -118,6 +124,7 @@ const CORPO: Record<string, AulaBloco[]> = {
   ...MODULO_12_CORPO,
   ...MODULO_11_CORPO,
   ...MODULO_13_CORPO,
+  ...MODULO_14_CORPO,
 };
 const LEAD: Record<string, string> = {
   ...MODULO_01_LEAD,
@@ -133,6 +140,7 @@ const LEAD: Record<string, string> = {
   ...MODULO_12_LEAD,
   ...MODULO_11_LEAD,
   ...MODULO_13_LEAD,
+  ...MODULO_14_LEAD,
 };
 
 // Os ids são únicos por construção (`aula-01-NN` × `aula-02-NN`), mas o

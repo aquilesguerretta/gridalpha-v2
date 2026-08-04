@@ -81,6 +81,13 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // catálogo. 18 seções `sec-id`, das quais 8 casam `Aula NN`.
   // LYCEUM Wave 45.
   'bloco-13': 8,   // Análise Financeira de Empresas e Projetos
+  // SEGUNDO módulo da Trilha 3 (level 3), e o primeiro do currículo a
+  // integrar vocabulário de commodity agrícola a vocabulário de energia
+  // (ano-safra, ATR, mix açúcar-etanol, bagaço, CBIO). Track segue
+  // 'brasil', confirmado no catálogo. 18 seções `sec-id`, das quais 8
+  // casam `Aula NN`. Cobertura de texto 99,5-99,9% nas oito.
+  // LYCEUM Wave 46.
+  'bloco-14': 8,   // Biocombustíveis e Bioenergia
 };
 
 const TRILHA_ID_BY_LEVEL: Record<CurriculumLevel, string> = {

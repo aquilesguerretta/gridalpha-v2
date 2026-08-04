@@ -1251,6 +1251,22 @@ const i11m10: CalculateFn = (i) => {
   };
 };
 
+// ── Módulo 11 · instrumentos de lookup (LYCEUM Wave 43) ──
+// O dado vive no arquivo de conteúdo — fonte de verdade única, mesma
+// direção de import que MODULO_06_TRAUMA_CICATRIZ e M08_INST04_REF.
+import {
+  M11_MAPA_LENTES,
+  M11_MAPA_ITENS,
+  M11_SEPARADOR_EIXOS,
+  M11_MARCOS,
+  M11_SINAIS,
+  M11_PASSOS,
+  M11_E1,
+  M11_E2,
+  M11_E3,
+  M11_E4,
+} from './alexandria-modulo-11-content';
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -3070,6 +3086,112 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   'm10-inst-09': i9m10,
   'm10-inst-10': i10m10,
   'm10-inst-11': i11m10,
+
+  // ── m11 INST 01 · mapa da proposta (lente × item) ──
+  'm11-inst-01': (i) => {
+    const lente = String(i['mp-lente'] ?? 'eixo');
+    const item = M11_MAPA_ITENS.find((x) => x.k === String(i['mp-item'] ?? M11_MAPA_ITENS[0].k)) ?? M11_MAPA_ITENS[0];
+    const txtLente = M11_MAPA_LENTES[lente] ?? '';
+    return {
+      valores: {},
+      veredito:
+        // Sem ponto após os rótulos: o original renderiza `div.ti` como
+        // TÍTULO (`<div class="ti">Lente ativa</div>`), não como frase. A
+        // pontuação que eu tinha acrescentado quebrou a fidelidade nas 40
+        // combinações — achada pelo confronto contra o script original.
+        '<b>Lente ativa</b><br><br>' + txtLente + '<br><br>' +
+        '<b>' + item.n + '</b><br><br>' + (item[lente] ?? ''),
+    };
+  },
+  // ── m11 INST 02 · separador de eixos ──
+  'm11-inst-02': (i) => {
+    const a = M11_SEPARADOR_EIXOS.find((x) => x.k === String(i['se-a'] ?? M11_SEPARADOR_EIXOS[0].k)) ?? M11_SEPARADOR_EIXOS[0];
+    return {
+      valores: {},
+      veredito:
+        '<b>' + a.n + '</b><br><br><b>' + a.e + '</b><br><br>' +
+        '<b>Método de verificação:</b> ' + a.m + '<br><br>' +
+        '<b>O que esta afirmação NÃO autoriza concluir:</b> ' + a.x,
+    };
+  },
+  // ── m11 INST 03 · régua do marco regulatório ──
+  'm11-inst-03': (i) => {
+    const m = M11_MARCOS.find((x) => x.k === String(i['rg-m'] ?? M11_MARCOS[0].k)) ?? M11_MARCOS[0];
+    return {
+      valores: {},
+      veredito:
+        '<b>' + m.t + '</b><br><br>' +
+        '<b>Qual instrumento:</b> ' + m.norma + '<br><br>' +
+        '<b>Desde quando:</b> ' + m.desde + '<br><br>' +
+        '<b>O que mudou:</b> ' + m.fez + '<br><br>' +
+        '<b>Estado de regulamentação:</b> ' + m.estado,
+    };
+  },
+  // ── m11 INST 09 · anatomia dos oito sinais ──
+  'm11-inst-09': (i) => {
+    const s = M11_SINAIS.find((x) => x.k === String(i['sa-s'] ?? M11_SINAIS[0].k)) ?? M11_SINAIS[0];
+    return {
+      valores: {},
+      veredito:
+        '<b>' + s.n + '</b><br><br>' +
+        '<b>O que caracteriza o sinal.</b> ' + s.c + '<br><br>' +
+        '<b>Fonte independente que confirma.</b> ' + s.f + '<br><br>' +
+        '<b>O que o comprador verifica sozinho, sem ajuda técnica.</b> ' + s.s + '<br><br>' +
+        '<b>Pergunta a levar ao vendedor.</b> ' + s.p,
+    };
+  },
+  // ── m11 INST 11 · ordem de avaliação em trinta minutos ──
+  'm11-inst-11': (i) => {
+    const ix = Math.min(Math.max(Number(i['or-p'] ?? 0) || 0, 0), M11_PASSOS.length - 1);
+    const p = M11_PASSOS[ix];
+    return {
+      valores: {},
+      veredito:
+        '<b>Passo ' + p.n + ' · trilha ' + p.tr + ' · minuto ' + p.t0 + ' ao ' + p.t1 +
+        (p.sinc ? ' · ponto de sincronização' : '') + '</b><br><br>' +
+        '<b>' + p.tit + '</b><br><br>' +
+        '<b>O que fazer.</b> ' + p.faz + '<br><br>' +
+        '<b>Fonte a consultar.</b> ' + p.fon + '<br><br>' +
+        '<b>Erro que o passo previne.</b> ' + p.err,
+    };
+  },
+
+  // ── m11 INST 10 · roteador de veredito (4 eixos × 3 estados) ──
+  // Espaço de entrada finito: 81 combinações, todas confrontadas contra
+  // o script original (protocolo §10 — cobrir o espaço inteiro quando
+  // ele é pequeno).
+  'm11-inst-10': (i) => {
+    const a = String(i['rv-e1'] ?? 'ok');
+    const b = String(i['rv-e2'] ?? 'ok');
+    const c = String(i['rv-e3'] ?? 'ok');
+    const d = String(i['rv-e4'] ?? 'ok');
+    const insuf = a === 'falta' || b === 'falta' || d === 'ausente';
+    const prob =
+      a === 'desvio' || b === 'erro' || c === 'solta' || c === 'omissa' || d === 'lacuna';
+    let cab: string, red: string, passo: string;
+    if (insuf) {
+      cab = 'Não é possível concluir sem os documentos que faltam';
+      red = "A avaliação foi executada até onde a documentação disponível permite. Um ou mais eixos permanecem não verificados por insuficiência documental, e essa insuficiência tem precedência sobre qualquer conclusão sobre os demais: não se emite parecer sobre o que não se leu. O que segue é a lista do que falta para concluir, não um veredito sobre a proposta.";
+      passo = "Solicitar por escrito os documentos faltantes e reexecutar a avaliação. Registrar a data do pedido: a demora em fornecer ficha técnica, contrato ou anexos é, ela própria, informação sobre a contraparte — e não é informação sobre a qualidade técnica da proposta, que continua indeterminada.";
+    } else if (prob) {
+      cab = 'Problema identificado, com documentação suficiente para caracterizá-lo';
+      red = "A documentação foi suficiente para executar as duas trilhas, e a avaliação identificou ao menos um achado material. O achado está caracterizado contra fonte independente e é comunicável ao fornecedor em termos específicos, não como impressão geral.";
+      passo = "Levar cada achado ao fornecedor na forma de pergunta específica, com a fonte que o sustenta, e pedir a proposta revista. Um achado caracterizado contra fonte é negociável; uma desconfiança genérica não é. Aqui há oportunidades potenciais de economia a serem validadas com dados completos, e nenhuma delas se converte em valor antes da revisão.";
+    } else {
+      cab = 'Proposta sólida nas duas trilhas';
+      red = "As duas trilhas foram executadas com a documentação completa e nenhum achado material foi identificado. As premissas técnicas conferem com fonte independente, o enquadramento regulatório corresponde ao arranjo descrito, as premissas financeiras estão declaradas e ancoradas, e o contrato responde às perguntas de responsabilidade. Este parecer tem exatamente o mesmo peso do parecer contrário e deve ser emitido com a mesma naturalidade.";
+      passo = "Comunicar que a proposta é sólida e registrar o que foi verificado e contra qual fonte. Um parecer favorável sem rastro de verificação vale tão pouco quanto um parecer desfavorável sem ele. Permanecem em aberto os itens que nenhuma avaliação documental resolve: levantamento do local e projeto executivo.";
+    }
+    return {
+      valores: {},
+      veredito:
+        '<b>' + cab + '</b><br><br>' +
+        (M11_E1[a] ?? '') + '<br><br>' + (M11_E2[b] ?? '') + '<br><br>' +
+        (M11_E3[c] ?? '') + '<br><br>' + (M11_E4[d] ?? '') + '<br><br>' +
+        '<b>Redação recomendada.</b> ' + red + '<br><br>' +
+        '<b>Próximo passo.</b> ' + passo,
+    };
+  },
 
 };
 export const temCalculadora = (id: string) => id in INSTRUMENT_CALCULATORS;

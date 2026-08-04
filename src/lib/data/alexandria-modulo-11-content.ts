@@ -53,7 +53,7 @@
 // Zero <video>, <iframe>, youtube, vimeo e .mp4 no arquivo inteiro.
 
 
-import type { CurriculumAula, LessonActivity } from '@/lib/types/alexandria';
+import type { CurriculumAula, Instrument, LessonActivity } from '@/lib/types/alexandria';
 import type { AulaBloco } from './alexandria-modulo-01-content';
 
 export const MODULO_11_LEAD: Record<string, string> = {
@@ -364,6 +364,223 @@ export const MODULO_11_EXERCICIOS_SOLTOS: LessonActivity[] = [
   },
 ];
 
+
+// ── INSTRUMENTOS ─────────────────────────────────────────────
+// A fonte tem ONZE `div.inst`: um no § MAP (fora de aula) e dez de
+// aula, com as Aulas 05 e 08 tendo dois cada.
+//
+// SEIS DE LOOKUP, portados aqui — mecânica de seleção que revela texto.
+// O dado abaixo é o literal do `<script>` da fonte AVALIADO em Node
+// (não transcrito à mão: 40 mil chars de prosa onde erro de digitação
+// seria certeza estatística — protocolo §10), e o veredito compõe os
+// mesmos campos, com os mesmos rótulos, que o `render()` original
+// compõe.
+//
+// Os CINCO computacionais (Inst 04, 05, 06, 07, 08) entram nos commits
+// seguintes desta wave, um por vez, com fidelidade confirmada contra o
+// script original executado em DOM simulado.
+
+/** INST · 01 — as quatro lentes e os dez itens da proposta.
+ *  Literais do `var LENTES` / `var ITENS` do <script> da fonte. */
+export const M11_MAPA_LENTES: Record<string, string> = {
+  eixo: "Cada afirmação de uma proposta pertence a um dos quatro eixos, e o eixo determina que tipo de verdade a afirmação admite. Eixo 1 admite comparação com base publicada. Eixo 2 admite subsunção a norma, com resposta binária. Eixo 3 não admite verificação de valor, apenas de ancoragem. Eixo 4 não produz número, produz pergunta.",
+  fonte: "Toda afirmação verificável tem uma fonte independente do vendedor, e quase todas essas fontes são brasileiras, públicas e gratuitas. Quando a fonte independente é o próprio fabricante do equipamento cotado, a verificação continua sendo independente do integrador que vendeu, que é quem tem o incentivo comercial no resultado.",
+  sozinho: "A pergunta que separa uma verificação executável de uma verificação teórica. A maior parte dos itens de uma proposta pode ser conferida por quem não é engenheiro, com consulta a base pública e aritmética de planilha. Engenheiro é necessário para dimensionar; para conferir premissa declarada contra fonte publicada, o que se exige é método.",
+  falta: "A ausência de um item numa proposta não é neutra: ela é uma premissa feita sem declaração. Ausência de degradação equivale a degradação zero na planilha. Ausência de operação e manutenção equivale a custo zero. Ausência de data de protocolo deixa indeterminado o regime que governa o faturamento por toda a vida útil do sistema.",
+};
+export const M11_MAPA_ITENS: ReadonlyArray<{ k: string; n: string } & Record<string, string>> = [
+  { k: "pot", n: "Potência instalada", eixo: "<b>Eixo 1 — físico.</b> A potência é um dado do projeto, não uma projeção. Mas atenção à unidade: o enquadramento de porte usa potência instalada em corrente alternada, e a proposta costuma anunciar potência de pico dos módulos, em corrente contínua. São dois números diferentes e a diferença muda a classificação regulatória.", fonte: "A ficha técnica do inversor, para a potência nominal em corrente alternada, e a do módulo, para a potência de pico. Ambas públicas, ambas do fabricante, ambas independentes de quem vendeu.", sozinho: "Sim, integralmente. Some a potência nominal dos inversores e compare com o limiar de setenta e cinco quilowatts. Some a potência de pico dos módulos e verifique qual dos dois números a proposta usou para afirmar o porte.", falta: "Se a proposta declara apenas potência de pico, o porte não está determinado e o rito de conexão, os prazos legais de injeção e a exigência de garantia de fiel cumprimento ficam indefinidos. Peça a potência nominal dos inversores." },
+  { k: "ger", n: "Geração anual estimada", eixo: "<b>Eixo 1 — físico.</b> É o produto de potência instalada, irradiação no plano dos módulos e desempenho global. Os dois primeiros têm referência externa; o terceiro é escolhido por quem faz a conta e é onde a estimativa se infla sem que nada de falso seja afirmado.", fonte: "A base nacional de irradiação do instituto de pesquisas espaciais, para a localidade específica, ou a ferramenta de consulta por ponto do centro de referência em energia solar e eólica. Downloads e consultas públicas e gratuitas.", sozinho: "Sim. Consulte a irradiação da coordenada, multiplique por potência e por trezentos e sessenta e cinco, e divida a geração declarada pelo resultado. O quociente é o desempenho global implícito. Se ele passa de cem por cento, a afirmação é fisicamente impossível.", falta: "Se a proposta não declara irradiação de referência, base de origem, desempenho global, orientação e inclinação, a estimativa não é reprodutível. Premissa que não permite reprodução não é premissa: é resultado apresentado como se fosse dado." },
+  { k: "deg", n: "Taxa de degradação", eixo: "<b>Eixo 1 — físico.</b> A degradação é característica previsível do material e é objeto de garantia contratual. Não é opinião do vendedor: é número que o fabricante assumiu por escrito para aquele modelo.", fonte: "O termo de garantia de performance do modelo especificado, que declara a perda do primeiro ano e a taxa máxima de degradação anual garantida depois dela. Documento do fabricante, anexo ao datasheet.", sozinho: "Sim, e é a verificação mais rápida do módulo inteiro: compare a taxa usada na projeção com a taxa garantida no datasheet. Se a projeção é mais otimista que a garantia, a planilha projeta desempenho que o próprio fabricante não assegura.", falta: "Proposta sem menção de degradação está aplicando degradação zero na projeção, ou seja, afirmando que o equipamento entrega no último ano exatamente o que entregou no primeiro. E proposta que não especifica o modelo torna a verificação impossível, o que é, por si só, o achado." },
+  { k: "equip", n: "Modelo e conformidade do equipamento", eixo: "<b>Eixo 1 — físico, com componente regulatório.</b> A existência de registro de conformidade é fato verificável; o que ele cobre e o que fica fora do escopo compulsório é matéria de norma.", fonte: "O portal do instituto de metrologia, para consulta de registro do produto. A consulta é feita por modelo, nunca por marca, e o que importa é registro vigente obtido sob o regulamento aplicável.", sozinho: "Sim. Peça modelo exato de módulo e inversor e consulte o registro. Verifique também se o inversor do projeto está dentro do escopo compulsório, que alcança inversores até setenta e cinco quilowatts, ou fora dele.", falta: "Sem o modelo, nada pode ser verificado: nem conformidade, nem degradação garantida, nem características elétricas. A frase equipamento certificado, sem modelo, não é informação verificável e não deve ser aceita como resposta." },
+  { k: "mod", n: "Modalidade de participação declarada", eixo: "<b>Eixo 2 — regulatório.</b> Resposta binária. O arranjo de titularidade descrito ou se encaixa na modalidade nomeada, ou não se encaixa, e não há gradação nem margem de interpretação.", fonte: "A lei de dois mil e vinte e dois, no artigo que define as quatro modalidades, e a norma de condições gerais, que as incorporou. Além dos documentos societários do próprio cliente, que provam a titularidade.", sozinho: "Sim, com o auxílio de quem cuida do jurídico. A verificação é documental: qual documento comprova que o arranjo descrito satisfaz os requisitos da modalidade nomeada. Se a proposta usa vocabulário comercial de plataforma, o primeiro passo é traduzir para o termo da norma.", falta: "Se a modalidade não está declarada, ou está declarada em vocabulário de marca, a elegibilidade do arranjo permanece indeterminada, e com ela a legitimidade de todo o benefício projetado para as unidades beneficiárias." },
+  { k: "data", n: "Data de protocolo do pedido de acesso", eixo: "<b>Eixo 2 — regulatório.</b> É a variável de maior consequência financeira de toda a proposta, e ela não está no equipamento nem no porte: está num protocolo administrativo na distribuidora.", fonte: "O próprio protocolo da distribuidora, com data. Para sistemas existentes, o parecer de acesso. A regra que a data aciona está na lei de dois mil e vinte e dois e na regulamentação de dois mil e vinte e três.", sozinho: "Sim. Pergunte a data e compare com os marcos: sete de janeiro de dois mil e vinte e três define o direito adquirido; sete de julho do mesmo ano define a janela que posterga a regra pós-transição para dois mil e trinta e um.", falta: "Sem a data, o regime de faturamento aplicável é indeterminado, e portanto toda a projeção de custo da energia compensada é indeterminada. Este é o campo ausente mais caro que uma proposta pode ter." },
+  { k: "reg", n: "Regime de faturamento projetado", eixo: "<b>Eixo 2 — regulatório, com fronteira no Eixo 3.</b> Até dois mil e vinte e oito, o percentual está fixado em lei e é verificável. De dois mil e vinte e nove em diante, a regra depende de metodologia ainda em elaboração.", fonte: "A lei de dois mil e vinte e dois, nos artigos de transição e na regra pós-transição, e o estado do projeto regulatório da agência, cuja conclusão está prevista para dois mil e vinte e sete.", sozinho: "Sim, quanto ao percentual do ano corrente. Quanto ao período posterior a dois mil e vinte e oito, o que se verifica não é o número: é se a proposta reconhece que a regra ainda não existe.", falta: "Proposta que projeta o horizonte inteiro sob a mesma regra está tratando como conhecido um parâmetro em elaboração. O achado correto não é que o número está errado, e sim que ele é hipótese apresentada como projeção." },
+  { k: "tar", n: "Trajetória de reajuste tarifário", eixo: "<b>Eixo 3 — premissa financeira.</b> Não existe verificação de valor. Existe premissa ancorada em série identificável e premissa solta, e a diferença entre as duas não é o número, é a reprodutibilidade.", fonte: "Os atos homologatórios de reajuste tarifário anual da distribuidora que atende a unidade, publicados pela agência reguladora. Série pública, por área de concessão.", sozinho: "Sim. Levante os reajustes homologados dos últimos anos daquela concessionária e compare com a taxa que a proposta usou. Não para dizer qual é a certa, e sim para medir o afastamento e perguntar de onde veio a premissa.", falta: "Se a taxa não está declarada e apenas está embutida no resultado, a projeção não é auditável. Peça a planilha aberta, ou ao menos a taxa e a fonte da ancoragem." },
+  { k: "om", n: "Operação, manutenção e substituição de inversor", eixo: "<b>Eixo 3 — premissa financeira, com teste de coerência interna.</b> Não é preciso saber o custo correto para apontar o problema: basta notar que a projeção pressupõe desempenho que depende de manutenção que ela não orçou.", fonte: "O contrato de serviço, se houver, e a vida útil declarada do inversor no seu datasheet. A coerência entre a projeção de desempenho e o orçamento de manutenção é verificável dentro do próprio documento.", sozinho: "Sim. Procure a linha de operação e manutenção e a linha de substituição de inversor. Se não existirem, a premissa embutida acaba de ser identificada, e a pergunta ao vendedor é em que ano a troca está prevista.", falta: "Ausência de linha de manutenção equivale a custo zero de manutenção com desempenho mantido. Ausência de substituição de inversor equivale a supor que um equipamento eletrônico de potência opera duas décadas e meia sem troca." },
+  { k: "gar", n: "Garantias e responsabilidades", eixo: "<b>Eixo 4 — contratual.</b> Não produz número. Produz uma lista de perguntas com destinatário definido, e é o eixo que continua operando por vinte anos depois que todos os outros viraram história.", fonte: "O contrato e seus anexos, o termo de garantia do fabricante, e a norma apenas de forma indireta, quanto aos prazos legais de conexão e às vedações de titularidade.", sozinho: "Sim, com leitura atenta. As cinco perguntas são sempre as mesmas: prazo de cada garantia, garantidor de cada uma, procedimento de acionamento, quem paga a mão de obra da substituição, e o que sobrevive à extinção do fornecedor.", falta: "Se o contrato não foi fornecido, o eixo não pode ser avaliado, e o veredito correto é de insuficiência, não de aprovação. Contrato que só aparece na assinatura é contrato lido por quem já decidiu." },
+];
+
+/** INST · 02 — doze afirmações típicas de proposta, com eixo, método
+ *  de verificação e o que a afirmação NÃO autoriza concluir. */
+export const M11_SEPARADOR_EIXOS: ReadonlyArray<{
+  k: string; n: string; e: string; m: string; x: string;
+}> = [
+  { k: "a1", n: "Gera 1.750 kWh por kWp ao ano", e: "Eixo 1 — físico", m: "Reconstrução da estimativa a partir da irradiação publicada da localidade e do desempenho global declarado.", x: "Não autoriza nenhuma conclusão financeira. Geração por unidade de potência é entrada da conta, não resultado dela." },
+  { k: "a2", n: "Equipamento com certificação", e: "Eixo 1 — físico, com componente regulatório", m: "Consulta de registro por modelo no portal do instituto de metrologia, com verificação de vigência e de regulamento aplicável.", x: "Não autoriza concluir que o equipamento é adequado ao projeto. Certificação atesta conformidade a requisitos, não adequação a um dimensionamento específico. E inversores acima de setenta e cinco quilowatts estão fora do escopo compulsório." },
+  { k: "a3", n: "Sistema enquadrado como microgeração", e: "Eixo 2 — regulatório", m: "Comparação da potência instalada em corrente alternada com o limiar de setenta e cinco quilowatts. Subsunção binária.", x: "Não autoriza usar a potência de pico dos módulos como base da comparação. São grandezas distintas e a confusão entre elas é o erro de porte mais comum." },
+  { k: "a4", n: "Modalidade: geração compartilhada", e: "Eixo 2 — regulatório", m: "Verificação do instrumento associativo, da lista de participantes, da distribuidora comum e da participação de cada titular no excedente.", x: "Não autoriza supor que o regime de faturamento é o padrão. Acima de quinhentos quilowatts em fonte não despachável, com titular único detendo vinte e cinco por cento ou mais, o regime é o agravado." },
+  { k: "a5", n: "Créditos acumulados serão usados no inverno", e: "Eixo 2 — regulatório, com aritmética de Eixo 1", m: "Comparação da geração estimada com o consumo compensável das beneficiárias, contra o prazo legal de expiração de sessenta meses.", x: "Não autoriza supor acúmulo indefinido. Crédito expira e reverte em prol da modicidade tarifária, sem compensação ao consumidor." },
+  { k: "a6", n: "Tarifa sobe 10% ao ano no horizonte", e: "Eixo 3 — premissa financeira", m: "Comparação com a série de reajustes homologados da concessionária específica. Avaliação de ancoragem, não de valor.", x: "Não autoriza afirmar que a premissa é falsa. Autoriza afirmar que ela se afasta da única referência disponível e que a proposta não declara por quê." },
+  { k: "a7", n: "Não há custos recorrentes relevantes", e: "Eixo 3 — premissa embutida por omissão", m: "Teste de coerência interna: a projeção pressupõe desempenho mantido, que depende de limpeza, monitoramento e reposição.", x: "Não autoriza arbitrar um valor de manutenção no lugar. Autoriza registrar a incoerência e pedir o orçamento de manutenção que sustenta a projeção de desempenho." },
+  { k: "a8", n: "Garantia de 25 anos", e: "Eixo 4 — contratual", m: "Leitura do contrato e do termo de garantia. Separação entre garantia de produto e de performance, com prazo e garantidor de cada uma.", x: "Não autoriza tratar a afirmação como obrigação de escopo definido. Sem garantidor, procedimento e custeio de mão de obra, é frase de marketing dentro de um contrato." },
+  { k: "a9", n: "A conta de luz ficará zerada", e: "Eixo 2 — regulatório, com resposta imediata", m: "Confronto com o valor mínimo faturável previsto na norma e reiterado na lei de dois mil e vinte e dois.", x: "Não autoriza nenhuma discussão de grau. A afirmação é incorreta por construção: a fatura de unidade participante do sistema de compensação não chega a zero." },
+  { k: "a10", n: "A demanda contratada cairá com a geração", e: "Eixo 2 — regulatório, com base no Módulo 10", m: "Verificação de que a proposta descreve alguma ação sobre o contrato de uso, e não apenas a instalação da geração.", x: "Não autoriza projetar redução de demanda faturada como efeito automático da instalação. Geração reduz consumo; demanda contratada só muda por ato contratual." },
+  { k: "a11", n: "Instale agora, antes que o Fio B suba", e: "Eixo 2 — verdadeiro e incompleto", m: "Verificação de que a mesma fonte também informa que a regra a partir de dois mil e vinte e nove ainda não foi definida.", x: "Não autoriza tratar a urgência como neutra. A afirmação de base é verdadeira, e é justamente por isso que funciona como argumento de venda. A omissão que costuma acompanhá-la é o que precisa ser notado." },
+  { k: "a12", n: "Seu projeto será autoprodução", e: "Eixo 2 — regime jurídico incorreto", m: "Confronto com os limiares do regime de equiparação: demanda agregada de trinta mil quilowatts, composta por unidades de três mil quilowatts, e participação societária na titular da outorga.", x: "Não autoriza tratar o termo como sinônimo elegante de gerar a própria energia. Autoproducao por equiparacao e outro regime juridico, de outro universo de consumidor." },
+];
+
+/** INST · 03 — sete marcos do arcabouço, com instrumento, vigência,
+ *  o que mudou e estado de regulamentação. */
+export const M11_MARCOS: ReadonlyArray<{
+  k: string; n: string; t: string; norma: string; desde: string; fez: string; estado: string;
+}> = [
+  { k: "m1", n: "2012", t: "Resolução Normativa nº 482, de 17 de abril de 2012", norma: "Resolução normativa da agência reguladora.", desde: "17 de abril de 2012. <b>Revogada</b> pela resolução de fevereiro de 2023.", fez: "Criou o acesso de microgeração e minigeração distribuída aos sistemas de distribuição e instituiu o sistema de compensação de energia elétrica no plano infralegal. Por uma década foi a base de tudo, e foi alterada por resoluções sucessivas ao longo do período.", estado: "Sem vigência. Proposta comercial que a cita como norma aplicável está desatualizada em pelo menos três instrumentos normativos, e isso é um achado datável." },
+  { k: "m2", n: "2021", t: "Resolução Normativa nº 1.000, de 7 de dezembro de 2021", norma: "Resolução normativa da agência reguladora — condições gerais de fornecimento.", desde: "7 de dezembro de 2021, com alterações posteriores.", fez: "Consolidou as regras de prestação do serviço público de distribuição num único instrumento e absorveu a matéria de geração distribuída. É a norma que o Módulo 10 já ensinou a navegar, e é onde a matéria vive hoje.", estado: "Vigente e sob alteração contínua. Toda consulta deve ser feita ao texto consolidado, com atenção às notas de inclusão que indicam qual resolução inseriu cada dispositivo." },
+  { k: "m3", n: "2022", t: "Lei nº 14.300, de 6 de janeiro de 2022", norma: "Lei federal — marco legal da microgeração e minigeração distribuída.", desde: "Publicada em 7 de janeiro de 2022; vigência na data da publicação. Partes vetadas promulgadas em agosto de 2022.", fez: "Definiu as quatro modalidades e os limiares de porte, instituiu o sistema de compensação em lei, criou o regime de direito adquirido até 2045, estabeleceu o cronograma de transição do componente de rede e delegou à agência a regra que vale depois da transição. Também fixou prazos de conexão, vedações de titularidade e o prazo de expiração de créditos.", estado: "Vigente, com alterações pontuais posteriores. É a peça central e a única que precisa ser lida na íntegra por quem avalia propostas." },
+  { k: "m4", n: "2023", t: "Resolução Normativa nº 1.059, de 7 de fevereiro de 2023", norma: "Resolução normativa da agência reguladora — regulamentação do marco legal.", desde: "Publicada em 10 de fevereiro de 2023, com vigência na data da publicação e retificação posterior.", fez: "Inseriu na norma de condições gerais as definições de microgeração e minigeração distribuída e a modalidade autoconsumo remoto; criou o capítulo de faturamento do sistema de compensação e as classes GD I, GD II e GD III; e revogou a resolução de 2012 e outras quatro que a haviam alterado.", estado: "Vigente. É a fonte da nomenclatura de classes que aparece na resolução homologatória de tarifas da distribuidora e, portanto, na fatura." },
+  { k: "m5", n: "2024", t: "Resolução Normativa nº 1.098, de 23 de julho de 2024 · e Resolução CNPE nº 2, de 22 de abril de 2024", norma: "Resolução normativa da agência reguladora e resolução do conselho de política energética.", desde: "A resolução da agência a partir de julho de 2024; a do conselho publicada em 7 de maio de 2024.", fez: "A resolução da agência inseriu a definição de autoconsumo local na norma de condições gerais, dois anos e meio depois de a lei criar o termo, e tratou dos cenários de dispensa de análise de inversão de fluxo. A resolução do conselho fixou as diretrizes de valoração de custos e benefícios da geração distribuída, em cumprimento tardio ao prazo legal de seis meses.", estado: "Vigentes. A resolução do conselho é diretriz, não metodologia: ela diz o que a agência deve considerar, não como calcular." },
+  { k: "m6", n: "2025", t: "Lei nº 15.269, de 24 de novembro de 2025", norma: "Lei federal — reforma do setor elétrico, conversão de medida provisória.", desde: "Publicada em 25 de novembro de 2025, sancionada com mais de vinte vetos.", fez: "Redefiniu a autoprodução por equiparação com os limiares de trinta mil quilowatts agregados e três mil quilowatts individuais, mais participação societária com direito a voto. Alterou o artigo 25 e revogou o parágrafo único do artigo 22 da lei de 2022, ambos sobre o custeio temporário de componentes não remuneradas pelo consumidor-gerador. Vetou o dispositivo que teria permitido a usinas de grande porte migrar ao regime de geração distribuída pela conexão à distribuição.", estado: "<b>Vigente com vetos pendentes de deliberação.</b> Na data de consulta, a sessão conjunta do Congresso Nacional destinada aos vetos havia sido cancelada e dezenas permaneciam trancando a pauta. Verificar o estado antes de uso externo." },
+  { k: "m7", n: "2027 · previsto", t: "Metodologia de valoração dos benefícios sistêmicos — a regulamentar", norma: "Resolução da agência reguladora, ainda não editada.", desde: "<b>Não vigente.</b> Prazo legal original: dezoito meses da publicação da lei de 2022, ou seja, julho de 2023.", fez: "Nada ainda. O que existe é processo: tomada de subsídios aberta em dezembro de 2025, com contribuições até março de 2026, a ser seguida de análise de impacto regulatório e consulta pública.", estado: "<b>Em projeto regulatório, com conclusão prevista para 2027.</b> É a peça que determina o faturamento das unidades participantes do sistema de compensação a partir de 2029. Toda projeção que atravesse esse ano projeta sobre regra inexistente, e dizer isso é a informação de maior valor que uma avaliação independente pode entregar." },
+];
+
+/** INST · 09 — os oito sinais de alerta, na ordem da fonte. Cada um
+ *  com o que o caracteriza, a fonte independente, o que o comprador
+ *  verifica sozinho e a pergunta a levar ao vendedor. */
+export const M11_SINAIS: ReadonlyArray<{
+  k: string; n: string; c: string; f: string; s: string; p: string;
+}> = [
+  { k: "ger", n: "1 · Geração estimada exagerada", c: "A geração anual declarada excede o que a irradiação do município sustenta para a potência instalada proposta, ou o desempenho global implícito na conta ultrapassa o que um sistema real entrega em campo. É o sinal com maior efeito sobre o resultado, porque toda a projeção financeira é construída sobre esse número.", f: "Atlas Brasileiro de Energia Solar, segunda edição, do instituto nacional de pesquisas espaciais, ou a ferramenta de consulta por localidade do centro de referência para energia solar e eólica. Ambas são públicas e permitem consulta por município.", s: "Consultar a irradiação do município exato da instalação e reconstruir a ordem de grandeza da geração pela potência declarada. Somar a potência dos módulos listados e conferir contra a potência informada. Os dois cruzamentos levam poucos minutos e não exigem formação técnica.", p: "Qual irradiação foi usada, em que plano, de qual base de dados e com que desempenho global? Peço a decomposição da estimativa e o relatório de simulação com as premissas de perda visíveis." },
+  { k: "fin", n: "2 · Resultado financeiro sem premissa declarada", c: "A proposta apresenta a conclusão financeira sem expor as premissas que a produzem: trajetória tarifária assumida, degradação, custo de operação e manutenção, e o tratamento dado ao período em que a regra tarifária ainda não está definida. Sem essas quatro, o número é uma saída sem entradas visíveis.", f: "A própria proposta, na seção de premissas — e a ausência dessa seção é o achado. Para a ancoragem tarifária, os atos homologatórios de reajuste anual da distribuidora, publicados pela agência reguladora.", s: "Procurar, no documento, a lista de premissas. Se existir, conferir cada uma contra a fonte correspondente. Se não existir, o achado está completo sem nenhuma conta: a conclusão não é auditável.", p: "Quais premissas produzem esse resultado, e qual é a fonte de cada uma? Peço a planilha com as premissas em células visíveis e editáveis, não o resultado consolidado." },
+  { k: "deg", n: "3 · Degradação ignorada ou subestimada", c: "A projeção não aplica perda anual de desempenho, ignora a perda do primeiro ano, ou usa taxa menor que a máxima garantida no termo de garantia de performance do módulo efetivamente especificado. O efeito é pequeno em cada ano e material no acumulado do horizonte.", f: "Termo de garantia de performance e ficha técnica do modelo listado na proposta, fornecidos pelo fabricante e normalmente disponíveis publicamente.", s: "Ler no termo de garantia dois números: o percentual garantido ao fim do primeiro ano e a perda máxima anual subsequente. Conferir se o código do modelo no termo é o mesmo da lista de materiais.", p: "Qual taxa de degradação está na planilha, e ela é a esperada ou a garantida? Peço a projeção refeita com a curva do termo de garantia do modelo especificado." },
+  { k: "tar", n: "4 · Trajetória tarifária irrealista", c: "A taxa de crescimento tarifário assumida se afasta materialmente da série homologada da concessionária que atende a unidade, ou não está declarada e vem embutida no resultado. Composta ao longo do horizonte, uma diferença anual pequena domina a projeção.", f: "Atos homologatórios de reajuste tarifário anual da distribuidora específica, publicados pela agência reguladora, com a série dos últimos anos.", s: "Levantar a série de reajustes homologados da concessionária e comparar com a taxa da planilha. A série é pública e a comparação é aritmética simples.", p: "Qual taxa de reajuste está assumida, de qual série ela vem, de qual concessionária e em qual período? A série inclui revisão tarifária periódica ou só reajuste ordinário?" },
+  { k: "cert", n: "5 · Equipamento sem certificação adequada", c: "Módulo, inversor, controlador de carga ou bateria sem registro válido no programa de avaliação da conformidade, ou registro obtido sob regulamento anterior ao vigente. Ter selo e ter o registro vigente sob a norma correta não são a mesma verificação.", f: "Consulta pública ao registro de objeto no instituto nacional de metrologia, e o texto das portarias de certificação compulsória de 2022 e de 2023, que definem escopo, requisitos e prazos.", s: "Localizar o código do modelo na lista de materiais e consultar o registro. Conferir se o equipamento está dentro do escopo da certificação compulsória — inversores acima de setenta e cinco quilowatts, por exemplo, ficam fora dele, o que não os torna irregulares, apenas não certificados por esse regime.", p: "Qual é o número de registro de cada equipamento e sob qual portaria ele foi obtido? Se algum item está fora do escopo da certificação compulsória, qual documento atesta a conformidade dele?" },
+  { k: "gar", n: "6 · Garantias mal explicadas", c: "A proposta menciona garantia sem distinguir garantia de produto, que cobre defeito de fabricação do equipamento, de garantia de performance, que assegura um percentual de produção ao longo do tempo, de garantia de instalação, que responde pelo serviço. Quem responde por cada uma, e por quanto tempo, quase nunca está no mesmo parágrafo.", f: "Termo de garantia do fabricante e o contrato de prestação de serviços com o integrador, incluídos os anexos. Os dois documentos, não apenas a página de resumo da proposta.", s: "Verificar, para cada tipo de garantia, três campos: prazo, quem é o garantidor e qual é o procedimento de acionamento. Se um dos três estiver ausente para qualquer das garantias, o achado está caracterizado.", p: "Quem responde pela garantia de performance, o fabricante ou o integrador? Qual é o procedimento se o equipamento falhar e o integrador não existir mais? Peço os termos completos em anexo." },
+  { k: "oem", n: "7 · Operação e manutenção ausente do orçamento", c: "O orçamento não inclui limpeza periódica, monitoramento, inspeção elétrica nem substituição do inversor ao longo do horizonte, mas a projeção de resultado assume produção compatível com um sistema mantido. Custo omitido do orçamento e desempenho suposto na planilha são incompatíveis.", f: "A própria proposta e o contrato de serviços. Para a vida útil esperada do inversor, a ficha técnica e o termo de garantia do modelo especificado.", s: "Procurar a linha de operação e manutenção no orçamento e a linha correspondente na projeção. Verificar se há evento de substituição de inversor dentro do horizonte declarado e se ele está orçado.", p: "Operação e manutenção estão no escopo e no orçamento? Qual é a periodicidade e o que ela inclui? A substituição do inversor está prevista dentro do horizonte da projeção, e por conta de quem?" },
+  { k: "reg", n: "8 · Risco regulatório omitido", c: "A proposta trata o enquadramento e o percentual do componente de rede como constantes, não declara a data de protocolo que determina o regime aplicável, e projeta o período posterior ao fim da transição como se a regra já existisse. É o sinal mais difícil de ver, porque exige saber que a regra futura ainda está em elaboração.", f: "Lei do marco legal de 2022, artigos 26 e 27; resolução normativa da agência de 2023, que criou a classificação de regime e os artigos de faturamento; e o estado do projeto regulatório que definirá a regra posterior à transição.", s: "Verificar se a proposta declara a data de protocolo da solicitação de acesso e o regime resultante. Verificar se a projeção usa percentual variável por ano ou percentual fixo. Percentual fixo ao longo de todo o horizonte é, por si só, o achado.", p: "Qual é a data prevista de protocolo e qual regime ela produz? A projeção aplica o percentual de cada ano do cronograma legal? Que hipótese foi adotada para o período posterior ao fim da transição, e ela está declarada como hipótese?" },
+];
+
+/** INST · 11 — os oito passos das duas trilhas sincronizadas, com
+ *  janela de minuto, o que fazer, fonte e erro que o passo previne. */
+export const M11_PASSOS: ReadonlyArray<{
+  n: string; tr: string; t0: number; t1: number; sinc: boolean;
+  tit: string; faz: string; fon: string; err: string;
+}> = [
+  { n: "01", tr: "Técnica", t0: 0, t1: 3, sinc: false, tit: "Identificar potência instalada em corrente alternada e classificar o porte", faz: "Localizar, na lista de materiais, a potência dos módulos e a potência do inversor, e identificar qual das duas a proposta chama de potência instalada. A classificação de porte usa a potência em corrente alternada, que é a do inversor. Setenta e cinco quilowatts separam microgeração de minigeração.", fon: "Lei do marco legal de 2022, artigo 1º, incisos que definem microgeração e minigeração; e a resolução da agência de 2021, com a redação dada pela resolução de 2023, que incorporou as mesmas definições.", err: "Classificar o porte pela potência de pico dos módulos. É o erro de partida mais comum e ele se propaga por todo o resto: porte errado leva a modalidade elegível errada, que leva a regime errado." },
+  { n: "02", tr: "Contratual", t0: 0, t1: 3, sinc: false, tit: "Inventariar os documentos e registrar o que não veio", faz: "Listar o que existe: proposta, planilha de premissas, ficha técnica do módulo, ficha técnica do inversor, termo de garantia de performance, minuta de contrato e anexos. O inventário se faz antes de qualquer leitura, porque ele determina quais trilhas podem ser concluídas.", fon: "A própria proposta e seus anexos. Nenhuma fonte externa é necessária neste passo.", err: "Começar a ler o documento mais interessante em vez de inventariar. Quem começa pela planilha descobre no minuto vinte e cinco que o contrato nunca veio, e perde a avaliação inteira." },
+  { n: "03", tr: "Técnica", t0: 3, t1: 8, sinc: false, tit: "Conferir a geração estimada contra a irradiação da localidade", faz: "Consultar a irradiação do município da instalação na base nacional, reconstruir a ordem de grandeza da geração pela potência declarada e comparar com a geração da proposta. Calcular o desempenho global implícito e verificar se ele cabe no que um sistema real entrega.", fon: "Atlas Brasileiro de Energia Solar, segunda edição, do instituto nacional de pesquisas espaciais; ou a ferramenta de consulta por localidade do centro de referência para energia solar e eólica.", err: "Usar irradiação da capital do estado ou da sede da empresa. Irradiância varia por município, e a diferença entre dois municípios da mesma região pode explicar sozinha o desvio que se está tentando investigar." },
+  { n: "04", tr: "Técnica", t0: 8, t1: 12, sinc: true, tit: "Confrontar a modalidade declarada com o arranjo de titularidade real", faz: "Verificar qual das quatro modalidades a proposta declara e se a titularidade descrita cabe nela: mesma unidade, mesmo titular em unidades distintas na mesma distribuidora, associação civil de consumidores, ou unidades em propriedade contígua. Verificar também se a unidade não migrou para o ambiente livre, hipótese em que não pode aderir ao sistema de compensação.", fon: "Lei do marco legal de 2022, artigo 1º para as definições, artigo 9º para quem pode aderir; resolução da agência de 2021, artigo 2º, com as inclusões das resoluções de 2023 e de 2024.", err: "Aceitar o nome comercial do arranjo como se fosse a modalidade regulatória. Denominação de produto não é nomenclatura de norma, e a elegibilidade se verifica contra a segunda. Este é o primeiro ponto de sincronização: sem modalidade confirmada, a trilha contratual não tem contra o que conferir o objeto do contrato." },
+  { n: "05", tr: "Técnica", t0: 12, t1: 17, sinc: false, tit: "Determinar o regime de faturamento pela data de protocolo", faz: "Identificar a data prevista ou realizada do protocolo da solicitação de acesso e derivar o regime aplicável, o percentual do componente de rede do ano corrente e o ano em que a regra posterior à transição passa a incidir. Verificar se a projeção da proposta aplica percentual variável por ano ou percentual fixo.", fon: "Lei do marco legal de 2022, artigos 26 e 27; resolução da agência de 2021, artigos de faturamento incluídos pela resolução de 2023, que estabelecem a classificação de regime.", err: "Tratar o percentual como constante ao longo do horizonte, e tratar o período posterior ao fim da transição como se a regra já estivesse definida. Ela não está: as diretrizes de valoração foram publicadas em 2024 e o projeto regulatório que produzirá o cálculo tem conclusão prevista para 2027." },
+  { n: "06", tr: "Contratual", t0: 17, t1: 22, sinc: false, tit: "Separar garantia de produto, de performance e de instalação", faz: "Para cada uma das três, registrar prazo, garantidor e procedimento de acionamento. Conferir se o termo de garantia anexo é do modelo efetivamente listado na lista de materiais, e não de um modelo equivalente.", fon: "Termo de garantia do fabricante e minuta de contrato de prestação de serviços com os anexos.", err: "Ler a página de resumo da proposta em vez dos termos. O resumo diz vinte e cinco anos de garantia; o termo diz qual garantia, de quem, sob qual condição, e é ele que vale." },
+  { n: "07", tr: "Contratual", t0: 22, t1: 26, sinc: false, tit: "Ler responsabilidade, prazos de conexão e hipóteses de rescisão", faz: "Verificar quem protocola a solicitação de acesso, quem responde pelo atraso da distribuidora, qual é o efeito de o prazo legal de injeção não ser cumprido, o que ocorre com o pagamento se a homologação demorar, e sob quais hipóteses cada parte pode rescindir.", fon: "Lei do marco legal de 2022, artigo 26 e seus parágrafos, para os prazos de início de injeção; e as vedações dos artigos 5º, 6º, 10 e 11 da mesma lei, que alcançam transferência de titularidade, comercialização de parecer de acesso, forma de remuneração de terreno e divisão de central.", err: "Supor que o atraso da distribuidora é risco do fornecedor por padrão. Não é: é matéria de cláusula, e a cláusula precisa existir. Perder o prazo legal de injeção pode custar o regime de faturamento inteiro." },
+  { n: "08", tr: "Ambas", t0: 26, t1: 30, sinc: true, tit: "Fechar: veredito das duas trilhas ou lista de solicitações", faz: "Consolidar o estado dos quatro eixos, aplicar a precedência da insuficiência documental sobre qualquer outro estado, e emitir uma das três saídas: proposta sólida, problema identificado e caracterizado, ou lista do que falta para concluir.", fon: "Os achados dos sete passos anteriores, cada um com a fonte que o sustenta registrada ao lado.", err: "Emitir veredito sobre eixo não verificado, e não emitir o veredito favorável quando ele é o correto. Os dois erros têm a mesma origem — a expectativa de que o parecer precise encontrar alguma coisa — e o segundo é o mais caro para a reputação de quem avalia. Este é o segundo ponto de sincronização, e a avaliação termina aqui com ou sem conclusão." },
+];
+
+/** INST · 10 — o texto de cada eixo por estado. Quatro eixos, três
+ *  estados cada: `ok` · `desvio`/`incomp`/`fraca`/`lacuna` · `falta`. */
+export const M11_E1: Record<string, string> = {
+  ok: "O Eixo 1 confere: a geração declarada é compatível com a irradiação da localidade e a degradação assumida não é melhor que a garantida.",
+  desvio: "O Eixo 1 apresenta desvio material entre a premissa declarada e a referência independente, o que compromete toda a projeção construída sobre ela.",
+  falta: "O Eixo 1 não pôde ser verificado: falta a ficha técnica do módulo ou do inversor, ou falta a decomposição da estimativa de geração.",
+};
+export const M11_E2: Record<string, string> = {
+  ok: "O Eixo 2 confere: porte, modalidade e regime declarados correspondem ao arranjo descrito e à norma vigente.",
+  erro: "O Eixo 2 está incompatível: a modalidade declarada não comporta o arranjo de titularidade descrito, ou o regime informado não decorre da data de protocolo.",
+  falta: "O Eixo 2 não pôde ser verificado: a proposta não declara a data de protocolo da solicitação de acesso ou não descreve a titularidade das unidades beneficiárias.",
+};
+export const M11_E3: Record<string, string> = {
+  ok: "O Eixo 3 está ancorado: as premissas financeiras estão declaradas e referenciadas a série verificável.",
+  solta: "O Eixo 3 está declarado sem ancoragem: as premissas aparecem, mas nenhuma indica de onde veio.",
+  omissa: "O Eixo 3 está embutido: as premissas não aparecem no documento e só existem dentro do resultado.",
+};
+export const M11_E4: Record<string, string> = {
+  ok: "O Eixo 4 está completo: o contrato e os anexos respondem quem garante o quê, por quanto tempo, com qual procedimento, sob qual hipótese de rescisão e o que ocorre se a conexão atrasar.",
+  lacuna: "O Eixo 4 está documentado mas incompleto: o contrato existe e deixa ao menos uma das perguntas de responsabilidade sem resposta.",
+  ausente: "O Eixo 4 não foi avaliado: o contrato ou os anexos não foram fornecidos.",
+};
+
+/** Os instrumentos do módulo. INST 01 vive no § MAP — fora de qualquer
+ *  aula —, e por isso é exportado à parte, para os Recursos do Módulo,
+ *  mesmo caminho do `lab-01` do Módulo 01. */
+const M11_INSTRUMENTOS_TODOS: Instrument[] = [
+  {
+    id: "m11-inst-01",
+    kind: "explorador",
+    title: "Mapa da proposta — quatro lentes sobre a mesma estrutura",
+    formula: null,
+    fields: [
+      { id: "mp-lente", label: "Lente ativa", unit: null, kind: "select", defaultValue: "eixo",
+        options: [{ value: "eixo", label: "A que eixo pertence" }, { value: "fonte", label: "Qual fonte independente confirma" }, { value: "sozinho", label: "O que o comprador confirma sozinho" }, { value: "falta", label: "O que falta se estiver ausente" }] },
+      { id: "mp-item", label: "Item da proposta", unit: null, kind: "select", defaultValue: "pot",
+        options: [{ value: "pot", label: "Potência instalada" }, { value: "ger", label: "Geração anual estimada" }, { value: "deg", label: "Taxa de degradação" }, { value: "equip", label: "Modelo e conformidade do equipamento" }, { value: "mod", label: "Modalidade de participação declarada" }, { value: "data", label: "Data de protocolo do pedido de acesso" }, { value: "reg", label: "Regime de faturamento projetado" }, { value: "tar", label: "Trajetória de reajuste tarifário" }, { value: "om", label: "Operação, manutenção e substituição de inversor" }, { value: "gar", label: "Garantias e responsabilidades" }] },
+    ],
+    outputs: [],
+    note: "Escolha a lente e depois o item da proposta. A lente determina a pergunta; o item determina a resposta. Nenhuma célula está vazia, e nenhuma resposta contém valor de economia ou prazo de retorno — por construção.",
+  },
+  {
+    id: "m11-inst-02",
+    kind: "explorador",
+    title: "Separador de eixos — a que categoria pertence cada afirmação",
+    formula: null,
+    fields: [
+      { id: "se-a", label: "Afirmação típica de proposta", unit: null, kind: "select", defaultValue: "a1",
+        options: [{ value: "a1", label: "Gera 1.750 kWh por kWp ao ano" }, { value: "a2", label: "Equipamento com certificação" }, { value: "a3", label: "Sistema enquadrado como microgeração" }, { value: "a4", label: "Modalidade: geração compartilhada" }, { value: "a5", label: "Créditos acumulados serão usados no inverno" }, { value: "a6", label: "Tarifa sobe 10% ao ano no horizonte" }, { value: "a7", label: "Não há custos recorrentes relevantes" }, { value: "a8", label: "Garantia de 25 anos" }, { value: "a9", label: "A conta de luz ficará zerada" }, { value: "a10", label: "A demanda contratada cairá com a geração" }, { value: "a11", label: "Instale agora, antes que o Fio B suba" }, { value: "a12", label: "Seu projeto será autoprodução" }] },
+    ],
+    outputs: [],
+    note: null,
+  },
+  {
+    id: "m11-inst-03",
+    kind: "explorador",
+    title: "Régua do marco regulatório — sete marcos com data, efeito e estado",
+    formula: null,
+    fields: [
+      { id: "rg-m", label: "Marco", unit: null, kind: "select", defaultValue: "m1",
+        options: [{ value: "m1", label: "2012" }, { value: "m2", label: "2021" }, { value: "m3", label: "2022" }, { value: "m4", label: "2023" }, { value: "m5", label: "2024" }, { value: "m6", label: "2025" }, { value: "m7", label: "2027 · previsto" }] },
+    ],
+    outputs: [],
+    note: null,
+  },
+  {
+    id: "m11-inst-09",
+    kind: "explorador",
+    title: "Anatomia dos oito sinais de alerta — sinal, fonte, conta, pergunta",
+    formula: null,
+    fields: [
+      { id: "sa-s", label: "Sinal de alerta", unit: null, kind: "select", defaultValue: "ger",
+        options: [{ value: "ger", label: "1 · Geração estimada exagerada" }, { value: "fin", label: "2 · Resultado financeiro sem premissa declarada" }, { value: "deg", label: "3 · Degradação ignorada ou subestimada" }, { value: "tar", label: "4 · Trajetória tarifária irrealista" }, { value: "cert", label: "5 · Equipamento sem certificação adequada" }, { value: "gar", label: "6 · Garantias mal explicadas" }, { value: "oem", label: "7 · Operação e manutenção ausente do orçamento" }, { value: "reg", label: "8 · Risco regulatório omitido" }] },
+    ],
+    outputs: [],
+    note: null,
+  },
+  {
+    id: "m11-inst-11",
+    kind: "explorador",
+    title: "Ordem de avaliação em trinta minutos — duas trilhas sincronizadas",
+    formula: null,
+    fields: [
+      { id: "or-p", label: "Passo", unit: null, kind: "select", defaultValue: "0",
+        options: [{ value: "0", label: "01 · Técnica" }, { value: "1", label: "02 · Contratual" }, { value: "2", label: "03 · Técnica" }, { value: "3", label: "04 · Técnica ⟂" }, { value: "4", label: "05 · Técnica" }, { value: "5", label: "06 · Contratual" }, { value: "6", label: "07 · Contratual" }, { value: "7", label: "08 · Ambas ⟂" }] },
+    ],
+    outputs: [],
+    note: null,
+  },
+  {
+    id: "m11-inst-10",
+    kind: "quebra-cabeca",
+    title: "Roteador de veredito — três classes, todas alcançáveis",
+    formula: null,
+    fields: [
+      { id: "rv-e1", label: "Eixo 1 — premissa técnica", unit: null, kind: "select", defaultValue: "ok",
+        options: [{ value: "ok", label: "Confere com a fonte independente" }, { value: "desvio", label: "Desvio material identificado" }, { value: "falta", label: "Falta dado para verificar" }] },
+      { id: "rv-e2", label: "Eixo 2 — enquadramento regulatório", unit: null, kind: "select", defaultValue: "ok",
+        options: [{ value: "ok", label: "Enquadramento compatível" }, { value: "erro", label: "Modalidade ou porte incompatível" }, { value: "falta", label: "Documento de enquadramento ausente" }] },
+      { id: "rv-e3", label: "Eixo 3 — premissa financeira", unit: null, kind: "select", defaultValue: "ok",
+        options: [{ value: "ok", label: "Premissas ancoradas" }, { value: "solta", label: "Declarada sem ancoragem" }, { value: "omissa", label: "Premissa embutida, não declarada" }] },
+      { id: "rv-e4", label: "Eixo 4 — contrato", unit: null, kind: "select", defaultValue: "ok",
+        options: [{ value: "ok", label: "Contrato e anexos completos" }, { value: "lacuna", label: "Documentado mas incompleto" }, { value: "ausente", label: "Contrato não avaliado" }] },
+    ],
+    outputs: [],
+    note: null,
+  },
+];
+
+const porId = (id: string): Instrument =>
+  M11_INSTRUMENTOS_TODOS.find((x) => x.id === id)!;
+
+/** Instrumento de aparato (§ MAP), sem aula dona. */
+export const MODULO_11_INSTRUMENTOS: Instrument[] = [porId('m11-inst-01')];
+
 export const MODULO_11_AULAS: CurriculumAula[] = [
   {
     id: 'aula-11-01',
@@ -382,7 +599,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-02')],
   },
   {
     id: 'aula-11-02',
@@ -401,7 +618,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-03')],
   },
   {
     id: 'aula-11-03',
@@ -496,7 +713,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-09')],
   },
   {
     id: 'aula-11-08',
@@ -515,6 +732,6 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-10'), porId('m11-inst-11')],
   },
 ];

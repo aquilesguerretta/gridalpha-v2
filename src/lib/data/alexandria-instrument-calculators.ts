@@ -496,6 +496,58 @@ function i7renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrument
   };
 }
 
+// ── Módulo 08 · INST 08 — Termômetro hidrológico (Wave 38) ──
+//
+// PORTADO do `i8calc()`. O quadrante SVG e as duas células do termômetro
+// são desenho; as leituras e o veredito vêm inteiros.
+//
+// Três das quatro leituras são TEXTO — o veredito as abre, na mesma
+// ordem da fonte. A nota cinza de rodapé do original vem junto, sem o
+// `style="color:#6E7686"`: aquele hexadecimal é da paleta do HTML de
+// origem e não existe na folha da Alexandria.
+function i8calcM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const ena = clampM08(i['i8-ena'] ?? 93, 10, 200);
+  const ear = clampM08(i['i8-ear'] ?? 66, 0, 100);
+  const mes = clampM08(i['i8-mes'] ?? 6, 1, 12);
+  const umido = mes >= 11 || mes <= 4;
+
+  const tend = ena >= 100 ? 'recompondo' : ena >= 80 ? 'estável' : 'deteriorando';
+  const meses = ena > 0 ? Math.max(0, Math.round(ear / Math.max(4, (100 - ena) / 6))) : 0;
+  const quadrante = `${ear >= 50 ? 'Estoque alto' : 'Estoque baixo'} · ${ena >= 100 ? 'fluxo forte' : 'fluxo fraco'}`;
+  const ciclo = umido ? 'Período úmido' : 'Período seco';
+
+  let msg: string;
+  if (ear >= 50 && ena >= 100) {
+    msg = '<b>Estoque alto com fluxo forte.</b> É o quadrante confortável e o mais fácil de ler: está entrando mais água que o normal e ainda há muita guardada. A atenção operacional aqui não é escassez — é o oposto: com reservatórios cheios e afluência acima da média, aumenta a chance de vertimento turbinável, que é energia desperdiçada de forma silenciosa. E como a hidráulica opera em nível elevado, o piso de geração sobe, o que amplia o excedente nas horas de carga líquida baixa.';
+  } else if (ear >= 50 && ena < 100) {
+    msg =
+      `<b>Estoque alto com fluxo ${ena < 70 ? 'fraco' : 'próximo do normal'}.</b> ` +
+      (ena < 70
+        ? 'Este é o quadrante que engana. Quem lê só armazenamento conclui que a situação é confortável, e no presente ela é. Mas a afluência abaixo da média significa que o estoque está sendo consumido mais rápido do que reposto, e a folga aparente tem prazo. ' +
+          (umido
+            ? 'Agravante: estamos no período úmido, que é justamente quando o estoque deveria estar sendo recomposto. Fluxo fraco no período úmido é o sinal antecedente mais forte que existe para um período seco difícil.'
+            : 'A leitura no período seco é menos alarmante, porque afluência baixa é o comportamento esperado da estação — a comparação relevante é contra a média daquele mês, e não contra a média anual.')
+        : 'Situação que se sustenta. Está entrando aproximadamente o normal para o mês e o estoque está acima da metade. É o estado em que a operação tem liberdade para modular e usar a hidráulica como recurso de flexibilidade sem consumir margem de segurança.');
+  } else if (ear < 50 && ena >= 100) {
+    msg =
+      '<b>Estoque baixo com fluxo forte.</b> Situação em recuperação. O estoque está apertado por causa do que aconteceu antes, mas a água está chegando acima da média e a tendência é de recomposição. A pergunta relevante deixa de ser "quanto tem" e passa a ser "quanto tempo falta" — e a resposta depende da duração do período úmido restante. ' +
+      (umido
+        ? 'Estar no período úmido é o cenário favorável: há tempo de calendário pela frente.'
+        : 'Estar no período seco com afluência acima da média é atípico e não deve ser extrapolado — a média de longo termo daquele mês já é baixa, então superá-la não significa volume grande em termos absolutos.');
+  } else {
+    msg =
+      '<b>Estoque baixo com fluxo fraco.</b> É o único quadrante em que as duas dimensões apontam no mesmo sentido desfavorável, e por isso o único em que a leitura é inequívoca. Há pouca energia guardada e está entrando menos que o normal. ' +
+      (umido
+        ? 'No período úmido, este quadrante é o mais preocupante de todos, porque é a estação em que a recomposição deveria estar acontecendo e não está — e uma única estação chuvosa pode não bastar para recompor o que se perdeu.'
+        : 'No período seco, é a configuração esperada em ano difícil, e o que importa é a distância até o início das chuvas e a taxa de deplecionamento observada nas últimas semanas.') +
+      ' Em qualquer dos dois casos, é o quadrante em que despacho térmico e preservação de reservatório passam a governar a operação.';
+  }
+  msg += '<br><br>A folga em meses é uma aproximação didática grosseira, calculada a partir do estoque e da distância da afluência em relação à média. Ela serve para dar noção de ordem de grandeza da margem, nunca para planejamento — o cálculo real é feito pelos modelos de otimização do operador, que consideram previsão, restrição de uso múltiplo, intercâmbio e cenários de afluência futura.';
+
+  const cabeca = `<b>Quadrante</b> — ${quadrante}<br><b>Tendência do estoque</b> — ${tend}<br><b>Posição no ciclo</b> — ${ciclo}`;
+  return { valores: { 'i8-folga': meses }, veredito: `${cabeca}<br><br>${msg}` };
+}
+
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // ── INST 01 · kWh = kW × h ────────────────────────────────
   // Original: `(parseFloat(kw.value) || 0) * (parseFloat(h.value) || 0)`
@@ -2275,6 +2327,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
 
   // ── m08 INST 07 · calendario sazonal · doze meses do sistema ──
   'm08-inst-07': i7renderM08,
+
+  // ── m08 INST 08 · termometro hidrologico · estoque x fluxo ──
+  'm08-inst-08': i8calcM08,
 
   // ── m08 INST 04 · reconstrutor de matriz — as duas rodadas ──
   'm08-inst-04-cap': (i) => i4checkM08('cap', i),

@@ -689,6 +689,47 @@ const M08_INST_07: Instrument[] = [
   },
 ];
 
+// ── INST · 08 — Termômetro hidrológico (LYCEUM Wave 38) ───────
+// Terceira ocorrência do nome "Termômetro" no currículo, e a terceira
+// mecânica distinta: no Módulo 05 são 8 chaves booleanas com peso
+// (quebra-cabeça), no Módulo 06 é balanço numérico (simulador), aqui é
+// posição em quadrante a partir de estoque × fluxo. Confirma a regra do
+// catálogo: nome não decide `kind`, mecânica decide.
+//
+// O grupo "Carregar fotografia de" NÃO virou campo. Na fonte ele não
+// alimenta o cálculo: ele REESCREVE os dois campos numéricos
+// (`$id('i8-ena').value = f.ena`). Efeito colateral sobre outro campo é
+// justamente o que uma função pura não reproduz — a mesma classe que a
+// Wave 19 sinalizou no INST 08 do Módulo 03. Mantê-lo como select
+// produziria controle morto, então as quatro fotografias entram como
+// DADO declarado na nota, e os campos nascem na do Sudeste/Centro-Oeste,
+// que é o estado inicial da fonte. Nada se perde além do clique.
+const I8_FOTOS =
+  '<b>Fotografias por subsistema, junho de 2026</b> — Sudeste/Centro-Oeste: afluência 93% da MLT, armazenamento 66% do útil. Sul: 82% e 63%. Nordeste: 59% e 89%. Norte: 58% e 95%. Digite o par que quiser comparar nos dois primeiros campos.';
+const I8_SRCNOTE =
+  '<b>Fotografias iniciais:</b> afluência e armazenamento por subsistema em junho de 2026, conforme reportado ao comitê de monitoramento do setor elétrico. <b>Consulta:</b> 1º de agosto de 2026.';
+const I8_DISC =
+  'Didático/ilustrativo. O diagnóstico é qualitativo e serve para treinar a leitura conjunta das duas grandezas. Não substitui o programa mensal de operação, que incorpora previsão meteorológica, restrição de uso múltiplo, cronograma de manutenção e limites de intercâmbio.';
+
+const M08_INST_08: Instrument[] = [
+  {
+    id: 'm08-inst-08',
+    kind: 'simulador',
+    title: 'Termômetro hidrológico · estoque contra fluxo',
+    formula: null,
+    fields: [
+      { id: 'i8-ena', label: 'Afluência do mês', unit: '% da média de longo termo', kind: 'range', defaultValue: 93, min: 10, max: 200, step: 1 },
+      { id: 'i8-ear', label: 'Energia armazenada', unit: '% do volume útil', kind: 'range', defaultValue: 66, min: 0, max: 100, step: 1 },
+      { id: 'i8-mes', label: 'Posição no ciclo anual', unit: 'mês', kind: 'range', defaultValue: 6, min: 1, max: 12, step: 1 },
+    ],
+    // Três das quatro leituras da fonte são TEXTO (quadrante, tendência,
+    // posição no ciclo) e não cabem em `valores`; o veredito as carrega.
+    // Mesma limitação de contrato das Waves 19/24/25/29.
+    outputs: [{ id: 'i8-folga', label: 'Folga aproximada', unit: 'meses' }],
+    note: `Duas dimensões, quatro quadrantes, quatro diagnósticos completamente diferentes. Mova os controles e observe o ponto migrar. Os valores iniciais são a fotografia declarada abaixo; substitua-os pelo dado do dia e o instrumento continua correto.<br><br>${I8_FOTOS}<br><br>${I8_SRCNOTE}<br><br>${I8_DISC}`,
+  },
+];
+
 export const MODULO_08_LEAD: Record<string, string> = {
   'aula-08-01': "Esta aula não tem um único número decorável, e isso é intencional. Ela ensina as três perguntas que você faz antes de aceitar qualquer estatística de matriz — e quem as faz automaticamente nunca mais cita o número errado na conversa errada.",
   'aula-08-02': "Esta aula não reensina como uma turbina funciona — isso é o Módulo 03. Ela responde a três perguntas diferentes: quanto de cada fonte existe, onde ela está, e por que a soma tem a forma que tem .",
@@ -1032,7 +1073,8 @@ export const MODULO_08_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    // Inst · 08 da fonte.
+    instruments: M08_INST_08,
   },
   {
     id: 'aula-08-05',

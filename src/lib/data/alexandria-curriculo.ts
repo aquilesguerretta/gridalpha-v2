@@ -89,6 +89,11 @@ import {
   MODULO_14_LEAD,
 } from './alexandria-modulo-14-content';
 import {
+  MODULO_15_AULAS,
+  MODULO_15_CORPO,
+  MODULO_15_LEAD,
+} from './alexandria-modulo-15-content';
+import {
   MODULO_16_AULAS,
   MODULO_16_CORPO,
   MODULO_16_LEAD,
@@ -119,6 +124,7 @@ const AULAS: CurriculumAula[] = [
   ...MODULO_11_AULAS,
   ...MODULO_13_AULAS,
   ...MODULO_14_AULAS,
+  ...MODULO_15_AULAS,
   ...MODULO_16_AULAS,
   ...MODULO_17_AULAS,
 ];
@@ -137,6 +143,7 @@ const CORPO: Record<string, AulaBloco[]> = {
   ...MODULO_11_CORPO,
   ...MODULO_13_CORPO,
   ...MODULO_14_CORPO,
+  ...MODULO_15_CORPO,
   ...MODULO_16_CORPO,
   ...MODULO_17_CORPO,
 };
@@ -155,6 +162,7 @@ const LEAD: Record<string, string> = {
   ...MODULO_11_LEAD,
   ...MODULO_13_LEAD,
   ...MODULO_14_LEAD,
+  ...MODULO_15_LEAD,
   ...MODULO_16_LEAD,
   ...MODULO_17_LEAD,
 };

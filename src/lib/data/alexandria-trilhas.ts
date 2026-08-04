@@ -88,6 +88,13 @@ const AULAS_POR_BLOCO: Record<string, number> = {
   // casam `Aula NN`. Cobertura de texto 99,5-99,9% nas oito.
   // LYCEUM Wave 46.
   'bloco-14': 8,   // Biocombustíveis e Bioenergia
+  // TERCEIRO módulo da Trilha 3 (level 3), track 'brasil' — a Trilha 3
+  // NÃO introduz track novo, só muda o `level`. 19 seções sec-id, das
+  // quais 9 casam "Aula NN"; os quatro sinais da fonte concordam (9
+  // aulas, 10 instrumentos, 15 exercícios, 174 termos). Cobertura de
+  // texto POR PALAVRA entre 93,4% e 100% nas nove, agregado 98,9%.
+  // LYCEUM Wave 47.
+  'bloco-15': 9,   // Petróleo, Gás e Petrobras
   // QUARTO módulo da Trilha 3 (level 3). A fonte é a maior do
   // currículo (438 KB) e a primeira com entidade HTML nomeada em
   // massa: 7.842 em 29 tipos, contra ZERO no Módulo 12 — sem

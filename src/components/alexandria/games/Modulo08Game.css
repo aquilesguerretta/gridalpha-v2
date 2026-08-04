@@ -1,3 +1,13 @@
+.m8-game {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.m8-lens-grid > button,
+.m8-workbench > * {
+  min-width: 0;
+}
+
 .m8-game button:focus-visible,
 .m8-game select:focus-visible,
 .m8-game textarea:focus-visible {
@@ -50,4 +60,3 @@
     transition-duration: 0.01ms !important;
   }
 }
-

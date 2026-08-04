@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:games": "node --experimental-strip-types --test tests/alexandria-games/modulo-08-engine.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",

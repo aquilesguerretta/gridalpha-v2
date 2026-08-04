@@ -154,7 +154,7 @@ export function completeGame(params: {
     (item) => item.incorrectFields.length === 0,
   ).length;
   const justifiedDecisions = answers.filter((answer) => answer.justification.trim().length >= 40).length;
-  const specialistTransferCases = new Set(['m8-09', 'm8-10', 'm8-11']);
+  const specialistTransferCases = new Set(scenario.transferCaseIds ?? []);
   const transferObserved = lens === 'especialista'
     && evaluations.filter(
       (item) => specialistTransferCases.has(item.documentId)

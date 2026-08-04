@@ -80,6 +80,12 @@ function entries(record: Record<string, string>): readonly [string, string][] {
   return Object.entries(record);
 }
 
+function scrollGameToTop() {
+  window.requestAnimationFrame(() => {
+    document.getElementById('m8-game-title')?.scrollIntoView({ block: 'start' });
+  });
+}
+
 export function Modulo08Game({ onBack }: Modulo08GameProps) {
   const [stage, setStage] = useState<Stage>('lente');
   const [lens, setLens] = useState<GameLens>('explorador');
@@ -125,6 +131,7 @@ export function Modulo08Game({ onBack }: Modulo08GameProps) {
     setActiveIndex(0);
     setMessage('Dossiê aberto. Classifique o primeiro documento.');
     setStage('dossie');
+    scrollGameToTop();
   };
 
   const registerDecision = () => {
@@ -159,6 +166,7 @@ export function Modulo08Game({ onBack }: Modulo08GameProps) {
         setMessage('Debriefing concluído, mas o navegador não permitiu salvar a evidência local.');
       }
       setStage('debriefing');
+      scrollGameToTop();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Não foi possível concluir a expedição.');
     }
@@ -172,6 +180,7 @@ export function Modulo08Game({ onBack }: Modulo08GameProps) {
     setActiveIndex(0);
     setMessage('Escolha a lente para a nova tentativa.');
     setStage('lente');
+    scrollGameToTop();
   };
 
   return (

@@ -72,6 +72,7 @@ export const MODULO_08_GAME: DecisionGameScenario = {
     'm8-reconciliar-grandeza-unidade-universo-periodo-status',
     'm8-comunicar-divergencia-sem-apagar-nuance',
   ],
+  transferCaseIds: ['m8-09', 'm8-10', 'm8-11'],
   documents: [
     {
       id: 'm8-01',

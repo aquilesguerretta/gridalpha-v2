@@ -73,6 +73,7 @@ export interface DecisionGameScenario {
   title: string;
   subtitle: string;
   competenceIds: readonly string[];
+  transferCaseIds?: readonly string[];
   documents: readonly DossierDocument[];
 }
 
@@ -132,4 +133,3 @@ export const LENS_DOCUMENT_LIMIT: Record<GameLens, number> = {
   analista: 8,
   especialista: 11,
 };
-

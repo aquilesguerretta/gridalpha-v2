@@ -653,6 +653,93 @@ export const M08_INST11_DB: Record<string, Record<string, {
   },
 };
 
+
+// ── INST · 01 — Mapa físico do Brasil elétrico (Wave 38) ─────
+// Vive no § MAP, FORA de qualquer aula — mesmo caso do LAB · 01 do
+// Módulo 01, e por isso vai em Recursos do Módulo, não numa aula.
+//
+// Catorze nós sobre a mesma geografia, lidos em dois fluxos: geração
+// (onde o recurso está) e escoamento (por onde a energia sai). O mapa
+// SVG e as setas de corredor são desenho e não portam; o texto de cada
+// nó nos dois fluxos é o conteúdo, e vem inteiro.
+//
+// Gerado do objeto I1 do <script>: 14 nós × 2 textos.
+
+export const M08_INST01_NOS: {
+  id: string; nome: string; sub: string; ger: string; esc: string;
+}[] = [
+  {
+    id: "rr", nome: "Roraima", sub: "Norte",
+    ger: "Último estado a se conectar ao sistema interligado, em setembro de 2025. Antes disso, atendimento por térmicas a óleo diesel e por importação de sistema vizinho. A linha que o conectou tem cerca de 725 quilômetros em circuito duplo de 500 quilovolts e custou aproximadamente R$ 2,6 bilhões.",
+    esc: "Ponta de linha. A capacidade da conexão foi dimensionada em cerca de quatro vezes a demanda atual do estado, o que a torna também um caminho para escoar futuras hidrelétricas inventariadas na região. Quinze anos separaram a recomendação técnica da energização.",
+  },
+  {
+    id: "am", nome: "Sistemas isolados da Amazônia", sub: "Norte",
+    ger: "Menos de meio por cento da geração nacional, com perfil muito mais fóssil que a média — o diesel dominava a geração isolada em 2025. É a melhor demonstração de que média nacional esconde realidade local: o país é renovável e centenas de localidades não são.",
+    esc: "Fora do sistema interligado por definição. A substituição do diesel exige solução confiável em todos os dias do ano, incluindo os de baixa irradiância, o que empurra qualquer alternativa para arranjos híbridos com armazenamento e respaldo.",
+  },
+  {
+    id: "bm", nome: "Complexo do Xingu — Belo Monte", sub: "Norte",
+    ger: "Grande hidrelétrica a fio d'água, com capacidade elevada e forte sazonalidade de vazão. Contribui muito para a capacidade instalada nacional e menos para o armazenamento, porque não regulariza.",
+    esc: "Escoada por elos dedicados de corrente contínua em alta tensão até o Sudeste, com entrega em pontos distintos da rede para distribuir o impacto. A arquitetura reduz perda em distância longa e cria dependência de estações conversoras — a perda de um bipolo é contingência de grande magnitude.",
+  },
+  {
+    id: "tuc", nome: "Tucuruí e eixo Norte-Sul", sub: "Norte",
+    ger: "Um dos maiores aproveitamentos hidrelétricos do país e ponto histórico de partida da integração nacional.",
+    esc: "Origem do eixo Norte-Sul em corrente alternada, que transformou sistemas regionais numa rede nacional. Não é uma linha: é um conjunto de corredores e reforços cuja saturação divide eletricamente o país.",
+  },
+  {
+    id: "mad", nome: "Complexo do Madeira", sub: "Norte",
+    ger: "Duas grandes usinas a fio d'água em Rondônia, com regime de vazão marcadamente sazonal e pouca capacidade de deslocar geração no tempo.",
+    esc: "Escoada por bipolos de corrente contínua até o Sudeste, com mais de dois mil quilômetros. É o caso mais didático de por que corrente contínua existe: bloco grande, distância muito longa, fluxo controlável.",
+  },
+  {
+    id: "nel", nome: "Eólicas do litoral — Rio Grande do Norte e Ceará", sub: "Nordeste",
+    ger: "Um dos melhores recursos eólicos do mundo. Ventos fortes, regulares e com direção estável, o que produz fator de capacidade na faixa alta e previsibilidade acima da média internacional.",
+    esc: "É onde a estabilidade de tensão limita o escoamento. Após a revisão dos modelos dinâmicos das usinas, a capacidade calculada de escoamento da região caiu, e compensadores síncronos passaram a ser indicados para restaurar parte dela.",
+  },
+  {
+    id: "nei", nome: "Eólicas e solar do interior — Bahia e Piauí", sub: "Nordeste",
+    ger: "Segundo polo de renovável variável, com eólica de interior e forte adição de solar centralizada. A coexistência das duas fontes no mesmo ponto de conexão amplia o volume e concentra o risco.",
+    esc: "É a origem geográfica da maior parte do corte de geração brasileiro. A carga local é muito menor que o potencial de oferta em vários períodos, e o excedente depende inteiramente da capacidade de exportação.",
+  },
+  {
+    id: "saf", nome: "São Francisco — Sobradinho e Paulo Afonso", sub: "Nordeste",
+    ger: "Aproveitamentos hidrelétricos com regularização relevante, que dão ao Nordeste um estoque de energia próprio e uma capacidade de modulação que a eólica não tem.",
+    esc: "Nó de articulação entre a geração renovável variável da região e o restante da malha. A operação desses reservatórios é condicionada por uso múltiplo da água — abastecimento, irrigação e navegação.",
+  },
+  {
+    id: "exp", nome: "Fronteira de exportação Norte e Nordeste", sub: "Gargalo",
+    ger: "Não é ponto de geração: é o limite através do qual a produção do Norte e do Nordeste alcança o maior centro de carga do país.",
+    esc: "O gargalo estruturante do sistema brasileiro. O plano da operação de médio prazo projeta o limite de recebimento do Sudeste/Centro-Oeste evoluindo de 18.500 megawatts em janeiro de 2026 para 23.000 em janeiro de 2030, condicionado à entrada de obras.",
+  },
+  {
+    id: "par", nome: "Bacia do Paraná — Grande e Paranaíba", sub: "Sudeste/Centro-Oeste",
+    ger: "O coração do armazenamento brasileiro. O subsistema concentra cerca de setenta por cento da capacidade de armazenamento do país, e é por isso que a afluência dessas bacias é o número hidrológico que mais importa.",
+    esc: "Destino da maioria dos intercâmbios e origem da exportação para o Sul. É também onde a geração hidráulica cumpre a função de equilibrar a rampa vespertina do sistema inteiro.",
+  },
+  {
+    id: "sol", nome: "Solar centralizada — norte de Minas", sub: "Sudeste/Centro-Oeste",
+    ger: "Polo de solar centralizada em crescimento acelerado, com irradiância elevada e proximidade relativa do maior centro de carga. Dá ao Sudeste uma assinatura diurna de geração que não existia há cinco anos.",
+    esc: "Mais próxima da carga que a solar nordestina, o que reduz a exposição ao limite de exportação. Não elimina a exposição ao corte por razão energética, que é nacional e ocorre na mesma janela horária em todo o país.",
+  },
+  {
+    id: "car", nome: "Centro de carga — São Paulo, Minas e Rio", sub: "Sudeste/Centro-Oeste",
+    ger: "Onde está o consumo. Concentra indústria, serviços e população, e é o destino final da maior parte da energia produzida nos nós acima.",
+    esc: "Recebe de todas as direções: do Norte por corrente contínua e por corrente alternada, do Nordeste pela fronteira de exportação, do Sul quando o Sul exporta, e da própria bacia do Paraná. A capacidade de <em>receber</em> é tão limitante quanto a de enviar.",
+  },
+  {
+    id: "ita", nome: "Itaipu", sub: "Sul / Sudeste",
+    ger: "Usina binacional criada por tratado. A parcela produzida para o país vizinho e adquirida pelo Brasil entra nas contas nacionais como eletricidade importada — motivo pelo qual a oferta interna de energia elétrica é maior que a geração nacional.",
+    esc: "Escoada em corrente alternada e em corrente contínua, com sistemas dedicados. É o exemplo canônico de por que um número de matriz sempre depende de convenção estatística.",
+  },
+  {
+    id: "sul", nome: "Sul — hidrelétricas e eólicas", sub: "Sul",
+    ger: "Hidrologia própria e descolada das demais, com pouca regularização e alta volatilidade. Parque eólico relevante com regime distinto do nordestino, e carga industrial e agrícola forte.",
+    esc: "O subsistema mais bidirecional: alterna importação e exportação conforme água, vento e carga. O plano de médio prazo projeta ampliação de cerca de vinte por cento na capacidade de recebimento a partir do Sudeste/Centro-Oeste.",
+  },
+];
+
 const I2_INTRO =
   'Digite a capacidade instalada e o fator de capacidade de cada fonte. O instrumento devolve as duas pizzas e marca em dourado toda fonte que <b>trocou de posição</b> entre elas. Os valores iniciais são a fotografia de 2025 declarada abaixo; substitua qualquer um deles e a lição continua funcionando — é essa a razão de o instrumento existir.';
 const I2_SRCNOTE =
@@ -992,6 +1079,34 @@ const M08_INST_11: Instrument[] = [
     ],
     outputs: [],
     note: 'Diga que pergunta você precisa responder e com que granularidade. O instrumento devolve qual base abrir, qual universo ela cobre, com que defasagem publica e qual é a armadilha específica daquela série. É o fechamento do ciclo aberto no Módulo 07.<br><br>Didático/ilustrativo. O roteador indica a base de referência mais apropriada e as cadências típicas; datas exatas de publicação e nomes de arquivo mudam a cada ciclo, e a nomenclatura das séries pode ser revista. Confirme sempre no portal da fonte antes de citar.',
+  },
+];
+
+/** Instrumento de MÓDULO, não de aula: o Inst · 01 do § MAP. Exportado
+ *  para o registro de Recursos do Módulo, mesmo caminho do `lab-01` do
+ *  Módulo 01. Não entra em `instruments` de nenhuma aula. */
+export const MODULO_08_INSTRUMENTOS: Instrument[] = [
+  {
+    id: 'm08-inst-01',
+    kind: 'explorador',
+    title: 'Mapa físico do Brasil elétrico · geração × escoamento',
+    formula: null,
+    fields: [
+      {
+        id: 'i1-cur', label: 'Fluxo exibido', unit: null, kind: 'select', defaultValue: 'ger',
+        options: [
+          { value: 'ger', label: 'Geração · onde nasce' },
+          { value: 'esc', label: 'Escoamento · por onde sai' },
+          { value: 'amb', label: 'Os dois' },
+        ],
+      },
+      {
+        id: 'i1-sel', label: 'Nó', unit: null, kind: 'select', defaultValue: 'exp',
+        options: M08_INST01_NOS.map((n) => ({ value: n.id, label: n.nome })),
+      },
+    ],
+    outputs: [],
+    note: 'Dois fluxos sobre a mesma geografia. No fluxo de <b>geração</b>, os nós dimensionam onde cada fonte está concentrada. No fluxo de <b>escoamento</b>, os mesmos pontos viram origem, corredor ou destino — e os gargalos aparecem. Escolha o nó para abrir o painel.',
   },
 ];
 

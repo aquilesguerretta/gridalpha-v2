@@ -221,6 +221,7 @@ import {
   M08_INST06_TXT,
   M08_INST07_MESES,
   M08_INST11_DB,
+  M08_INST01_NOS,
 } from './alexandria-modulo-08-content';
 
 /** `f1` da fonte: uma casa decimal fixa, vírgula. Usado só no veredito —
@@ -711,6 +712,32 @@ function i11renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumen
     : '<b>Uso em análise interna.</b> Aqui a exigência é menor em forma e igual em substância: você pode trabalhar com dado preliminar e com estimativa, desde que o recorte esteja anotado. A regra prática que evita retrabalho é anotar o recorte no momento da coleta, e não no momento da publicação — recorte reconstruído de memória semanas depois é a origem mais comum de erro em relatório.';
 
   return { valores: {}, veredito: `${ficha}<br><br>${uso}` };
+}
+
+// ── Módulo 08 · INST 01 — Mapa físico (LYCEUM Wave 38) ──
+//
+// PORTADO do `i1render()`. Instrumento de MÓDULO (§ MAP), não de aula.
+// O SVG e as setas de corredor são desenho; o painel de cada nó é o
+// conteúdo. No fluxo 'amb' a fonte concatena os dois textos com os
+// rótulos "Geração." e "Escoamento." — preservado literal.
+function i1renderM08(i: Record<string, EntradaInstrumento>): ResultadoInstrumento {
+  const cur = String(i['i1-cur'] ?? 'ger');
+  const idBruto = String(i['i1-sel'] ?? 'exp');
+  const no = M08_INST01_NOS.find((x) => x.id === idBruto) ?? M08_INST01_NOS.find((x) => x.id === 'exp') ?? M08_INST01_NOS[0];
+  const txt = cur === 'ger'
+    ? no.ger
+    : cur === 'esc'
+      ? no.esc
+      : `<b>Geração.</b> ${no.ger}<br><br><b>Escoamento.</b> ${no.esc}`;
+  const fluxo = cur === 'ger'
+    ? 'Geração — onde o recurso está'
+    : cur === 'esc'
+      ? 'Escoamento — por onde a energia sai'
+      : 'Os dois sobrepostos';
+  return {
+    valores: {},
+    veredito: `<b>${no.nome}</b> · ${no.sub}<br><br>${txt}<br><br><b>Fluxo em exibição</b> — ${fluxo}`,
+  };
 }
 
 export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
@@ -2479,6 +2506,9 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   'm07-inst-10': (i) => ({ valores: {}, veredito: explorar07('10', i['i10-sel']) }),
 
   // ── m08 INST 02 · conversor de três eixos · as duas pizzas ──
+  // ── m08 INST 01 · mapa fisico · geracao x escoamento (modulo) ──
+  'm08-inst-01': i1renderM08,
+
   'm08-inst-02': i2calcM08,
 
   // ── m08 INST 03 · fator de capacidade com faixa típica por fonte ──

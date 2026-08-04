@@ -1265,6 +1265,8 @@ import {
   M11_E2,
   M11_E3,
   M11_E4,
+  M11_MOD_ARRANJO,
+  M11_ESCADA_FIOB,
 } from './alexandria-modulo-11-content';
 
 // ── Módulo 12 · dado do módulo (LYCEUM Wave 44) ──
@@ -3460,6 +3462,75 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
   // `innerHTML`→VER). Lógica de ramo e prosa intocadas.
   // As 3 saídas de TEXTO não cabem em `valores`
   // (`Record<string, number>`, protocolo §12) — abrem o veredito.
+  // ── m11 INST 04 · Classificador de porte e modalidade ──
+  // Transliteração mecânica do `calc()` da fonte: só as chamadas de DOM
+  // foram reescritas (`numOf`→`nm`, `segVal`→`sv`, `textContent`→OUT,
+  // `innerHTML`→VER). Lógica de ramo e prosa intocadas.
+  // As 3 saídas de TEXTO não cabem em `valores`
+  // (`Record<string, number>`, protocolo §12) — abrem o veredito.
+  'm11-inst-04': (i) => {
+    const OUT: Record<string, string> = {};
+    let VER = '';
+    const MOD = M11_MOD_ARRANJO;
+
+    let pot=nm(i['cl-pot'], 180, 1, 6000);
+    let f=sv(i['cl-fonte'], 'solar');
+    let a=sv(i['cl-arr'], 'local');
+    let m=MOD[a];
+    let teto, tetoTx, despachavel;
+    if(f==='desp'){despachavel=true;teto=5000;tetoTx='5 MW — fonte despachável';}
+    else if(f==='solarbat'){despachavel=true;teto=3000;tetoTx='3 MW — fotovoltaica com baterias qualificadas permanece limitada a 3 MW pelo próprio inciso que a qualifica como despachável';}
+    else {despachavel=false;teto=3000;tetoTx='3 MW — fonte não despachável';}
+    let porte, pcls;
+    if(pot<=75){porte='Microgeração distribuída';pcls='';}
+    else if(pot<=teto){porte='Minigeração distribuída';pcls='';}
+    else {porte='Fora dos limites de porte';pcls='gold';}
+    void pcls; // classe de estilo do original; sem efeito no dado
+    OUT['cl-porte'] = porte;
+    
+    OUT['cl-teto'] = tetoTx;
+    OUT['cl-mod'] = m.n;
+
+     let cls='ok'; let t=[];
+    t.push('<b>Classificação.</b> Com '+fmt11(pot,0)+' kW instalados em corrente alternada e fonte '+
+      (despachavel?'classificada como despachável':'não despachável')+', o sistema é <b>'+porte.toLowerCase()+'</b>. '+
+      'O limiar entre micro e minigeração é de 75 kW; o teto superior aplicável a este caso é de '+tetoTx.split(' — ')[0]+'.');
+    if(pot>teto){
+      cls='per';
+      t.push('<b>Fora de escopo.</b> Acima do teto aplicável, a central não se enquadra como geração distribuída e não pode participar do sistema de compensação nesses termos. Verifique se a proposta não está descrevendo um projeto de outro regime, e lembre que é vedado dividir a central em unidades menores para caber no limite.');
+    }
+    t.push('<b>Modalidade.</b> '+m.d);
+    t.push('<b>O que a proposta precisa provar.</b> '+m.prova);
+    if(pot>75&&pot<=teto&&!despachavel&&m.esp){
+      if(pot>500){
+        cls=(cls==='per'?'per':'att');
+        t.push('<b>Atenção ao regime especial.</b> Minigeração acima de 500 kW em fonte não despachável, nesta modalidade, cai no regime agravado do parágrafo 1º do artigo 27 <b>se um único titular detiver 25% ou mais da participação do excedente</b>. Este é o campo decisivo, e é o que a proposta mais frequentemente omite. Pergunte a distribuição de participação antes de qualquer outra coisa.');
+      } else {
+        t.push('<b>Regime especial não aplicável por porte.</b> O regime agravado do parágrafo 1º do artigo 27 pressupõe minigeração acima de 500 kW. Abaixo desse patamar, a modalidade não aciona o agravamento, ainda que haja concentração de participação.');
+      }
+    } else if(m.esp&&despachavel&&pot>500){
+      t.push('<b>Regime especial não aplicável por fonte.</b> O regime agravado exige fonte não despachável. Confirme, no entanto, que a qualificação como despachável está documentada — no caso fotovoltaico, exige armazenamento com modulação de pelo menos vinte por cento da capacidade de geração mensal, despachável por controlador.');
+    } else if(!m.esp&&pot>500){
+      t.push('<b>Regime especial não aplicável por modalidade.</b> O regime agravado alcança apenas autoconsumo remoto e geração compartilhada. Esta modalidade não é alcançada, o que reduz materialmente a exposição regulatória do arranjo.');
+    }
+    if(pot>75){
+      if(pot>1000)t.push('<b>Garantia de fiel cumprimento.</b> Para centrais de 1.000 kW ou mais, o artigo 4º exige garantia de cinco por cento do investimento, salvo dispensa aplicável a geração compartilhada por consórcio ou cooperativa e a empreendimento com múltiplas unidades. Verifique se a proposta contemplou esse custo.');
+      else if(pot>500)t.push('<b>Garantia de fiel cumprimento.</b> Para centrais acima de 500 kW e abaixo de 1.000 kW, o artigo 4º exige garantia de dois e meio por cento do investimento, salvo dispensa aplicável. Verifique se a proposta contemplou esse custo.');
+      t.push('<b>Prazo de conexão.</b> Para minigeração de fonte solar, o prazo de início de injeção é de doze meses da emissão do parecer de acesso; para as demais fontes, trinta meses. Para microgeração, cento e vinte dias, independentemente da fonte.');
+    } else {
+      t.push('<b>Prazo de conexão e custeio.</b> Para microgeração, o prazo de início de injeção é de cento e vinte dias da emissão do parecer de acesso, e melhorias ou reforços de rede em função exclusiva da conexão são integralmente custeados pela distribuidora, sem participação financeira do consumidor.');
+    }
+    
+    VER = t.map(function(x){return '<p>'+x+'</p>';}).join('');
+  
+    void cls;
+  
+    void VER;
+    return {
+      valores: {  },
+      veredito: '<b>Classificação de porte.</b> ' + (OUT['cl-porte'] ?? '') + '<br><br>' + '<b>Teto de porte aplicável.</b> ' + (OUT['cl-teto'] ?? '') + '<br><br>' + '<b>Modalidade regulatória.</b> ' + (OUT['cl-mod'] ?? '') + '<br><br>' + VER,
+    };
+  },
   'm11-inst-05': (i) => {
     const OUT: Record<string, string> = {};
     let VER = '';
@@ -3537,6 +3608,8 @@ export const INSTRUMENT_CALCULATORS: Record<string, CalculateFn> = {
     VER = estado;
     
     VER = t.map(function(x){return '<p>'+x+'</p>';}).join('');
+  
+    void cls;
   
     void VER;
     return {

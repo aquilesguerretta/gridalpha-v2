@@ -498,6 +498,16 @@ export const M11_MOD_ARRANJO: Record<string, { n: string; d: string; prova: stri
   emuc: { n: "Empreendimento com múltiplas unidades consumidoras", d: "Conjunto de unidades em mesma propriedade ou propriedades contíguas, sem separação por via pública, passagem aérea ou subterrânea ou propriedade de terceiro, com as instalações de uso comum constituindo unidade consumidora distinta. Definido no inciso VII do artigo 1º.", prova: "Comprovação de contiguidade, existência de unidade consumidora distinta para as áreas de uso comum e responsabilidade formal do condomínio, administração ou proprietário sobre ela.", esp: false },
 };
 
+/** INST · 05 — a escada do Fio B por ano, literal do `var ESC`. */
+export const M11_ESCADA_FIOB: Record<string, number> = {
+  '2023': 15,
+  '2024': 30,
+  '2025': 45,
+  '2026': 60,
+  '2027': 75,
+  '2028': 90,
+};
+
 /** Os instrumentos do módulo. INST 01 vive no § MAP — fora de qualquer
  *  aula —, e por isso é exportado à parte, para os Recursos do Módulo,
  *  mesmo caminho do `lab-01` do Módulo 01. */
@@ -595,6 +605,20 @@ const M11_INSTRUMENTOS_TODOS: Instrument[] = [
     outputs: [],
     note: null,
   },
+  {
+    id: "m11-inst-05",
+    kind: "simulador",
+    title: "Roteador de regime — data de protocolo determina tudo",
+    formula: null,
+    fields: [
+      { id: "rr-ano", label: "Ano de referência da leitura", unit: "ano", kind: "range", defaultValue: 2026, min: 2023, max: 2032, step: 1 },
+      { id: "rr-data", label: "Data de protocolo do pedido de acesso", unit: null, kind: "select", defaultValue: "ate2022", options: [{ value: "ate2022", label: "Até 7 de janeiro de 2022" }, { value: "doze", label: "8 jan 2022 a 7 jan 2023" }, { value: "semestre", label: "8 jan 2023 a 7 jul 2023" }, { value: "depois", label: "Após 7 de julho de 2023" }] },
+      { id: "rr-porte", label: "Porte", unit: null, kind: "select", defaultValue: "micro", options: [{ value: "micro", label: "Microgeração" }, { value: "mini500", label: "Minigeração até 500 kW" }, { value: "mini500mais", label: "Minigeração acima de 500 kW" }] },
+      { id: "rr-mod", label: "Modalidade", unit: null, kind: "select", defaultValue: "localemuc", options: [{ value: "localemuc", label: "Autoconsumo local ou EMUC" }, { value: "pulv", label: "Autoconsumo remoto pulverizado" }, { value: "conc", label: "Geração compartilhada concentrada" }] },
+    ],
+    outputs: [],
+    note: null,
+  },
 ];
 
 const porId = (id: string): Instrument =>
@@ -678,7 +702,7 @@ export const MODULO_11_AULAS: CurriculumAula[] = [
     video: null,
     references: [],
     activities: [],
-    instruments: [],
+    instruments: [porId('m11-inst-05')],
   },
   {
     id: 'aula-11-05',

@@ -202,3 +202,46 @@ Em todo o painel, `AT.rotulo` / `AT.dado` / `AT.corpo` são espalhados e depois 
 - Remover `box-shadow` (já zero)
 - Forçar `border-radius: 0` (já zero / `AR.none`)
 
+---
+
+## Fase 3 — Posse do shell confirmada
+
+Comando: `git log --all --diff-filter=A --oneline -- <path>`
+
+| Arquivo | Commit de criação | Prefixo de agente |
+| --- | --- | --- |
+| `src/pages/alexandria/AlexandriaRouter.tsx` | `821d0ff` · `lyceum: alexandria wave 3 internal routing` | **lyceum** |
+| `src/components/alexandria/navigation/TrilhasHub.tsx` | `3e2e207` · `lyceum: alexandria wave 3 trilhas hub` | **lyceum** |
+| `src/components/alexandria/navigation/CaminhoExpedicao.tsx` | `8f1e4d6` · `lyceum: alexandria wave 3 caminho de expedicao` | **lyceum** |
+| `src/pages/alexandria/AlexandriaHome.tsx` | `1df0c84` · `lyceum: alexandria wave 2 route and visual verification` | **lyceum** |
+
+Os quatro são posse **LYCEUM**, não ATLAS. Esta wave não os editou.
+
+### A entrada de navegação do Atlas Mundial passa por esses quatro?
+
+| Arquivo | Liga ao Atlas? |
+| --- | --- |
+| `AlexandriaRouter.tsx` | **Sim — monta a rota.** `import { AtlasStub }` + `<Route path="atlas" element={<AtlasStub />} />` |
+| `TrilhasHub.tsx` | Não — zero menção a atlas |
+| `CaminhoExpedicao.tsx` | Não — zero menção a atlas |
+| `AlexandriaHome.tsx` | Só em comentário de cabeçalho (lista de rotas). Não navega |
+
+**O link de nav que o usuário clica não está nos quatro.** Está em:
+
+- `src/components/alexandria/shell/AlexandriaHeader.tsx` — item `{ id: 'atlas', rotulo: 'Atlas', destino: '/alexandria/atlas' }` e `ativoPorRota` que acende Atlas em `/alexandria/atlas*`
+- `src/components/alexandria/shell/AlexandriaFooter.tsx` — `NAV_RODAPE` com o mesmo destino (também lyceum)
+
+Cadeia real: Header/Footer (clique) → rota `/alexandria/atlas` → `AlexandriaRouter` → `AtlasStub` → lazy `AtlasGlobo`.
+
+### Nota de atribuição histórica (fora dos quatro, mas relevante)
+
+Os arquivos do painel do globo foram **criados sob prefixo `lyceum:`**, não `atlas:`:
+
+| Arquivo | Criação |
+| --- | --- |
+| `AtlasGlobo.tsx` | `8f50362` · `lyceum: alexandria wave 27 globe surface` |
+| `alexandria-tokens.ts` | `0c92fcad` · `lyceum: alexandria wave 2 design tokens` |
+| `AtlasStub.tsx` (última ponta) | revisões `lyceum:` |
+
+A posse operacional declarada nesta wave (ATLAS dono dos internals do globo) é decisão de produto atual; o histórico git ainda carrega LYCEUM como autor de criação. Wave de correção visual pode usar prefixo `atlas:` sem precisar tocar os quatro arquivos de shell — a rota e o nav já existem.
+

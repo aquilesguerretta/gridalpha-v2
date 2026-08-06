@@ -31,6 +31,7 @@ import {
   type FiltroFonte,
   type ModoCor,
 } from '../../../lib/atlas/atlasDerivacoes';
+import { CalloutDadosMedidos } from './CalloutDadosMedidos';
 
 interface AtlasControlesProps {
   mundo: MundoAtlas;
@@ -259,33 +260,17 @@ export function AtlasControles({
           {METRICAS.map((m) => (
             <Opcao
               key={m.chave}
-              rotulo={m.derivada ? `${m.rotulo} ◆` : m.rotulo}
+              rotulo={m.rotulo}
               ativo={metricaRank === m.chave}
               aoClicar={() => setMetricaRank(m.chave)}
             />
           ))}
         </div>
 
-        {/* A marca do derivado: rótulo próprio + fórmula visível. Nunca
-            só o número. */}
-        {metrica.derivada && (
-          <div
-            style={{
-              border: `1px dashed ${A.terracota}`,
-              padding: `${AS.xs} ${AS.sm}`,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '2px',
-            }}
-          >
-            <span style={{ ...AT.rotulo, fontSize: '8px', color: A.terracota }}>◆ Número derivado</span>
-            <span style={{ ...AT.dado, fontSize: '9px', lineHeight: 1.5, color: A.tintaSuave }}>
-              Não vem da fonte: é calculado aqui como {metrica.formula}.
-              Intensidade mede carbono <em>por kWh</em>; esta estimativa
-              multiplica pela geração para aproximar o total anual.
-            </span>
-          </div>
-        )}
+        {/* Distinção medido × analítico — substitui ◆ Número derivado
+            (Wave 38). Sempre visível; a fórmula entra só quando a
+            métrica ativa é derivada. */}
+        <CalloutDadosMedidos formula={metrica.derivada ? metrica.formula : undefined} />
 
         <ol style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column' }}>
           {ranking.linhas.map((l) => (

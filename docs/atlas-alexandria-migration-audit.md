@@ -66,3 +66,139 @@ import { A, A2, AT, AS, AR, AE, ALAYOUT } from '../../../design/alexandria-token
 ### Asset do frontispício
 
 `public/alexandria/gravuras/grav-atlas-segurando-o-globo.png` — existe (2.848.577 bytes). Mesmo diretório que `fis-*`, `orn-*`, `his-*`, etc. Prefixo `grav-` é convenção própria (não é bloco curricular). Detalhe de conformidade na Fase 2.
+
+---
+
+## Fase 2 — Auditoria de conformidade visual
+
+### Veredito geral (inverte a premissa do brief)
+
+A premissa ("o restante do painel provavelmente está em outro sistema") **não se sustenta**. Todas as peças do Atlas Mundial já importam `src/design/alexandria-tokens.ts`. Nenhuma importa `src/design/tokens.ts` (terminal). Não há `box-shadow` / `boxShadow` em nenhum arquivo do painel. `borderRadius` é `0` ou `AR.none` em todo lugar medido.
+
+O trabalho de migração **não** é "trocar de sistema". É fechar os desvios listados abaixo — cores fora do token, tipografia abaixo da escala `AT`, e o callout nominal que ainda não existe.
+
+### Hipótese do callout "Dados medidos / Interpretação analítica"
+
+**Não implementado com esse texto.** Grep em `src/components/alexandria/atlas/` e `AtlasStub.tsx`: zero ocorrência de "Dados medidos" ou "Interpretação analítica".
+
+O que existe, no mesmo *espírito* (distinguir medido de derivado), é o bloco tracejado em terracota em `AtlasControles.tsx`:
+
+- rótulo: `◆ Número derivado`
+- corpo: `Não vem da fonte: é calculado aqui como {metrica.formula}.…`
+
+Aparece só quando o ranking ativo é a métrica marcada `derivada: true` (emissão total aproximada). Não é o callout de duas colunas "Dados medidos / Interpretação analítica" — é instrução de produto ainda não executada nessa forma, ou executada sob outro rótulo.
+
+### Peça a peça
+
+#### 1. Globo — `AtlasGlobo.tsx`
+
+| Aspecto | Estado hoje |
+| --- | --- |
+| Tokens | Importa `A, A2, AT, AS, AE` |
+| Paleta de cena | Navy da esfera (`A.navy` via material), lavagem creme, stroke ouro (`A2.ouroSobreNavy`), hover terracota em `rgba(168,70,42,…)` (= `A.terracota`) |
+| Fonte | Controles overlay usam `AT.rotulo` / `AT.corpo` (Cinzel/Lora via token) |
+| border-radius | `0` nos botões overlay |
+| box-shadow | ausente |
+| Não-conformidade | Cores de polígono/filtro passam por `atlasDerivacoes.COR_FONTE` (ver § cores fora do token). Overlay imersivo usa `fontSize: '8px'/'9px'` abaixo de `AT.rotulo` (11px) |
+
+#### 2. Perfil de país — `PaisPerfil.tsx`
+
+| Aspecto | Estado hoje |
+| --- | --- |
+| Tokens | Importa `A, A2, AF, AT, AE, AS, AR` |
+| Paleta | `A2.cremeSuperficie` + fio `A.fioSobreCreme` — papel sobre o globo |
+| Fonte | Título em `AF.display` (Cinzel); corpo/dados em `AT.*` (Lora) |
+| border-radius | `AR.none` |
+| box-shadow | ausente |
+| Não-conformidade | Escala tipográfica densamente overrideada (`8px`–`13px`); título a `18px` em vez de papel `AT.h2`/`AT.h3` |
+
+#### 3. Comparador — `ComparadorPaises.tsx`
+
+| Aspecto | Estado hoje |
+| --- | --- |
+| Tokens | Importa `A, A2, AF, AT, AS, AE` |
+| Paleta | `A2.cremeSuperficie`, fios do sistema |
+| Fonte | Cinzel nos nomes; Lora nos dados |
+| border-radius | `0` |
+| box-shadow | ausente |
+| Não-conformidade | Mesma compressão tipográfica (`8px`–`12px`) |
+
+#### 4. Controles — `AtlasControles.tsx`
+
+| Aspecto | Estado hoje |
+| --- | --- |
+| Tokens | Importa `A, A2, AT, AS, AE` |
+| Paleta | Creme + metadado + terracota no callout de derivado |
+| Fonte | `AT.rotulo` / `AT.dado` com overrides |
+| border-radius | nenhum declarado (elementos sem radius) |
+| box-shadow | ausente |
+| Não-conformidade | Rótulos de seção a `8px` / `0.13em` — mesmo idioma do rodapé pós-Wave 10, mas abaixo do piso `AT.rotulo` (11px / 0.18em) |
+
+#### 5. Busca — `BuscaPais.tsx`
+
+| Aspecto | Estado hoje |
+| --- | --- |
+| Tokens | Importa `A, A2, AF, AT, AS` |
+| Paleta | Fio embaixo (padrão ⌘K do handoff), sem caixa de quatro lados |
+| Fonte | `AF.corpo` no input; rótulo Cinzel |
+| border-radius | sem radius |
+| box-shadow | ausente |
+| Não-conformidade | `fontSize: '8px'` no rótulo; input a `13px` (entre `AT.nav` e `AT.dado`) |
+
+#### 6. Página / coluna lateral — `AtlasStub.tsx`
+
+| Aspecto | Estado hoje |
+| --- | --- |
+| Tokens | Importa `A, A2, AT, AS, AE` |
+| Shell | Monta `AlexandriaShell` — herda header/footer/canvas creme |
+| h1 | `AT.h1` com override `fontSize: '26px'` (token é 32px) |
+| border-radius | `0` |
+| box-shadow | ausente |
+
+#### 7. Camada Brasil — `CamadaBrasil.tsx`
+
+Cores de contorno hardcoded (comentadas como tokens, mas **não importam** o arquivo de tokens — o arquivo é dado puro):
+
+| Submercado | Hex | Token alegado |
+| --- | --- | --- |
+| norte | `#8E9E6B` | `A2.olivaSobreNavy` ✓ valor bate |
+| nordeste | `#CBAA6E` | `A2.ouroSobreNavy` ✓ |
+| sudesteCentroOeste | `#C2683C` | `A2.terracotaClara` ✓ |
+| sul | `#5C7A99` | azul-aço (mesmo da eólica) — **não é token nomeado** |
+
+### Cores fora do token (`atlasDerivacoes.ts` · `COR_FONTE`)
+
+| Chave | Hex | Status |
+| --- | --- | --- |
+| `nuclearPct` | `#A8462A` | = `A.terracota` |
+| `solarPct` | `#CBAA6E` | = `A2.ouroSobreNavy` |
+| `biofuelPct` | `#55663F` | = `A.oliva` |
+| `otherRenewablesExcBiofuelPct` | `#8E9E6B` | = `A2.olivaSobreNavy` |
+| `fossilPct` | `#736A5C` | **fora da folha** — carvão quente, deliberado (navy era ilegível) |
+| `hydroPct` | `#357B73` | **fora da folha** — água, deliberado |
+| `windPct` | `#5C7A99` | **fora da folha** — azul-aço |
+
+Rampas RGB de intensidade/renovável também são literais (creme→terracota / creme→oliva), alinhadas à intenção do sistema mas sem passar pelos exports `A`/`A2`.
+
+**Para a wave de correção:** decidir se esses três hex viram tokens nomeados na folha, ou se permanecem como paleta de globo documentada à parte. Hoje não violam a identidade por acidente de outro sistema — violam a regra "toda cor vem do arquivo de tokens".
+
+### Tipografia — padrão sistemático, não acidente
+
+Em todo o painel, `AT.rotulo` / `AT.dado` / `AT.corpo` são espalhados e depois **comprimidos** com `fontSize: '8px'|'9px'|'10px'|'11px'|'12px'|'13px'`. O rodapé Alexandria já usa `8px` em rótulos de cartela (Wave 10). É coerência interna densa, mas diverge da escala canônica `AT` (rótulo 11 / dado 14 / corpo 16). Wave de correção precisa de decisão de design: formalizar uma escala "chrome denso" ou subir aos papéis `AT`.
+
+### `grav-atlas-segurando-o-globo.png`
+
+| Critério | Achado |
+| --- | --- |
+| Diretório | `public/alexandria/gravuras/` — **mesmo** dos demais |
+| Convenção de nome | Prefixo `grav-`, não `fis-`/`orn-`/`his-`/… — peça de UI, não gravura de aula |
+| Peso | **2,8 MB** vs pares convertidos (~350–850 KB). Wave 28 já marcou como candidato a `pngquant`; **ainda não convertido** |
+| Referência no código | `AtlasGlobo.tsx` L103: `src: '/alexandria/gravuras/grav-atlas-segurando-o-globo.png'` |
+
+### O que NÃO precisa migrar de sistema
+
+- Importar `alexandria-tokens` (já feito em todas as peças de UI)
+- Remover Geist/Inter/tokens do terminal (não presentes)
+- Remover `box-shadow` (já zero)
+- Forçar `border-radius: 0` (já zero / `AR.none`)
+

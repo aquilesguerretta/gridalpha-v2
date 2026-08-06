@@ -9,6 +9,43 @@ Este documento é o brief de correção. Zero código foi alterado nesta wave.
 
 ---
 
+## Resumo executivo (Fase 4 — consolidado)
+
+1. **Caminhos:** o Atlas Mundial está em `src/components/alexandria/atlas/` + `src/lib/atlas/{atlasDerivacoes,worldApi}.ts` + `src/pages/alexandria/AtlasStub.tsx`. Tokens em `src/design/alexandria-tokens.ts`. `src/components/atlas/` é outro produto (terminal US).
+2. **Visual:** o painel **já está no sistema Alexandria** (tokens, Cinzel/Lora, raio zero, sem sombra). Não há migração de terminal→Alexandria a fazer. Há lista de não-conformidades finas (abaixo).
+3. **Callout** "Dados medidos / Interpretação analítica": **não existe**; o parente vivo é `◆ Número derivado` em `AtlasControles.tsx`.
+4. **Shell:** os quatro arquivos pedidos são posse **lyceum:**. A rota Atlas passa por `AlexandriaRouter`; o clique de nav passa por `AlexandriaHeader` / `AlexandriaFooter`, não por TrilhasHub / CaminhoExpedicao / AlexandriaHome.
+
+### Lista item a item — não-conformidades para a wave de correção
+
+| # | Item | Arquivo(s) | Severidade |
+| --- | --- | --- | --- |
+| 1 | Três cores de matriz sem token nomeado (`#736A5C`, `#357B73`, `#5C7A99`) | `src/lib/atlas/atlasDerivacoes.ts` | decisão de folha |
+| 2 | Azul-aço do submercado Sul sem token (`#5C7A99`) | `src/components/alexandria/atlas/CamadaBrasil.tsx` | mesma decisão |
+| 3 | Hex que *já batem* com tokens escritos como literais em vez de `A.`/`A2.` | `atlasDerivacoes.ts`, `CamadaBrasil.tsx` | higiene |
+| 4 | Rampas RGB de intensidade/renovável fora dos exports | `atlasDerivacoes.ts` | higiene / decisão |
+| 5 | Tipografia chrome em 8–13px overrideando `AT` | quase todas as peças do painel + `AtlasStub` | decisão de escala |
+| 6 | h1 da coluna lateral a 26px (`AT.h1` = 32px) | `AtlasStub.tsx` | menor |
+| 7 | Callout nominal "Dados medidos / Interpretação analítica" ausente | — (hoje: só `◆ Número derivado`) | produto |
+| 8 | `grav-atlas-segurando-o-globo.png` ainda 2,8 MB (pngquant pendente) | `public/alexandria/gravuras/` | asset |
+| 9 | Prefixo `grav-` fora da convenção de bloco — documentar ou alinhar | mesmo | doc |
+
+### Fora de escopo da correção visual (já conforme)
+
+- Import de `alexandria-tokens` em UI
+- Raio zero / ausência de sombra
+- Famílias Cinzel + Lora
+- Shell Alexandria envolvendo a página
+- Rota e item de nav Atlas (já wired; shell lyceum intocado)
+
+### Posse sugerida da wave de correção
+
+- **ATLAS** — `src/components/alexandria/atlas/*`, `src/lib/atlas/atlasDerivacoes.ts`, `AtlasStub.tsx` (página do produto)
+- **Não tocar** — `AlexandriaRouter`, `TrilhasHub`, `CaminhoExpedicao`, `AlexandriaHome` (lyceum; rota já suficiente)
+- **Tokens novos** (se a decisão #1 criar nomes) — coordenar com quem detém `alexandria-tokens.ts` (criação lyceum; alteração precisa de acordo)
+
+---
+
 ## Fase 1 — Caminhos reais confirmados
 
 ### Correção ao handoff
@@ -244,4 +281,11 @@ Os arquivos do painel do globo foram **criados sob prefixo `lyceum:`**, não `at
 | `AtlasStub.tsx` (última ponta) | revisões `lyceum:` |
 
 A posse operacional declarada nesta wave (ATLAS dono dos internals do globo) é decisão de produto atual; o histórico git ainda carrega LYCEUM como autor de criação. Wave de correção visual pode usar prefixo `atlas:` sem precisar tocar os quatro arquivos de shell — a rota e o nav já existem.
+
+
+---
+
+## Fechamento
+
+Wave 37 revisada fechada como reconhecimento. Único artefato: este arquivo. Quatro commits de fase + pushes em `feature/full-shell-buildout`. Zero edição em `src/`.
 

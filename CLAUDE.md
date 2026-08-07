@@ -8921,6 +8921,78 @@ modos.
 **Gates:** `tsc -b` 0 erros nos arquivos tocados · `gridalpha-detect`
 "No findings. Surface is clean."
 
+## ARCHITECT — REVISÃO DIRETA 2 PÓS-WAVE 6 (landing de verdade: prévia que liga, corrente, contadores, CTA, FAQ)
+
+**Status:** fechada. Veredito do Aquiles sobre a rodada anterior:
+"mínimo, eu quero algo surreal" — glossário na landing reprovado, dado
+bom mas mal apresentado, pede vídeo/motion e o que uma landing page de
+verdade tem. A rodada partiu de PESQUISA de anatomia de landing
+(hero com CTA acima da dobra + redutor de risco, demo do produto sem
+portão logo abaixo, prova social, FAQ, CTA repetido) e reusa as peças
+de movimento do especimen como o "vídeo" — o produto se liga na frente
+do leitor, em vez de um mp4.
+
+**Arquivos:** `PortalBR.tsx` · `PortalHero.tsx` · `FaixaIndependencia.tsx`
+(numeração). Commit `861a419`.
+
+### A página agora
+
+hero (CTA) → faixa de fatos → **01 Prévia do Terminal Brasil** →
+**02 Como a NIVAR lê o mercado** → 03 Destinos → **04 A Alexandria em
+números** → 05 Conflito → 06 Independência → **07 Perguntas diretas** →
+**CTA final** → rodapé. O glossário SAIU da landing (os termos seguem
+no design system para superfícies de produto).
+
+- **Hero:** botão primário do sistema "Criar conta gratuita"
+  (→ `/criar-conta`) + secundário "Conhecer a Alexandria" (→ rota real
+  do destino), com redutor de risco FACTUAL em procedência ("sem custo
+  · o produto aberto ativa no primeiro acesso" — verdade da Identidade
+  Wave 9). No assentamento, a peça CORRENTE atravessa os quatro
+  intercâmbios do mapa em loop linear — o mapa fica vivo sem inventar
+  dado.
+- **Prévia do Terminal Brasil (o demo):** janela ESCURA SEMPRE (escopo
+  `data-mode="noturno"` próprio — identidade de terminal, independente
+  do modo da página) que LIGA quando entra na tela: loader da casa (o
+  N em transform, a exceção única) → interface acende com os desenhos
+  do sistema (linha em 1200ms) → estado vivo com relógio de
+  DEMONSTRAÇÃO ticando ("Reprodução de demonstração · 14:30:SS BRT",
+  relógio sintético declarado, nunca hora real fingindo feed) e ponto
+  de ao-vivo NEUTRO respirando. Dentro: o gráfico + a tabela-seletora
+  da rodada anterior, com período no cabeçalho.
+- **Como a NIVAR lê o mercado:** quatro passos (fonte pública →
+  ingestão com data → leitura independente → entrega a quem lê) sob um
+  fio com o pulso de corrente viajando; passos surgem escalonados por
+  viewport. Copy do implementador, sujeita a veto.
+- **A Alexandria em números:** prova social honesta de pré-lançamento —
+  3 trilhas · 17 módulos · 141 aulas DERIVADOS de
+  `ALEXANDRIA_TRILHAS`/`ALEXANDRIA_BLOCKS` (import de leitura; nenhum
+  número digitado), contando com smoothstep (peça bScore) ao entrar na
+  tela, + CTA "Entrar na Alexandria".
+- **Perguntas diretas (FAQ):** cinco respostas verificáveis contra o
+  estado real (não vende energia; fonte pública; o que está aberto;
+  conta gratuita; números ilustrativos). Marcador +/− em mono.
+- **CTA final:** "A leitura independente começa com uma conta." +
+  primário/secundário, entre fios `--rule-heavy`.
+
+### Bug real pego pela suíte, não por leitura
+
+O timer do boot morria no cleanup do próprio efeito (setar 'loader'
+re-disparava o efeito que limpava o timeout) — o terminal ficava preso
+no loader para sempre. Corrigido separando os dois efeitos; o
+comentário no código explica o porquê.
+
+### Verificação — 34 asserções, 0 falha
+
+Boot flagrado NO MEIO (loader presente, interface ausente) e depois
+vivo; relógio ticando (00→02 medido); janela tinta na página clara;
+linha em intelligence; pulsos ≥4 no mapa assentado; contadores
+flagrados contando e pousando em 3/17/141; FAQ abrindo com a copy;
+glossário ausente; numeração de seção 01…07 (com os passos 01…04
+internos à 02); CTAs com os alvos certos; reduced-motion nasce ligado e
+sem loop nenhum; sem overflow em 1440/1920/3440. As únicas 2 falhas de
+harness da rodada: filtro de número que não distinguia passo de seção,
+e a suíte que pegou o bug real do boot.
+
 ## CURSOR — CATÁLOGO /CONTA WAVE 1
 
 **Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.

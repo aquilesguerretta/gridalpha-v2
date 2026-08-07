@@ -22,10 +22,11 @@
 // ESTADO React (contadores, rótulos, interpolações SVG) — duas linhas
 // do tempo (CSS e JS) dessincronizariam a mesma cena.
 //
-// ESCAPE: botão "Pular apresentação" — primeiro focável da seção,
-// visível enquanto a sequência roda; rola o <main> direto para o fim
-// da pista. Ninguém fica preso. (A remoção do botão é da Wave 6 — a
-// Wave 5 só o reveste.)
+// WAVE 6: o botão "Pular apresentação" SAIU por decisão do Aquiles —
+// o mapa se construindo na rolagem fica; o escape dedicado sai. O
+// <main> focável continua rolável por teclado (setas/PageDown). A
+// TESE entra entre o H1 e o subtítulo, nos dois layouts; o
+// MethodDisclosure do sistema ancora na procedência do PLD.
 //
 // REDUCED-MOTION: sem pista, sem sticky, sem fase — layout ESTÁTICO em
 // fluxo com todo o conteúdo legível (eyebrow, headline, parágrafo,
@@ -49,7 +50,6 @@
 // style, nunca via fill=/stroke= cru.
 
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -223,33 +223,6 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
       if (raf) cancelAnimationFrame(raf);
     };
   }, [scrollHost, reduzido]);
-
-  // Escape da sequência presa: rola o <main> direto para o fim da
-  // pista. Primeiro focável da seção — teclado sai na primeira parada.
-  // O foco muda para o próprio scroller ANTES de o botão sumir: sem
-  // isso, o aria-hidden do assentamento cai num nó que ainda segura o
-  // foco (violação que o Chromium bloqueia e loga).
-  const botaoPularRef = useRef<HTMLButtonElement>(null);
-  const pular = useCallback(() => {
-    const host = scrollHost.current;
-    const wrap = wrapRef.current;
-    if (!host || !wrap) return;
-    const alvo =
-      wrap.getBoundingClientRect().bottom -
-      host.getBoundingClientRect().top +
-      host.scrollTop -
-      host.clientHeight;
-    host.focus({ preventScroll: true });
-    host.scrollTo({ top: alvo, behavior: 'smooth' });
-  }, [scrollHost]);
-
-  // Mesmo resgate quando o usuário rola manualmente até o assentamento
-  // com o foco parado no botão.
-  useEffect(() => {
-    if (progresso >= 0.98 && document.activeElement === botaoPularRef.current) {
-      scrollHost.current?.focus({ preventScroll: true });
-    }
-  }, [progresso, scrollHost]);
 
   const p = progresso;
   const tContorno = easeOut(fase(p, 0, 0.25));
@@ -476,6 +449,15 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
     </span>
   );
 
+  // A TESE (Wave 6) — linha própria entre o H1 e o subtítulo, copy do
+  // war room, verbatim. Zilla em corpo de título: afirmação editorial,
+  // não parágrafo.
+  const tese = (
+    <p style={{ ...NT.titulo2, margin: 0, color: 'var(--text-strong)' }}>
+      O dado do setor elétrico é público. A leitura não é.
+    </p>
+  );
+
   const barraPld = (
     <div
       style={{
@@ -535,6 +517,7 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '62ch' }}>
           {eyebrow}
           <h1 style={{ ...NT.display2, margin: 0, color: 'var(--text-strong)' }}>{titulo}</h1>
+          {tese}
           <p style={{ ...NT.lede, margin: 0, color: 'var(--text-muted)' }}>{subtitulo}</p>
         </div>
         {/* min 770px: abaixo disso a escala do viewBox (720u) derruba a
@@ -606,36 +589,6 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             : ''}
         </span>
 
-        {/* Escape — primeiro focável da seção, some quando a sequência
-            assenta. Ninguém fica preso na pista. (Sai na Wave 6; aqui
-            só muda de roupa.) */}
-        <button
-          ref={botaoPularRef}
-          type="button"
-          onClick={pular}
-          aria-hidden={p >= 0.98}
-          tabIndex={p >= 0.98 ? -1 : 0}
-          style={{
-            position: 'absolute',
-            right: '4px',
-            bottom: '20px',
-            zIndex: 3,
-            ...NT.etiqueta,
-            color: 'var(--text-muted)',
-            background: 'var(--surface-page)',
-            border: 'var(--fio) solid var(--rule)',
-            borderRadius: 0,
-            padding: '8px 14px',
-            cursor: 'pointer',
-            opacity: p >= 0.98 ? 0 : 1,
-            pointerEvents: p >= 0.98 ? 'none' : 'auto',
-            transition:
-              'opacity var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease)',
-          }}
-        >
-          Pular apresentação ↓
-        </button>
-
         {/* Camada do mapa — nasce menor, levemente à direita do centro;
             cresce e recentraliza em 75–95% até dominar o palco. */}
         <div
@@ -674,6 +627,7 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         >
           {eyebrow}
           <h1 style={{ ...NT.display2, margin: 0, color: 'var(--text-strong)' }}>{titulo}</h1>
+          {tese}
           <p style={{ ...NT.lede, margin: 0, color: 'var(--text-muted)' }}>{subtitulo}</p>
           <span
             style={{

@@ -14,6 +14,16 @@
 // jaguar-tokens.ts NÃO pode ser removido: /conta (fora da posse)
 // também importa dele. O Portal apenas se desliga.
 //
+// WAVE 6 · FASE 1 — pontos de inserção confirmados:
+//   tese — entre H1 e subtítulo, nos DOIS layouts do PortalHero
+//   pular apresentação — sai por completo (decisão do Aquiles; o
+//     prompt "Role — o mapa se constrói" fica)
+//   MethodDisclosure — ancorado na procedência do PLD (barraPld do
+//     PortalHero), componente do sistema, nunca modal
+//   conflito de interesse — seção nova AQUI, imediatamente antes de
+//     <FaixaIndependencia/>, reusando o padrão de grade dela; a
+//     numeração de seção desloca (Conflito=02, Independência=03)
+//
 // Header fixo → hero (mapa que se constrói no scroll) → índice de
 // destinos → faixa de independência (afirmativa, Wave 4) → rodapé real.
 //

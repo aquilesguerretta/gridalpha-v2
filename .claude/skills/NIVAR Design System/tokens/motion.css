@@ -1,5 +1,13 @@
 :root{
---ease:cubic-bezier(0.65,0,0.35,1);/* @kind other */ 
+--ease:cubic-bezier(0.65,0,0.35,1);/* @kind other */
+/* UNICA EXCECAO DECLARADA ao easing unico do sistema, e ela existe por
+ necessidade mecanica, nao por escolha estetica. --ease e ease-in-out:
+ velocidade zero nas duas pontas. Numa animacao em loop a ponta final
+ encontra a inicial e as duas paradas somam, produzindo emenda visivel.
+ Nenhuma curva "com cara de marca" resolve isso — zerar velocidade na
+ ponta e a definicao de ease-in-out. So linear mantem velocidade
+ constante na emenda. Use SOMENTE em animation:...infinite. */
+--ease-loop:linear;/* @kind other */
 --dur-estado:150ms;/* @kind other */--dur-hover:200ms;/* @kind other */--dur-desenho:700ms;/* @kind other */--dur-desenho-longo:1200ms;/* @kind other */
 /* Anima: opacidade, cor de texto, cor de fio, stroke-dashoffset, altura de barra.
  Nunca: cor de fundo, posicao de layout, escala de card em hover. */

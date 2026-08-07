@@ -70,7 +70,7 @@
 /* VALIDACAO ASSINCRONA — fio de 1px se desenhando na base do campo, em loop. Nunca spinner:
    a revelacao no sistema e desenho de traco. So transform anima. */
 .nv-campo--verificando .nv-campo__caixa{position:relative;border-color:var(--rule-strong)}
-.nv-campo__tracado{position:absolute;left:0;right:0;bottom:-1px;height:var(--fio-forte);background:var(--acento-contexto,var(--accent-focus));transform:scaleX(0);transform-origin:left;animation:nv-verifica 1400ms var(--ease) infinite}
+.nv-campo__tracado{position:absolute;left:0;right:0;bottom:-1px;height:var(--fio-forte);background:var(--acento-contexto,var(--accent-focus));transform:scaleX(0);transform-origin:left;animation:nv-verifica 1400ms var(--ease-loop) infinite}
 @keyframes nv-verifica{0%{transform:scaleX(0);transform-origin:left}49.9%{transform:scaleX(1);transform-origin:left}50%{transform:scaleX(1);transform-origin:right}100%{transform:scaleX(0);transform-origin:right}}
 .nv-campo__verifica{font-family:var(--font-data);font-weight:400;font-size:10px;line-height:1.4;letter-spacing:.09em;text-transform:uppercase;color:var(--text-faint)}
 @media (prefers-reduced-motion:reduce){.nv-campo__tracado{animation:none;transform:scaleX(1);opacity:.5}}

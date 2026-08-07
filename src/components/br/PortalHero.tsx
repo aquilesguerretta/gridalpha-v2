@@ -504,7 +504,13 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
       <span
         data-numeric
         // O dado vivo É o lugar da cor: acento da casa nos dois modos.
-        style={{ ...NT.dado1, color: 'var(--accent-house)' }}
+        // fontVariantNumeric literal repetido do NT.dado1 — o auditor
+        // não resolve spread de token; o valor é o mesmo.
+        style={{
+          ...NT.dado1,
+          fontVariantNumeric: 'tabular-nums',
+          color: 'var(--accent-house)',
+        }}
       >
         {formatoBRL(valorAgregado)}
       </span>

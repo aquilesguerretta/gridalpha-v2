@@ -8647,6 +8647,143 @@ outra wave). Quatro commits, todos com pathspec explícito e `git diff
 --stat` real antes — a wave ARCHITECT que corre em paralelo sobre
 `src/main.tsx` não teve nenhum arquivo tocado.
 
+## ARCHITECT — PORTAL BR WAVE 5 · MARCA, SISTEMA VISUAL E MOVIMENTO NIVAR
+
+**Status:** fechada. O Portal sai do Jaguar e veste o NIVAR inteiro —
+marca, cor, tipografia, forma e movimento — nos **dois modos**, com
+`data-mode="noturno"` remapeando só os aliases semânticos. Cinco
+commits, um por fase, **todos pushados** (a tentativa anterior desta
+wave desapareceu sem rastro; esta empurrou ao fim de cada fase).
+
+**Arquivos:** `PortalBR.tsx` · `PortalHero.tsx` · `DestinoCard.tsx` ·
+`FaixaIndependencia.tsx` · `SeletorMercado.tsx` · `AcessoConta.tsx`
+(declarado na Fase 1 — terceiro bloco do header; sem ele o cabeçalho
+ficaria meio-tema no noturno).
+
+### Fase 1 — inventário confirmado por leitura
+
+Rodapé é INLINE no `PortalBR.tsx`, não componente; grade de destinos
+no `PortalBR.tsx` com célula em `DestinoCard.tsx`; mapa (SVG + palco)
+no `PortalHero.tsx`, geometria em `src/lib/geo/brasil-outline.ts`
+(dado, intocado). `jaguar-tokens.ts` **não pode ser removido**: a
+superfície `/conta` (fora da posse) importa dele — o Portal apenas se
+desligou (zero import restante na superfície BR).
+
+### Marca
+
+Wordmark SVG **inline, nunca `<img>`** — as duas variantes moram no
+DOM (claro: gradiente de incandescência; noturno: papel sólido da
+FOUNDRY NIVAR Wave 2) e o CSS de modo alterna. Única adaptação: id do
+gradiente sufixado por instância (cabeçalho/rodapé), porque id
+duplicado quebra o `url(#…)`. `document.title`, corpo da Independência
+("da NIVAR") e rodapé trocados. **Varredura: "Peregrine" — zero na
+superfície BR. "Jaguar"** — classnames renomeados `nivar-*`; resíduo
+que FICA e não é desta posse: `/conta` importa `jaguar-tokens`, mais
+menções em `AlexandriaHeader`/`ThreeMarkets`.
+
+### Sistema visual
+
+- Tokens entram por import dos CSS de VARIÁVEL
+  (`fonts/colors/typography/space/motion`); `base.css` excluído DE
+  PROPÓSITO — restila elemento global e vazaria para as outras
+  superfícies. O que ele daria (foco advisory, seleção, link) entra
+  escopado em `[data-nv-page]`.
+- Geist `@font-face` removido (proibido no sistema); Zilla Slab / Work
+  Sans / JetBrains Mono via `fonts.css`.
+- **Mapa:** preenchimento de região virou LAVAGEM DE TINTA
+  (`--text-strong` nos pesos por região da Wave 2) — no noturno ela
+  inverte para lavagem de papel SOZINHA, pelo remapeio do alias;
+  contorno em `--rule-heavy`; a camada de DADO (intercâmbio, nó, PLD
+  regional) em `--accent-house` (brasa ↔ intelligence). **Nota de
+  SVG:** `var()` não resolve em atributo de apresentação — toda cor de
+  token entra via `style`.
+- **Gravura da Alexandria no card:** fundo papel-Alexandria mantido
+  nos dois modos — é citação do destino (retrato do outro produto),
+  não superfície do Portal; legível no noturno porque o papel viaja
+  junto no retrato.
+- **Fio das plantas em construção:** `--family-software` — mesmo hex
+  do ocre antigo (#C17D1F), agora com semântica ("produto
+  instrumentado", que é o que a planta promete); sobrevive aos dois
+  substratos como fio (3,0:1 papel · 5,5:1 tinta, tabela medida do
+  sistema).
+- `ModeToggle` do sistema no header (CSS verbatim de
+  `components/navigation/`). **PENDÊNCIA: sem persistência** — o
+  Portal não tem mecanismo próprio (nenhum store/storage nesta
+  superfície); o modo volta ao claro na recarga.
+- **PLD 84px → `--ts-dado-1` (40px):** a escala de dado do NIVAR teta
+  em 40px; o 84px do Jaguar não tem equivalente — aplicada a escala do
+  sistema, registrado para o design decidir se quer figura maior.
+- Teto de 32px aplicado (padding de seção 56/64 → 32; gaps 40/48 → 32).
+- Cabeçalho de seção do sistema (número mono em acento · etiqueta ·
+  fio · nota) em Destinos (`01`) e Independência (`02`).
+- Tag "Em breve" virou retângulo de fio sem preenchimento (o wash do
+  Jaguar saiu); "valor ilustrativo" e "dados de mercado ilustrativos"
+  levam o idioma `--ilustrativa-fg/-fio` (tinta+fio advisory no claro,
+  texto advisory no noturno).
+
+### Movimento
+
+- **Primeiro paint = peça Energização:** o wordmark tem exatamente 7
+  traços — a mesma contagem que a peça do especimen escreve. Dashoffset
+  por traço em `--dur-desenho`, escalonado 90ms, easing único. O boot é
+  ESTADO React de propósito: com CSS puro, voltar ao claro redispararia
+  o desenho (display none→block reinicia animação), e troca de modo é
+  mudança de estado, nunca replay de marca.
+- `bModotroca` do especimen provou a regra em produção: fundo troca
+  SECO (nenhum `transition` de background em lugar nenhum), texto e
+  fio correm 150–200ms.
+- Zoom com `scale` do painel (Wave 2) → **opacidade pura**; entrada de
+  card `translateY` → opacidade pura; planta baixa →
+  `var(--dur-desenho) var(--ease)`; seta do card sem translateX de
+  hover. Transform ficou exclusivo do loader da marca — que não foi
+  montado (abaixo).
+- **O que o especimen não cobria** (reportado, não improvisado): (1)
+  desenho dirigido por SCROLL — nenhuma das dez peças é scroll-driven;
+  o mapa segue por scrubbing (decisão do Aquiles) e
+  `--dur-desenho-longo` não tem onde entrar num scrub; (2)
+  BrandLoader/Colapso sem lugar — o Portal não tem espera de dado
+  hoje; entra quando houver fetch real; (3) a entrada do número do PLD
+  segue dirigida pela pista (fase 75–98%), não pelo relógio do bScore.
+- Reduced-motion: tokens colapsam (medido `--dur-desenho: 1ms`),
+  wordmark nasce desenhado, hero estático próprio, VTs puladas.
+
+### Verificação — 35 asserções, 0 falha
+
+`playwright-core` no scratchpad dirigindo o Chrome do sistema — o
+painel Browser desta sessão nasce `visibilityState: hidden` e
+**congela transição em voo** (provado por clone sem transition:
+mesmo elemento, brasa congelado vs. intelligence no clone — artefato,
+não bug; mesma família das Waves 7/16). Nos dois modos, por computed
+style e clique real: papel/tinta no fundo, brasa/intelligence no
+acento, wordmark alternando, lavagem do mapa invertendo, seletor e
+links remapeando, textura de rede trocando de tinta para papel **sem
+`%2523`** (o bug da Wave 3, vigiado por computed style), overlay
+abrindo por clique em região com foco no painel e fechando por ESC,
+PLD `138,72` com vírgula e tabular. Screenshots em 1440×900,
+1920×1080 e 3440×1440 nos dois modos; zero overflow horizontal nos
+três. As 2 falhas iniciais da suíte eram do harness (fonts.check no
+peso 400 que a página não usa; contagem sem considerar as 2 instâncias
+do wordmark) — quinta ocorrência do padrão "falha investigada é
+defeito do harness".
+
+### Registrado, não resolvido
+
+- **Persistência do modo** — decisão de plataforma, não desta wave.
+- **"Brasil — você está aqui"** (rodapé) usa "você"; a voz NIVAR
+  evita. Copy não é desta wave — fica para o war room/Wave 6.
+- Idioma ilustrativa em `<text>` de SVG sem o fio-embaixo (adaptação:
+  só a cor; sublinhado não existe em texto SVG).
+- `.claude/launch.json` segue NÃO commitado (carrega entradas de
+  várias sessões — o trap do `f955e62`); a entrada desta sessão é
+  `portal-br-w5:5307`.
+- A migração de `/conta` para NIVAR (hoje em Jaguar) é wave própria.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos da wave (seguem só os 7
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
+sobre a superfície BR — "No findings. Surface is clean." (o único P1
+intermediário era spread de token não resolvido pelo auditor —
+literal `tabular-nums` redundante, precedente da Wave 3).
+
 ## CURSOR — CATÁLOGO /CONTA WAVE 1
 
 **Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.

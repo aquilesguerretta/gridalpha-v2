@@ -61,6 +61,18 @@ import { ALEXANDRIA_MODULES } from '../../../lib/data/alexandria-trilhas';
 const TOTAL_MODULOS = ALEXANDRIA_MODULES.length;
 const MODULOS_COM_FONTE = ALEXANDRIA_MODULES.filter((m) => m.totalAulas !== null).length;
 
+// O RÓTULO DE ESTADO É DERIVADO, como os dois números acima — não é
+// string fixa e não vem por prop. Enquanto existir bloco com
+// `totalAulas` nulo o currículo está em extração; quando não existir
+// mais nenhum, está completo.
+//
+// Até a Wave 47 a frase dizia "Currículo em extração" sempre, e isso
+// era verdade porque sempre faltava bloco. Com o bloco-15 extraído o
+// currículo fechou em 17 de 17, e a linha passou a se contradizer na
+// própria frase — "em extração · 17 de 17 módulos verificados".
+// A pendência foi registrada na Wave 49 e é o que esta wave fecha.
+const CURRICULO_COMPLETO = MODULOS_COM_FONTE === TOTAL_MODULOS;
+
 // ── NAVEGAÇÃO — espelha o header ─────────────────────────────
 //
 // DUPLICAÇÃO DELIBERADA. `NAV_PADRAO` não é exportado por
@@ -507,7 +519,8 @@ export function AlexandriaFooter() {
             textAlign: 'right',
           }}
         >
-          Currículo em extração · {MODULOS_COM_FONTE} de {TOTAL_MODULOS} módulos verificados
+          Currículo {CURRICULO_COMPLETO ? 'completo' : 'em extração'} ·{' '}
+          {MODULOS_COM_FONTE} de {TOTAL_MODULOS} módulos verificados
           {/* Fio, não caractere. Um '·' pintado na cor de fio fica em
               1,70:1 — reprova AA como texto, e é anunciado por leitor de
               tela sem significar nada. O sistema já tem o separador

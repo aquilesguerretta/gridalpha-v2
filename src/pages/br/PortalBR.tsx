@@ -118,7 +118,44 @@ const NT = {
     lineHeight: 'var(--lh-titulo-2)' as CSSProperties['lineHeight'],
     letterSpacing: 'var(--tr-titulo-2)',
   } satisfies CSSProperties,
+  /** Título de seção — Zilla Slab 500, 32px. */
+  display3: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-display-3)',
+    lineHeight: 'var(--lh-display-3)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-display-3)',
+  } satisfies CSSProperties,
 } as const;
+
+// ─── Conflito de interesse (Wave 6) ─────────────────────────────────
+// Copy do war room, verbatim. O conflito é descrito por ESTRUTURA —
+// nenhum nome de empresa, em coluna nenhuma, nunca.
+interface ColunaConflito {
+  id: string;
+  titulo: string;
+  detalhe: string;
+}
+
+const CONFLITO: ColunaConflito[] = [
+  {
+    id: 'recomendacao-nasce-da-venda',
+    titulo: 'A recomendação nasce da venda',
+    detalhe:
+      'A maior parte do mercado é traduzida por quem também vende energia ou intermedia contrato. A recomendação e a receita saem do mesmo lugar.',
+  },
+  {
+    id: 'contrato-remunera-o-parecer',
+    titulo: 'O contrato remunera o parecer',
+    detalhe:
+      'Consultoria paga por comissão sobre contrato tem interesse direto no fechamento — o incentivo aponta para o resultado, não para a precisão da leitura.',
+  },
+  {
+    id: 'quem-paga-nao-decide',
+    titulo: 'Quem paga a conta não decide',
+    detalhe: 'O consumidor livre paga a conta de uma decisão que não tomou.',
+  },
+];
 
 /** Estado do overlay "em breve": destino + região opcional (via hero). */
 interface ZoomEmBreve {
@@ -655,6 +692,69 @@ export function PortalBR() {
             >
               {DESTINOS_BR.map((d) => (
                 <DestinoCard key={d.id} destino={d} onZoom={abrirDestino} />
+              ))}
+            </div>
+          </section>
+
+          {/* Conflito de interesse (Wave 6) — imediatamente ANTES da
+              Independência, no MESMO padrão de grade dela: mesma
+              tipografia, mesmo espaçamento, mesmo tratamento de fio,
+              zero componente novo. A Independência renumera 02→03. */}
+          <section
+            aria-labelledby="br-conflito"
+            style={{
+              padding: '32px 0',
+              borderTop: 'var(--fio) solid var(--rule)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+                <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
+                  02
+                </span>
+                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }} id="br-conflito">
+                  Conflito de interesse
+                </span>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    flex: 1,
+                    borderTop: 'var(--fio) solid var(--rule)',
+                    alignSelf: 'center',
+                  }}
+                />
+              </div>
+              <h2 style={{ ...NT.display3, margin: 0, color: 'var(--text-strong)' }}>
+                O tradutor é parte interessada.
+              </h2>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                columnGap: '32px',
+                rowGap: '24px',
+                borderTop: 'var(--fio) solid var(--rule)',
+                borderBottom: 'var(--fio) solid var(--rule)',
+                padding: '20px 0 24px',
+              }}
+            >
+              {CONFLITO.map((c) => (
+                <div
+                  key={c.id}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+                >
+                  <h3 style={{ ...NT.titulo2, margin: 0, color: 'var(--text-strong)' }}>
+                    {c.titulo}
+                  </h3>
+                  <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-muted)' }}>
+                    {c.detalhe}
+                  </p>
+                </div>
               ))}
             </div>
           </section>

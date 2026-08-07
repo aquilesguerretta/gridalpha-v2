@@ -8413,6 +8413,102 @@ os quatro arquivos — "No findings. Surface is clean."
 - **`instrument-taxonomy.md`** segue sem os instrumentos dos Módulos
   10-17 nem o 10º kind `reconstrutor`. Posse FOUNDRY.
 
+## CURSOR WAVE 12 — RECONHECIMENTO: SCHEMA DE PAÍS + PROPOSTA DE ENRIQUECIMENTO
+
+**Status:** fechada como reconhecimento. Zero schema criado, zero
+migration, zero commit de código — a wave pediu proposta, não
+implementação. Entrega real:
+`docs/atlas-qualitative-enrichment-proposal.md`.
+
+### Fase 1 — schema OWID (Wave 10), confirmado por leitura direta
+
+Chave real de `country_energy_profile` é `iso_code` (`UNIQUE`), não a
+PK técnica `id`. 12 campos métricos exatos (population + 11 de
+mix/geração/intensidade/per-capita), tipados `NUMERIC`/`BigInteger`.
+`country_energy_field_source` cita fonte **por campo do dataset
+inteiro**, não por país nem por afirmação — granularidade incompatível
+com o que a Fase 3 precisa. Endpoints `/api/atlas/world/countries[/{iso}]`
+já documentados na Wave 10, envelope canônico, intocados.
+
+### Fase 2 — heterogeneidade medida contra os OITO arquivos completos, não por amostragem
+
+Extração de texto completa (`pypdf`, scratchpad local) dos oito PDFs em
+`data/Atlas references/`. Duas correções à caracterização do war room e
+um eixo novo que as três famílias não previam:
+
+- **Achado 0, antes de qualquer família:** o arquivo de Europa Ocidental
+  tem só **2 páginas** de metodologia — descreve um relatório de 56
+  páginas/25 perfis que **não está no arquivo**. Zero perfil real de
+  Europa Ocidental existe hoje, apesar de listado em escopo (inclusive
+  Chipre).
+- **Família A confirmada em quatro arquivos, não um:** América do Sul
+  (12 países), África Subsaariana (48), África do Norte (6) e Leste
+  Europeu/Rússia (19) — **85 dos 131 perfis reais** seguem o gabarito de
+  nove seções sem Ficha/Dossiê.
+- **Correção — Família B (Oriente Médio, 16 países) é aditiva, não
+  subtrativa.** Os perfis de país individuais (Chipre, Síria
+  verificados por leitura direta) têm as NOVE seções completas, incluindo
+  as cinco que o brief presumia ausentes. O que diferencia B é a camada
+  extra de sete "Dossiê regional N", conteúdo cross-país sem entity_id
+  próprio.
+- **Resposta à pergunta do brief — Leste Europeu/Rússia é Família A,
+  estruturalmente.** Nove seções idênticas em inglês
+  (`Bilateral partners and flows`, `Capacity and infrastructure`, etc.).
+  O que o torna notável não é o gabarito — é ser o ÚNICO arquivo
+  inteiramente em inglês dos oito, com "sem dado confiável" vazando em
+  português dentro do texto inglês (resíduo que expõe prompt/gabarito
+  compartilhado entre os oito arquivos, independente de idioma).
+- **Família C confirmada sem correção** (Caribe 13 + Ásia 17 = 30
+  países): fecha com "Ficha operacional"/"Lacuna prioritária" tabulares,
+  citação em código `[XXX-N]`/`[REG-N]`.
+- **Quinto padrão de fechamento, dentro da própria Família A:** a África
+  Subsaariana fecha cada perfil com prosa livre nomeando
+  operador/regulador, nem tabela fixa de C nem nada de A/B.
+- **Citação: cinco mecanismos distintos medidos**, ortogonais ao
+  gabarito de seção — nota numérica → URL nua (América do Sul); nota
+  numérica → título+URL com resíduo `utm_source=chatgpt.com` (Leste
+  Europeu); parentético inline + lista por país com URL só em anotação
+  de link do PDF, invisível à extração de texto (África do Norte);
+  código `[XXX-N]` (Caribe/Ásia); linha compacta "Fonte e escopo: ..."
+  (Oriente Médio); menção solta em prosa sem URL nenhuma (África
+  Subsaariana, único mecanismo ali).
+- **Chipre confirmado como único caso real de país em mais de um
+  arquivo** — perfil completo no Oriente Médio, listado (sem conteúdo)
+  na Europa Ocidental. Conflito hoje é latente: só existe uma cópia real
+  até a Europa Ocidental ser entregue de verdade.
+- **Dois achados de chave fora do pedido do brief, mas necessários pra
+  Fase 3, verificados contra o JSON bruto da OWID:** Taiwan tem perfil
+  qualitativo completo (Ásia) mas zero linha em `country_energy_profile`
+  — exclusão deliberada da Wave 10 (`NON_SOVEREIGN_ISO3["TWN"]`), apesar
+  de `TWN` existir com dado completo na OWID. Kosovo tem perfil
+  qualitativo completo (Leste Europeu) mas zero linha — motivo
+  diferente: a própria OWID já traz `iso_code: null` pra Kosovo, filtrado
+  antes até da checagem de soberania.
+
+### Fase 3 — proposta (não implementada)
+
+Três tabelas novas, normalizadas por SEÇÃO e por CITAÇÃO (não JSON de
+país inteiro, não coluna rígida por família): `country_entity`
+(resolve Taiwan/Kosovo via `iso_code` nullable + `fallback_key`),
+`country_qualitative_profile` (uma linha por entidade × arquivo de
+origem, `UNIQUE(entity_id, source_file)` + `is_canonical` com índice
+parcial pra Chipre), `country_qualitative_section` (`section_slug`
+TEXT livre — não enum fechado, porque a Fase 2 já mediu 11+ slugs reais
+e a próxima wave de extração deve trazer mais), `qualitative_citation`
+(uma linha por afirmação/bloco citável, `source_url` nullable como
+estado válido, `citation_mechanism` cobrindo os seis mecanismos
+medidos). Aditivo ao schema OWID — zero coluna removida, `iso_code`
+UNIQUE intocado.
+
+**Registrado, não resolvido:** os sete "Dossiê regional N" do Oriente
+Médio não têm dono de país — talvez `entity_type` precise de um quarto
+valor (`'region'`) pra que tenham `profile_id` próprio. Decisão pro war
+room, junto com o resto da proposta.
+
+**Próximo passo sugerido:** obter o arquivo real de Europa Ocidental
+antes de decidir a regra de canonicidade pra Chipre — hoje só existe um
+lado do conflito pra comparar.
+
 ## FOUNDRY — NIVAR WAVE 1 — INSTALAÇÃO DO DESIGN SYSTEM
 
 **Status:** fechada. Os dois pacotes que o Aquiles extraiu no disco entram
@@ -8550,3 +8646,31 @@ intocados por `git status` e por `git log` (o último commit de cada é de
 outra wave). Quatro commits, todos com pathspec explícito e `git diff
 --stat` real antes — a wave ARCHITECT que corre em paralelo sobre
 `src/main.tsx` não teve nenhum arquivo tocado.
+
+## CURSOR — CATÁLOGO /CONTA WAVE 1 · FASE 1
+
+**Status:** fonte localizada. Zero remoção nesta fase.
+
+**Trilha:** nova. Não é a CURSOR Wave 12 (Atlas qualitativo). Nenhuma
+seção CURSOR anterior cobre o catálogo de `/conta`.
+
+### Mecanismo real
+
+Não é tabela. Não é seed. É **tupla estática em Python**:
+
+| Peça | Caminho |
+| --- | --- |
+| Catálogo canônico | `app/db/models/product_access.py` → `PRODUCT_CATALOG` |
+| Set de validação | `PRODUCT_IDS = frozenset(PRODUCT_CATALOG)` |
+| Superfície consumida por `/conta` | `GET /api/products/me` → campo `catalog: list(PRODUCT_CATALOG)` em `app/routers/products.py` |
+| Ativação | `POST /api/products/{product_id}/activate` rejeita id fora de `PRODUCT_IDS` com 404 |
+
+A tabela `product_access` só guarda **ativações** por usuário
+(`user_id`, `product_id`). O inventário de produtos possíveis não mora
+no banco.
+
+`us-terminal` é o sexto e último membro de `PRODUCT_CATALOG` hoje.
+`/conta` (frontend ARCHITECT) renderiza `produtos.catalog.map(...)` —
+por isso o nome aparece mesmo sem rota/`DESTINOS_BR`.
+
+Próxima fase: remover só essa entrada da tupla.

@@ -189,6 +189,8 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
   const wrapRef = useRef<HTMLDivElement>(null);
   const [progresso, setProgresso] = useState(0);
   const [regiaoSobre, setRegiaoSobre] = useState<string | null>(null);
+  // MethodDisclosure (Wave 6) — fechado por padrão, como o componente.
+  const [metodoAberto, setMetodoAberto] = useState(false);
   const reduzido = usePrefereMenosMovimento();
 
   useEffect(() => {
@@ -496,6 +498,71 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
       >
         {formatoBRL(valorAgregado)}
       </span>
+
+      {/* MethodDisclosure (Wave 6) — o componente do sistema, ancorado
+          na procedência: método → fonte → método publicado em → dado
+          coletado em → premissas. A ordem é do COMPONENTE ("o método é
+          público antes de existir número para defender"), e a copy é a
+          do war room, verbatim. [DATA] é placeholder literal — a data
+          real vem do Aquiles; registrado no fechamento. Sem link
+          "metodologia completa": não existe página de metodologia
+          ainda, e link morto é proibido. */}
+      <div className="nv-metodo" style={{ marginTop: '4px' }}>
+        <div className="nv-metodo__ancora">
+          <button
+            type="button"
+            className="nv-metodo__gatilho"
+            aria-expanded={metodoAberto}
+            aria-controls="metodo-pld-painel"
+            onClick={() => setMetodoAberto((v) => !v)}
+          >
+            Como este número é calculado
+          </button>
+        </div>
+        {metodoAberto && (
+          <div className="nv-metodo__painel" id="metodo-pld-painel">
+            <svg
+              className="nv-metodo__fio-desenho"
+              viewBox="0 0 1000 1"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <line x1="0" y1="0.5" x2="1000" y2="0.5" />
+            </svg>
+            <div className="nv-metodo__corpo">
+              <div className="nv-metodo__linha">
+                <span className="nv-metodo__rot">Método</span>
+                <p className="nv-metodo__v">
+                  Leitura por submercado segue a divisão oficial do Operador Nacional do
+                  Sistema Elétrico. Os valores desta tela são ilustrativos — não são
+                  apuração ao vivo.
+                </p>
+              </div>
+              <div className="nv-metodo__linha">
+                <span className="nv-metodo__rot">Fonte</span>
+                <p className="nv-metodo__v nv-metodo__v--dado">Divisão de submercado: ONS.</p>
+              </div>
+              <div className="nv-metodo__linha">
+                <span className="nv-metodo__rot">Método publicado em</span>
+                <p className="nv-metodo__v nv-metodo__v--dado">[DATA]</p>
+              </div>
+              <div className="nv-metodo__linha">
+                <span className="nv-metodo__rot">Dado coletado em</span>
+                <p className="nv-metodo__v nv-metodo__v--dado">
+                  não aplicável — amostra construída para demonstração.
+                </p>
+              </div>
+              <div className="nv-metodo__linha">
+                <span className="nv-metodo__rot">Premissas</span>
+                <ul className="nv-metodo__premissas">
+                  <li>Nenhum valor nesta tela deve orientar decisão de mercado.</li>
+                  <li>Leitura ao vivo chega com o Terminal Brasil.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 

@@ -391,6 +391,31 @@ export function PortalBR() {
         .nv-modo__op--ativo{color:var(--text-strong);font-weight:500;border-bottom-color:var(--accent-house)}
         .nv-modo__sep{font-family:var(--font-data);font-size:11px;color:var(--rule-strong)}
 
+        /* MethodDisclosure — CSS do sistema (components/data/data.css),
+           verbatim, no subconjunto que o Portal usa. Divulgação de
+           metodologia inline, ancorada na procedência — nunca modal. */
+        .nv-metodo{display:grid;gap:0;max-width:480px}
+        .nv-metodo__ancora{display:grid;justify-items:start;gap:7px}
+        .nv-metodo__gatilho{justify-self:start;white-space:nowrap;font-family:var(--font-data);font-weight:500;font-size:10.5px;line-height:1.5;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);background:none;border:0;border-bottom:var(--fio) solid var(--rule-strong);border-radius:0;padding:0 0 1px;cursor:pointer;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease)}
+        .nv-metodo__gatilho:hover{color:var(--fg-hover);border-bottom-color:var(--fio-hover)}
+        .nv-metodo__painel{display:grid;gap:9px;padding-top:11px;background:var(--surface-page)}
+        .nv-metodo__fio-desenho{display:block;width:100%;height:1px;overflow:visible}
+        .nv-metodo__fio-desenho line{stroke:var(--rule-heavy);stroke-width:1;vector-effect:non-scaling-stroke;stroke-dasharray:1000;stroke-dashoffset:1000;animation:nv-fio-desenha var(--dur-desenho) var(--ease) forwards}
+        .nv-metodo__corpo{display:grid;opacity:0;animation:nv-surge var(--dur-hover) var(--ease) 140ms forwards}
+        .nv-metodo__linha{display:grid;grid-template-columns:158px minmax(0,1fr);gap:3px 14px;padding:7px 0;border-bottom:var(--fio) solid var(--rule)}
+        .nv-metodo__rot{font-family:var(--font-data);font-weight:500;font-size:9.5px;line-height:1.7;letter-spacing:.09em;text-transform:uppercase;color:var(--text-faint)}
+        .nv-metodo__v{font-family:var(--font-body);font-weight:300;font-size:13px;line-height:1.5;color:var(--text-body);margin:0;text-wrap:pretty}
+        .nv-metodo__v--dado{font-family:var(--font-data);font-weight:400;font-size:11.5px;line-height:1.55;letter-spacing:.03em;color:var(--text-strong);font-variant-numeric:tabular-nums lining-nums}
+        .nv-metodo__premissas{display:grid;gap:4px;margin:0;padding:0;list-style:none}
+        .nv-metodo__premissas li{font-family:var(--font-body);font-weight:300;font-size:13px;line-height:1.5;color:var(--text-body);padding-left:18px;position:relative}
+        .nv-metodo__premissas li::before{content:"—";position:absolute;left:0;color:var(--text-faint)}
+        @keyframes nv-surge{to{opacity:1}}
+        @keyframes nv-fio-desenha{to{stroke-dashoffset:0}}
+        @media (prefers-reduced-motion: reduce) {
+          .nv-metodo__fio-desenho line{animation:none;stroke-dashoffset:0}
+          .nv-metodo__corpo{animation:none;opacity:1}
+        }
+
         /* Link de lista (rodapé) — o tratamento de link do sistema:
            cor de link com sublinhado por fio que NUNCA some; no hover o
            texto muda de cor e o fio assume a cor do texto. */

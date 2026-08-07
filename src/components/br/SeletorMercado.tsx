@@ -22,12 +22,18 @@ interface Mercado {
   rota: string;
 }
 
-// Estados Unidos aponta para `/us`, que hoje é alias da superfície de
-// entrada americana existente. Quando o portal US ganhar página própria,
-// só a rota muda — este componente não.
+// Topologia de Shell Wave 2: a entrada de Estados Unidos SAIU. O lado
+// americano continua inteiro no disco e segue alcançável digitando
+// `/us`, mas não é mais anunciado por navegação nenhuma — decisão do
+// produto, não limitação técnica. Não virou item desabilitado nem
+// "em breve": saiu da interface.
+//
+// `MercadoId` mantém `'us'` de propósito: o mercado existe como
+// conceito e como rota; o que mudou é ele não ser oferecido aqui.
+// Quando o portal US ganhar página própria, a entrada volta para esta
+// lista e nada mais neste componente muda.
 const MERCADOS: Mercado[] = [
   { id: 'br', rotulo: 'Brasil', rota: '/br' },
-  { id: 'us', rotulo: 'Estados Unidos', rota: '/us' },
 ];
 
 export interface SeletorMercadoProps {

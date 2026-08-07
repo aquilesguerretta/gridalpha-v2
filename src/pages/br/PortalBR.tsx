@@ -454,12 +454,14 @@ export function PortalBR() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Mercados</span>
+                {/* Topologia de Shell Wave 2: a linha de Estados Unidos
+                    saiu daqui, como saiu do seletor do cabeçalho. O
+                    mercado americano continua existindo em `/us`; deixou
+                    de ser anunciado. A coluna fica com a única afirmação
+                    que hoje é verdadeira. */}
                 <span style={{ fontSize: '13px', color: J.tintaPrimaria }}>
                   Brasil — você está aqui
                 </span>
-                <Link className="jaguar-flink" to="/us">
-                  Estados Unidos
-                </Link>
               </div>
             </div>
 

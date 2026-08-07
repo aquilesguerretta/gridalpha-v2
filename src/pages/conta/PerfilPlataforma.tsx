@@ -31,8 +31,18 @@ import { ContaShell } from './ContaShell';
  * O CATÁLOGO (quais produtos existem) vem do backend — o contrato diz
  * que ele é servido justamente para o front não manter uma segunda
  * cópia que deriva. O que mora aqui é só a APRESENTAÇÃO, e só para os
- * ids que o portal brasileiro já nomeia; `us-terminal` não está em
- * `br-destinos.ts` porque o portal americano ainda não existe.
+ * ids que o portal brasileiro já nomeia.
+ *
+ * LOCALIZADO (Topologia de Shell Wave 3, fase 1): a entrada abaixo é o
+ * remanescente ESTÁTICO do lado americano — a única menção a ele que
+ * sobrou no `/conta`. Não é dirigida pelo `catalog`: o laço que itera o
+ * array está em L217 e apenas CONSULTA este mapa por `rotularProduto`.
+ *
+ * O backend já fechou o lado dele — `us-terminal` saiu do
+ * `PRODUCT_CATALOG` (a única ocorrência que resta em Python é o
+ * comentário que documenta a remoção). Sem o id no catálogo,
+ * `rotularProduto('us-terminal')` nunca é chamado e esta entrada é
+ * código morto. Sai na fase 2.
  */
 const TITULO_EXTRA: Record<string, string> = {
   'us-terminal': 'Terminal Estados Unidos',

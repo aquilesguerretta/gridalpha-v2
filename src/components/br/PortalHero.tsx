@@ -1,4 +1,6 @@
 // PortalHero — ARCHITECT, Portal BR Wave 3 · hero imersivo.
+// Wave 5: sistema visual NIVAR nos dois modos — apresentação apenas;
+// fases, geometria, dados e comportamento intocados.
 //
 // O mapa deixa de morar num painel fixo e vira o protagonista físico
 // da sequência. Cinco fases sobre uma pista de 340vh:
@@ -7,9 +9,9 @@
 //           centro da viewport, não ancorado à direita
 //   20–50%  quatro submercados reais preenchem, escalonados
 //   45–75%  intercâmbios esquemáticos conectam os centroides
-//   75–95%  FASE NOVA — o mapa cresce e recentraliza até dominar a
-//           tela; título e parágrafo esmaecem; rótulos regionais
-//           (sigla + PLD ilustrativo) ancoram nos centroides
+//   75–95%  o mapa cresce e recentraliza até dominar a tela; título e
+//           parágrafo esmaecem; rótulos regionais (sigla + PLD
+//           ilustrativo) ancoram nos centroides
 //   95–100% assentamento — barra compacta reintegra o headline e o
 //           PLD agregado; a seção solta o scroll e o documento segue
 //
@@ -22,7 +24,8 @@
 //
 // ESCAPE: botão "Pular apresentação" — primeiro focável da seção,
 // visível enquanto a sequência roda; rola o <main> direto para o fim
-// da pista. Ninguém fica preso.
+// da pista. Ninguém fica preso. (A remoção do botão é da Wave 6 — a
+// Wave 5 só o reveste.)
 //
 // REDUCED-MOTION: sem pista, sem sticky, sem fase — layout ESTÁTICO em
 // fluxo com todo o conteúdo legível (eyebrow, headline, parágrafo,
@@ -35,6 +38,15 @@
 // traçado físico); PLD segue MOCK, marcado ilustrativo em texto
 // visível. Regra de geometria real: contorno e fronteira vêm de
 // src/lib/geo/brasil-outline.ts (IBGE), nunca de path desenhado.
+//
+// TRATAMENTO NIVAR DO MAPA (decisão desta wave): preenchimento de
+// região é LAVAGEM DE TINTA (--text-strong em opacidade baixa — no
+// noturno vira lavagem de papel sozinho, pelo remapeio do alias);
+// contorno é --rule-heavy; a camada de DADO (intercâmbio, nó,
+// valor) leva --accent-house — brasa no claro, intelligence no
+// noturno, os dois lados legais da escala. NOTA DE SVG: var() não
+// resolve em atributo de apresentação — toda cor de token entra via
+// style, nunca via fill=/stroke= cru.
 
 import {
   useCallback,
@@ -42,10 +54,10 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type RefObject,
 } from 'react';
 
-import { J, JF, JT } from '../../design/jaguar-tokens';
 import {
   BRASIL_OUTLINE_D,
   BRASIL_VIEWBOX,
@@ -62,6 +74,59 @@ export interface PortalHeroProps {
   /** Clique num polígono de submercado. */
   onRegiaoClick: (regiao: SubmercadoPath) => void;
 }
+
+// ─── Papéis tipográficos NIVAR (valores nos tokens CSS; ver PortalBR) ─
+const NT = {
+  etiqueta: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 500,
+    fontSize: 'var(--ts-etiqueta)',
+    lineHeight: 'var(--lh-etiqueta)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-etiqueta)',
+    textTransform: 'uppercase',
+  } satisfies CSSProperties,
+  proc: {
+    fontFamily: 'var(--font-data)',
+    fontWeight: 400,
+    fontSize: '10.5px',
+    lineHeight: 1.5,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    fontVariantNumeric: 'tabular-nums lining-nums',
+  } satisfies CSSProperties,
+  display2: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-display-2)',
+    lineHeight: 'var(--lh-display-2)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-display-2)',
+  } satisfies CSSProperties,
+  titulo2: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-titulo-2)',
+    lineHeight: 'var(--lh-titulo-2)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-titulo-2)',
+  } satisfies CSSProperties,
+  lede: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 'var(--fw-corpo-leve)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-lede)',
+    lineHeight: 'var(--lh-lede)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-lede)',
+  } satisfies CSSProperties,
+  /** Dado protagonista — o maior corpo de dado do sistema (40px). O
+   *  84px do Jaguar não tem equivalente na escala NIVAR; registrado no
+   *  fechamento da wave. */
+  dado1: {
+    fontFamily: 'var(--font-data)',
+    fontWeight: 'var(--fw-dado-forte)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-dado-1)',
+    lineHeight: 'var(--lh-dado-1)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-dado-1)',
+    fontVariantNumeric: 'tabular-nums lining-nums',
+  } satisfies CSSProperties,
+} as const;
 
 // Valores ILUSTRATIVOS — nenhum feed de PLD existe no front hoje.
 // Mesma linguagem de submercado que Atlas e Alexandria já usam; o
@@ -212,6 +277,9 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
   }, []);
 
   // ─── O SVG do mapa — compartilhado pelos dois layouts ─────────────
+  // Tamanhos de texto em UNIDADES DE VIEWBOX (geometria do mapa, que
+  // escala com o palco — o piso de legibilidade foi calibrado na Wave
+  // 4); famílias e cores vêm dos tokens, via style.
   const mapa = (
     <svg
       viewBox={BRASIL_VIEWBOX}
@@ -229,19 +297,20 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             key={s.id}
             d={s.d}
             fillRule="evenodd"
-            fill={J.acenteOcre}
             fillOpacity={t * (PESO_FILL[s.id] + (sobre ? 0.16 : 0))}
-            stroke={sobre ? J.acenteOcre : J.tintaPrimaria}
             strokeOpacity={sobre ? 1 : 0.3 * t}
             strokeWidth={sobre ? 1.2 : 0.7}
             role="button"
             tabIndex={clicavel ? 0 : -1}
             aria-label={`Submercado ${s.nome} — Terminal Brasil, em breve`}
             style={{
+              // Lavagem de tinta: no noturno o alias vira papel e a
+              // lavagem inverte junto — um tratamento, dois substratos.
+              fill: 'var(--text-strong)',
+              stroke: sobre ? 'var(--accent-house)' : 'var(--text-strong)',
               cursor: clicavel ? 'pointer' : 'default',
               pointerEvents: clicavel ? 'auto' : 'none',
-              outlineColor: J.acenteOcreEscuro,
-              transition: 'fill-opacity 140ms ease',
+              transition: 'fill-opacity var(--dur-estado) var(--ease)',
             }}
             onMouseEnter={() => setRegiaoSobre(s.id)}
             onMouseLeave={() => setRegiaoSobre(null)}
@@ -262,12 +331,11 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         d={BRASIL_OUTLINE_D}
         fillRule="evenodd"
         fill="none"
-        stroke={J.tintaPrimaria}
         strokeWidth={1.1}
         pathLength={1}
         strokeDasharray={1}
         strokeDashoffset={reduzido ? 0 : 1 - tContorno}
-        style={{ pointerEvents: 'none' }}
+        style={{ stroke: 'var(--rule-heavy)', pointerEvents: 'none' }}
       />
 
       {conectores.map((c, i) => {
@@ -278,18 +346,18 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             key={c.chave}
             d={c.d}
             fill="none"
-            // Mapa é protagonista agora — o intercâmbio intensifica.
-            stroke={J.acenteOcre}
+            // Camada de dado — o intercâmbio leva o acento da casa.
             strokeWidth={1.8}
             pathLength={1}
             strokeDasharray={1}
             strokeDashoffset={1 - t}
-            style={{ pointerEvents: 'none' }}
+            style={{ stroke: 'var(--accent-house)', pointerEvents: 'none' }}
           />
         );
       })}
 
-      {/* Nós dos centroides — aparecem com os conectores. */}
+      {/* Nós dos centroides — aparecem com os conectores. Círculo
+          pleno: a exceção de raio do sistema. */}
       {SUBMERCADOS.map((s, i) => {
         const t = reduzido ? 1 : easeOut(fase(p, 0.45 + i * 0.04, 0.58 + i * 0.04));
         return (
@@ -298,20 +366,21 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             cx={s.centroid[0]}
             cy={s.centroid[1]}
             r={3.6}
-            // Nó de dado vivo em ocre, ancorado por hairline de tinta.
-            fill={J.acenteOcre}
-            stroke={J.tintaPrimaria}
             strokeWidth={0.6}
             opacity={t}
-            style={{ pointerEvents: 'none' }}
+            style={{
+              fill: 'var(--accent-house)',
+              stroke: 'var(--surface-page)',
+              pointerEvents: 'none',
+            }}
           />
         );
       })}
 
-      {/* Fase nova (75–95%): rótulos regionais ancorados — sigla + PLD
-          ilustrativo. Tamanhos em unidades de viewBox ≈ px no estado
-          final (escala ~1). Piso de 13px respeitado onde o rótulo é
-          legível de fato: no estado crescido. */}
+      {/* Fase 75–95%: rótulos regionais ancorados — sigla + PLD
+          ilustrativo. Halo de papel via paint-order: a etiqueta cai
+          DENTRO do fill da própria região (achado da revisão da Wave
+          3); no noturno o halo vira tinta pelo mesmo alias. */}
       {SUBMERCADOS.map((s, i) => {
         const t = reduzido ? 1 : easeOut(fase(p, 0.78 + i * 0.03, 0.9 + i * 0.03));
         if (t === 0) return null;
@@ -326,37 +395,39 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
               y1={s.centroid[1]}
               x2={x - 3}
               y2={y - 4}
-              stroke={J.acenteOcre}
               strokeWidth={1}
+              style={{ stroke: 'var(--accent-house)' }}
             />
-            {/* Halo de papel (paint-order) — a etiqueta cai DENTRO do
-                fill ocre da própria região; sem o halo o contraste
-                desaba para ~3:1 (achado da revisão adversarial). */}
             <text
               x={x}
               y={y}
-              fontFamily={JF.mono}
               fontSize={14}
               letterSpacing="0.14em"
-              fill={J.tintaSecundaria}
-              stroke={J.papelBase}
               strokeWidth={4}
               strokeLinejoin="round"
-              style={{ paintOrder: 'stroke' }}
+              style={{
+                fontFamily: 'var(--font-data)',
+                fill: 'var(--text-muted)',
+                stroke: 'var(--surface-page)',
+                paintOrder: 'stroke',
+              }}
             >
               {s.sigla}
             </text>
             <text
               x={x}
               y={y + 21}
-              fontFamily={JF.mono}
               fontSize={20}
               fontWeight={500}
-              fill={J.acenteOcreEscuro}
-              stroke={J.papelBase}
               strokeWidth={5}
               strokeLinejoin="round"
-              style={{ paintOrder: 'stroke', fontVariantNumeric: 'tabular-nums' }}
+              style={{
+                fontFamily: 'var(--font-data)',
+                fill: 'var(--accent-house)',
+                stroke: 'var(--surface-page)',
+                paintOrder: 'stroke',
+                fontVariantNumeric: 'tabular-nums',
+              }}
             >
               {formatoBRL(valor)}
             </text>
@@ -366,36 +437,42 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
 
       {/* A marca de ilustrativo entra JUNTO com os primeiros valores
           regionais (78%), não só na barra final (90%) — sem janela em
-          que número mock apareça sem aviso. */}
+          que número mock apareça sem aviso. Idioma --ilustrativa-fg:
+          tinta forte no claro, advisory no noturno. O fio embaixo do
+          idioma não existe em <text> de SVG — adaptação registrada. */}
       <text
         x={360}
         y={750}
         textAnchor="middle"
-        fontFamily={JF.mono}
         fontSize={13}
         letterSpacing="0.14em"
-        fill={J.tintaSecundaria}
-        stroke={J.papelBase}
         strokeWidth={4}
         strokeLinejoin="round"
         opacity={reduzido ? 1 : easeOut(fase(p, 0.78, 0.9))}
-        style={{ paintOrder: 'stroke', textTransform: 'uppercase', pointerEvents: 'none' }}
+        style={{
+          fontFamily: 'var(--font-data)',
+          fill: 'var(--ilustrativa-fg)',
+          stroke: 'var(--surface-page)',
+          paintOrder: 'stroke',
+          textTransform: 'uppercase',
+          pointerEvents: 'none',
+        }}
       >
         PLD por submercado · R$/MWh · valores ilustrativos
       </text>
     </svg>
   );
 
-  // Eyebrow em ocre DE VERDADE — acenteOcreEscuro (Wave 4) passa AA
-  // sobre papelBase, o que o #C17D1F nunca passou. A intenção original
-  // da Fase 3 da Wave 3, destravada pelo token novo.
+  // Eyebrow — etiqueta versalete no acento da casa (brasa no claro,
+  // 9,3:1; intelligence no noturno, 11,6:1) + traço líder de 2px, o
+  // fio de acento do sistema.
   const eyebrow = (
     <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
       <span
         aria-hidden="true"
-        style={{ width: '22px', height: '3px', background: J.acenteOcre, flexShrink: 0 }}
+        style={{ width: '22px', height: '2px', background: 'var(--accent-house)', flexShrink: 0 }}
       />
-      <span style={{ ...JT.rotulo, color: J.acenteOcreEscuro }}>Portal · Brasil</span>
+      <span style={{ ...NT.etiqueta, color: 'var(--accent-house)' }}>Portal · Brasil</span>
     </span>
   );
 
@@ -405,25 +482,29 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        // Fio ocre de 3px — o acento marcando o dado vivo, não decoração.
-        borderLeft: `3px solid ${J.acenteOcre}`,
+        // Fio de acento de 2px — o acento marcando o dado vivo.
+        borderLeft: '2px solid var(--accent-house)',
         paddingLeft: '18px',
       }}
     >
-      <span style={{ ...JT.h3, color: J.tintaPrimaria }}>{titulo}</span>
-      <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>
-        PLD médio SE/CO · R$/MWh · valor ilustrativo
+      <span style={{ ...NT.titulo2, color: 'var(--text-strong)' }}>{titulo}</span>
+      <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+        PLD médio SE/CO · R$/MWh ·{' '}
+        <span
+          style={{
+            color: 'var(--ilustrativa-fg)',
+            fontWeight: 500,
+            borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
+            paddingBottom: '1px',
+          }}
+        >
+          valor ilustrativo
+        </span>
       </span>
       <span
         data-numeric
-        // fontVariantNumeric literal repetido do JT.dadoDestaque — o
-        // auditor não resolve spread de token; o valor é o mesmo.
-        // Ocre escuro: o dado vivo É o lugar da cor (5,09:1 em 84px).
-        style={{
-          ...JT.dadoDestaque,
-          fontVariantNumeric: 'tabular-nums',
-          color: J.acenteOcreEscuro,
-        }}
+        // O dado vivo É o lugar da cor: acento da casa nos dois modos.
+        style={{ ...NT.dado1, color: 'var(--accent-house)' }}
       >
         {formatoBRL(valorAgregado)}
       </span>
@@ -441,17 +522,18 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '40px',
-          padding: '56px 0',
+          gap: '32px',
+          padding: '32px 0',
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxWidth: '62ch' }}>
           {eyebrow}
-          <h1 style={{ ...JT.h1, margin: 0, color: J.tintaPrimaria }}>{titulo}</h1>
-          <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{subtitulo}</p>
+          <h1 style={{ ...NT.display2, margin: 0, color: 'var(--text-strong)' }}>{titulo}</h1>
+          <p style={{ ...NT.lede, margin: 0, color: 'var(--text-muted)' }}>{subtitulo}</p>
         </div>
         {/* min 770px: abaixo disso a escala do viewBox (720u) derruba a
-            sigla de 14u para menos de 13px renderizados — piso da JT. */}
+            sigla de 14u para menos de 13px renderizados — piso da Wave
+            4, mantido. */}
         <div style={{ width: 'min(770px, 94%)', aspectRatio: '720 / 755', alignSelf: 'center' }}>
           {mapa}
         </div>
@@ -484,9 +566,9 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             left: 0,
             height: '2px',
             width: `${p * 100}%`,
-            background: J.acenteOcre,
+            background: 'var(--accent-house)',
             opacity: p >= 0.98 ? 0 : 1,
-            transition: 'opacity 200ms ease',
+            transition: 'opacity var(--dur-hover) var(--ease)',
             zIndex: 3,
           }}
         />
@@ -504,10 +586,10 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             maxWidth: '58%',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            ...JT.rotulo,
-            color: J.acenteOcreEscuro,
+            ...NT.etiqueta,
+            color: 'var(--accent-house)',
             opacity: regiaoSobre ? 1 : 0,
-            transition: 'opacity 140ms ease',
+            transition: 'opacity var(--dur-estado) var(--ease)',
             pointerEvents: 'none',
             zIndex: 3,
             whiteSpace: 'nowrap',
@@ -519,7 +601,8 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
         </span>
 
         {/* Escape — primeiro focável da seção, some quando a sequência
-            assenta. Ninguém fica preso na pista. */}
+            assenta. Ninguém fica preso na pista. (Sai na Wave 6; aqui
+            só muda de roupa.) */}
         <button
           ref={botaoPularRef}
           type="button"
@@ -531,17 +614,17 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
             right: '4px',
             bottom: '20px',
             zIndex: 3,
-            ...JT.rotulo,
-            color: J.tintaSecundaria,
-            background: J.papelBase,
-            border: `1px solid ${J.bordaDefault}`,
+            ...NT.etiqueta,
+            color: 'var(--text-muted)',
+            background: 'var(--surface-page)',
+            border: 'var(--fio) solid var(--rule)',
             borderRadius: 0,
             padding: '8px 14px',
             cursor: 'pointer',
             opacity: p >= 0.98 ? 0 : 1,
             pointerEvents: p >= 0.98 ? 'none' : 'auto',
-            transition: 'opacity 200ms ease',
-            outlineColor: J.acenteOcreEscuro,
+            transition:
+              'opacity var(--dur-hover) var(--ease), color var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease)',
           }}
         >
           Pular apresentação ↓
@@ -584,12 +667,12 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
           }}
         >
           {eyebrow}
-          <h1 style={{ ...JT.h1, margin: 0, color: J.tintaPrimaria }}>{titulo}</h1>
-          <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{subtitulo}</p>
+          <h1 style={{ ...NT.display2, margin: 0, color: 'var(--text-strong)' }}>{titulo}</h1>
+          <p style={{ ...NT.lede, margin: 0, color: 'var(--text-muted)' }}>{subtitulo}</p>
           <span
             style={{
-              ...JT.rotulo,
-              color: J.tintaSecundaria,
+              ...NT.etiqueta,
+              color: 'var(--text-muted)',
               opacity: Math.max(0, 1 - fase(p, 0, 0.1)),
             }}
           >

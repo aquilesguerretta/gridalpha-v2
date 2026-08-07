@@ -1,18 +1,13 @@
 // SeletorMercado — ARCHITECT, Portal BR Wave 2 · Jaguar.
+// Wave 5: item de navegação no idioma NIVAR (texto com fio, nunca
+// caixa) — itens e comportamento intocados.
 //
 // Troca o prefixo de mercado da URL. Mercado é segmento de rota, não
 // estado em store: o link é compartilhável, o bookmark funciona, e não
 // há hidratação nem flash de mercado errado no primeiro paint.
-//
-// Wave 2: cores locais da Wave 1 substituídas pelos tokens Jaguar —
-// o TODO da wave estrutural fecha aqui. Os ITENS não mudam: a spec
-// (§4) confirma só o sistema de cor e o seletor discreto; item de
-// menu segue não especificado.
 
 import { useState, type CSSProperties } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-
-import { J, JT } from '../../design/jaguar-tokens';
 
 export type MercadoId = 'br' | 'us';
 
@@ -47,11 +42,16 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
 
   const atual: MercadoId = ativo ?? (pathname.startsWith('/br') ? 'br' : 'us');
 
-  // JT.rotulo (13px) — piso de texto de interface da Wave 3; os 10px
-  // da Wave 2 saem. tintaSecundaria, não tintaMuted (contraste AA).
+  // Rótulo do grupo — mono versalete pequeno (o registro do ModeToggle
+  // ao lado, components/navigation do sistema).
   const rotulo: CSSProperties = {
-    ...JT.rotulo,
-    color: J.tintaSecundaria,
+    fontFamily: 'var(--font-data)',
+    fontWeight: 400,
+    fontSize: '11px',
+    lineHeight: 1.2,
+    letterSpacing: '0.09em',
+    textTransform: 'uppercase',
+    color: 'var(--text-faint)',
   };
 
   return (
@@ -63,13 +63,13 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
 
       <span
         aria-hidden="true"
-        style={{ width: '1px', height: '12px', background: J.bordaDefault }}
+        style={{ width: '1px', height: '12px', background: 'var(--rule)' }}
       />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         {MERCADOS.map((m) => {
           const selecionado = m.id === atual;
-          const realcado = selecionado || sobre === m.id;
+          const emHover = sobre === m.id && !selecionado;
 
           return (
             <Link
@@ -81,17 +81,27 @@ export function SeletorMercado({ ativo }: SeletorMercadoProps) {
               onFocus={() => setSobre(m.id)}
               onBlur={() => setSobre(null)}
               style={{
-                ...JT.nav,
+                // NavItem do sistema: texto com fio, nunca caixa.
+                // Ativo = texto forte 500 + fio de 2px no acento da
+                // casa (redundante com aria-current, que carrega o
+                // estado de verdade); hover sobe um passo na escala.
+                fontFamily: 'var(--font-body)',
+                fontWeight: selecionado ? 500 : 400,
+                fontSize: 'var(--ts-corpo-2)',
+                lineHeight: 1.2,
+                letterSpacing: '0.01em',
                 textDecoration: 'none',
-                color: realcado ? J.tintaPrimaria : J.tintaSecundaria,
+                color: selecionado
+                  ? 'var(--text-strong)'
+                  : emHover
+                    ? 'var(--fg-hover)'
+                    : 'var(--text-muted)',
                 borderRadius: 0,
-                // Wave 3: o ativo ganha fio ocre de 2px — mais assertivo
-                // que o hairline de tinta da Wave 2. O estado NÃO depende
-                // do ocre para ser percebido (cor de texto + aria-current
-                // carregam a informação); o fio é o acento com função.
-                borderBottom: `2px solid ${selecionado ? J.acenteOcre : 'transparent'}`,
+                borderBottom: `2px solid ${
+                  selecionado ? 'var(--accent-house)' : emHover ? 'var(--fio-hover)' : 'transparent'
+                }`,
                 paddingBottom: '3px',
-                transition: 'color 140ms ease, border-bottom-color 140ms ease',
+                transition: 'color var(--dur-hover) var(--ease), border-bottom-color var(--dur-hover) var(--ease)',
               }}
             >
               {m.rotulo}

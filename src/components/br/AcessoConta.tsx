@@ -1,5 +1,6 @@
 // src/components/br/AcessoConta.tsx
 // ARCHITECT — Identidade de Plataforma, Wave 1 (adendo).
+// Wave 5: registro NIVAR — três estados e comportamento intocados.
 //
 // A porta de entrada da conta no header do Portal Brasil. A Wave 1
 // construiu /entrar, /criar-conta e /conta, mas nenhuma superfície
@@ -14,13 +15,21 @@
 //   · sem sessão — "Entrar", levando o destino atual junto para a
 //     pessoa voltar para onde estava.
 //   · com sessão — primeiro nome + link para /conta.
-//
-// Registro Jaguar, sem token novo: é o header do Portal Brasil.
 
+import { useState, type CSSProperties } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
-import { J, JT } from '../../design/jaguar-tokens';
 import { useAuth } from '../../lib/auth/AuthContext';
+
+// Etiqueta versalete NIVAR — valores nos tokens CSS (ver PortalBR).
+const ETIQUETA: CSSProperties = {
+  fontFamily: 'var(--font-body)',
+  fontWeight: 500,
+  fontSize: 'var(--ts-etiqueta)',
+  lineHeight: 'var(--lh-etiqueta)' as CSSProperties['lineHeight'],
+  letterSpacing: 'var(--tr-etiqueta)',
+  textTransform: 'uppercase',
+};
 
 /** Primeiro nome — o header é estreito e o nome completo empurraria o
  *  seletor de mercado. O nome inteiro está em /conta. */
@@ -33,6 +42,7 @@ function primeiroNome(nome: string): string {
 export function AcessoConta() {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [sobre, setSobre] = useState(false);
 
   // Espaço reservado com a mesma altura de linha do que vem depois,
   // para o header não pular quando a sessão resolve.
@@ -40,7 +50,7 @@ export function AcessoConta() {
     return (
       <span
         aria-hidden="true"
-        style={{ ...JT.rotulo, color: 'transparent', userSelect: 'none' }}
+        style={{ ...ETIQUETA, padding: '5px 12px', color: 'transparent', userSelect: 'none' }}
       >
         Entrar
       </span>
@@ -49,22 +59,24 @@ export function AcessoConta() {
 
   if (!user) {
     return (
-      // Caixa de fio, NÃO fio-embaixo: o sublinhado ocre de 2px é o
-      // vocabulário do mercado ATIVO no SeletorMercado, ao lado. Usar
-      // o mesmo tratamento aqui faria "Entrar" parecer um estado
-      // ("você está em Entrar") em vez de uma ação. Retângulo de fio
-      // é o idioma de ação deste sistema — raio zero, como tudo.
+      // Caixa de fio, NÃO fio-embaixo: o sublinhado de 2px no acento é
+      // o vocabulário de item ATIVO no SeletorMercado, ao lado. Usar o
+      // mesmo tratamento aqui faria "Entrar" parecer um estado em vez
+      // de uma ação. Retângulo de fio é o idioma de ação — raio zero.
+      // Hover do sistema: cor de texto e de fio sobem um passo, 200ms.
       <Link
         to="/entrar"
         state={{ de: location.pathname + location.search }}
+        onMouseEnter={() => setSobre(true)}
+        onMouseLeave={() => setSobre(false)}
         style={{
-          ...JT.rotulo,
-          color: J.tintaPrimaria,
+          ...ETIQUETA,
+          color: sobre ? 'var(--fg-hover)' : 'var(--text-strong)',
           textDecoration: 'none',
-          border: `1px solid ${J.bordaStrong}`,
+          border: `var(--fio) solid ${sobre ? 'var(--fio-hover)' : 'var(--rule-strong)'}`,
           borderRadius: 0,
           padding: '5px 12px',
-          outlineColor: J.acenteOcreEscuro,
+          transition: 'color var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease)',
         }}
       >
         Entrar
@@ -76,17 +88,19 @@ export function AcessoConta() {
     <Link
       to="/conta"
       title={user.name}
+      onMouseEnter={() => setSobre(true)}
+      onMouseLeave={() => setSobre(false)}
       style={{
-        ...JT.rotulo,
+        ...ETIQUETA,
         display: 'inline-flex',
         alignItems: 'baseline',
         gap: '8px',
-        color: J.tintaPrimaria,
+        color: sobre ? 'var(--fg-hover)' : 'var(--text-strong)',
         textDecoration: 'none',
-        outlineColor: J.acenteOcreEscuro,
+        transition: 'color var(--dur-hover) var(--ease)',
       }}
     >
-      <span style={{ color: J.tintaSecundaria }}>Conta</span>
+      <span style={{ color: 'var(--text-faint)' }}>Conta</span>
       <span>{primeiroNome(user.name)}</span>
     </Link>
   );

@@ -38,11 +38,21 @@
 // /terminal-brasil?regiao=<sigla>. INFERÊNCIA do implementador,
 // marcada como tal no fechamento da wave.
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { J, JF, JT } from '../../design/jaguar-tokens';
+// Tokens NIVAR — só arquivos de VARIÁVEL (:root + escopos de modo).
+// base.css fica de fora DE PROPÓSITO: ele restila elemento global
+// (body, h1-h6, a, barra de rolagem) e vazaria para as outras
+// superfícies do app. O que o base.css daria (foco, seleção, link)
+// entra escopado em [data-nv-page] no <style> abaixo.
+import '../../design/nivar/fonts.css';
+import '../../design/nivar/colors.css';
+import '../../design/nivar/typography.css';
+import '../../design/nivar/space.css';
+import '../../design/nivar/motion.css';
+
 import { DESTINOS_BR, type DestinoBR } from '../../lib/data/br-destinos';
 import type { SubmercadoPath } from '../../lib/geo/brasil-outline';
 import { DestinoCard, PlantaBaixa } from '../../components/br/DestinoCard';
@@ -54,6 +64,51 @@ import { AcessoConta } from '../../components/br/AcessoConta';
 // Medida máxima de prancha — decisão da Wave 1, mantida: 1200px.
 const MEDIDA = '1200px';
 const RESPIRO_LATERAL = '32px';
+
+// ─── Papéis tipográficos NIVAR ──────────────────────────────────────
+// O idioma do repo é estilo inline; os VALORES moram nos tokens CSS de
+// src/design/nivar — aqui só referência var(), nunca literal de escala.
+// `proc` espelha o .nv-proc do sistema (components/data/data.css); os
+// literais de 10.5px/.06em são do PRÓPRIO componente, copiados, não
+// inventados. Cada componente do Portal declara os papéis que usa —
+// importar daqui criaria ciclo página→componente→página; a referência
+// var() garante que o VALOR nunca diverge.
+const NT = {
+  /** Etiqueta versalete — Work Sans 500, 11px, +0.10em, caixa alta. */
+  etiqueta: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 500,
+    fontSize: 'var(--ts-etiqueta)',
+    lineHeight: 'var(--lh-etiqueta)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-etiqueta)',
+    textTransform: 'uppercase',
+  } satisfies CSSProperties,
+  /** Procedência — mono versalete, tabular (idioma do Provenance). */
+  proc: {
+    fontFamily: 'var(--font-data)',
+    fontWeight: 400,
+    fontSize: '10.5px',
+    lineHeight: 1.5,
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase',
+    fontVariantNumeric: 'tabular-nums lining-nums',
+  } satisfies CSSProperties,
+  /** Corpo — Work Sans 400, 15px. */
+  corpo: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 'var(--fw-corpo)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-corpo)',
+    lineHeight: 'var(--lh-corpo)' as CSSProperties['lineHeight'],
+  } satisfies CSSProperties,
+  /** Título de bloco — Zilla Slab 500, 19px. */
+  titulo2: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-titulo-2)',
+    lineHeight: 'var(--lh-titulo-2)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-titulo-2)',
+  } satisfies CSSProperties,
+} as const;
 
 /** Estado do overlay "em breve": destino + região opcional (via hero). */
 interface ZoomEmBreve {
@@ -178,6 +233,14 @@ export function PortalBR() {
   const retornoFocoRef = useRef<HTMLElement | null>(null);
   const [zoom, setZoom] = useState<ZoomEmBreve | null>(null);
 
+  // Modo de exibição — data-mode="noturno" remapeia SÓ os aliases
+  // semânticos (colors.css); nenhum valor da escala de incandescência
+  // muda. PENDÊNCIA REGISTRADA: o Portal não tem mecanismo de
+  // persistência próprio (nenhum store, nenhum uso de storage nesta
+  // superfície) — o modo vive em estado de página e volta ao claro na
+  // recarga. Persistir é decisão de plataforma, não desta wave.
+  const [modo, setModo] = useState<'claro' | 'noturno'>('claro');
+
   const abrirRegiao = useCallback((regiao: SubmercadoPath) => {
     retornoFocoRef.current = document.activeElement as HTMLElement | null;
     comTransicao(() =>
@@ -241,62 +304,103 @@ export function PortalBR() {
   return (
     <div
       lang="pt-BR"
+      data-nv-page=""
+      data-mode={modo === 'noturno' ? 'noturno' : undefined}
       style={{
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: J.papelBase,
-        color: J.tintaPrimaria,
-        fontFamily: JF.sans,
+        background: 'var(--surface-page)',
+        color: 'var(--text-body)',
+        fontFamily: 'var(--font-body)',
+        fontSize: 'var(--ts-corpo)',
+        lineHeight: 'var(--lh-corpo)',
         borderRadius: 0,
+        // O fundo NÃO entra em transition (regra: nunca anima cor de
+        // fundo) — na troca de modo ele corta seco; texto e fio correm
+        // os 150ms via as transições dos próprios elementos.
       }}
     >
-      {/* Geist Sans existe em public/fonts mas nenhum @font-face o
-          declara — o portal injeta o próprio, como o AlexandriaShell
-          injeta as fontes dele. index.html não é posse desta wave.
-          As animações de view-transition e de planta baixa moram aqui
-          porque pseudo-elementos ::view-transition-* não aceitam
-          estilo inline. */}
+      {/* A folha da página: o que o base.css do NIVAR daria em global
+          (foco, seleção, link) entra AQUI, escopado em [data-nv-page],
+          para não vazar às outras superfícies do app. O CSS do
+          ModeToggle é o do próprio sistema, verbatim
+          (components/navigation/navigation.css). As animações de
+          view-transition e de planta baixa moram aqui porque
+          pseudo-elemento e classe não aceitam estilo inline. */}
       <style>{`
-        @font-face {
-          font-family: 'Geist Sans';
-          src: url('/fonts/Geist-Variable.woff2') format('woff2');
-          font-weight: 100 900;
-          font-style: normal;
-          font-display: swap;
+        /* Escopo de página — foco e seleção do sistema. */
+        [data-nv-page] :focus-visible {
+          outline: 2px solid var(--accent-focus);
+          outline-offset: 2px;
         }
+        [data-nv-page] ::selection {
+          background: var(--advisory);
+          color: var(--tinta);
+        }
+
         /* Alternância do wordmark por modo — as duas variantes moram no
-           DOM; o data-mode (Fase 3) decide qual aparece. */
+           DOM; o data-mode decide qual aparece. */
         [data-mode="noturno"] .nivar-wm--claro { display: none !important; }
         [data-mode="noturno"] .nivar-wm--noturno { display: block !important; }
+
+        /* ModeToggle — CSS do sistema, verbatim. Mono, sem caixa, sem
+           ícone; ativo = texto forte + fio no acento da casa. */
+        .nv-modo{display:flex;align-items:baseline;gap:8px}
+        .nv-modo__op{font-family:var(--font-data);font-weight:400;font-size:11px;line-height:1.2;letter-spacing:.09em;text-transform:uppercase;color:var(--text-faint);background:none;border:0;border-bottom:1px solid transparent;padding:0 0 3px;cursor:pointer;transition:color var(--dur-estado) var(--ease),border-color var(--dur-estado) var(--ease)}
+        .nv-modo__op:hover{color:var(--fg-hover)}
+        .nv-modo__op--ativo{color:var(--text-strong);font-weight:500;border-bottom-color:var(--accent-house)}
+        .nv-modo__sep{font-family:var(--font-data);font-size:11px;color:var(--rule-strong)}
+
+        /* Link de lista (rodapé) — o tratamento de link do sistema:
+           cor de link com sublinhado por fio que NUNCA some; no hover o
+           texto muda de cor e o fio assume a cor do texto. */
+        .nivar-flink {
+          font-family: var(--font-body);
+          font-weight: 400;
+          font-size: var(--ts-corpo-2);
+          line-height: var(--lh-corpo-2);
+          color: var(--link);
+          text-decoration: none;
+          background: none;
+          border: none;
+          border-bottom: var(--fio) solid var(--link-fio);
+          border-radius: 0;
+          padding: 0;
+          cursor: pointer;
+          text-align: left;
+          align-self: flex-start;
+          transition: color var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease);
+        }
+        .nivar-flink:hover, .nivar-flink:focus-visible {
+          color: var(--link-hover);
+          border-bottom-color: currentColor;
+        }
+
+        /* Textura de rede do rodapé — hairline a 5% nos DOIS
+           substratos: traço de tinta sobre papel, traço de papel sobre
+           tinta. Os hexes são a tinta (#14120F) e o papel (#F6F2E9) da
+           escala, URL-encodados UMA vez (%23 — lição do bug da Wave 3,
+           verificado por computed style no fechamento). */
+        .nivar-textura-rede {
+          position: absolute;
+          inset: 0;
+          opacity: 0.05;
+          pointer-events: none;
+          background-size: 56px 56px;
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M0 0H56M0 0V56' stroke='%2314120F' stroke-width='0.6' fill='none'/><path d='M0 56L56 0' stroke='%2314120F' stroke-width='0.4' fill='none'/></svg>");
+        }
+        [data-mode="noturno"] .nivar-textura-rede {
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M0 0H56M0 0V56' stroke='%23F6F2E9' stroke-width='0.6' fill='none'/><path d='M0 56L56 0' stroke='%23F6F2E9' stroke-width='0.4' fill='none'/></svg>");
+        }
+
         @keyframes nivar-zoom-in {
           from { opacity: 0; transform: scale(0.82); }
           to   { opacity: 1; transform: none; }
         }
         ::view-transition-new(nivar-painel) {
           animation: nivar-zoom-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
-        }
-        .nivar-flink {
-          font-size: 13px;
-          letter-spacing: 0.02em;
-          /* tintaPrimaria, não secundaria: sobre papelSunken a tinta a
-             60% fica em 4,28:1 — abaixo de AA (achado da revisão). O
-             hover fala por sublinhado, não por cor. */
-          color: ${J.tintaPrimaria};
-          text-decoration: none;
-          background: none;
-          border: none;
-          border-radius: 0;
-          padding: 0;
-          cursor: pointer;
-          text-align: left;
-          font-family: inherit;
-          outline-color: ${J.acenteOcreEscuro};
-        }
-        .nivar-flink:hover, .nivar-flink:focus-visible {
-          text-decoration: underline;
-          text-underline-offset: 3px;
         }
         @keyframes nivar-desenha { to { stroke-dashoffset: 0; } }
         .nivar-planta [data-traco] {
@@ -329,31 +433,54 @@ export function PortalBR() {
           justifyContent: 'space-between',
           gap: '24px',
           padding: `0 ${RESPIRO_LATERAL}`,
-          borderBottom: `1px solid ${J.bordaDefault}`,
-          background: J.papelBase,
+          borderBottom: 'var(--fio) solid var(--rule)',
+          background: 'var(--surface-page)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <WordmarkNivar altura={24} idSufixo="cabecalho" />
           <span
             aria-hidden="true"
-            style={{ width: '1px', height: '14px', background: J.bordaDefault }}
+            style={{ width: '1px', height: '14px', background: 'var(--rule)' }}
           />
-          {/* tintaSecundaria, não ocre: acenteOcre como texto fica em
-              ~2,9:1 sobre papelBase — o ocre vive em traço e wash. */}
-          <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Brasil</span>
+          <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>Brasil</span>
         </div>
 
         {/* Itens exatos de nav seguem não especificados (spec §4) — só
-            o seletor confirmado, mais a porta de entrada da conta, que
-            a Wave 1 de identidade construiu sem linkar de lugar nenhum. */}
+            o seletor confirmado, a porta de entrada da conta e o
+            ModeToggle do sistema (mono, sem caixa, sem ícone). */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>
           <SeletorMercado ativo="br" />
           <span
             aria-hidden="true"
-            style={{ width: '1px', height: '12px', background: J.bordaDefault }}
+            style={{ width: '1px', height: '12px', background: 'var(--rule)' }}
           />
           <AcessoConta />
+          <span
+            aria-hidden="true"
+            style={{ width: '1px', height: '12px', background: 'var(--rule)' }}
+          />
+          <div className="nv-modo" role="group" aria-label="Modo de exibição">
+            <button
+              type="button"
+              className={`nv-modo__op${modo === 'claro' ? ' nv-modo__op--ativo' : ''}`}
+              aria-pressed={modo === 'claro'}
+              onClick={() => setModo('claro')}
+            >
+              claro
+            </button>
+            <span className="nv-modo__sep" aria-hidden="true">
+              ·
+            </span>
+            <button
+              type="button"
+              className={`nv-modo__op${modo === 'noturno' ? ' nv-modo__op--ativo' : ''}`}
+              aria-pressed={modo === 'noturno'}
+              onClick={() => setModo('noturno')}
+            >
+              noturno
+            </button>
+          </div>
         </div>
       </header>
 
@@ -365,7 +492,7 @@ export function PortalBR() {
         ref={mainRef}
         tabIndex={0}
         aria-label="Portal Brasil — conteúdo rolável"
-        style={{ flex: 1, minHeight: 0, overflowY: 'auto', outlineColor: J.acenteOcreEscuro }}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
       >
         <div style={{ maxWidth: MEDIDA, margin: '0 auto', padding: `0 ${RESPIRO_LATERAL}` }}>
           <PortalHero
@@ -380,11 +507,11 @@ export function PortalBR() {
           <section
             aria-label="O portal em números"
             style={{
-              borderTop: `1px solid ${J.bordaDefault}`,
-              borderBottom: `1px solid ${J.bordaDefault}`,
+              borderTop: 'var(--fio) solid var(--rule)',
+              borderBottom: 'var(--fio) solid var(--rule)',
               display: 'flex',
               flexWrap: 'wrap',
-              gap: '0 40px',
+              gap: '0 32px',
               padding: '14px 0',
             }}
           >
@@ -397,8 +524,8 @@ export function PortalBR() {
               <span
                 key={fato}
                 style={{
-                  ...JT.rotulo,
-                  color: i === 0 ? J.acenteOcreEscuro : J.tintaSecundaria,
+                  ...NT.proc,
+                  color: i === 0 ? 'var(--accent-house)' : 'var(--text-muted)',
                   padding: '4px 0',
                 }}
               >
@@ -410,15 +537,25 @@ export function PortalBR() {
           <section
             aria-label="Destinos"
             style={{
-              padding: '40px 0 64px',
+              // Teto de espaçamento do sistema: 32px, inclusive entre
+              // seções — os 40/64px do Jaguar saem.
+              padding: '32px 0',
               display: 'flex',
               flexDirection: 'column',
               gap: '24px',
             }}
           >
+            {/* Cabeçalho de seção do sistema: número · título · fio ·
+                nota à direita, numa linha de baseline. Número em mono,
+                dois dígitos, no acento da casa. */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-              <span style={{ ...JT.rotulo, color: J.tintaSecundaria }}>Destinos</span>
-              <span style={{ ...JT.rotulo, color: J.acenteOcreEscuro }}>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Destinos</span>
+              <span
+                aria-hidden="true"
+                style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
+              />
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
                 1 aberto · 4 em construção
               </span>
             </div>
@@ -451,41 +588,31 @@ export function PortalBR() {
         <footer
           style={{
             position: 'relative',
-            borderTop: `1px solid ${J.bordaStrong}`,
-            background: J.papelSunken,
+            borderTop: 'var(--fio) solid var(--rule-strong)',
+            background: 'var(--surface-sunken)',
             overflow: 'hidden',
           }}
         >
-          {/* Textura de rede — malha hairline de tinta, teto de 5%. */}
-          <span
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url("data:image/svg+xml;utf8,${encodeURIComponent(
-                `<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M0 0H56M0 0V56' stroke='#1C140D' stroke-width='0.6' fill='none'/><path d='M0 56L56 0' stroke='#1C140D' stroke-width='0.4' fill='none'/></svg>`,
-              )}")`,
-              backgroundSize: '56px 56px',
-              opacity: 0.05,
-              pointerEvents: 'none',
-            }}
-          />
+          {/* Textura de rede — malha hairline a 5%, com variante por
+              substrato na folha da página (tinta sobre papel, papel
+              sobre tinta). */}
+          <span aria-hidden="true" className="nivar-textura-rede" />
           <div
             style={{
               position: 'relative',
               maxWidth: MEDIDA,
               margin: '0 auto',
-              padding: `36px ${RESPIRO_LATERAL} 40px`,
+              padding: `32px ${RESPIRO_LATERAL}`,
               display: 'flex',
               flexDirection: 'column',
-              gap: '22px',
+              gap: '20px',
             }}
           >
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                gap: '40px',
+                gap: '32px',
                 flexWrap: 'wrap',
               }}
             >
@@ -499,15 +626,15 @@ export function PortalBR() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <WordmarkNivar altura={17} idSufixo="rodape" />
-                  <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Portal Brasil</span>
+                  <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Portal Brasil</span>
                 </div>
-                <span style={{ fontSize: '14px', lineHeight: 1.55, color: J.tintaPrimaria }}>
+                <span style={{ ...NT.corpo, fontSize: 'var(--ts-corpo-2)', color: 'var(--text-body)' }}>
                   Análise independente do mercado de energia.
                 </span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Destinos</span>
+                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Destinos</span>
                 {DESTINOS_BR.map((d) =>
                   d.status === 'disponivel' && d.rota ? (
                     <Link
@@ -537,13 +664,19 @@ export function PortalBR() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Mercados</span>
+                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Mercados</span>
                 {/* Topologia de Shell Wave 2: a linha de Estados Unidos
                     saiu daqui, como saiu do seletor do cabeçalho. O
                     mercado americano continua existindo em `/us`; deixou
                     de ser anunciado. A coluna fica com a única afirmação
                     que hoje é verdadeira. */}
-                <span style={{ fontSize: '13px', color: J.tintaPrimaria }}>
+                <span
+                  style={{
+                    ...NT.corpo,
+                    fontSize: 'var(--ts-corpo-2)',
+                    color: 'var(--text-body)',
+                  }}
+                >
                   Brasil — você está aqui
                 </span>
               </div>
@@ -551,7 +684,7 @@ export function PortalBR() {
 
             <div
               style={{
-                borderTop: `1px solid ${J.bordaDefault}`,
+                borderTop: 'var(--fio) solid var(--rule)',
                 paddingTop: '18px',
                 display: 'flex',
                 alignItems: 'baseline',
@@ -561,13 +694,28 @@ export function PortalBR() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px', flexWrap: 'wrap' }}>
-                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Fontes</span>
-                <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>ONS · ANEEL · CCEE · EPE</span>
+                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Fontes</span>
+                <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                  ONS · ANEEL · CCEE · EPE
+                </span>
               </div>
               {/* Provenância do que está renderizado HOJE: a geografia é
-                  IBGE; o dado de mercado ainda é ilustrativo. */}
-              <span style={{ fontFamily: JF.mono, fontSize: '13px', color: J.tintaPrimaria }}>
-                Geografia IBGE · dados de mercado ilustrativos · {new Date().getFullYear()}
+                  IBGE; o dado de mercado ainda é ilustrativo — e o
+                  trecho ilustrativo leva o idioma do sistema
+                  (--ilustrativa-fg/-fio), nunca cor de aviso. */}
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                Geografia IBGE ·{' '}
+                <span
+                  style={{
+                    color: 'var(--ilustrativa-fg)',
+                    fontWeight: 500,
+                    borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
+                    paddingBottom: '1px',
+                  }}
+                >
+                  dados de mercado ilustrativos
+                </span>{' '}
+                · {new Date().getFullYear()}
               </span>
             </div>
           </div>
@@ -585,7 +733,9 @@ export function PortalBR() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(28,20,13,0.32)',
+            // Scrim derivado da tinta da escala — o diálogo do sistema
+            // esmaece o fundo, nunca sombra.
+            background: 'color-mix(in srgb, var(--tinta) 40%, transparent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -601,10 +751,10 @@ export function PortalBR() {
               outline: 'none',
               viewTransitionName: 'nivar-painel',
               width: 'min(560px, 100%)',
-              background: J.papelOverlay,
-              border: `1px solid ${J.bordaStrong}`,
+              background: 'var(--surface-raised)',
+              border: 'var(--fio) solid var(--rule-strong)',
               borderRadius: 0,
-              padding: '28px',
+              padding: '24px',
               display: 'flex',
               flexDirection: 'column',
               gap: '20px',
@@ -618,40 +768,51 @@ export function PortalBR() {
                 gap: '16px',
               }}
             >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* Tag do sistema — retângulo de fio, sem preenchimento. */}
                 <span
                   style={{
-                    ...JT.rotulo,
-                    // tintaPrimaria: sobre papelOverlay, ocre escuro no
-                    // wash fica em 4,43:1 — abaixo de AA (revisão).
-                    color: J.tintaPrimaria,
-                    background: J.acenteOcreWash,
-                    border: `1px solid ${J.bordaAcento}`,
+                    ...NT.etiqueta,
+                    color: 'var(--text-muted)',
+                    border: 'var(--fio) solid var(--tag-fio)',
                     borderRadius: 0,
-                    padding: '3px 8px',
+                    padding: '4px 8px',
                     alignSelf: 'flex-start',
                   }}
                 >
                   Em breve
                 </span>
-                <h2 style={{ ...JT.h2, margin: 0, color: J.tintaPrimaria }}>{zoom.titulo}</h2>
+                <h2
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
+                    fontSize: 'var(--ts-titulo)',
+                    lineHeight: 'var(--lh-titulo)',
+                    letterSpacing: 'var(--tr-titulo)',
+                    margin: 0,
+                    color: 'var(--text-strong)',
+                  }}
+                >
+                  {zoom.titulo}
+                </h2>
               </div>
               <button
                 type="button"
                 onClick={fechar}
                 aria-label="Fechar"
                 style={{
-                  fontFamily: JF.mono,
+                  fontFamily: 'var(--font-data)',
                   fontSize: '14px',
-                  color: J.tintaSecundaria,
+                  color: 'var(--text-muted)',
                   background: 'none',
-                  border: `1px solid ${J.bordaDefault}`,
+                  border: 'var(--fio) solid var(--rule)',
                   borderRadius: 0,
                   padding: '4px 10px',
                   cursor: 'pointer',
+                  transition: 'color var(--dur-hover) var(--ease), border-color var(--dur-hover) var(--ease)',
                 }}
               >
-                ✕
+                ×
               </button>
             </div>
 
@@ -666,18 +827,22 @@ export function PortalBR() {
                   alignItems: 'baseline',
                   gap: '10px',
                   paddingTop: '14px',
-                  borderTop: `1px solid ${J.bordaDefault}`,
+                  borderTop: 'var(--fio) solid var(--rule)',
                 }}
               >
-                <span style={{ ...JT.rotulo, color: J.acenteOcreEscuro }}>Região</span>
-                <span style={{ fontSize: '14px', color: J.tintaPrimaria }}>
+                <span style={{ ...NT.etiqueta, color: 'var(--accent-house)' }}>Região</span>
+                <span
+                  style={{ ...NT.corpo, fontSize: 'var(--ts-corpo-2)', color: 'var(--text-body)' }}
+                >
                   {zoom.regiao.nome}
-                  <span style={{ fontFamily: JF.mono, color: J.tintaSecundaria }}>
+                  <span style={{ fontFamily: 'var(--font-data)', color: 'var(--text-muted)' }}>
                     {' '}
                     · {zoom.regiao.sigla}
                   </span>
                 </span>
-                <span style={{ fontSize: '14px', color: J.tintaSecundaria }}>
+                <span
+                  style={{ ...NT.corpo, fontSize: 'var(--ts-corpo-2)', color: 'var(--text-muted)' }}
+                >
                   — abrirá contextualizado por esta região.
                 </span>
               </div>

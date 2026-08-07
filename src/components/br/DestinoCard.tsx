@@ -18,9 +18,33 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { Link, useNavigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 
-import { J, JT } from '../../design/jaguar-tokens';
 import type { DestinoBR } from '../../lib/data/br-destinos';
 import { useAuth } from '../../lib/auth/AuthContext';
+
+// Papéis tipográficos NIVAR — valores nos tokens CSS (ver PortalBR).
+const NT = {
+  etiqueta: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 500,
+    fontSize: 'var(--ts-etiqueta)',
+    lineHeight: 'var(--lh-etiqueta)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-etiqueta)',
+    textTransform: 'uppercase',
+  } satisfies CSSProperties,
+  titulo2: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-titulo-2)',
+    lineHeight: 'var(--lh-titulo-2)' as CSSProperties['lineHeight'],
+    letterSpacing: 'var(--tr-titulo-2)',
+  } satisfies CSSProperties,
+  corpo: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 'var(--fw-corpo)' as CSSProperties['fontWeight'],
+    fontSize: 'var(--ts-corpo)',
+    lineHeight: 'var(--lh-corpo)' as CSSProperties['lineHeight'],
+  } satisfies CSSProperties,
+} as const;
 
 // Cor REAL de papel do sistema Alexandria, literal da spec §3 ("papel
 // #F2E9D6"). Hardcoded de propósito: importar de alexandria-tokens.ts
@@ -134,9 +158,13 @@ export function PlantaBaixa({ destinoId, visivel, altura = 150 }: PlantaBaixaPro
             pathLength={1}
             data-traco
             fill="none"
-            stroke={J.acenteOcre}
             strokeWidth={1}
-            style={{ animationDelay: `${i * 90}ms` }}
+            // Família SOFTWARE — "produto instrumentado", que é
+            // exatamente o que a planta baixa promete. Sobrevive aos
+            // dois substratos como fio: 3,0:1 sobre papel, 5,5:1 sobre
+            // tinta (tabela medida do sistema). var() não resolve em
+            // atributo de apresentação de SVG — cor via style.
+            style={{ stroke: 'var(--family-software)', animationDelay: `${i * 90}ms` }}
           />
         );
       })}
@@ -188,11 +216,14 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   // Entrada por viewport: sobe 12px e assenta. Com reduced-motion o
   // card nasce pronto — mesma regra de estado final de sempre.
   const entrou = visto || reduzido;
+  // Card NIVAR: região delimitada por fio de 1px, sem raio, sem
+  // sombra, sem preenchimento próprio — profundidade vem do fio.
+  // Hover muda cor de fio (nunca elevação, nunca escala).
   const quadro: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    background: J.papelRaised,
-    border: `1px solid ${sobre ? J.bordaStrong : J.bordaDefault}`,
+    background: 'var(--surface-page)',
+    border: `var(--fio) solid ${sobre ? 'var(--rule-strong)' : 'var(--rule)'}`,
     borderRadius: 0,
     padding: 0,
     textAlign: 'left',
@@ -201,17 +232,19 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
     opacity: entrou ? 1 : 0,
     transform: entrou ? 'none' : 'translateY(12px)',
     transition: reduzido
-      ? 'border-color 140ms ease'
-      : 'border-color 140ms ease, opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0, 0, 1)',
+      ? 'border-color var(--dur-hover) var(--ease)'
+      : 'border-color var(--dur-hover) var(--ease), opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0, 0, 1)',
   };
 
   const corpo = (
     <>
-      {/* Prévia — a diferença entre os dois estados mora aqui. */}
+      {/* Prévia — a diferença entre os dois estados mora aqui. O papel
+          da Alexandria é CITAÇÃO do destino (retrato do outro produto)
+          e viaja igual nos dois modos — não é superfície do Portal. */}
       <div
         style={{
           height: '150px',
-          borderBottom: `1px solid ${J.bordaDefault}`,
+          borderBottom: 'var(--fio) solid var(--rule)',
           overflow: 'hidden',
           background: disponivel ? ALEXANDRIA_PAPEL : 'transparent',
         }}
@@ -228,8 +261,8 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
           flex: 1,
         }}
       >
-        <h3 style={{ ...JT.h3, margin: 0, color: J.tintaPrimaria }}>{destino.titulo}</h3>
-        <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>{destino.descricao}</p>
+        <h3 style={{ ...NT.titulo2, margin: 0, color: 'var(--text-strong)' }}>{destino.titulo}</h3>
+        <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-muted)' }}>{destino.descricao}</p>
 
         <div
           style={{
@@ -243,34 +276,31 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
         >
           {disponivel ? (
             <>
-              <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Acessar</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Acessar</span>
+              {/* Glifo de avanço no acento da casa. SEM translateX de
+                  hover — o sistema nunca anima posição; o hover do
+                  card fala pelo fio. */}
               <span
                 aria-hidden="true"
                 style={{
+                  fontFamily: 'var(--font-data)',
                   fontSize: '13px',
-                  color: J.acenteOcre,
-                  transform: sobre ? 'translateX(3px)' : 'none',
-                  transition: 'transform 140ms ease',
+                  color: 'var(--accent-house)',
                 }}
               >
                 →
               </span>
             </>
           ) : (
-            // Badge com acenteOcreWash — o uso que a folha de tokens
-            // prescreve para o wash. Ocre puro como TEXTO de 10px fica
-            // em ~3:1 sobre os papéis e falha AA; a tinta cheia sobre o
-            // wash passa com folga e o ocre segue presente no fio.
+            // Tag do sistema — retângulo de fio, sem preenchimento.
+            // O wash de fundo do Jaguar sai: NIVAR não preenche tag.
             <span
               style={{
-                ...JT.rotulo,
-                // acenteOcreEscuro passa AA sobre o wash (Wave 4) — o
-                // badge finalmente fala na cor do sistema.
-                color: J.acenteOcreEscuro,
-                background: J.acenteOcreWash,
-                border: `1px solid ${J.bordaAcento}`,
+                ...NT.etiqueta,
+                color: 'var(--text-muted)',
+                border: 'var(--fio) solid var(--tag-fio)',
                 borderRadius: 0,
-                padding: '3px 8px',
+                padding: '4px 8px',
               }}
             >
               Em breve
@@ -372,7 +402,6 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
           borderRadius: 0,
           padding: 0,
           cursor: 'pointer',
-          outlineColor: J.acenteOcreEscuro,
         }}
       />
     </article>

@@ -205,6 +205,11 @@ const WM_PATHS = (
   </>
 );
 
+// REVISÃO PÓS-WAVE 6 (pedido direto do Aquiles): a variante de papel
+// saiu — o wordmark é o COLORIDO nos dois modos, como o próprio
+// especimen de movimento renderiza sobre tinta. O gradiente é da marca
+// e não aceita troca de cor; sobre os dois substratos ele é a marca,
+// não texto de interface.
 function WordmarkNivar({ altura, idSufixo }: { altura: number; idSufixo: string }) {
   const largura = Math.round(altura * (425 / 140));
   return (
@@ -214,7 +219,7 @@ function WordmarkNivar({ altura, idSufixo }: { altura: number; idSufixo: string 
       style={{ display: 'inline-flex', flexShrink: 0, lineHeight: 0 }}
     >
       <svg
-        className="nivar-wm nivar-wm--claro"
+        className="nivar-wm"
         viewBox="0 0 425 140"
         width={largura}
         height={altura}
@@ -241,18 +246,6 @@ function WordmarkNivar({ altura, idSufixo }: { altura: number; idSufixo: string 
           strokeLinecap="butt"
           strokeLinejoin="miter"
         >
-          {WM_PATHS}
-        </g>
-      </svg>
-      <svg
-        className="nivar-wm nivar-wm--noturno"
-        viewBox="0 0 425 140"
-        width={largura}
-        height={altura}
-        aria-hidden="true"
-        style={{ display: 'none', overflow: 'visible' }}
-      >
-        <g fill="none" stroke="#F6F2E9" strokeLinecap="butt" strokeLinejoin="miter">
           {WM_PATHS}
         </g>
       </svg>
@@ -415,11 +408,6 @@ export function PortalBR() {
           color: var(--tinta);
         }
 
-        /* Alternância do wordmark por modo — as duas variantes moram no
-           DOM; o data-mode decide qual aparece. */
-        [data-mode="noturno"] .nivar-wm--claro { display: none !important; }
-        [data-mode="noturno"] .nivar-wm--noturno { display: block !important; }
-
         /* ModeToggle — CSS do sistema, verbatim. Mono, sem caixa, sem
            ícone; ativo = texto forte + fio no acento da casa. */
         .nv-modo{display:flex;align-items:baseline;gap:8px}
@@ -501,7 +489,7 @@ export function PortalBR() {
            único. Só enquanto .nivar-boot está no root — o estado sai
            depois do boot e a troca de modo nunca redispara o desenho. */
         @keyframes nivar-wm-desenha { to { stroke-dashoffset: 0; } }
-        .nivar-boot .nivar-wm--claro [data-wm-traco] {
+        .nivar-boot .nivar-wm [data-wm-traco] {
           stroke-dasharray: 1;
           stroke-dashoffset: 1;
           animation: nivar-wm-desenha var(--dur-desenho) var(--ease) forwards;
@@ -544,6 +532,18 @@ export function PortalBR() {
         }
       `}</style>
 
+      {/* Fio-gradiente de 4px demarcando o topo do documento — o ÚNICO
+          uso de gradiente que o sistema permite fora do traço da marca,
+          e exatamente onde ele permite. É a assinatura que o especimen
+          carrega no topo, nos dois modos. */}
+      <span
+        aria-hidden="true"
+        style={{
+          flexShrink: 0,
+          height: '4px',
+          background: 'var(--gradiente-incandescente)',
+        }}
+      />
       <header
         style={{
           flexShrink: 0,
@@ -558,7 +558,7 @@ export function PortalBR() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <WordmarkNivar altura={24} idSufixo="cabecalho" />
+          <WordmarkNivar altura={30} idSufixo="cabecalho" />
           <span
             aria-hidden="true"
             style={{ width: '1px', height: '14px', background: 'var(--rule)' }}
@@ -808,7 +808,7 @@ export function PortalBR() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <WordmarkNivar altura={17} idSufixo="rodape" />
+                  <WordmarkNivar altura={20} idSufixo="rodape" />
                   <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Portal Brasil</span>
                 </div>
                 <span style={{ ...NT.corpo, fontSize: 'var(--ts-corpo-2)', color: 'var(--text-body)' }}>

@@ -157,6 +157,153 @@ const CONFLITO: ColunaConflito[] = [
   },
 ];
 
+// ─── O mercado agora (revisão pós-Wave 6) — AMOSTRA ILUSTRATIVA ─────
+// Os mesmos valores-base mock que o hero usa (PLD_REGIONAL_MOCK do
+// PortalHero), com séries DETERMINÍSTICAS derivadas por composição de
+// senos — nenhum feed de PLD existe no front. O rótulo na tela diz
+// "amostra ilustrativa" no idioma do sistema, e o MethodDisclosure do
+// hero declara o método. Sem Math.random e sem Date: a amostra é
+// estável entre renders e recargas, citável e reencontrável.
+interface SubmercadoAmostra {
+  id: string;
+  sigla: string;
+  nome: string;
+  base: number;
+  seed: number;
+}
+
+const SUBMERCADOS_AMOSTRA: SubmercadoAmostra[] = [
+  { id: 'sudesteCentroOeste', sigla: 'SE/CO', nome: 'Sudeste/Centro-Oeste', base: 138.72, seed: 1 },
+  { id: 'sul', sigla: 'S', nome: 'Sul', base: 141.1, seed: 2 },
+  { id: 'nordeste', sigla: 'NE', nome: 'Nordeste', base: 129.8, seed: 3 },
+  { id: 'norte', sigla: 'N', nome: 'Norte', base: 132.45, seed: 4 },
+];
+
+interface PeriodoAmostra {
+  id: string;
+  rotulo: string;
+  pontos: number;
+  inicio: string;
+}
+
+const PERIODOS_AMOSTRA: PeriodoAmostra[] = [
+  { id: '24h', rotulo: '24 H', pontos: 24, inicio: 'há 24 horas' },
+  { id: '7d', rotulo: '7 D', pontos: 56, inicio: 'há 7 dias' },
+  { id: '30d', rotulo: '30 D', pontos: 60, inicio: 'há 30 dias' },
+];
+
+function serieIlustrativa(base: number, seed: number, pontos: number): number[] {
+  return Array.from({ length: pontos }, (_, i) => {
+    const oscila =
+      Math.sin(i * 0.55 + seed * 1.7) * 0.045 +
+      Math.sin(i * 0.19 + seed) * 0.05 +
+      Math.cos(i * 0.08 + seed * 0.6) * 0.025;
+    return base * (1 + oscila);
+  });
+}
+
+const formatoBRL = (v: number) =>
+  v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** Geometria da série no viewBox 0 0 720 210 — eixo à esquerda e
+ *  embaixo, sem grade decorativa (regra do TimeSeriesChart). */
+function geometriaSerie(serie: number[]) {
+  const X0 = 52;
+  const X1 = 708;
+  const Y0 = 18;
+  const Y1 = 166;
+  const vMin = Math.min(...serie);
+  const vMax = Math.max(...serie);
+  const px = (i: number) => X0 + (i / (serie.length - 1)) * (X1 - X0);
+  const py = (v: number) => Y1 - ((v - vMin) / (vMax - vMin || 1)) * (Y1 - Y0);
+  return {
+    d: serie.map((v, i) => `${i ? 'L' : 'M'}${px(i).toFixed(1)} ${py(v).toFixed(1)}`).join(''),
+    vMin,
+    vMax,
+    px,
+    py,
+  };
+}
+
+// Sinal tipográfico do sistema: '−' (menos verdadeiro), nunca hífen.
+const formatoPct = (v: number) =>
+  `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })} %`;
+
+type Direcao = 'alta' | 'baixa' | 'neutro';
+const direcaoDe = (pct: number): Direcao => (pct > 0.15 ? 'alta' : pct < -0.15 ? 'baixa' : 'neutro');
+const GLIFO_DIRECAO: Record<Direcao, string> = { alta: '↑', baixa: '↓', neutro: '→' };
+const COR_DIRECAO: Record<Direcao, string> = {
+  alta: 'var(--data-alta)',
+  baixa: 'var(--data-baixa)',
+  neutro: 'var(--data-neutro)',
+};
+
+// ─── Glossário — os termos do PRÓPRIO sistema ───────────────────────
+// Copiados VERBATIM de components/glossary/termos.js ("Uma fonte só
+// para os termos"): é a fonte única que Glossary e ContextHint leem no
+// design system. Nada aqui foi redigido pelo portal.
+interface TermoGlossario {
+  termo: string;
+  sigla?: string;
+  definicao: string;
+  fonte?: string;
+}
+
+const TERMOS_GLOSSARIO: TermoGlossario[] = [
+  {
+    termo: 'apuração',
+    definicao:
+      'Fechamento do dado de um ciclo pela fonte oficial. Antes da apuração o valor é preliminar; depois dela é definitivo e datado. Todo número exibido carrega a apuração de que veio.',
+    fonte: 'CCEE · ONS',
+  },
+  {
+    termo: 'carga',
+    definicao:
+      'Demanda de energia efetivamente verificada num submercado, em MW médios. É medida, não contratada — não confundir com demanda contratada.',
+    fonte: 'ONS · carga verificada',
+  },
+  {
+    termo: 'contraditório',
+    definicao:
+      'Parecer que sustenta a posição oposta à conclusão apresentada. É produzido junto com o parecer principal, não depois dele.',
+    fonte: 'NIVAR Advisory',
+  },
+  {
+    termo: 'mercado livre',
+    definicao:
+      'Ambiente de Contratação Livre (ACL), onde o consumidor negocia preço, prazo e fornecedor diretamente. Opõe-se ao mercado cativo, em que a distribuidora define a tarifa.',
+    fonte: 'ANEEL · CCEE',
+  },
+  {
+    termo: 'migração',
+    definicao:
+      'Passagem de uma unidade consumidora do mercado cativo para o livre. Exige adesão à CCEE e prazo de denúncia junto à distribuidora.',
+    fonte: 'CCEE · adesão',
+  },
+  {
+    termo: 'MWh',
+    sigla: 'megawatt-hora',
+    definicao:
+      'Unidade de energia: um megawatt de potência sustentado por uma hora. Preço de energia é sempre por MWh; potência contratada é em MW. Os dois não se somam.',
+  },
+  {
+    termo: 'PLD',
+    sigla: 'preço de liquidação das diferenças',
+    definicao:
+      'Preço horário que liquida a energia não coberta por contrato, por submercado. Não é o preço que o consumidor paga — é o preço da diferença entre o contratado e o verificado.',
+    fonte: 'CCEE · apuração horária',
+  },
+  {
+    termo: 'submercado',
+    definicao:
+      'Recorte geográfico do SIN com preço próprio: Sudeste/Centro-Oeste, Sul, Nordeste e Norte. A divisão existe porque a transmissão entre regiões tem limite físico.',
+    fonte: 'ONS · SIN',
+  },
+];
+
 /** Estado do overlay "em breve": destino + região opcional (via hero). */
 interface ZoomEmBreve {
   titulo: string;
@@ -293,6 +440,24 @@ export function PortalBR() {
   // recarga. Persistir é decisão de plataforma, não desta wave.
   const [modo, setModo] = useState<'claro' | 'noturno'>('claro');
 
+  // O mercado agora (amostra ilustrativa): submercado ativo, período,
+  // linha sob o cursor. Selecionar linha da tabela É selecionar a
+  // série do gráfico — um mecanismo, não dois.
+  const [subAtivo, setSubAtivo] = useState('sudesteCentroOeste');
+  const [periodoAtivo, setPeriodoAtivo] = useState('24h');
+  const [linhaSobre, setLinhaSobre] = useState<string | null>(null);
+
+  // Glossário — vários verbetes podem estar abertos ao mesmo tempo.
+  const [termosAbertos, setTermosAbertos] = useState<ReadonlySet<string>>(new Set());
+  const alternarTermo = useCallback((termo: string) => {
+    setTermosAbertos((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(termo)) novo.delete(termo);
+      else novo.add(termo);
+      return novo;
+    });
+  }, []);
+
   // Primeiro paint — a marca escreve (peça "Energização"). O boot é
   // ESTADO, não CSS puro, de propósito: com CSS puro, alternar o modo
   // faria o wordmark redesenhar a cada volta ao claro (display:none →
@@ -367,6 +532,13 @@ export function PortalBR() {
     window.addEventListener('keydown', aoTeclar);
     return () => window.removeEventListener('keydown', aoTeclar);
   }, [zoom, fechar]);
+
+  // Derivados da amostra — baratos (≤ 60 pontos), recomputados por
+  // render; determinísticos, então nunca divergem entre renders.
+  const periodoSel = PERIODOS_AMOSTRA.find((p) => p.id === periodoAtivo) ?? PERIODOS_AMOSTRA[0];
+  const subSel = SUBMERCADOS_AMOSTRA.find((s) => s.id === subAtivo) ?? SUBMERCADOS_AMOSTRA[0];
+  const serieSel = serieIlustrativa(subSel.base, subSel.seed, periodoSel.pontos);
+  const geo = geometriaSerie(serieSel);
 
   return (
     <div
@@ -517,6 +689,24 @@ export function PortalBR() {
         .nivar-planta.nivar-planta--visivel [data-traco] {
           animation: nivar-desenha var(--dur-desenho) var(--ease) forwards;
         }
+
+        /* Série da amostra — desenho longo do sistema (1200ms), easing
+           único; o ponto final surge DEPOIS que a linha termina. As
+           durações vêm de token, então reduced-motion colapsa sozinho. */
+        .nivar-serie-linha {
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+          animation: nivar-desenha var(--dur-desenho-longo) var(--ease) forwards;
+        }
+        .nivar-serie-ponto {
+          opacity: 0;
+          animation: nv-surge var(--dur-hover) var(--ease) var(--dur-desenho-longo) forwards;
+        }
+        /* Verbete do glossário — revelação por surgimento, tokens. */
+        .nivar-verbete {
+          opacity: 0;
+          animation: nv-surge var(--dur-hover) var(--ease) forwards;
+        }
         @media (prefers-reduced-motion: reduce) {
           .nivar-planta [data-traco],
           .nivar-wm [data-wm-traco] {
@@ -654,6 +844,317 @@ export function PortalBR() {
             ))}
           </section>
 
+          {/* ─── 01 · O mercado agora (revisão pós-Wave 6) ─────────────
+              Amostra ilustrativa interativa: a tabela dos quatro
+              submercados É o seletor da série; o segmentado de período
+              vive no cabeçalho do gráfico, como o sistema manda. */}
+          <section
+            aria-label="O mercado agora — amostra ilustrativa"
+            style={{
+              padding: '32px 0',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>O mercado agora</span>
+              <span
+                aria-hidden="true"
+                style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
+              />
+              {/* Segmentado de período — mono versalete com separador ·,
+                  o registro do PeriodSegment. */}
+              <div className="nv-modo" role="group" aria-label="Período da amostra">
+                {PERIODOS_AMOSTRA.map((per, i) => (
+                  <span key={per.id} style={{ display: 'inline-flex', gap: '8px' }}>
+                    {i > 0 && (
+                      <span className="nv-modo__sep" aria-hidden="true">
+                        ·
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className={`nv-modo__op${periodoAtivo === per.id ? ' nv-modo__op--ativo' : ''}`}
+                      aria-pressed={periodoAtivo === per.id}
+                      onClick={() => setPeriodoAtivo(per.id)}
+                    >
+                      {per.rotulo}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '24px',
+                alignItems: 'stretch',
+              }}
+            >
+              {/* Gráfico — série de UMA cor (--serie-linha: tinta no
+                  claro, intelligence no noturno), eixo em mono, sem
+                  grade decorativa. A linha redesenha em 1200ms a cada
+                  troca de submercado ou período. */}
+              <figure
+                style={{
+                  flex: '1.6 1 460px',
+                  minWidth: 0,
+                  margin: 0,
+                  border: 'var(--fio) solid var(--rule)',
+                  padding: '16px 16px 8px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <figcaption
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <span style={{ ...NT.titulo2, color: 'var(--text-strong)' }}>
+                    PLD · {subSel.nome}
+                  </span>
+                  <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                    R$/MWh ·{' '}
+                    <span
+                      style={{
+                        color: 'var(--ilustrativa-fg)',
+                        fontWeight: 500,
+                        borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
+                        paddingBottom: '1px',
+                      }}
+                    >
+                      amostra ilustrativa
+                    </span>
+                  </span>
+                </figcaption>
+                <svg
+                  viewBox="0 0 720 210"
+                  role="img"
+                  aria-label={`Série ilustrativa de PLD para ${subSel.nome}, período ${periodoSel.rotulo}`}
+                  style={{ width: '100%', height: 'auto', display: 'block' }}
+                >
+                  <line
+                    x1={52}
+                    y1={12}
+                    x2={52}
+                    y2={170}
+                    strokeWidth={0.8}
+                    style={{ stroke: 'var(--rule-strong)' }}
+                  />
+                  <line
+                    x1={52}
+                    y1={170}
+                    x2={708}
+                    y2={170}
+                    strokeWidth={0.8}
+                    style={{ stroke: 'var(--rule-strong)' }}
+                  />
+                  <text
+                    x={46}
+                    y={geo.py(geo.vMax) + 3}
+                    textAnchor="end"
+                    fontSize={9}
+                    style={{
+                      fontFamily: 'var(--font-data)',
+                      fill: 'var(--text-faint)',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {formatoBRL(geo.vMax)}
+                  </text>
+                  <text
+                    x={46}
+                    y={geo.py(geo.vMin) + 3}
+                    textAnchor="end"
+                    fontSize={9}
+                    style={{
+                      fontFamily: 'var(--font-data)',
+                      fill: 'var(--text-faint)',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {formatoBRL(geo.vMin)}
+                  </text>
+                  <text
+                    x={52}
+                    y={190}
+                    fontSize={9}
+                    style={{ fontFamily: 'var(--font-data)', fill: 'var(--text-faint)' }}
+                  >
+                    {periodoSel.inicio}
+                  </text>
+                  <text
+                    x={708}
+                    y={190}
+                    textAnchor="end"
+                    fontSize={9}
+                    style={{ fontFamily: 'var(--font-data)', fill: 'var(--text-faint)' }}
+                  >
+                    agora
+                  </text>
+                  <path
+                    key={`linha-${subAtivo}-${periodoAtivo}`}
+                    className="nivar-serie-linha"
+                    d={geo.d}
+                    fill="none"
+                    strokeWidth={1.4}
+                    pathLength={1}
+                    style={{ stroke: 'var(--serie-linha)' }}
+                  />
+                  <circle
+                    key={`ponto-${subAtivo}-${periodoAtivo}`}
+                    className="nivar-serie-ponto"
+                    cx={geo.px(serieSel.length - 1)}
+                    cy={geo.py(serieSel[serieSel.length - 1])}
+                    r={3.2}
+                    style={{ fill: 'var(--serie-ponto)' }}
+                  />
+                </svg>
+              </figure>
+
+              {/* Tabela dos quatro submercados — a linha É o seletor da
+                  série. Zebra no hover, fio de acento no selecionado. */}
+              <div
+                role="group"
+                aria-label="Submercados — selecione para ver a série"
+                style={{
+                  flex: '1 1 340px',
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignSelf: 'flex-start',
+                  border: 'var(--fio) solid var(--rule)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(96px, 1.3fr) 82px 78px minmax(120px, 1fr)',
+                    gap: '12px',
+                    padding: '8px 12px',
+                    borderBottom: 'var(--fio) solid var(--rule)',
+                  }}
+                >
+                  {['Submercado', 'PLD médio', 'Variação', 'Banda'].map((c, i) => (
+                    <span
+                      key={c}
+                      style={{
+                        ...NT.proc,
+                        color: 'var(--text-faint)',
+                        textAlign: i === 0 ? 'left' : 'right',
+                      }}
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+                {SUBMERCADOS_AMOSTRA.map((s) => {
+                  const serie = serieIlustrativa(s.base, s.seed, periodoSel.pontos);
+                  const media = serie.reduce((a, b) => a + b, 0) / serie.length;
+                  const pct = ((serie[serie.length - 1] - serie[0]) / serie[0]) * 100;
+                  const dir = direcaoDe(pct);
+                  const selecionado = s.id === subAtivo;
+                  const sobre = linhaSobre === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      aria-pressed={selecionado}
+                      onClick={() => setSubAtivo(s.id)}
+                      onMouseEnter={() => setLinhaSobre(s.id)}
+                      onMouseLeave={() => setLinhaSobre(null)}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(96px, 1.3fr) 82px 78px minmax(120px, 1fr)',
+                        gap: '12px',
+                        alignItems: 'baseline',
+                        padding: '9px 12px',
+                        background: sobre && !selecionado ? 'var(--zebra)' : 'transparent',
+                        border: 'none',
+                        borderBottom: 'var(--fio) solid var(--rule)',
+                        borderLeft: `2px solid ${selecionado ? 'var(--accent-house)' : 'transparent'}`,
+                        borderRadius: 0,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition:
+                          'border-color var(--dur-estado) var(--ease), color var(--dur-estado) var(--ease)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontFamily: 'var(--font-body)',
+                          fontWeight: selecionado ? 500 : 400,
+                          fontSize: 'var(--ts-corpo-2)',
+                          color: selecionado ? 'var(--text-strong)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {s.sigla}
+                      </span>
+                      <span
+                        data-numeric
+                        style={{
+                          fontFamily: 'var(--font-data)',
+                          fontSize: 'var(--ts-dado-4)',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: 'var(--text-strong)',
+                          textAlign: 'right',
+                        }}
+                      >
+                        {formatoBRL(media)}
+                      </span>
+                      {/* TrendInline do sistema: glifo + delta na cor de
+                          DIREÇÃO de mercado (alta/baixa/neutro), nunca
+                          verde/vermelho de UI. */}
+                      <span
+                        data-numeric
+                        title={
+                          dir === 'alta' ? 'em alta' : dir === 'baixa' ? 'em baixa' : 'sem variação'
+                        }
+                        style={{
+                          fontFamily: 'var(--font-data)',
+                          fontWeight: 500,
+                          fontSize: 'var(--ts-dado-5)',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: COR_DIRECAO[dir],
+                          textAlign: 'right',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span aria-hidden="true">{GLIFO_DIRECAO[dir]}</span> {formatoPct(pct)}
+                      </span>
+                      <span
+                        data-numeric
+                        style={{
+                          fontFamily: 'var(--font-data)',
+                          fontSize: 'var(--ts-dado-5)',
+                          fontVariantNumeric: 'tabular-nums',
+                          color: 'var(--text-muted)',
+                          textAlign: 'right',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {formatoBRL(Math.min(...serie))} – {formatoBRL(Math.max(...serie))}
+                      </span>
+                    </button>
+                  );
+                })}
+                <span style={{ ...NT.proc, color: 'var(--text-faint)', padding: '8px 12px' }}>
+                  Divisão de submercado: ONS · valores R$/MWh
+                </span>
+              </div>
+            </div>
+          </section>
+
           <section
             aria-label="Destinos"
             style={{
@@ -663,13 +1164,14 @@ export function PortalBR() {
               display: 'flex',
               flexDirection: 'column',
               gap: '24px',
+              borderTop: 'var(--fio) solid var(--rule)',
             }}
           >
             {/* Cabeçalho de seção do sistema: número · título · fio ·
                 nota à direita, numa linha de baseline. Número em mono,
                 dois dígitos, no acento da casa. */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>02</span>
               <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Destinos</span>
               <span
                 aria-hidden="true"
@@ -713,7 +1215,7 @@ export function PortalBR() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
                 <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
-                  02
+                  03
                 </span>
                 <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }} id="br-conflito">
                   Conflito de interesse
@@ -762,6 +1264,101 @@ export function PortalBR() {
           {/* Versão afirmativa (Wave 4) — copy do implementador,
               sujeita a veto; ver cabeçalho do componente. */}
           <FaixaIndependencia />
+
+          {/* ─── 05 · Glossário (revisão pós-Wave 6) ──────────────────
+              Os oito termos que o design system declara não
+              traduzíveis, VERBATIM de components/glossary/termos.js —
+              a fonte única de que Glossary e ContextHint leem. Verbete
+              recolhível com marcador +/− em mono (nunca chevron
+              girando); vários podem estar abertos. */}
+          <section
+            aria-labelledby="br-glossario"
+            style={{
+              padding: '32px 0 40px',
+              borderTop: 'var(--fio) solid var(--rule)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>05</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }} id="br-glossario">
+                Glossário
+              </span>
+              <span
+                aria-hidden="true"
+                style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
+              />
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                {TERMOS_GLOSSARIO.length} termos · a linguagem que o portal usa
+              </span>
+            </div>
+
+            <div style={{ borderTop: 'var(--fio) solid var(--rule)' }}>
+              {TERMOS_GLOSSARIO.map((t) => {
+                const aberto = termosAbertos.has(t.termo);
+                return (
+                  <div key={t.termo} style={{ borderBottom: 'var(--fio) solid var(--rule)' }}>
+                    <button
+                      type="button"
+                      aria-expanded={aberto}
+                      onClick={() => alternarTermo(t.termo)}
+                      style={{
+                        width: '100%',
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(140px, 240px) 1fr 24px',
+                        gap: '16px',
+                        alignItems: 'baseline',
+                        padding: '12px 0',
+                        background: 'none',
+                        border: 'none',
+                        borderRadius: 0,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                    >
+                      <span style={{ ...NT.titulo2, color: 'var(--text-strong)' }}>{t.termo}</span>
+                      <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
+                        {t.sigla ?? ''}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        style={{
+                          fontFamily: 'var(--font-data)',
+                          fontSize: '14px',
+                          color: 'var(--text-muted)',
+                          textAlign: 'right',
+                        }}
+                      >
+                        {aberto ? '−' : '+'}
+                      </span>
+                    </button>
+                    {aberto && (
+                      <div
+                        className="nivar-verbete"
+                        style={{
+                          display: 'grid',
+                          gap: '8px',
+                          padding: '0 0 14px',
+                          maxWidth: '68ch',
+                        }}
+                      >
+                        <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-body)' }}>
+                          {t.definicao}
+                        </p>
+                        {t.fonte && (
+                          <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
+                            Fonte: {t.fonte}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         </div>
 
         {/* Rodapé real (Wave 3) — do esboço do design original:

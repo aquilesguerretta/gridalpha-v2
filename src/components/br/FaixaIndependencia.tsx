@@ -96,11 +96,11 @@ export function FaixaIndependencia() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {/* Cabeçalho de seção do sistema: número mono em acento ·
             etiqueta · fio até a margem. */}
-        {/* 02→03 (Wave 6): a seção de conflito de interesse entrou
-            antes desta; a numeração de seção do sistema desloca. As
+        {/* 02→03 (Wave 6) →04 (revisão): "O mercado agora" e o
+            conflito entraram antes desta; a numeração desloca. As
             três colunas seguem intocadas. */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-          <span style={{ ...NT.proc, color: 'var(--accent-house)' }}>03</span>
+          <span style={{ ...NT.proc, color: 'var(--accent-house)' }}>04</span>
           <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }} id="br-independencia">
             Independência
           </span>

@@ -128,21 +128,33 @@ interface ZoomEmBreve {
 // gradiente, porque o wordmark aparece duas vezes no documento
 // (cabeçalho e rodapé) e id duplicado quebra a referência url(#…).
 
+// Sete traços — a mesma contagem que a peça "Energização" do especimen
+// escreve em sequência (o traço escreve, letra a letra). O desenho de
+// primeiro paint reusa exatamente essa peça: stroke-dashoffset por
+// traço em --dur-desenho, escalonado, easing único. pathLength=1
+// normaliza o comprimento — o dasharray não depende de medição.
+const WM_TRACOS: ReadonlyArray<{ d: string; w: number }> = [
+  { d: 'M22 112 C22 80 22 50 22 18 C54 40 60 92 108 112 C108 80 108 50 108 18', w: 16 },
+  { d: 'M140 32 L140 112', w: 13 },
+  { d: 'M170 32 L200 112 L230 32', w: 13 },
+  { d: 'M254 112 L284 32 L314 112', w: 13 },
+  { d: 'M342 112 L342 32', w: 13 },
+  { d: 'M342 32 C378 32 394 44 386 56 C378 68 362 64 342 64', w: 13 },
+  { d: 'M370 62 C382 80 390 96 398 112', w: 13 },
+];
+
 const WM_PATHS = (
   <>
-    <path
-      d="M22 112 C22 80 22 50 22 18 C54 40 60 92 108 112 C108 80 108 50 108 18"
-      strokeWidth={16}
-      data-wm-traco
-    />
-    <g strokeWidth={13}>
-      <path d="M140 32 L140 112" data-wm-traco />
-      <path d="M170 32 L200 112 L230 32" data-wm-traco />
-      <path d="M254 112 L284 32 L314 112" data-wm-traco />
-      <path d="M342 112 L342 32" data-wm-traco />
-      <path d="M342 32 C378 32 394 44 386 56 C378 68 362 64 342 64" data-wm-traco />
-      <path d="M370 62 C382 80 390 96 398 112" data-wm-traco />
-    </g>
+    {WM_TRACOS.map((t, i) => (
+      <path
+        key={i}
+        d={t.d}
+        strokeWidth={t.w}
+        pathLength={1}
+        data-wm-traco
+        style={{ animationDelay: `${i * 90}ms` }}
+      />
+    ))}
   </>
 );
 
@@ -241,6 +253,21 @@ export function PortalBR() {
   // recarga. Persistir é decisão de plataforma, não desta wave.
   const [modo, setModo] = useState<'claro' | 'noturno'>('claro');
 
+  // Primeiro paint — a marca escreve (peça "Energização"). O boot é
+  // ESTADO, não CSS puro, de propósito: com CSS puro, alternar o modo
+  // faria o wordmark redesenhar a cada volta ao claro (display:none →
+  // block reinicia animação), e troca de modo é mudança de estado,
+  // nunca replay de marca. Reduced-motion nasce pronto.
+  const [bootando, setBootando] = useState(
+    () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  useEffect(() => {
+    if (!bootando) return;
+    // 700ms de traço + 6 × 90ms de escalonamento + folga.
+    const t = window.setTimeout(() => setBootando(false), 1500);
+    return () => window.clearTimeout(t);
+  }, [bootando]);
+
   const abrirRegiao = useCallback((regiao: SubmercadoPath) => {
     retornoFocoRef.current = document.activeElement as HTMLElement | null;
     comTransicao(() =>
@@ -306,6 +333,7 @@ export function PortalBR() {
       lang="pt-BR"
       data-nv-page=""
       data-mode={modo === 'noturno' ? 'noturno' : undefined}
+      className={bootando ? 'nivar-boot' : undefined}
       style={{
         height: '100vh',
         display: 'flex',
@@ -395,23 +423,43 @@ export function PortalBR() {
           background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><path d='M0 0H56M0 0V56' stroke='%23F6F2E9' stroke-width='0.6' fill='none'/><path d='M0 56L56 0' stroke='%23F6F2E9' stroke-width='0.4' fill='none'/></svg>");
         }
 
-        @keyframes nivar-zoom-in {
-          from { opacity: 0; transform: scale(0.82); }
-          to   { opacity: 1; transform: none; }
+        /* Primeiro paint — a marca escreve (peça "Energização" do
+           especimen): cada um dos sete traços desenha por
+           stroke-dashoffset em --dur-desenho, escalonado 90ms, easing
+           único. Só enquanto .nivar-boot está no root — o estado sai
+           depois do boot e a troca de modo nunca redispara o desenho. */
+        @keyframes nivar-wm-desenha { to { stroke-dashoffset: 0; } }
+        .nivar-boot .nivar-wm--claro [data-wm-traco] {
+          stroke-dasharray: 1;
+          stroke-dashoffset: 1;
+          animation: nivar-wm-desenha var(--dur-desenho) var(--ease) forwards;
+        }
+
+        /* Surgimento do painel "em breve" — OPACIDADE PURA. O zoom com
+           scale da Wave 2 sai: o sistema não anima escala em elemento
+           de interface (transform é exclusivo do loader da marca). */
+        @keyframes nivar-painel-surge {
+          from { opacity: 0; }
+          to   { opacity: 1; }
         }
         ::view-transition-new(nivar-painel) {
-          animation: nivar-zoom-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+          animation: nivar-painel-surge var(--dur-hover) var(--ease) both;
         }
+
+        /* Planta baixa dos destinos — o estado de carregamento do
+           sistema é revelação por desenho: fio crescendo em
+           --dur-desenho, easing único, nunca shimmer. */
         @keyframes nivar-desenha { to { stroke-dashoffset: 0; } }
         .nivar-planta [data-traco] {
           stroke-dasharray: 1;
           stroke-dashoffset: 1;
         }
         .nivar-planta.nivar-planta--visivel [data-traco] {
-          animation: nivar-desenha 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          animation: nivar-desenha var(--dur-desenho) var(--ease) forwards;
         }
         @media (prefers-reduced-motion: reduce) {
-          .nivar-planta [data-traco] {
+          .nivar-planta [data-traco],
+          .nivar-wm [data-wm-traco] {
             animation: none !important;
             stroke-dashoffset: 0 !important;
           }

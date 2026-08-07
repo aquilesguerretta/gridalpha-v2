@@ -218,7 +218,10 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
   const entrou = visto || reduzido;
   // Card NIVAR: região delimitada por fio de 1px, sem raio, sem
   // sombra, sem preenchimento próprio — profundidade vem do fio.
-  // Hover muda cor de fio (nunca elevação, nunca escala).
+  // Hover muda cor de fio (nunca elevação, nunca escala). Entrada por
+  // viewport é OPACIDADE PURA — o translateY da Wave 2 sai: o sistema
+  // nunca anima posição de layout; quem desenha a chegada é a planta
+  // baixa (stroke-dashoffset), não o card se movendo.
   const quadro: CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
@@ -230,10 +233,8 @@ export function DestinoCard({ destino, onZoom }: DestinoCardProps) {
     textDecoration: 'none',
     cursor: 'pointer',
     opacity: entrou ? 1 : 0,
-    transform: entrou ? 'none' : 'translateY(12px)',
-    transition: reduzido
-      ? 'border-color var(--dur-hover) var(--ease)'
-      : 'border-color var(--dur-hover) var(--ease), opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0, 0, 1)',
+    transition:
+      'border-color var(--dur-hover) var(--ease), opacity var(--dur-hover) var(--ease)',
   };
 
   const corpo = (

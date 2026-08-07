@@ -1,5 +1,19 @@
 // PortalBR — ARCHITECT, Portal BR Wave 2 · Jaguar.
 //
+// WAVE 5 · FASE 1 — inventário de arquivo (confirmado por leitura, não
+// por suposição):
+//   hero (H1/subtítulo/prompt/botão pular) — PortalHero.tsx
+//   procedência do PLD — PortalHero.tsx (marca no mapa + barra)
+//   grade de 3 colunas de Independência — FaixaIndependencia.tsx
+//   DESTINOS — seção e grade AQUI (abaixo); célula em DestinoCard.tsx
+//   RODAPÉ — inline AQUI (abaixo); não é componente separado
+//   MAPA — SVG e palco em PortalHero.tsx; geometria em
+//     src/lib/geo/brasil-outline.ts (dado, fora desta wave)
+//   AcessoConta.tsx — terceiro bloco do header; entra na reskin para o
+//     cabeçalho não ficar meio-tema no noturno
+// jaguar-tokens.ts NÃO pode ser removido: /conta (fora da posse)
+// também importa dele. O Portal apenas se desliga.
+//
 // Header fixo → hero (mapa que se constrói no scroll) → índice de
 // destinos → faixa de independência (afirmativa, Wave 4) → rodapé real.
 //

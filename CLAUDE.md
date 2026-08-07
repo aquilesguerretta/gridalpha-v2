@@ -8412,3 +8412,141 @@ os quatro arquivos — "No findings. Surface is clean."
   painel que é dono da formatação, e ele é NUNCA MODIFICAR.
 - **`instrument-taxonomy.md`** segue sem os instrumentos dos Módulos
   10-17 nem o 10º kind `reconstrutor`. Posse FOUNDRY.
+
+## FOUNDRY — NIVAR WAVE 1 — INSTALAÇÃO DO DESIGN SYSTEM
+
+**Status:** fechada. Os dois pacotes que o Aquiles extraiu no disco entram
+no histórico, o único defeito P0 de movimento está corrigido, e os seis
+tokens estão em produção.
+
+### Resolução do número da wave — trilha NOVA, e por quê
+
+O repo usa trilhas namespaçadas, não contador único por agente. As seções
+FOUNDRY existentes são duas trilhas distintas:
+
+| trilha | seções | domínio |
+| --- | --- | --- |
+| `FOUNDRY WAVE N` | 3, 10A | contratos de tipo da infraestrutura do terminal |
+| `FOUNDRY — ALEXANDRIA WAVE N` | 1, 2, 3, 4 | tipos e dado do currículo Alexandria |
+
+**Nenhuma das duas serve.** O design system NIVAR é da CASA: não é tipo de
+infraestrutura do terminal, e não é Alexandria — que tem identidade própria
+(navy, pergaminho, Cinzel + Lora) e continua tendo. Abri trilha nova,
+`FOUNDRY — NIVAR WAVE N`, e registro a escolha aqui em vez de decidir em
+silêncio. Os dois sistemas seguem distintos; nada nesta wave tocou
+`alexandria-tokens.ts` nem `tokens.ts`.
+
+### Os caminhos do brief não existem — os pacotes têm outro nome
+
+Verificado no disco antes do primeiro commit, não presumido:
+
+| o brief diz | o disco tem | arquivos |
+| --- | --- | --- |
+| `.claude/skills/nivar-design/` | `.claude/skills/NIVAR Design System/` | **252** |
+| `docs/design/carregamento-nivar/` | `docs/Design/Carregamento NIVAR animado/` | **31** |
+
+As contagens batem exatamente (252 e 31), então são os pacotes certos com
+nome real diferente do suposto. **Usei os caminhos reais e não renomeei
+nada** — renomear quebraria os `href` relativos que o especimen depende, e
+renomear diretório não estava na posse desta wave.
+
+`.gitignore` confirmado antes de commitar, não presumido: a única regra com
+`claude` é `.claude/settings.local.json`. O diretório não é ignorado, e o
+repo já versionava 10 arquivos ali (incluindo a skill `gridalpha-terminal`).
+
+### Fase 1 — os pacotes entram intactos
+
+283 arquivos (252 + 31), 20.905 inserções, **zero edição**. O estado de
+origem fica no histórico antes de qualquer correção, então o diff da Fase 2
+mostra exatamente o que mudou e por quê.
+
+### Fase 2 — o defeito P0, e por que a correção é `linear`
+
+`components/forms/field.css:73` rodava
+`animation:nv-verifica 1400ms var(--ease) infinite`.
+
+Auditado antes de corrigir, com os valores lidos do arquivo real:
+
+- `--ease` é `cubic-bezier(0.65,0,0.35,1)` — ease-in-out, velocidade zero
+  nas duas pontas.
+- O keyframe cresce da esquerda até 50% e encolhe pela direita até 100%.
+  Em loop, a ponta final encontra a inicial e as duas paradas somam:
+  emenda visível na costura.
+- **`nv-verifica` é a única `infinite` do sistema** — confirmado por
+  varredura, não herdado do brief: existem cinco `@keyframes`
+  (`nv-fio-desenha`, `nv-surge`, `nv-verifica`, `nv-desenha`, `nv-cresce`)
+  e as outras quatro usam `forwards`, disparo único.
+
+`--ease-loop:linear` entrou em `tokens/motion.css` e `field.css:73` passou
+a usá-lo. **Linear, não outra curva:** zerar velocidade na ponta é a
+definição de ease-in-out, então não existe curva "com cara de marca" que
+resolva loop sem isso. É restrição matemática, não escolha estética.
+
+Esta é a **única exceção declarada ao easing único do sistema**, e a
+justificativa vai no próprio `motion.css`, ao lado do token, para quem
+encontrar depois não a tomar por descuido. As outras 6 ocorrências de
+`var(--ease)` em `field.css` são transições e ficaram intactas.
+
+### Fase 3 — o `_ds` congelado, e a medição que mudou o texto
+
+O brief mandava declarar o `_ds/` "verificado byte-idêntico". **Medi por
+hash MD5 em vez de repetir a afirmação, e ela já não valia:**
+
+| arquivo | estado |
+| --- | --- |
+| `tokens/colors.css` | idêntico |
+| `readme.md` | idêntico |
+| `tokens/motion.css` | **diverge** |
+| `components/forms/field.css` | **diverge** |
+
+As duas divergências são consequência da própria Fase 2 — a fonte de
+verdade recebeu a correção e a cópia congelada não. Escrever "byte-idêntica"
+teria posto uma afirmação falsa no repositório, e contradiria o propósito
+declarado do arquivo, que é tornar a divergência **detectável em vez de
+silenciosa**. O `LEIA.md` traz a tabela real, a data, o motivo das duas
+divergências e a instrução de refazer a comparação se o especimen for
+regenerado.
+
+O `_ds/` NÃO é removível (os `href` relativos do HTML dependem dele) e NÃO
+é fonte de verdade. São 27 arquivos, sob um subdiretório com UUID.
+
+### Fase 4 — tokens em produção
+
+`.claude/` é configuração de agente, não raiz de build. Os seis arquivos de
+`tokens/` foram para `src/design/nivar/`, já com a correção da Fase 2
+dentro — os seis conferidos byte-idênticos à referência por hash.
+
+**Resolução provada por bundle real** (esbuild), não por leitura: 8.9 kB,
+**210 custom properties**, chaves balanceadas nos seis, zero `url()`
+relativo que quebraria fora do contexto original. Amostra lida do bundle:
+`--ease:cubic-bezier(0.65,0,0.35,1)`, `--ease-loop:linear`,
+`--dur-desenho:700ms`, `--text-body:#231F1A`, `--text-faint:#8B8274`.
+
+**Só os tokens.** O CSS de componente entra por demanda, conforme cada tela
+usar — nada aterrissa em `src/` sem uso. `src/design/nivar/LEIA.md` declara
+o destino de produção e a referência de agente, para que a divergência entre
+as duas cópias seja detectável.
+
+### Divergência de contagem, registrada
+
+O brief fala em 23 arquivos de CSS de componente. O disco tem **16**
+(`find components -name "*.css"`). Não muda nada nesta wave, já que nenhum
+foi portado, mas fica registrado para quem for portar por demanda.
+
+### Pendências
+
+- **`fonts.css` faz `@import` do Google Fonts** (`fonts.googleapis.com`,
+  família Zilla Slab) — requisição externa e bloqueante de render. Não é
+  bloqueio desta wave; auto-hospedagem de `.woff2` é decisão posterior.
+- **O `_ds/` do especimen ficou com o comportamento antigo** na peça de
+  validação assíncrona. Quem regenerar o especimen herda a correção.
+- **Nenhum componente NIVAR está em `src/`** — por decisão, não por
+  esquecimento.
+
+**Gates:** `tsc -b` escopado — 0 erros; permanecem os **7 pré-existentes**
+em `nest/student/{ProjectSandbox,SandboxTrading}` (Recharts, desde a Wave
+3), fora desta wave. `alexandria-tokens.ts` e `tokens.ts` conferidos
+intocados por `git status` e por `git log` (o último commit de cada é de
+outra wave). Quatro commits, todos com pathspec explícito e `git diff
+--stat` real antes — a wave ARCHITECT que corre em paralelo sobre
+`src/main.tsx` não teve nenhum arquivo tocado.

@@ -64,6 +64,11 @@ import '../../design/nivar/space.css';
 import '../../design/nivar/motion.css';
 
 import { DESTINOS_BR, type DestinoBR } from '../../lib/data/br-destinos';
+// Números REAIS do produto aberto — derivados do catálogo da
+// Alexandria (leitura, nunca modificação): se o currículo crescer, a
+// landing acompanha sozinha. Nenhum número digitado.
+import { ALEXANDRIA_TRILHAS } from '../../lib/data/alexandria-trilhas';
+import { ALEXANDRIA_BLOCKS } from '../../lib/data/alexandria-blocks';
 import type { SubmercadoPath } from '../../lib/geo/brasil-outline';
 import { DestinoCard, PlantaBaixa } from '../../components/br/DestinoCard';
 import { FaixaIndependencia } from '../../components/br/FaixaIndependencia';
@@ -205,6 +210,75 @@ function serieIlustrativa(base: number, seed: number, pontos: number): number[] 
 const formatoBRL = (v: number) =>
   v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/** O N da casa — a mesma geometria do wordmark, para o loader da
+ *  prévia do terminal (peça Colapso/boot do especimen). */
+const N_CASA_D = 'M22 112 C22 80 22 50 22 18 C54 40 60 92 108 112 C108 80 108 50 108 18';
+
+/** Entrou na tela uma vez (IntersectionObserver, dispara uma vez e
+ *  desconecta — mesmo padrão do DestinoCard). */
+function useEntrouNaTela<T extends HTMLElement>(limiar = 0.25) {
+  const ref = useRef<T | null>(null);
+  const [visto, setVisto] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || visto) return;
+    const io = new IntersectionObserver(
+      ([entrada]) => {
+        if (entrada.isIntersecting) {
+          setVisto(true);
+          io.disconnect();
+        }
+      },
+      { threshold: limiar },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [visto, limiar]);
+  return { ref, visto };
+}
+
+/** Contador que sobe com smoothstep quando entra na tela — a peça
+ *  bScore do especimen (1400ms), em rAF. Reduced-motion nasce pronto. */
+function ContadorVivo({ valor, reduzido }: { valor: number; reduzido: boolean }) {
+  const { ref, visto } = useEntrouNaTela<HTMLSpanElement>(0.4);
+  const [mostrado, setMostrado] = useState(reduzido ? valor : 0);
+  useEffect(() => {
+    if (!visto || reduzido) {
+      if (reduzido) setMostrado(valor);
+      return;
+    }
+    const DUR = 1400;
+    let raf = 0;
+    let inicio: number | null = null;
+    const passo = (ts: number) => {
+      if (inicio === null) inicio = ts;
+      const p = Math.min(1, (ts - inicio) / DUR);
+      const suave = p * p * (3 - 2 * p);
+      setMostrado(Math.round(valor * suave));
+      if (p < 1) raf = requestAnimationFrame(passo);
+    };
+    raf = requestAnimationFrame(passo);
+    return () => cancelAnimationFrame(raf);
+  }, [visto, valor, reduzido]);
+  return (
+    <span
+      ref={ref}
+      data-numeric
+      style={{
+        fontFamily: 'var(--font-data)',
+        fontWeight: 'var(--fw-dado-forte)' as CSSProperties['fontWeight'],
+        fontSize: 'var(--ts-dado-1)',
+        lineHeight: 'var(--lh-dado-1)' as CSSProperties['lineHeight'],
+        letterSpacing: 'var(--tr-dado-1)',
+        fontVariantNumeric: 'tabular-nums',
+        color: 'var(--accent-house)',
+      }}
+    >
+      {mostrado.toLocaleString('pt-BR')}
+    </span>
+  );
+}
+
 /** Geometria da série no viewBox 0 0 720 210 — eixo à esquerda e
  *  embaixo, sem grade decorativa (regra do TimeSeriesChart). */
 function geometriaSerie(serie: number[]) {
@@ -241,68 +315,90 @@ const COR_DIRECAO: Record<Direcao, string> = {
   neutro: 'var(--data-neutro)',
 };
 
-// ─── Glossário — os termos do PRÓPRIO sistema ───────────────────────
-// Copiados VERBATIM de components/glossary/termos.js ("Uma fonte só
-// para os termos"): é a fonte única que Glossary e ContextHint leem no
-// design system. Nada aqui foi redigido pelo portal.
-interface TermoGlossario {
-  termo: string;
-  sigla?: string;
-  definicao: string;
-  fonte?: string;
+// ─── Como a NIVAR lê o mercado — os quatro passos ───────────────────
+// Copy do implementador sob a carta branca da revisão, sujeita a veto.
+// Sem promessa de economia, sem "você", sem nome de concorrente.
+interface PassoLeitura {
+  id: string;
+  titulo: string;
+  detalhe: string;
 }
 
-const TERMOS_GLOSSARIO: TermoGlossario[] = [
+const PASSOS_LEITURA: PassoLeitura[] = [
   {
-    termo: 'apuração',
-    definicao:
-      'Fechamento do dado de um ciclo pela fonte oficial. Antes da apuração o valor é preliminar; depois dela é definitivo e datado. Todo número exibido carrega a apuração de que veio.',
-    fonte: 'CCEE · ONS',
+    id: 'fonte-publica',
+    titulo: 'Fonte pública',
+    detalhe: 'ONS, CCEE, ANEEL e EPE publicam o dado bruto do setor. É de lá que tudo parte.',
   },
   {
-    termo: 'carga',
-    definicao:
-      'Demanda de energia efetivamente verificada num submercado, em MW médios. É medida, não contratada — não confundir com demanda contratada.',
-    fonte: 'ONS · carga verificada',
+    id: 'ingestao-com-data',
+    titulo: 'Ingestão com data',
+    detalhe: 'Cada série entra com fonte e recorte temporal declarados — método antes do número.',
   },
   {
-    termo: 'contraditório',
-    definicao:
-      'Parecer que sustenta a posição oposta à conclusão apresentada. É produzido junto com o parecer principal, não depois dele.',
-    fonte: 'NIVAR Advisory',
+    id: 'leitura-independente',
+    titulo: 'Leitura independente',
+    detalhe: 'A análise separa o que o número diz do que o vendedor quer que ele diga.',
   },
   {
-    termo: 'mercado livre',
-    definicao:
-      'Ambiente de Contratação Livre (ACL), onde o consumidor negocia preço, prazo e fornecedor diretamente. Opõe-se ao mercado cativo, em que a distribuidora define a tarifa.',
-    fonte: 'ANEEL · CCEE',
-  },
-  {
-    termo: 'migração',
-    definicao:
-      'Passagem de uma unidade consumidora do mercado cativo para o livre. Exige adesão à CCEE e prazo de denúncia junto à distribuidora.',
-    fonte: 'CCEE · adesão',
-  },
-  {
-    termo: 'MWh',
-    sigla: 'megawatt-hora',
-    definicao:
-      'Unidade de energia: um megawatt de potência sustentado por uma hora. Preço de energia é sempre por MWh; potência contratada é em MW. Os dois não se somam.',
-  },
-  {
-    termo: 'PLD',
-    sigla: 'preço de liquidação das diferenças',
-    definicao:
-      'Preço horário que liquida a energia não coberta por contrato, por submercado. Não é o preço que o consumidor paga — é o preço da diferença entre o contratado e o verificado.',
-    fonte: 'CCEE · apuração horária',
-  },
-  {
-    termo: 'submercado',
-    definicao:
-      'Recorte geográfico do SIN com preço próprio: Sudeste/Centro-Oeste, Sul, Nordeste e Norte. A divisão existe porque a transmissão entre regiões tem limite físico.',
-    fonte: 'ONS · SIN',
+    id: 'entrega-a-quem-le',
+    titulo: 'Entrega a quem lê',
+    detalhe: 'Relatório, diagnóstico e formação — pagos por quem os recebe, nunca por comissão.',
   },
 ];
+
+// ─── Perguntas diretas (FAQ) — copy do implementador, sujeita a veto.
+// Toda resposta é verificável contra o estado real do produto hoje.
+interface PerguntaDireta {
+  id: string;
+  pergunta: string;
+  resposta: string;
+}
+
+const PERGUNTAS_DIRETAS: PerguntaDireta[] = [
+  {
+    id: 'vende-energia',
+    pergunta: 'A NIVAR vende energia ou intermedia contrato?',
+    resposta:
+      'Não. Não vende energia, não intermedia contrato, não recebe comissão. A única receita é o trabalho analítico pago por quem o recebe.',
+  },
+  {
+    id: 'de-onde-vem-o-dado',
+    pergunta: 'De onde vem o dado?',
+    resposta:
+      'De fonte pública — ONS, CCEE, ANEEL, EPE e IBGE — sempre com origem e recorte temporal citados onde o número aparece.',
+  },
+  {
+    id: 'o-que-esta-aberto',
+    pergunta: 'O que está aberto hoje?',
+    resposta:
+      'A Alexandria, biblioteca de formação em energia. Terminal Brasil, Energy Brief, Conta de Luz Express e Diagnóstico Energético estão em construção.',
+  },
+  {
+    id: 'quanto-custa',
+    pergunta: 'Quanto custa criar conta?',
+    resposta:
+      'Nada. Criar conta é gratuito, e ativar um produto aberto também — até o lançamento comercial.',
+  },
+  {
+    id: 'numeros-reais',
+    pergunta: 'Os números desta página são reais?',
+    resposta:
+      'A geografia é IBGE, real. Os valores de PLD são amostra ilustrativa, marcados como tal — leitura ao vivo chega com o Terminal Brasil.',
+  },
+];
+
+// ─── A Alexandria em números — derivado, nunca digitado ─────────────
+const ALEXANDRIA_STATS = (() => {
+  const trilhas = ALEXANDRIA_TRILHAS.length;
+  const modulos = ALEXANDRIA_BLOCKS.length;
+  const aulas = ALEXANDRIA_TRILHAS.reduce((soma, t) => soma + (t.totalAulas ?? 0), 0);
+  return [
+    { rotulo: 'trilhas de formação', valor: trilhas },
+    { rotulo: 'módulos catalogados', valor: modulos },
+    { rotulo: 'aulas confirmadas', valor: aulas },
+  ];
+})();
 
 /** Estado do overlay "em breve": destino + região opcional (via hero). */
 interface ZoomEmBreve {
@@ -447,16 +543,54 @@ export function PortalBR() {
   const [periodoAtivo, setPeriodoAtivo] = useState('24h');
   const [linhaSobre, setLinhaSobre] = useState<string | null>(null);
 
-  // Glossário — vários verbetes podem estar abertos ao mesmo tempo.
-  const [termosAbertos, setTermosAbertos] = useState<ReadonlySet<string>>(new Set());
-  const alternarTermo = useCallback((termo: string) => {
-    setTermosAbertos((atual) => {
+  // Perguntas diretas — várias podem estar abertas ao mesmo tempo.
+  const [perguntasAbertas, setPerguntasAbertas] = useState<ReadonlySet<string>>(new Set());
+  const alternarPergunta = useCallback((id: string) => {
+    setPerguntasAbertas((atual) => {
       const novo = new Set(atual);
-      if (novo.has(termo)) novo.delete(termo);
-      else novo.add(termo);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
       return novo;
     });
   }, []);
+
+  // ─── Boot da prévia do terminal ───────────────────────────────────
+  // A prévia LIGA quando entra na tela: loader da casa (1,4s, a única
+  // animação de transform do sistema — é a marca) → a interface acende
+  // com os desenhos de sempre (eixos, linha em 1200ms, valores) →
+  // estado vivo (relógio de DEMONSTRAÇÃO ticando, ponto respirando).
+  // Reduced-motion nasce direto em 'vivo', parado.
+  const reduzidoPagina = useState(
+    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  )[0];
+  const { ref: terminalRef, visto: terminalVisto } = useEntrouNaTela<HTMLDivElement>(0.3);
+  const [bootTerminal, setBootTerminal] = useState<'espera' | 'loader' | 'vivo'>(
+    reduzidoPagina ? 'vivo' : 'espera',
+  );
+  // Dois efeitos DE PROPÓSITO: se o mesmo efeito setasse 'loader' e
+  // agendasse o timer, a própria mudança de estado re-dispararia o
+  // efeito e o cleanup mataria o timer — o boot ficaria preso no
+  // loader (bug pego pela suíte de verificação, não por leitura).
+  useEffect(() => {
+    if (terminalVisto && bootTerminal === 'espera') setBootTerminal('loader');
+  }, [terminalVisto, bootTerminal]);
+  useEffect(() => {
+    if (bootTerminal !== 'loader') return;
+    const t = window.setTimeout(() => setBootTerminal('vivo'), 1700);
+    return () => window.clearTimeout(t);
+  }, [bootTerminal]);
+
+  // Relógio SINTÉTICO da prévia — reprodução de demonstração, nunca
+  // hora real fingindo ser feed. Ticka só no estado vivo.
+  const [segundoDemo, setSegundoDemo] = useState(0);
+  useEffect(() => {
+    if (bootTerminal !== 'vivo' || reduzidoPagina) return;
+    const i = window.setInterval(() => setSegundoDemo((s) => (s + 1) % 60), 1000);
+    return () => window.clearInterval(i);
+  }, [bootTerminal, reduzidoPagina]);
+
+  // Passos e contadores — entram quando aparecem.
+  const { ref: passosRef, visto: passosVistos } = useEntrouNaTela<HTMLDivElement>(0.25);
 
   // Primeiro paint — a marca escreve (peça "Energização"). O boot é
   // ESTADO, não CSS puro, de propósito: com CSS puro, alternar o modo
@@ -612,6 +746,51 @@ export function PortalBR() {
           .nv-metodo__fio-desenho line{animation:none;stroke-dashoffset:0}
           .nv-metodo__corpo{animation:none;opacity:1}
         }
+
+        /* Button — CSS do sistema (components/actions/button.css),
+           verbatim no subconjunto usado. O preenchimento do primário
+           muda de estado mas NÃO entra na transition — troca seca,
+           como a regra manda. */
+        .nv-btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:13px;font-weight:500;letter-spacing:.02em;line-height:1;padding:9px 16px;border:var(--fio) solid transparent;border-radius:0;background:none;cursor:pointer;text-align:left;text-decoration:none;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease),opacity var(--dur-hover) var(--ease)}
+        .nv-btn:focus-visible{outline:2px solid var(--accent-focus);outline-offset:2px}
+        .nv-btn__glifo{font-family:var(--font-data);font-size:12px;line-height:1}
+        .nv-btn--primario{background:var(--btn-primario-bg);border-color:var(--btn-primario-fio);color:var(--btn-primario-fg)}
+        .nv-btn--primario:hover{background:var(--btn-primario-bg-hover);border-color:var(--btn-primario-fio-hover);color:var(--btn-primario-fg)}
+        .nv-btn--primario:active{background:var(--btn-primario-bg-press);border-color:var(--btn-primario-fio-press);transition-duration:var(--dur-estado)}
+        .nv-btn--secundario{border-color:var(--rule-heavy);color:var(--text-strong)}
+        .nv-btn--secundario:hover{color:var(--fg-hover);border-color:var(--fio-hover)}
+        .nv-btn--secundario:active{color:var(--fg-press);border-color:var(--fio-press);transition-duration:var(--dur-estado)}
+
+        /* Corrente — o pulso atravessa o fio (peça 03 do especimen):
+           janela de traço percorrendo o caminho em velocidade
+           constante. Loop usa --ease-loop (linear), a única exceção
+           declarada do easing. */
+        @keyframes nivar-pulso { to { stroke-dashoffset: -1.12; } }
+        .nivar-pulso {
+          stroke-dasharray: 0.12 1.12;
+          stroke-dashoffset: 0.12;
+          animation: nivar-pulso 1400ms var(--ease-loop) infinite;
+        }
+
+        /* Loader da casa (peça Colapso/boot) — o N da marca entrando
+           por transform. TRANSFORM SÓ NA MARCA: esta é a exceção única
+           do sistema, com traço constante via non-scaling-stroke. */
+        @keyframes nivar-loader-entra {
+          from { transform: scale(0.12) rotate(-720deg); }
+          to   { transform: scale(1) rotate(0deg); }
+        }
+        .nivar-loader-n {
+          transform-origin: 50% 50%;
+          animation: nivar-loader-entra 1400ms var(--ease) forwards;
+        }
+
+        /* Ponto "ao vivo" da prévia — respiração por opacidade em
+           loop (peça Ao vivo), nunca cor de status. */
+        @keyframes nivar-vivo { 0%, 45% { opacity: 1; } 55%, 90% { opacity: 0.25; } 100% { opacity: 1; } }
+        .nivar-vivo-ponto { animation: nivar-vivo 3000ms var(--ease-loop) infinite; }
+
+        /* Entrada escalonada de passos/contadores por viewport. */
+        .nivar-passo { opacity: 0; animation: nv-surge var(--dur-hover) var(--ease) forwards; }
 
         /* Link de lista (rodapé) — o tratamento de link do sistema:
            cor de link com sublinhado por fio que NUNCA some; no hover o
@@ -844,12 +1023,17 @@ export function PortalBR() {
             ))}
           </section>
 
-          {/* ─── 01 · O mercado agora (revisão pós-Wave 6) ─────────────
-              Amostra ilustrativa interativa: a tabela dos quatro
-              submercados É o seletor da série; o segmentado de período
-              vive no cabeçalho do gráfico, como o sistema manda. */}
+          {/* ─── 01 · Prévia do Terminal Brasil ────────────────────────
+              O demo do produto, sem portão, logo abaixo do hero — a
+              janela é ESCURA SEMPRE (escopo data-mode próprio:
+              identidade de terminal, independente do modo da página) e
+              LIGA quando entra na tela: loader da casa → interface
+              acende com os desenhos do sistema → estado vivo com
+              relógio de DEMONSTRAÇÃO. A tabela dos quatro submercados
+              É o seletor da série; o período vive no cabeçalho do
+              gráfico. */}
           <section
-            aria-label="O mercado agora — amostra ilustrativa"
+            aria-label="Prévia do Terminal Brasil — amostra ilustrativa"
             style={{
               padding: '32px 0',
               display: 'flex',
@@ -859,42 +1043,154 @@ export function PortalBR() {
           >
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
               <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
-              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>O mercado agora</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
+                Prévia do Terminal Brasil
+              </span>
               <span
                 aria-hidden="true"
                 style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
               />
-              {/* Segmentado de período — mono versalete com separador ·,
-                  o registro do PeriodSegment. */}
-              <div className="nv-modo" role="group" aria-label="Período da amostra">
-                {PERIODOS_AMOSTRA.map((per, i) => (
-                  <span key={per.id} style={{ display: 'inline-flex', gap: '8px' }}>
-                    {i > 0 && (
-                      <span className="nv-modo__sep" aria-hidden="true">
-                        ·
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className={`nv-modo__op${periodoAtivo === per.id ? ' nv-modo__op--ativo' : ''}`}
-                      aria-pressed={periodoAtivo === per.id}
-                      onClick={() => setPeriodoAtivo(per.id)}
-                    >
-                      {per.rotulo}
-                    </button>
-                  </span>
-                ))}
-              </div>
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                em construção · a prévia liga sozinha
+              </span>
             </div>
 
             <div
+              ref={terminalRef}
+              data-mode="noturno"
               style={{
+                background: 'var(--surface-page)',
+                color: 'var(--text-body)',
+                border: 'var(--fio) solid var(--rule-strong)',
                 display: 'flex',
-                flexWrap: 'wrap',
-                gap: '24px',
-                alignItems: 'stretch',
+                flexDirection: 'column',
               }}
             >
+              {/* Barra de título do terminal */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '16px',
+                  padding: '10px 16px',
+                  borderBottom: 'var(--fio) solid var(--rule)',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+                  {/* O marcador de "ao vivo" do sistema: círculo pleno
+                      de 6px em NEUTRO quente, nunca colorido. Aqui ele
+                      respira porque a prévia está reproduzindo. */}
+                  <span
+                    aria-hidden="true"
+                    className={bootTerminal === 'vivo' ? 'nivar-vivo-ponto' : undefined}
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      background: 'var(--text-muted)',
+                      opacity: bootTerminal === 'vivo' ? 1 : 0.35,
+                    }}
+                  />
+                  <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                    Reprodução de demonstração ·{' '}
+                    <span data-numeric style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      14:30:{String(segundoDemo).padStart(2, '0')} BRT
+                    </span>
+                  </span>
+                </span>
+                <span style={{ ...NT.proc, color: 'var(--text-strong)' }}>
+                  Terminal Brasil · prévia
+                </span>
+              </div>
+
+              {bootTerminal !== 'vivo' ? (
+                /* Boot — o N da casa entra por transform (a exceção
+                   única do sistema: transform SÓ na marca), com traço
+                   constante e o gradiente de incandescência. */
+                <div
+                  style={{
+                    minHeight: '340px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {bootTerminal === 'loader' && (
+                    <svg
+                      viewBox="10 6 110 118"
+                      width={72}
+                      height={76}
+                      aria-hidden="true"
+                      style={{ overflow: 'visible' }}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="incandescente-terminal"
+                          gradientUnits="userSpaceOnUse"
+                          x1="22"
+                          y1="0"
+                          x2="108"
+                          y2="0"
+                        >
+                          <stop offset="0%" stopColor="#7A1F0D" />
+                          <stop offset="50%" stopColor="#C17D1F" />
+                          <stop offset="100%" stopColor="#F5C63C" />
+                        </linearGradient>
+                      </defs>
+                      <path
+                        className="nivar-loader-n"
+                        d={N_CASA_D}
+                        fill="none"
+                        stroke="url(#incandescente-terminal)"
+                        strokeWidth={16}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    </svg>
+                  )}
+                </div>
+              ) : (
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'flex-end',
+                      gap: '12px',
+                    }}
+                  >
+                    {/* Segmentado de período — mono versalete com
+                        separador ·, o registro do PeriodSegment. */}
+                    <div className="nv-modo" role="group" aria-label="Período da amostra">
+                      {PERIODOS_AMOSTRA.map((per, i) => (
+                        <span key={per.id} style={{ display: 'inline-flex', gap: '8px' }}>
+                          {i > 0 && (
+                            <span className="nv-modo__sep" aria-hidden="true">
+                              ·
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className={`nv-modo__op${periodoAtivo === per.id ? ' nv-modo__op--ativo' : ''}`}
+                            aria-pressed={periodoAtivo === per.id}
+                            onClick={() => setPeriodoAtivo(per.id)}
+                          >
+                            {per.rotulo}
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '16px',
+                      alignItems: 'stretch',
+                    }}
+                  >
               {/* Gráfico — série de UMA cor (--serie-linha: tinta no
                   claro, intelligence no noturno), eixo em mono, sem
                   grade decorativa. A linha redesenha em 1200ms a cada
@@ -1152,6 +1448,105 @@ export function PortalBR() {
                   Divisão de submercado: ONS · valores R$/MWh
                 </span>
               </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ─── 02 · Como a NIVAR lê o mercado ────────────────────────
+              Quatro passos sob um fio energizado — a peça Corrente do
+              especimen: o pulso atravessa o fio frio, em loop linear.
+              Copy do implementador, sujeita a veto. */}
+          <section
+            aria-label="Como a NIVAR lê o mercado"
+            style={{
+              padding: '32px 0',
+              borderTop: 'var(--fio) solid var(--rule)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>02</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
+                Como a NIVAR lê o mercado
+              </span>
+              <span
+                aria-hidden="true"
+                style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
+              />
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                da fonte pública à entrega
+              </span>
+            </div>
+
+            <div ref={passosRef} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* O fio que liga os quatro passos, com o pulso de
+                  corrente viajando — só quando a seção está na tela e
+                  sem reduced-motion (o pulso é loop; reduzido não
+                  ganha loop, ganha o fio desenhado). */}
+              <svg
+                viewBox="0 0 1000 12"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+                style={{ width: '100%', height: '12px', display: 'block' }}
+              >
+                <line
+                  x1={6}
+                  y1={6}
+                  x2={994}
+                  y2={6}
+                  strokeWidth={1}
+                  style={{ stroke: 'var(--rule-strong)' }}
+                />
+                {[6, 335, 665, 994].map((x) => (
+                  <circle key={x} cx={x} cy={6} r={3} style={{ fill: 'var(--rule-heavy)' }} />
+                ))}
+                {passosVistos && !reduzidoPagina && (
+                  <line
+                    className="nivar-pulso"
+                    x1={6}
+                    y1={6}
+                    x2={994}
+                    y2={6}
+                    strokeWidth={2}
+                    pathLength={1}
+                    style={{ stroke: 'var(--accent-house)' }}
+                  />
+                )}
+              </svg>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  columnGap: '32px',
+                  rowGap: '20px',
+                }}
+              >
+                {PASSOS_LEITURA.map((p, i) => (
+                  <div
+                    key={p.id}
+                    className={passosVistos ? 'nivar-passo' : undefined}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      opacity: passosVistos ? undefined : 0,
+                      animationDelay: `${i * 150}ms`,
+                    }}
+                  >
+                    <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <h3 style={{ ...NT.titulo2, margin: 0, color: 'var(--text-strong)' }}>
+                      {p.titulo}
+                    </h3>
+                    <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-muted)' }}>{p.detalhe}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -1171,7 +1566,7 @@ export function PortalBR() {
                 nota à direita, numa linha de baseline. Número em mono,
                 dois dígitos, no acento da casa. */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>02</span>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>03</span>
               <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Destinos</span>
               <span
                 aria-hidden="true"
@@ -1198,6 +1593,95 @@ export function PortalBR() {
             </div>
           </section>
 
+          {/* ─── 04 · A Alexandria em números ──────────────────────────
+              A prova social honesta de um produto pré-lançamento: o
+              tamanho REAL do que já está aberto, derivado do catálogo
+              (nenhum número digitado), contando com smoothstep quando
+              entra na tela — a peça bScore. */}
+          <section
+            aria-label="A Alexandria em números"
+            style={{
+              padding: '32px 0',
+              borderTop: 'var(--fio) solid var(--rule)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>04</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
+                A Alexandria em números
+              </span>
+              <span
+                aria-hidden="true"
+                style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
+              />
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                o produto aberto hoje
+              </span>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                borderTop: 'var(--fio) solid var(--rule)',
+                borderBottom: 'var(--fio) solid var(--rule)',
+              }}
+            >
+              {ALEXANDRIA_STATS.map((s, i) => (
+                <div
+                  key={s.rotulo}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                    padding: '20px 24px',
+                    borderLeft: i > 0 ? 'var(--fio) solid var(--rule)' : 'none',
+                  }}
+                >
+                  <ContadorVivo valor={s.valor} reduzido={reduzidoPagina} />
+                  <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>{s.rotulo}</span>
+                </div>
+              ))}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  padding: '20px 24px',
+                  borderLeft: 'var(--fio) solid var(--rule)',
+                }}
+              >
+                {(() => {
+                  const alexandria = DESTINOS_BR.find((d) => d.id === 'alexandria');
+                  return alexandria && alexandria.rota ? (
+                    <Link
+                      className="nv-btn nv-btn--secundario"
+                      to={alexandria.rota}
+                      onClick={(e) => {
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+                          return;
+                        e.preventDefault();
+                        comTransicao(() => navigate(alexandria.rota as string));
+                      }}
+                    >
+                      Entrar na Alexandria
+                      <span className="nv-btn__glifo" aria-hidden="true">
+                        →
+                      </span>
+                    </Link>
+                  ) : null;
+                })()}
+                <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
+                  Contagem derivada do catálogo extraído
+                </span>
+              </div>
+            </div>
+          </section>
+
           {/* Conflito de interesse (Wave 6) — imediatamente ANTES da
               Independência, no MESMO padrão de grade dela: mesma
               tipografia, mesmo espaçamento, mesmo tratamento de fio,
@@ -1215,7 +1699,7 @@ export function PortalBR() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
                 <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
-                  03
+                  05
                 </span>
                 <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }} id="br-conflito">
                   Conflito de interesse
@@ -1265,16 +1749,14 @@ export function PortalBR() {
               sujeita a veto; ver cabeçalho do componente. */}
           <FaixaIndependencia />
 
-          {/* ─── 05 · Glossário (revisão pós-Wave 6) ──────────────────
-              Os oito termos que o design system declara não
-              traduzíveis, VERBATIM de components/glossary/termos.js —
-              a fonte única de que Glossary e ContextHint leem. Verbete
-              recolhível com marcador +/− em mono (nunca chevron
-              girando); vários podem estar abertos. */}
+          {/* ─── 07 · Perguntas diretas ────────────────────────────────
+              FAQ honesto — toda resposta verificável contra o estado
+              real do produto. Marcador +/− em mono, nunca chevron
+              girando; várias podem estar abertas. */}
           <section
-            aria-labelledby="br-glossario"
+            aria-labelledby="br-perguntas"
             style={{
-              padding: '32px 0 40px',
+              padding: '32px 0',
               borderTop: 'var(--fio) solid var(--rule)',
               display: 'flex',
               flexDirection: 'column',
@@ -1282,35 +1764,35 @@ export function PortalBR() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>05</span>
-              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }} id="br-glossario">
-                Glossário
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>07</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }} id="br-perguntas">
+                Perguntas diretas
               </span>
               <span
                 aria-hidden="true"
                 style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
               />
               <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
-                {TERMOS_GLOSSARIO.length} termos · a linguagem que o portal usa
+                respostas verificáveis, sem promessa
               </span>
             </div>
 
             <div style={{ borderTop: 'var(--fio) solid var(--rule)' }}>
-              {TERMOS_GLOSSARIO.map((t) => {
-                const aberto = termosAbertos.has(t.termo);
+              {PERGUNTAS_DIRETAS.map((q) => {
+                const aberta = perguntasAbertas.has(q.id);
                 return (
-                  <div key={t.termo} style={{ borderBottom: 'var(--fio) solid var(--rule)' }}>
+                  <div key={q.id} style={{ borderBottom: 'var(--fio) solid var(--rule)' }}>
                     <button
                       type="button"
-                      aria-expanded={aberto}
-                      onClick={() => alternarTermo(t.termo)}
+                      aria-expanded={aberta}
+                      onClick={() => alternarPergunta(q.id)}
                       style={{
                         width: '100%',
                         display: 'grid',
-                        gridTemplateColumns: 'minmax(140px, 240px) 1fr 24px',
+                        gridTemplateColumns: '1fr 24px',
                         gap: '16px',
                         alignItems: 'baseline',
-                        padding: '12px 0',
+                        padding: '14px 0',
                         background: 'none',
                         border: 'none',
                         borderRadius: 0,
@@ -1318,9 +1800,8 @@ export function PortalBR() {
                         textAlign: 'left',
                       }}
                     >
-                      <span style={{ ...NT.titulo2, color: 'var(--text-strong)' }}>{t.termo}</span>
-                      <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
-                        {t.sigla ?? ''}
+                      <span style={{ ...NT.titulo2, color: 'var(--text-strong)' }}>
+                        {q.pergunta}
                       </span>
                       <span
                         aria-hidden="true"
@@ -1331,32 +1812,58 @@ export function PortalBR() {
                           textAlign: 'right',
                         }}
                       >
-                        {aberto ? '−' : '+'}
+                        {aberta ? '−' : '+'}
                       </span>
                     </button>
-                    {aberto && (
+                    {aberta && (
                       <div
                         className="nivar-verbete"
-                        style={{
-                          display: 'grid',
-                          gap: '8px',
-                          padding: '0 0 14px',
-                          maxWidth: '68ch',
-                        }}
+                        style={{ padding: '0 0 16px', maxWidth: '68ch' }}
                       >
                         <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-body)' }}>
-                          {t.definicao}
+                          {q.resposta}
                         </p>
-                        {t.fonte && (
-                          <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
-                            Fonte: {t.fonte}
-                          </span>
-                        )}
                       </div>
                     )}
                   </div>
                 );
               })}
+            </div>
+          </section>
+
+          {/* ─── CTA final — a ação repetida no fim, como no topo ──────
+              Botão primário do sistema (preenchimento brasa, troca de
+              fundo SECA) + secundário; redutor de risco em procedência,
+              factual: criar conta É gratuito (Identidade Wave 9). */}
+          <section
+            aria-label="Criar conta"
+            style={{
+              margin: '0 0 32px',
+              borderTop: 'var(--fio) solid var(--rule-heavy)',
+              borderBottom: 'var(--fio) solid var(--rule-heavy)',
+              padding: '28px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '24px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '52ch' }}>
+              <h2 style={{ ...NT.display3, margin: 0, color: 'var(--text-strong)' }}>
+                A leitura independente começa com uma conta.
+              </h2>
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+                Gratuita · ativação de produto sem custo até o lançamento
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <Link className="nv-btn nv-btn--primario" to="/criar-conta">
+                Criar conta gratuita
+              </Link>
+              <Link className="nv-btn nv-btn--secundario" to="/entrar">
+                Entrar
+              </Link>
             </div>
           </section>
         </div>

@@ -25,35 +25,25 @@ import { useAuth } from '../../lib/auth/AuthContext';
 import type { ProductsResponse } from '../../lib/auth/authApi';
 import { ContaShell } from './ContaShell';
 
-/**
- * Rótulo humano por id de produto.
- *
- * O CATÁLOGO (quais produtos existem) vem do backend — o contrato diz
- * que ele é servido justamente para o front não manter uma segunda
- * cópia que deriva. O que mora aqui é só a APRESENTAÇÃO, e só para os
- * ids que o portal brasileiro já nomeia.
- *
- * LOCALIZADO (Topologia de Shell Wave 3, fase 1): a entrada abaixo é o
- * remanescente ESTÁTICO do lado americano — a única menção a ele que
- * sobrou no `/conta`. Não é dirigida pelo `catalog`: o laço que itera o
- * array está em L217 e apenas CONSULTA este mapa por `rotularProduto`.
- *
- * O backend já fechou o lado dele — `us-terminal` saiu do
- * `PRODUCT_CATALOG` (a única ocorrência que resta em Python é o
- * comentário que documenta a remoção). Sem o id no catálogo,
- * `rotularProduto('us-terminal')` nunca é chamado e esta entrada é
- * código morto. Sai na fase 2.
- */
-const TITULO_EXTRA: Record<string, string> = {
-  'us-terminal': 'Terminal Estados Unidos',
-};
-
 /** Id do catálogo → rótulo. Deriva do id quando ninguém nomeou ainda,
- *  em vez de esconder o produto ou inventar nome. */
+ *  em vez de esconder o produto ou inventar nome.
+ *
+ *  O CATÁLOGO (quais produtos existem) vem do backend — o contrato diz
+ *  que ele é servido justamente para o front não manter uma segunda
+ *  cópia que deriva. O que mora aqui é só a APRESENTAÇÃO, e só para os
+ *  ids que o portal brasileiro já nomeia, via `DESTINOS_BR`.
+ *
+ *  Havia aqui um mapa `TITULO_EXTRA` cuja única entrada nomeava o
+ *  terminal americano — o último lugar do `/conta` que ainda o
+ *  mencionava. Saiu na Topologia de Shell Wave 3, junto com o id, que
+ *  o backend já tinha tirado do `PRODUCT_CATALOG`. É a mesma doutrina
+ *  provisória da Wave 2: o lado americano continua inteiro no disco e
+ *  alcançável em `/us`, mas não é anunciado por superfície nenhuma.
+ *  Quando o portal americano voltar à mesa, o rótulo volta — de
+ *  preferência por `DESTINOS_BR`, não por um mapa paralelo. */
 function rotularProduto(productId: string): string {
   const destino = DESTINOS_BR.find((d) => d.id === productId);
   if (destino) return destino.titulo;
-  if (TITULO_EXTRA[productId]) return TITULO_EXTRA[productId];
   return productId
     .split('-')
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))

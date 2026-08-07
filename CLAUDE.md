@@ -8784,6 +8784,74 @@ sobre a superfície BR — "No findings. Surface is clean." (o único P1
 intermediário era spread de token não resolvido pelo auditor —
 literal `tabular-nums` redundante, precedente da Wave 3).
 
+## ARCHITECT — PORTAL BR WAVE 6 · TESE, CONFLITO E MÉTODO NO HERO
+
+**Status:** fechada. As três peças que a tese exige e a página aprovada
+não tinha — copy do war room, **verbatim**, sem paráfrase. Cinco
+commits, um por fase, todos pushados.
+
+**Arquivos:** `PortalBR.tsx` · `PortalHero.tsx` · `FaixaIndependencia.tsx`
+(uma string — ver renumeração).
+
+### O que entrou
+
+- **Tese no hero** — "O dado do setor elétrico é público. A leitura não
+  é." Linha própria entre o H1 e o subtítulo, nos DOIS layouts
+  (imersivo e reduced-motion), em Zilla corpo de título — afirmação
+  editorial, não parágrafo. H1 e subtítulo intocados.
+- **Botão "Pular apresentação" REMOVIDO por completo** (decisão do
+  Aquiles): JSX, ref, callback e o efeito de resgate de foco. O prompt
+  "Role — o mapa se constrói" fica; o `<main>` focável segue rolável
+  por teclado.
+- **MethodDisclosure** — o componente do SISTEMA (CSS verbatim de
+  `components/data/`), ancorado na procedência do PLD dentro da
+  `barraPld`, nunca modal. A ordem método → fonte → método publicado em
+  → dado coletado em → premissas é a que o componente impõe ("o método
+  é público antes de existir número para defender") — e é a mesma que o
+  brief fixou. Gatilho fechado por padrão ("Como este número é
+  calculado"); painel com fundo de superfície para ler sobre o mapa;
+  fio de abertura desenha em `--dur-desenho`. **Sem link "metodologia
+  completa"**: a página não existe e link morto é proibido.
+- **Seção Conflito de interesse** — imediatamente ANTES da
+  Independência, no MESMO padrão de grade dela (tipografia,
+  espaçamento, fios — zero componente novo, inline no `PortalBR`).
+  Etiqueta, título ("O tradutor é parte interessada.") e as três
+  colunas verbatim. Nenhum nome de empresa — o conflito é descrito por
+  estrutura. **Numeração de seção deslocou:** Conflito=02,
+  Independência=03 (uma string em `FaixaIndependencia.tsx`; as três
+  colunas dela seguem byte-intocadas).
+
+### Verificação — 35 asserções, 0 falha
+
+Chrome real via playwright-core, dois modos: copy conferida VERBATIM
+campo a campo (tese, método, fonte, `[DATA]`, dado coletado, as duas
+premissas, os três títulos e corpos de coluna); "Pular apresentação"
+ausente do DOM; prompt presente; disclosure abre/fecha com
+`aria-expanded` e fio desenhando até 0; conflito antes da Independência
+por `compareDocumentPosition`; numeração `01 02 03`; zero nome de
+empresa na seção; noturno herdando os aliases (número de seção em
+intelligence, tese/h2 em papel, painel do disclosure em tinta);
+reduced-motion com tese no estático e painel instantâneo; sem overflow
+em 1440/1920/3440. A única falha intermediária era do harness (busca
+case-sensitive contra `innerText`, que devolve a etiqueta já em caixa
+alta pelo text-transform) — sexta ocorrência do padrão.
+
+### Registrado, não resolvido
+
+- **`[DATA]` é placeholder literal na tela** — o campo "Método
+  publicado em" espera a data real do Aquiles; trocar é uma string no
+  `PortalHero.tsx`.
+- A remoção do botão tira o escape DEDICADO da pista; o teclado segue
+  saindo pela rolagem do `<main>` focável. Se a revisão de
+  acessibilidade quiser um atalho de novo, é decisão nova.
+- O painel do disclosure aberto cobre parte do canto inferior-esquerdo
+  do mapa no assentamento — deliberado (superfície de leitura sobre o
+  palco, aberta por escolha do leitor, fecha no segundo clique).
+
+**Gates:** `tsc -b` — 0 erros nos arquivos da wave (seguem só os 7
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
+sobre a superfície BR — "No findings. Surface is clean."
+
 ## CURSOR — CATÁLOGO /CONTA WAVE 1
 
 **Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.

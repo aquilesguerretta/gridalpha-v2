@@ -51,7 +51,32 @@ createRoot(document.getElementById('root')!).render(
               `/login` continua sendo o legado que valida formato e
               navega para /nest sem chamar API. Não é mais alcançável
               pelo header da landing (Sign in aponta para /entrar), mas
-              a rota fica de pé para não quebrar link antigo. */}
+              a rota fica de pé para não quebrar link antigo.
+
+              VARREDURA DE PORTA (Topologia de Shell Wave 2, fase 3).
+              Confirmado por busca em todo o `src/`, não por leitura
+              deste arquivo:
+
+              · os únicos links para `/signup` fora de `pages/auth/`
+                são `landing/Nav.tsx:101` e `landing/FinalCta.tsx:55`
+                — ambos DENTRO da landing, hoje só em `/us`;
+              · nada em `pages/br/`, `components/br/`, `pages/conta/`
+                nem `components/alexandria/` aponta para `/login`,
+                `/signup*`, `/nest`, `/atlas`, `/peregrine`,
+                `/analytics` ou `/vault*`;
+              · nenhuma navegação imperativa (`window.location =`,
+                `location.assign`) fora do subtree americano;
+              · nenhum redirect de plataforma — não há `vercel.json`,
+                `netlify.toml`, `public/_redirects` nem rewrite no
+                `vite.config.ts`;
+              · `SignupCredentialsPage` tem `to="/login"` mas não é
+                roteado em lugar nenhum — órfão desde a Identidade
+                Wave 1, sobrevive só porque exporta `ProgressDots`.
+
+              As referências a rota americana em `services/aiContext.ts`,
+              `services/viewSerialization.ts` e
+              `services/contextProviders/vaultContext.ts` LEEM o
+              pathname para classificar contexto; não navegam. */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupGate />} />

@@ -2850,17 +2850,17 @@ Definido no backend, em `app/db/models/product_access.py`:
 
 ```
 alexandria · terminal-brasil · energy-brief ·
-conta-de-luz-express · diagnostico-energetico · us-terminal
+conta-de-luz-express · diagnostico-energetico
 ```
 
-**Nota de reconciliação, registrada e não resolvida:** essa lista precisa
-ficar em sincronia CONCEITUAL com `src/lib/data/br-destinos.ts`, que é
-território do ARCHITECT. Os cinco destinos brasileiros do frontend batem
-um a um com os cinco primeiros ids daqui; `us-terminal` não tem par no
-catálogo BR porque o portal americano ainda não existe. O backend **não
-importa** do arquivo do frontend — atravessar essa fronteira seria pior
-que a duplicação. Reconciliar não é responsabilidade desta wave; quem
-abrir o catálogo dos dois lados de novo, alinha lá.
+(`us-terminal` removido na CURSOR · catálogo /conta Wave 1 — ver seção
+própria. Nomeado sem link ainda era aparente em `/conta`.)
+
+**Nota de reconciliação:** essa lista precisa ficar em sincronia
+CONCEITUAL com `src/lib/data/br-destinos.ts`, que é território do
+ARCHITECT. Os cinco destinos brasileiros do frontend batem um a um com
+os cinco ids daqui. O backend **não importa** do arquivo do frontend —
+atravessar essa fronteira seria pior que a duplicação.
 
 Para reduzir a chance de deriva, `GET /api/products/me` **serve o
 catálogo** junto da lista de ativados, para o frontend ler em vez de
@@ -8647,14 +8647,14 @@ outra wave). Quatro commits, todos com pathspec explícito e `git diff
 --stat` real antes — a wave ARCHITECT que corre em paralelo sobre
 `src/main.tsx` não teve nenhum arquivo tocado.
 
-## CURSOR — CATÁLOGO /CONTA WAVE 1 · FASE 1
+## CURSOR — CATÁLOGO /CONTA WAVE 1
 
-**Status:** fonte localizada. Zero remoção nesta fase.
+**Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.
 
 **Trilha:** nova. Não é a CURSOR Wave 12 (Atlas qualitativo). Nenhuma
-seção CURSOR anterior cobre o catálogo de `/conta`.
+seção CURSOR anterior cobria o catálogo de `/conta`.
 
-### Mecanismo real
+### Mecanismo (Fase 1)
 
 Não é tabela. Não é seed. É **tupla estática em Python**:
 
@@ -8662,15 +8662,24 @@ Não é tabela. Não é seed. É **tupla estática em Python**:
 | --- | --- |
 | Catálogo canônico | `app/db/models/product_access.py` → `PRODUCT_CATALOG` |
 | Set de validação | `PRODUCT_IDS = frozenset(PRODUCT_CATALOG)` |
-| Superfície consumida por `/conta` | `GET /api/products/me` → campo `catalog: list(PRODUCT_CATALOG)` em `app/routers/products.py` |
-| Ativação | `POST /api/products/{product_id}/activate` rejeita id fora de `PRODUCT_IDS` com 404 |
+| Superfície de `/conta` | `GET /api/products/me` → `catalog: list(PRODUCT_CATALOG)` |
+| Ativação | `POST /api/products/{id}/activate` → 404 se fora de `PRODUCT_IDS` |
 
-A tabela `product_access` só guarda **ativações** por usuário
-(`user_id`, `product_id`). O inventário de produtos possíveis não mora
-no banco.
+A tabela `product_access` só guarda ativações. O inventário não mora no
+banco.
 
-`us-terminal` é o sexto e último membro de `PRODUCT_CATALOG` hoje.
-`/conta` (frontend ARCHITECT) renderiza `produtos.catalog.map(...)` —
-por isso o nome aparece mesmo sem rota/`DESTINOS_BR`.
+### Remoção (Fase 2)
 
-Próxima fase: remover só essa entrada da tupla.
+`us-terminal` removido de `PRODUCT_CATALOG`. Os outros cinco ids
+intocados. Sem flag, sem "indisponível", sem CSS — sai da resposta.
+`docs/v2-backend-contract.md` atualizado no exemplo de `/me`.
+
+Frontend (`PerfilPlataforma.tsx` ainda tem rótulo local) **não tocado** —
+posse ARCHITECT. Sem o id no `catalog`, a linha deixa de renderizar.
+
+### Varredura (Fase 3)
+
+Única fonte viva de catálogo no backend: a tupla. Zero ocorrência de
+`us-terminal` restante em `app/`. Docs de auditoria ARCHITECT
+(`architect-shell-topology-audit.md`) registram o estado antigo de
+propósito — histórico, não catálogo vivo.

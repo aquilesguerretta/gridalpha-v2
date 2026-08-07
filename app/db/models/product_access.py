@@ -23,13 +23,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
+# us-terminal removed (CURSOR · catálogo /conta Wave 1): the American
+# side must not appear in /conta at all — named without a link is still
+# apparent. Re-add only when that product is intentionally public.
 PRODUCT_CATALOG: tuple[str, ...] = (
     "alexandria",
     "terminal-brasil",
     "energy-brief",
     "conta-de-luz-express",
     "diagnostico-energetico",
-    "us-terminal",
 )
 PRODUCT_IDS: frozenset[str] = frozenset(PRODUCT_CATALOG)
 

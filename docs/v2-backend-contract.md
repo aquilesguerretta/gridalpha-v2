@@ -790,7 +790,7 @@ a path segment naming no resource is a missing resource, not a malformed field.
   ],
   "catalog": [
     "alexandria", "terminal-brasil", "energy-brief",
-    "conta-de-luz-express", "diagnostico-energetico", "us-terminal"
+    "conta-de-luz-express", "diagnostico-energetico"
   ]
 }
 ```

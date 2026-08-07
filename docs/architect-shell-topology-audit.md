@@ -154,3 +154,127 @@ Terminal US da navegação é seguro; deletar `GlobalShell.tsx` não é** —
 quebraria `AnalyticsPage`. Como a decisão do Aquiles é exatamente
 "código fica no disco, some da navegação", isso não bloqueia nada — mas
 fecha a porta para qualquer wave futura que confunda ocultar com remover.
+
+---
+
+## Fase 2 — a navegação de nível superior
+
+### Os três produtos NÃO são irmãos na navegação
+
+A pergunta do brief é se Terminal US, Portal e Alexandria aparecem hoje
+como irmãos. **Não aparecem.** São irmãos apenas na TABELA DE ROTAS de
+`src/main.tsx`; na navegação visível, a relação é assimétrica:
+
+| de → para | existe? | onde |
+| --- | --- | --- |
+| Portal BR → Alexandria | **sim** | `src/lib/data/br-destinos.ts:36` — `rota: '/alexandria?trilha=brasil'`, único destino com `status: 'disponivel'` |
+| Portal BR → Terminal US | **sim, ×2** | `src/components/br/SeletorMercado.tsx:30` (cabeçalho) e `src/pages/br/PortalBR.tsx:460` (rodapé, coluna "Mercados") |
+| Alexandria → Portal BR | **não** | varredura em `src/components/alexandria/shell/` e `src/pages/alexandria/`: zero link para fora de `/alexandria` |
+| Alexandria → Terminal US | **não** | idem |
+| Terminal US → Portal BR | **não** | zero ocorrência de `/br` em `src/components/landing/` ou `GlobalShell.tsx` |
+| Terminal US → Alexandria | **não** (produto atual) | `GlobalShell` tem rotas `/vault/alexandria*`, que são a **Alexandria LEGADA dentro do Vault** — outro artefato, não o produto em `/alexandria` |
+
+**O Portal Brasil é o único nó que conhece os outros dois.** Alexandria
+e Terminal US não sabem que o Portal existe.
+
+### As cinco portas de entrada do Terminal US
+
+"Terminal US" tem duas camadas distintas, e a distinção decide onde a
+remoção se aplica:
+
+- **superfície de marketing** — `LandingPage`, em `/` e no catch-all `*`
+- **aplicação de terminal** — `GlobalShell`, em `/nest`, `/atlas`,
+  `/peregrine`, `/analytics`, `/vault` (+ 4 sub-rotas de vault)
+
+Todo caminho que um usuário pode percorrer até uma das duas:
+
+| # | porta | arquivo · linha | chega em |
+| --- | --- | --- | --- |
+| 1 | Rota raiz `/` | `src/main.tsx:32` | `LandingPage` |
+| 2 | Catch-all `*` | `src/main.tsx:90` | `LandingPage` |
+| 3 | Seletor de mercado do Portal | `src/components/br/SeletorMercado.tsx:30` → `/us` → `src/main.tsx:88` | `LandingPage` |
+| 4 | Rodapé do Portal, coluna "Mercados" | `src/pages/br/PortalBR.tsx:460` → `/us` → `src/main.tsx:88` | `LandingPage` |
+| 5 | Funil de arquétipo | `landing/Nav.tsx:101` e `landing/FinalCta.tsx:55` → `/signup` → `SignupGate` → `/signup/profile` → `/details` → `/success` → `SignupSuccessPage.tsx:95` `navigate('/nest')` | `GlobalShell` |
+
+Mais duas portas que **não** contam como navegação de usuário, medidas e
+descartadas:
+
+- `src/pages/auth/LoginPage.tsx:23` navega para `/nest`, mas `/login` já
+  não é alcançável por header nenhum — o próprio comentário de
+  `main.tsx:43-46` registra que a rota fica de pé só para não quebrar
+  link antigo.
+- `src/components/dev/ProfileSwitcher.tsx` lista as cinco views com seus
+  paths, mas é renderizado atrás de `import.meta.env.DEV`
+  (`GlobalShell.tsx:1873`) — não existe em produção.
+
+E uma superfície que **nomeia sem navegar**: `/conta`
+(`src/pages/conta/PerfilPlataforma.tsx`) lista o catálogo de produtos
+vindo do BACKEND, que inclui `us-terminal`, rotulado "Terminal Estados
+Unidos" por `TITULO_EXTRA` (L38). Mas o link "Abrir" só renderiza quando
+`destino?.status === 'disponivel'` (L220), e `us-terminal` **não existe
+em `DESTINOS_BR`** — então `rota` é `null` e nenhum link é desenhado. O
+produto aparece na lista com "Não ativado" e nada mais.
+
+### Correção à hipótese do relatório de abril: são CINCO botões, não quatro
+
+`src/components/GlobalShell.tsx:76` — `const navItems: NavItem[]`:
+
+| code | id | label |
+| --- | --- | --- |
+| 01 | `nest` | THE NEST |
+| 02 | `atlas` | GRID ATLAS |
+| 03 | `peregrine` | **PEREGRINE** |
+| 04 | `analytics` | ANALYTICS |
+| 05 | `vault` | VAULT |
+
+O relatório de abril registra quatro (Nest, Grid Atlas, Analytics,
+Vault). **PEREGRINE entrou depois**, no commit `dfbcae8` · `arch: extend
+shell — Peregrine top-level, Vault sub-routes, profile-routed Nest,
+EveryoneNest extraction` — o mesmo commit que criou as sub-rotas de
+Vault. Essa nav é **interna ao GlobalShell**: só aparece depois que o
+usuário já está dentro do terminal, e nenhuma outra superfície do
+produto a lê.
+
+### O ponto exato de remoção
+
+**`src/main.tsx` — a tabela de rotas, 95 linhas, posse ARCHITECT
+confirmada na Fase 1.**
+
+É o único arquivo que mapeia todas as cinco portas: as duas primeiras
+são linhas dele (`:32` e `:90`), a terceira e a quarta passam
+obrigatoriamente por `:88`, e a quinta entra pelas rotas de `:47-53` e
+sai por `:65-76`. **Nenhuma outra edição é necessária para tirar o
+Terminal US de vista**, e nenhum internals precisa ser tocado.
+
+A mudança é de **redirecionamento, não de deleção**: os `import` de
+`GlobalShell`, `LandingPage` e das telas de arquétipo continuam; os
+arquivos continuam no disco; `GlobalShell.tsx` continua compilando. Isso
+atende literalmente a decisão do Aquiles — "código fica no disco, some
+da navegação".
+
+**Por que a remoção NÃO pode ser só nos dois links do Portal:** tirar
+`SeletorMercado.tsx:30` e `PortalBR.tsx:460` deixa `/` e o catch-all `*`
+servindo `LandingPage`. Qualquer pessoa que digite o domínio sem caminho
+— ou erre qualquer URL — cai no produto americano. A remoção pelos links
+é insuficiente por construção; ela tem que passar pela tabela de rotas.
+
+**Por que NÃO se pode deletar `GlobalShell.tsx`:**
+`src/components/AnalyticsPage.tsx:8` faz
+`import { PeregrineFeedMarketAlerts } from './GlobalShell'` — import de
+export nomeado, não montagem. Ocultar é seguro; deletar quebra o build.
+Fica registrado para que nenhuma wave futura confunda as duas coisas.
+
+### Efeito de segunda ordem que a wave de execução precisa decidir
+
+Se `/` passar a servir o Portal, a rota `/us` (`main.tsx:88`,
+`<Navigate to="/" replace />`) passa a devolver o usuário **ao próprio
+Portal**. As duas entradas de "Estados Unidos" viram no-op silencioso:
+o usuário clica e continua onde estava.
+
+Isso não é defeito do plano — é uma decisão de produto que o plano
+expõe. Três saídas possíveis, todas fora do escopo desta auditoria:
+esconder a opção "Estados Unidos" do `SeletorMercado` e do rodapé;
+mantê-la apontando para um estado "em breve" explícito; ou dar ao
+mercado US uma página própria. **A auditoria não escolhe** — só registra
+que a escolha é obrigatória e que ela vive em dois arquivos nomeados
+acima, não em `main.tsx`.

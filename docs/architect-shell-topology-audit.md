@@ -278,3 +278,95 @@ mantê-la apontando para um estado "em breve" explícito; ou dar ao
 mercado US uma página própria. **A auditoria não escolhe** — só registra
 que a escolha é obrigatória e que ela vive em dois arquivos nomeados
 acima, não em `main.tsx`.
+
+---
+
+## Fase 3 — síntese e brief de execução
+
+### As três respostas, em uma tela
+
+| pergunta | resposta | evidência |
+| --- | --- | --- |
+| **Raiz real** | `src/main.tsx` — 95 linhas, cria o root React e detém a tabela de rotas inteira. **`GlobalShell.tsx` NÃO é a raiz**: é um componente de view montado por 9 rotas com prop `initialView` | `index.html:17` · `main.tsx:6,65-76` · `GlobalShell.tsx:1716` |
+| **Dono confirmado** | **ARCHITECT**, por histórico e não só por declaração: 5 dos 13 commits de `main.tsx` são `architect:` (+1 `arch:`), incluindo os 4 mais recentes e toda mudança estrutural | `git log --all -- src/main.tsx` |
+| **Ponto exato de remoção** | **`src/main.tsx`**, a tabela de rotas. É o único arquivo por onde passam as cinco portas de entrada do Terminal US | Fase 2, tabela das cinco portas |
+
+### O subtree do Terminal US é autocontido — medido, não presumido
+
+Nenhum arquivo fora do Terminal US navega para dentro dele, e as
+dependências internas não vazam:
+
+| dependência | onde vive | veredito |
+| --- | --- | --- |
+| `AnalyticsPage` importa `PeregrineFeedMarketAlerts` de `GlobalShell` | `AnalyticsPage.tsx:8` | contido — `AnalyticsPage` só é montado por `GlobalShell.tsx:1782` |
+| `AIAssistant` linka `/vault/alexandria/entry/:slug` | `shared/AIAssistant.tsx:755` | contido — apesar de morar em `shared/`, é montado **só** por `GlobalShell.tsx:1870-1871` |
+| Componentes de `src/components/vault/*` linkam entre si | `Alexandria.tsx`, `Entry.tsx`, `CaseStudyView.tsx`, `CrossLinkResolver.tsx` | contido — todos vivem sob a view `vault` do `GlobalShell` |
+| `LoginPage` e `SignupSuccessPage` navegam para `/nest` | `LoginPage.tsx:23`, `SignupSuccessPage.tsx:95` | pertencem ao próprio funil americano |
+
+**Consequência:** ocultar as rotas em `main.tsx` não deixa link órfão em
+nenhuma superfície viva. Portal e Alexandria não apontam para dentro do
+Terminal US em ponto nenhum.
+
+### O brief de execução
+
+Este documento é o brief; a execução é de outra wave. O que ela deve
+fazer, e o que ela não deve:
+
+**Arquivo único a editar: `src/main.tsx`.**
+
+| linha atual | o que ela faz hoje | ação recomendada |
+| --- | --- | --- |
+| `:32` `<Route path="/" element={<LandingPage />} />` | raiz serve o marketing americano | repontar para a superfície brasileira |
+| `:90` `<Route path="*" element={<LandingPage />} />` | catch-all serve o marketing americano | idem — **é esta que faz a remoção só-por-link ser insuficiente** |
+| `:47-53` bloco `AuthLayout` (`/login`, `/signup`, `/signup/*`) | funil de arquétipo, termina em `/nest` | redirecionar ou remover da tabela |
+| `:65-76` as 9 rotas de `GlobalShell` | as cinco views + 4 sub-rotas de vault | redirecionar |
+| `:88` `/us` → `<Navigate to="/" replace />` | alias do mercado americano | ver "decisão obrigatória" abaixo |
+
+**Forma da mudança: redirecionamento, nunca deleção.** Os `import` de
+`GlobalShell`, `LandingPage` e das telas de arquétipo permanecem; os
+arquivos permanecem no disco; `GlobalShell.tsx` continua compilando.
+É literalmente a decisão registrada — "código fica no disco, some da
+navegação".
+
+**O que NÃO fazer:**
+
+- **Não deletar `GlobalShell.tsx`** — `AnalyticsPage.tsx:8` importa um
+  export nomeado dele. Quebra o build.
+- **Não editar `SeletorMercado.tsx` nem `PortalBR.tsx` achando que
+  resolve** — `/` e `*` continuariam servindo `LandingPage`.
+- **Não tocar `src/components/GlobalShell.tsx` nem nada sob
+  `src/components/vault/`, `src/components/landing/`,
+  `src/components/nest/`** — são os internals que a decisão manda
+  preservar.
+
+**Verificação sugerida para a wave de execução**, nesta ordem: `/`
+serve Portal · uma URL inexistente serve Portal, não a landing ·
+`/nest`, `/atlas`, `/peregrine`, `/analytics`, `/vault` não abrem o
+terminal · `npx tsc -b` sem erro novo (os 7 pré-existentes de Recharts
+em `nest/student/*` permanecem) · `/alexandria` e `/conta` intactos.
+
+### A decisão obrigatória que a auditoria não toma
+
+Se `/` passar a servir o Portal, a rota `/us` (`main.tsx:88`) devolve o
+usuário **ao próprio Portal**, e as duas entradas de "Estados Unidos"
+— `SeletorMercado.tsx:30` e `PortalBR.tsx:460` — viram no-op silencioso.
+
+Três saídas, todas de produto e nenhuma desta auditoria: esconder a
+opção do seletor e do rodapé; mantê-la apontando para um estado "em
+breve" declarado; ou dar ao mercado US página própria. **A escolha vive
+nesses dois arquivos, não em `main.tsx`** — e é o único trabalho fora da
+raiz que a execução vai precisar.
+
+### Registrado, não resolvido
+
+- **A hipótese dos quatro botões estava desatualizada** — são cinco
+  (`GlobalShell.tsx:76`), com PEREGRINE acrescentado em `dfbcae8`.
+  Qualquer documento futuro que cite "os quatro" está lendo abril/2026.
+- **`us-terminal` está no catálogo do BACKEND** (CURSOR Wave 9) e
+  aparece nomeado em `/conta` sem link. Se o produto americano sair de
+  vista por completo, alguém precisa decidir se o catálogo do backend
+  continua anunciando-o — isso é mudança de servidor, fora do frontend.
+- **`GlobalShell.tsx` está estático desde 2026-05-12.** A
+  reestruturação americana que o Aquiles adiou vai encontrar 1.876
+  linhas que não acompanharam três meses de evolução do resto do
+  produto.

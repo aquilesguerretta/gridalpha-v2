@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
 import './index.css';
 import GlobalShell from './components/GlobalShell';
@@ -29,11 +29,19 @@ createRoot(document.getElementById('root')!).render(
           e a wave do LYCEUM só precisa chamar useAuth(). */}
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          {/* A raiz serve o PORTAL BRASIL. O lado americano continua
+              inteiro no disco e não foi tocado — só deixou de ser
+              alcançável por navegação: a única porta é digitar `/us`.
+              A inversão é de rota, não de código (Topologia de Shell
+              Wave 2; a auditoria que a mapeou está em
+              `docs/architect-shell-topology-audit.md`). */}
+          <Route path="/" element={<PortalBR />} />
 
           {/* Fluxo de arquétipo do terminal americano — escolhe QUAL
               TERMINAL você vê (trader / analyst / storage / …), não QUEM
-              você é. A identidade agora vem antes dele:
+              você é. Fica atrás de `/us` junto com o resto do lado
+              americano: só se chega aqui a partir da landing, que já não
+              é alcançável por navegação. A identidade vem antes dele:
 
               `/signup` deixou de ser formulário e virou SignupGate —
               sem sessão manda para /criar-conta e volta; com sessão
@@ -81,13 +89,22 @@ createRoot(document.getElementById('root')!).render(
               store: link compartilhável, bookmark funciona, sem hidratação.
               `/alexandria` fica fora do prefixo de propósito — tem trilhas
               universal / brasil / usa, então pertence aos dois portais.
-              `/us` é alias da superfície de entrada americana existente;
-              quando o portal US ganhar página própria, só este element
-              muda. */}
-          <Route path="/br" element={<PortalBR />} />
-          <Route path="/us" element={<Navigate to="/" replace />} />
 
-          <Route path="*" element={<LandingPage />} />
+              `/br` continua existindo como endereço canônico do portal —
+              a raiz serve o mesmo componente, e os links internos que já
+              apontam para `/br` seguem válidos.
+
+              `/us` MONTA a landing americana, e não redireciona. Era
+              `<Navigate to="/" replace />` quando a raiz era a landing;
+              agora que a raiz é o Portal, redirecionar deixaria o lado
+              americano INALCANÇÁVEL em vez de oculto — o oposto do
+              pedido. Esta rota é a única porta que resta para ele. */}
+          <Route path="/br" element={<PortalBR />} />
+          <Route path="/us" element={<LandingPage />} />
+
+          {/* Endereço desconhecido cai na home brasileira, não na
+              landing americana. */}
+          <Route path="*" element={<PortalBR />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

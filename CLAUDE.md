@@ -8852,6 +8852,75 @@ alta pelo text-transform) — sexta ocorrência do padrão.
 pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect`
 sobre a superfície BR — "No findings. Surface is clean."
 
+## ARCHITECT — REVISÃO DIRETA PÓS-WAVE 6 (logo colorida, noturno do design, conta NIVAR, features na landing)
+
+**Status:** fechada. Pedido direto do Aquiles sobre as Waves 5-6 recém-
+fechadas; não é wave numerada (mesmo idioma das revisões diretas do
+LYCEUM). Quatro commits: `97452ef` wordmark+faixa · `c429a21` conta ·
+`e2bb473` features · fechamento.
+
+### O noturno "diferente" — medido contra o especimen, não adivinhado
+
+O especimen de movimento foi aberto e MEDIDO: `pageBg rgb(20,18,15)` —
+o MESMO `#14120F` que o Portal já usava. A diferença real era outra, e
+era visível na captura: (1) **o wordmark do design sobre tinta é o
+COLORIDO**, não o papel; (2) o design carrega a **faixa-gradiente de
+4px no topo do documento** (o único gradiente que o sistema permite
+fora do traço da marca, exatamente ali); (3) o noturno de referência é
+DENSO — painéis com fio, dado em intelligence/advisory — e o Portal
+estava vazio. As três causas foram tratadas; o fundo não mudou porque
+já estava certo.
+
+### Aplicado
+
+- **Wordmark colorido nos dois modos** — a variante papel saiu do DOM;
+  o gradiente de incandescência é a marca sobre qualquer substrato,
+  como o especimen renderiza. Maior: cabeçalho 24→30px, rodapé
+  17→20px. `nivar-wordmark-papel.svg` segue em produção, sem
+  consumidor no Portal.
+- **Faixa incandescente de 4px** no topo da página, nos dois modos.
+- **Conta em NIVAR** — as 5 ocorrências visíveis de GridAlpha na
+  superfície `/conta` (wordmark do ContaShell + eyebrow "Conta
+  GridAlpha" ×4 em Entrar/Criar/Perfil) trocadas por NIVAR. Diff
+  cirúrgico de 5 strings, conferido linha a linha. **Resíduo declarado
+  fora desta revisão:** o fluxo americano em inglês (`LoginPage`,
+  `SignupDetailsPage`, `SignupSuccessPage`) e o terminal US inteiro
+  seguem GridAlpha — rebatizar o produto americano é decisão de
+  plataforma, não string.
+
+### Features novas na landing (carta branca)
+
+- **01 · O mercado agora** — amostra ilustrativa interativa: gráfico de
+  série (uma cor — `--serie-linha`: tinta no claro, intelligence no
+  noturno; eixo em mono; sem grade) que REDESENHA em
+  `--dur-desenho-longo` a cada troca; segmentado de período 24 H · 7 D
+  · 30 D no cabeçalho do gráfico (registro do PeriodSegment); tabela
+  dos quatro submercados em que A LINHA É O SELETOR da série
+  (aria-pressed + fio de acento), com PLD médio, variação em cor de
+  DIREÇÃO de mercado (↑ hardware · ↓ software · → neutro, o idioma do
+  TrendInline) e banda min–max. Série DETERMINÍSTICA por composição de
+  senos sobre os mesmos valores-base mock do hero — sem Math.random,
+  sem Date; rotulada "amostra ilustrativa" no idioma `--ilustrativa-*`.
+- **05 · Glossário** — os oito termos que o design system declara não
+  traduzíveis, VERBATIM de `components/glossary/termos.js` (a fonte
+  única de Glossary/ContextHint — nada redigido pelo portal). Verbete
+  recolhível com marcador +/− em mono (nunca chevron girando), vários
+  abertos ao mesmo tempo, fonte citada por verbete.
+- **Renumeração:** 01 mercado agora · 02 destinos · 03 conflito ·
+  04 independência · 05 glossário.
+
+### Verificação — 25 asserções, 0 falha (primeira rodada limpa)
+
+Chrome real: logo em gradiente nas 2 instâncias e nos 2 modos; faixa
+4px com gradiente; clicar NE troca a série (figcaption "PLD ·
+Nordeste"); 7 D redesenha o path; glossário abre PLD com a definição
+do sistema e vira −; `/entrar` com "Conta NIVAR" e zero GridAlpha;
+numeração 01-05; sem overflow em 1440/1920/3440. Screenshots dos dois
+modos.
+
+**Gates:** `tsc -b` 0 erros nos arquivos tocados · `gridalpha-detect`
+"No findings. Surface is clean."
+
 ## CURSOR — CATÁLOGO /CONTA WAVE 1
 
 **Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.

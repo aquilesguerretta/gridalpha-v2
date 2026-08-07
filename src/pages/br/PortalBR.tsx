@@ -62,6 +62,90 @@ interface ZoomEmBreve {
   regiao?: SubmercadoPath;
 }
 
+// ─── Wordmark NIVAR — SVG INLINE, nunca <img> ───────────────────────
+// Regra do sistema: SVG por <img src> é documento isolado — não recebe
+// cor do hospedeiro nem participa do escopo de modo. As DUAS variantes
+// moram no DOM e o CSS de modo alterna qual aparece: claro leva o
+// gradiente de incandescência (assets/nivar-wordmark.svg, produção);
+// noturno leva o traço de papel sólido (nivar-wordmark-papel.svg,
+// FOUNDRY NIVAR Wave 2). Geometria copiada VERBATIM dos assets —
+// aplicar, nunca recriar; a única adaptação é o sufixo no id do
+// gradiente, porque o wordmark aparece duas vezes no documento
+// (cabeçalho e rodapé) e id duplicado quebra a referência url(#…).
+
+const WM_PATHS = (
+  <>
+    <path
+      d="M22 112 C22 80 22 50 22 18 C54 40 60 92 108 112 C108 80 108 50 108 18"
+      strokeWidth={16}
+      data-wm-traco
+    />
+    <g strokeWidth={13}>
+      <path d="M140 32 L140 112" data-wm-traco />
+      <path d="M170 32 L200 112 L230 32" data-wm-traco />
+      <path d="M254 112 L284 32 L314 112" data-wm-traco />
+      <path d="M342 112 L342 32" data-wm-traco />
+      <path d="M342 32 C378 32 394 44 386 56 C378 68 362 64 342 64" data-wm-traco />
+      <path d="M370 62 C382 80 390 96 398 112" data-wm-traco />
+    </g>
+  </>
+);
+
+function WordmarkNivar({ altura, idSufixo }: { altura: number; idSufixo: string }) {
+  const largura = Math.round(altura * (425 / 140));
+  return (
+    <span
+      role="img"
+      aria-label="NIVAR"
+      style={{ display: 'inline-flex', flexShrink: 0, lineHeight: 0 }}
+    >
+      <svg
+        className="nivar-wm nivar-wm--claro"
+        viewBox="0 0 425 140"
+        width={largura}
+        height={altura}
+        aria-hidden="true"
+        style={{ display: 'block', overflow: 'visible' }}
+      >
+        <defs>
+          <linearGradient
+            id={`incandescente-${idSufixo}`}
+            gradientUnits="userSpaceOnUse"
+            x1="22"
+            y1="0"
+            x2="400"
+            y2="0"
+          >
+            <stop offset="0%" stopColor="#7A1F0D" />
+            <stop offset="50%" stopColor="#C17D1F" />
+            <stop offset="100%" stopColor="#F5C63C" />
+          </linearGradient>
+        </defs>
+        <g
+          fill="none"
+          stroke={`url(#incandescente-${idSufixo})`}
+          strokeLinecap="butt"
+          strokeLinejoin="miter"
+        >
+          {WM_PATHS}
+        </g>
+      </svg>
+      <svg
+        className="nivar-wm nivar-wm--noturno"
+        viewBox="0 0 425 140"
+        width={largura}
+        height={altura}
+        aria-hidden="true"
+        style={{ display: 'none', overflow: 'visible' }}
+      >
+        <g fill="none" stroke="#F6F2E9" strokeLinecap="butt" strokeLinejoin="miter">
+          {WM_PATHS}
+        </g>
+      </svg>
+    </span>
+  );
+}
+
 /** startViewTransition com checagem de suporte. flushSync dentro do
  *  callback para o snapshot "novo" capturar o DOM já atualizado.
  *  Reduced-motion pula a transição — regra do projeto: estado final. */
@@ -85,7 +169,7 @@ export function PortalBR() {
   // só; o título entra e sai com a página.
   useEffect(() => {
     const anterior = document.title;
-    document.title = 'GridAlpha — Portal Brasil';
+    document.title = 'NIVAR — Portal Brasil';
     return () => {
       document.title = anterior;
     };
@@ -182,14 +266,18 @@ export function PortalBR() {
           font-style: normal;
           font-display: swap;
         }
-        @keyframes jaguar-zoom-in {
+        /* Alternância do wordmark por modo — as duas variantes moram no
+           DOM; o data-mode (Fase 3) decide qual aparece. */
+        [data-mode="noturno"] .nivar-wm--claro { display: none !important; }
+        [data-mode="noturno"] .nivar-wm--noturno { display: block !important; }
+        @keyframes nivar-zoom-in {
           from { opacity: 0; transform: scale(0.82); }
           to   { opacity: 1; transform: none; }
         }
-        ::view-transition-new(jaguar-painel) {
-          animation: jaguar-zoom-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
+        ::view-transition-new(nivar-painel) {
+          animation: nivar-zoom-in 240ms cubic-bezier(0.2, 0, 0, 1) both;
         }
-        .jaguar-flink {
+        .nivar-flink {
           font-size: 13px;
           letter-spacing: 0.02em;
           /* tintaPrimaria, não secundaria: sobre papelSunken a tinta a
@@ -206,27 +294,27 @@ export function PortalBR() {
           font-family: inherit;
           outline-color: ${J.acenteOcreEscuro};
         }
-        .jaguar-flink:hover, .jaguar-flink:focus-visible {
+        .nivar-flink:hover, .nivar-flink:focus-visible {
           text-decoration: underline;
           text-underline-offset: 3px;
         }
-        @keyframes jaguar-desenha { to { stroke-dashoffset: 0; } }
-        .jaguar-planta [data-traco] {
+        @keyframes nivar-desenha { to { stroke-dashoffset: 0; } }
+        .nivar-planta [data-traco] {
           stroke-dasharray: 1;
           stroke-dashoffset: 1;
         }
-        .jaguar-planta.jaguar-planta--visivel [data-traco] {
-          animation: jaguar-desenha 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        .nivar-planta.nivar-planta--visivel [data-traco] {
+          animation: nivar-desenha 700ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
         @media (prefers-reduced-motion: reduce) {
-          .jaguar-planta [data-traco] {
+          .nivar-planta [data-traco] {
             animation: none !important;
             stroke-dashoffset: 0 !important;
           }
           ::view-transition-old(root), ::view-transition-new(root),
-          ::view-transition-group(jaguar-painel),
-          ::view-transition-old(jaguar-painel),
-          ::view-transition-new(jaguar-painel) {
+          ::view-transition-group(nivar-painel),
+          ::view-transition-old(nivar-painel),
+          ::view-transition-new(nivar-painel) {
             animation: none !important;
           }
         }
@@ -246,16 +334,7 @@ export function PortalBR() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span
-            style={{
-              fontSize: '16px',
-              fontWeight: 500,
-              letterSpacing: '-0.01em',
-              color: J.tintaPrimaria,
-            }}
-          >
-            GridAlpha
-          </span>
+          <WordmarkNivar altura={24} idSufixo="cabecalho" />
           <span
             aria-hidden="true"
             style={{ width: '1px', height: '14px', background: J.bordaDefault }}
@@ -418,17 +497,8 @@ export function PortalBR() {
                   maxWidth: '320px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-                  <span
-                    style={{
-                      fontSize: '15px',
-                      fontWeight: 500,
-                      letterSpacing: '-0.01em',
-                      color: J.tintaPrimaria,
-                    }}
-                  >
-                    GridAlpha
-                  </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <WordmarkNivar altura={17} idSufixo="rodape" />
                   <span style={{ ...JT.rotulo, color: J.tintaPrimaria }}>Portal Brasil</span>
                 </div>
                 <span style={{ fontSize: '14px', lineHeight: 1.55, color: J.tintaPrimaria }}>
@@ -442,7 +512,7 @@ export function PortalBR() {
                   d.status === 'disponivel' && d.rota ? (
                     <Link
                       key={d.id}
-                      className="jaguar-flink"
+                      className="nivar-flink"
                       to={d.rota}
                       onClick={(e) => {
                         if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
@@ -457,7 +527,7 @@ export function PortalBR() {
                     <button
                       key={d.id}
                       type="button"
-                      className="jaguar-flink"
+                      className="nivar-flink"
                       onClick={() => abrirDestino(d)}
                     >
                       {d.titulo} · em breve
@@ -529,7 +599,7 @@ export function PortalBR() {
             onClick={(e) => e.stopPropagation()}
             style={{
               outline: 'none',
-              viewTransitionName: 'jaguar-painel',
+              viewTransitionName: 'nivar-painel',
               width: 'min(560px, 100%)',
               background: J.papelOverlay,
               border: `1px solid ${J.bordaStrong}`,

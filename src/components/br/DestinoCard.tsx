@@ -47,7 +47,7 @@ function comTransicao(mudanca: () => void) {
 // ─── Planta baixa ────────────────────────────────────────────────────
 // Um esboço de layout por destino — traço fino ocre, sem preenchimento.
 // Cada forma leva pathLength=1 + data-traco; o CSS do PortalBR anima o
-// stroke-dashoffset quando .jaguar-planta--visivel entra. Reduced
+// stroke-dashoffset quando .nivar-planta--visivel entra. Reduced
 // motion cai para o estado final via a mesma folha.
 
 interface Traco {
@@ -122,7 +122,7 @@ export function PlantaBaixa({ destinoId, visivel, altura = 150 }: PlantaBaixaPro
       viewBox="0 0 280 150"
       preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
-      className={`jaguar-planta${visivel ? ' jaguar-planta--visivel' : ''}`}
+      className={`nivar-planta${visivel ? ' nivar-planta--visivel' : ''}`}
       style={{ width: '100%', height: `${altura}px`, display: 'block' }}
     >
       {tracos.map((t, i) => {

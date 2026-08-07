@@ -22,7 +22,7 @@ const COMPROMISSOS: Compromisso[] = [
     id: 'analise-e-o-produto',
     titulo: 'A análise é o produto',
     detalhe:
-      'A única receita da GridAlpha é o trabalho analítico entregue a quem o contrata — relatório, diagnóstico e formação.',
+      'A única receita da NIVAR é o trabalho analítico entregue a quem o contrata — relatório, diagnóstico e formação.',
   },
   {
     id: 'dado-com-origem',

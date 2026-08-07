@@ -108,7 +108,7 @@ export function CriarContaView() {
 
   return (
     <ContaShell
-      eyebrow="Conta GridAlpha"
+      eyebrow="Conta NIVAR"
       titulo="Criar conta"
       subtitulo="Uma conta no nível da plataforma. Criar não ativa nada — cada produto ativa quando você entra nele."
       rodape={

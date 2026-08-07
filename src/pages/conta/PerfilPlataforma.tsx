@@ -82,7 +82,7 @@ export function PerfilPlataforma() {
   // quem TEM sessão válida, a cada carga de página.
   if (loading) {
     return (
-      <ContaShell eyebrow="Conta GridAlpha" titulo="Perfil">
+      <ContaShell eyebrow="Conta NIVAR" titulo="Perfil">
         <p style={{ ...JT.corpo, margin: 0, color: J.tintaSecundaria }}>Carregando…</p>
       </ContaShell>
     );
@@ -103,7 +103,7 @@ export function PerfilPlataforma() {
 
   return (
     <ContaShell
-      eyebrow="Conta GridAlpha"
+      eyebrow="Conta NIVAR"
       titulo="Perfil de plataforma"
       subtitulo="Uma conta para todos os produtos. Cada um ativa quando você entra nele."
       largura="prancha"

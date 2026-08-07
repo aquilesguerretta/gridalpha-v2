@@ -70,7 +70,7 @@ export function EntrarView() {
 
   return (
     <ContaShell
-      eyebrow="Conta GridAlpha"
+      eyebrow="Conta NIVAR"
       titulo="Entrar"
       subtitulo="Uma conta para tudo — Alexandria, Portal Brasil e o que vier depois."
       rodape={

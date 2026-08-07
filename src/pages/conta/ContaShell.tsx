@@ -144,7 +144,7 @@ export function ContaShell({
             outlineColor: J.acenteOcreEscuro,
           }}
         >
-          GridAlpha
+          NIVAR
         </Link>
         <span
           aria-hidden="true"

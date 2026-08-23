@@ -79,13 +79,19 @@ import '../../design/nivar/space.css';
 import '../../design/nivar/motion.css';
 
 import { DESTINOS_BR, type DestinoBR } from '../../lib/data/br-destinos';
+import { FAMILIAS_BR } from '../../lib/data/br-familias';
 // Números REAIS do produto aberto — derivados do catálogo da
 // Alexandria (leitura, nunca modificação): se o currículo crescer, a
 // landing acompanha sozinha. Nenhum número digitado.
 import { ALEXANDRIA_TRILHAS } from '../../lib/data/alexandria-trilhas';
 import { ALEXANDRIA_BLOCKS } from '../../lib/data/alexandria-blocks';
 import type { SubmercadoPath } from '../../lib/geo/brasil-outline';
-import { DestinoCard, PlantaBaixa } from '../../components/br/DestinoCard';
+// DestinoCard saiu do import na Wave 8 junto com a grade de cinco
+// cards — o COMPONENTE fica no disco, intocado, para a página de
+// família reusar se quiser card de produto depois. PlantaBaixa
+// continua, porque o overlay "em breve" ainda a usa.
+import { PlantaBaixa } from '../../components/br/DestinoCard';
+import { FaixaFamilias } from '../../components/br/FaixaFamilias';
 import { FaixaIndependencia } from '../../components/br/FaixaIndependencia';
 import { PortalHero } from '../../components/br/PortalHero';
 import { SeletorMercado } from '../../components/br/SeletorMercado';
@@ -1565,8 +1571,16 @@ export function PortalBR() {
             </div>
           </section>
 
+          {/* ─── 03 · Famílias (Wave 8) ────────────────────────────────
+              A grade de cinco cards de PRODUTO saiu; a faixa de cinco
+              FAMÍLIAS COMERCIAIS entra no lugar, mantendo o número de
+              seção 03 — a numeração NÃO desloca, e nenhuma outra seção
+              precisou ser renumerada. A casa marca a família, não o
+              produto (arquitetura de marca do design system); os cinco
+              produtos continuam existindo, agora dentro da página da
+              família a que pertencem. */}
           <section
-            aria-label="Destinos"
+            aria-label="Famílias"
             style={{
               // Teto de espaçamento do sistema: 32px, inclusive entre
               // seções — os 40/64px do Jaguar saem.
@@ -1579,33 +1593,22 @@ export function PortalBR() {
           >
             {/* Cabeçalho de seção do sistema: número · título · fio ·
                 nota à direita, numa linha de baseline. Número em mono,
-                dois dígitos, no acento da casa. */}
+                dois dígitos, no acento da casa. A nota é DERIVADA dos
+                dois catálogos, nunca digitada. */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
               <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>03</span>
-              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Destinos</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Famílias</span>
               <span
                 aria-hidden="true"
                 style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
               />
               <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
-                1 aberto · 4 em construção
+                {FAMILIAS_BR.length} famílias ·{' '}
+                {DESTINOS_BR.filter((d) => d.status === 'disponivel').length} produto aberto
               </span>
             </div>
 
-            {/* Cinco cards, mesma moldura e tamanho — spec §3. O peso
-                igual é da especificação; a hierarquia mora DENTRO do
-                card (prévia real vs. planta baixa), não no grid. */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: '20px',
-              }}
-            >
-              {DESTINOS_BR.map((d) => (
-                <DestinoCard key={d.id} destino={d} onZoom={abrirDestino} />
-              ))}
-            </div>
+            <FaixaFamilias />
           </section>
 
           {/* ─── 04 · A Alexandria em números ──────────────────────────

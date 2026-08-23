@@ -9159,6 +9159,131 @@ um grid que não disparava.
   `/conta` (955 linhas ainda em `jaguar-tokens.ts`) e o esqueleto de
   vídeo são as próximas da sequência que a auditoria recomendou.
 
+## ARCHITECT — PORTAL BR WAVE 9 · ENXUGAR A LANDING PRO ESQUELETO REAL
+
+**Status:** fechada. A landing perde as seções explicativas e fica com
+hero → fatos → famílias → CTA → rodapé. Seis commits, um por fase,
+todos pushados.
+
+**N resolvido contra o CLAUDE.md do disco:** última numerada era a
+**Wave 8**, logo esta é a **9**. (A recon que produziu
+`docs/portal-br-familia-audit.md` segue sem seção própria — o brief
+dela dava posse só do documento; a lacuna já está registrada na Wave 8.)
+
+**Arquivos:** `PortalBR.tsx` · `portalChrome.tsx` · `FamiliaPage.tsx`.
+
+### Fase 1 — as três hipóteses, medidas
+
+| Hipótese | Real |
+| --- | --- |
+| Onde as seções descontinuadas vivem | **Todas inline em `PortalBR.tsx`.** `portalChrome.tsx` tem ZERO delas — a extração da Wave 8 levou só wordmark + folha de CSS. Exceção: Independência é o componente `FaixaIndependencia.tsx` |
+| Caminho da "página Academy" | **Não existe arquivo próprio** — a Wave 8 fez UM componente parametrizado (`FamiliaPage.tsx`, `useParams` → `familiaPorId`) para as cinco rotas |
+| Rodapé e lista de Destinos | Rodapé **inline** em `PortalBR.tsx`; a coluna "Destinos" mapeava `DESTINOS_BR` |
+
+**Tensão real no brief, reportada antes de agir:** a posse mandava
+modificar "a página Academy" e listava as outras quatro famílias como
+NUNCA MODIFICAR — mas **são o mesmo arquivo**. Resolvido com conteúdo
+CONDICIONADO (`familia.id === 'academy'`): toca o arquivo compartilhado,
+renderiza zero mudança nas outras quatro. Verificado por teste — as
+quatro seguem com numeração `01 02` e sem o bloco novo.
+
+### Fase 2 — extrair ANTES de remover
+
+Ordem respeitada à risca: "A Alexandria em números" foi colada em
+`FamiliaPage` e commitada (`b585513`) **antes** de qualquer remoção
+(`e79722d`). O conteúdo é o mesmo verbatim — contagem DERIVADA dos
+catálogos (3 trilhas · 17 módulos · 141 aulas, nenhum número digitado),
+contador com smoothstep ao entrar na tela, botão com a rota real, e a
+linha de procedência. `useEntrouNaTela` e `ContadorVivo` migraram junto.
+
+Na Academy a numeração fica `01 Produtos · 02 A Alexandria em números ·
+03 As outras famílias`; nas outras quatro, `01 · 02` — o número da
+última seção passou a ser **calculado**, não digitado.
+
+### Fase 3 — remoção limpa, com o compilador como oráculo
+
+Saíram da interface E do código, sem comentário e sem flag: prévia do
+Terminal Brasil, "Como a NIVAR lê o mercado", Conflito de interesse,
+Independência, FAQ, e o bloco da Alexandria (já migrado).
+
+**−1133 linhas em `PortalBR.tsx`.** O corte não parou no JSX: o `tsc`
+apontou cada declaração que ficou órfã e todas foram removidas —
+`CONFLITO`, `SUBMERCADOS_AMOSTRA`, `PERIODOS_AMOSTRA`,
+`serieIlustrativa`, `geometriaSerie`, `formatoBRL`, `formatoPct`,
+`N_CASA_D`, `direcaoDe`/`GLIFO_DIRECAO`/`COR_DIRECAO`,
+`PASSOS_LEITURA`, `PERGUNTAS_DIRETAS`, `ALEXANDRIA_STATS`, mais o
+estado de componente do boot do terminal, do relógio sintético, da
+tabela-seletora, do FAQ e dos passos.
+
+**CSS órfão também saiu** — mas só depois de medir consumidor por
+classe: `nivar-serie-linha`, `nivar-serie-ponto`, `nivar-loader-n`,
+`nivar-vivo-ponto`, `nivar-passo` e `nivar-verbete` ficaram com zero
+consumidor e foram removidos da folha compartilhada. **`nivar-pulso` e
+`nv-metodo` FICARAM** — o `PortalHero` ainda os usa (a corrente no mapa
+e o MethodDisclosure do PLD); removê-los por associação teria quebrado
+o hero.
+
+**Dois off-by-one meus, pegos pelo `tsc` e corrigidos na hora:** a
+faixa de remoção levou junto o `import type { SubmercadoPath }` e o
+`import { PortalHero }`. Os dois foram restaurados antes do commit —
+nenhum chegou a ser commitado quebrado.
+
+### Fase 4 — reposicionar e renumerar
+
+A ordem pedida já era a resultante do corte (hero → fatos → famílias →
+CTA), confirmada por `compareDocumentPosition`. O que a fase fez foi:
+
+- **Famílias 03 → 01**, sem pular número — as duas seções numeradas que
+  vinham antes dela foram removidas.
+- **A faixa de fatos perdeu a linha de destinos**, que duplicava o
+  cabeçalho da seção de Famílias logo abaixo ("5 famílias · 1 produto
+  aberto"). Os outros três fatos ficam, incluindo "PLD ilustrativo até
+  o Terminal Brasil" — que continua VERDADE: o hero segue mostrando PLD
+  ilustrativo, e o Terminal segue sendo o produto que traz o real.
+
+### Fase 5 — rodapé
+
+A coluna "Destinos" (cinco produtos soltos, um deles com botão
+"em breve" que abria overlay) virou coluna **"Famílias"** com as cinco
+rotas reais de `/br/familia/*`. Nenhum link morto — as cinco páginas
+existem desde a Wave 8. Com isso `abrirDestino` perdeu o último
+consumidor e foi removido; o overlay "em breve" continua vivo, acionado
+pelo clique em região do mapa (`abrirRegiao`).
+
+### Verificação — 44 asserções, 0 falha
+
+As cinco seções ausentes do DOM **e do texto** (não basta sumir a
+`<section>`: conferi que a copy de cada uma também não aparece em
+lugar nenhum); ordem por `compareDocumentPosition`; numeração `01`
+sozinha; hero **intacto** (H1 e tese conferidos verbatim — a copy não
+foi tocada nesta wave); nenhum placeholder de vídeo; rodapé com cinco
+links de família e clique real levando à página; Academy com os
+contadores em 3 · 17 · 141 e o botão com rota real; **as outras quatro
+famílias sem o bloco novo e com numeração inalterada**; noturno; três
+viewports sem overflow.
+
+As duas falhas intermediárias foram do harness — eu tinha esquecido que
+o `PortalHero` renderiza a própria `<section>`, então são quatro no
+`<main>`, não três. Oitava ocorrência do padrão nesta trilha.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos da wave (seguem os 7
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect` —
+"No findings. Surface is clean."
+
+### Registrado, não resolvido
+
+- **`FaixaIndependencia.tsx` ficou órfã** — o componente segue no
+  disco, intocado, sem consumidor. Mesmo tratamento que `DestinoCard`
+  recebeu na Wave 8. Apagar arquivo não estava na posse desta wave.
+- **O argumento das seções removidas não foi para lugar nenhum ainda** —
+  conflito de interesse, independência e método saíram da landing e
+  entram em hero e vídeo quando a copy for escrita, numa wave futura.
+  Nada disso foi encaixado às pressas no hero, como o brief travou.
+- **Nenhum espaço reservado para o vídeo**, como o brief mandou — a
+  próxima wave insere o bloco quando chegar.
+- Três menções a `FaixaIndependencia` sobrevivem em **comentário
+  histórico** de cabeçalho (Waves 1/6/8); zero código vivo.
+
 ## CURSOR — CATÁLOGO /CONTA WAVE 1
 
 **Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.

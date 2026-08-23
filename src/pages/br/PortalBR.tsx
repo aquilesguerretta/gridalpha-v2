@@ -51,6 +51,16 @@
 //   RODAPÉ é inline aqui; a coluna "Destinos" mapeia DESTINOS_BR.
 //   Dois textos envelhecem com o corte e a Fase 4 os trata: a faixa de
 //     fatos cita "até o Terminal Brasil" (que sai) e "N destinos".
+//
+// WAVE 10 · FASE 1 — pontos de edição confirmados:
+//   "As outras famílias" — FamiliaPage.tsx, INCONDICIONAL: afeta as
+//     cinco rotas igual. O número dela é calculado (numOutras).
+//   Gravura da Alexandria — /alexandria/gravuras/alexandria-gravura.png,
+//     referenciada por DestinoCard.tsx (órfão) e PRESENTE no disco.
+//   CTA do hero — a const `ctas` em PortalHero.tsx, usada nos DOIS
+//     layouts (imersivo e reduced-motion): sai dos dois.
+//   NÃO EXISTE glifo de play no design system — o conjunto unicode é
+//     fechado e desenhar SVG novo é proibido. O slot fica sem ícone.
 
 //
 // Header fixo → hero (mapa que se constrói no scroll) → índice de

@@ -15,10 +15,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-import { J, JT } from '../../design/jaguar-tokens';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { AuthError } from '../../lib/auth/authApi';
-import { AvisoErro, Campo, ContaShell } from './ContaShell';
+import { AvisoErro, Campo, ContaShell, NT } from './ContaShell';
 
 /** Mensagem única para TODA falha de credencial. Tradução fiel do
  *  `invalid email or password` do backend — traduzir preserva a
@@ -122,11 +121,10 @@ export function EntrarView() {
           Dizer o que falta é melhor que um link que não leva a nada. */}
       <p
         style={{
-          ...JT.corpo,
+          ...NT.nota,
           marginTop: '18px',
           marginBottom: 0,
-          fontSize: '13px',
-          color: J.tintaSecundaria,
+          color: 'var(--text-muted)',
         }}
       >
         Recuperação de senha ainda não existe. Se perder o acesso, fale com a gente até

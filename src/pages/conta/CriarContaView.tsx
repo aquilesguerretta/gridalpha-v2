@@ -20,10 +20,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
-import { J, JT } from '../../design/jaguar-tokens';
 import { useAuth } from '../../lib/auth/AuthContext';
 import { AuthError } from '../../lib/auth/authApi';
-import { AvisoErro, Campo, ContaShell } from './ContaShell';
+import { AvisoErro, Campo, ContaShell, NT } from './ContaShell';
 
 const SENHA_MINIMA = 8;
 
@@ -191,11 +190,10 @@ export function CriarContaView() {
 
       <p
         style={{
-          ...JT.corpo,
+          ...NT.nota,
           marginTop: '18px',
           marginBottom: 0,
-          fontSize: '13px',
-          color: J.tintaSecundaria,
+          color: 'var(--text-muted)',
         }}
       >
         Não há cobrança nesta etapa — sistema de pagamento ainda não existe.

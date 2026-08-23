@@ -249,6 +249,121 @@ Isso reforça o limite desta recon: para as primeiras cem análises manuais,
 o sistema precisa de **intake e entrega**, mas hoje possui apenas
 **identidade e ativação de catálogo**.
 
+## Fase 2 — Capacidade de entrega
+
+Adendo ao escopo original. A varredura foi repetida sobre routers, services,
+models, migrations e dependências; ausência não foi inferida a partir da
+interface nem preenchida por hipótese.
+
+### 5. Email transacional
+
+#### Veredito
+
+**Não existe envio de email transacional no backend.**
+
+#### Evidência
+
+- Não há dependência de SendGrid, Resend, Postmark, Mailgun, FastAPI-Mail,
+  Amazon SES, SMTP ou equivalente em `requirements.txt`.
+- Não há import de `smtplib`, cliente de provedor, helper `send_email` /
+  `send_mail` ou service de email em `app/`.
+- Não há variável de ambiente `SMTP_*`, `MAIL_*`, `EMAIL_*` ou credencial
+  de provedor.
+- `app/main.py` não registra router de notificação, email ou webhook de
+  entrega.
+- O router de identidade oferece somente `signup`, `login`, `logout` e
+  `me`.
+- O cadastro cria a linha de usuário e estabelece a sessão imediatamente;
+  não gera token nem envia confirmação de endereço.
+- Não existe endpoint de esquecimento/reset de senha, token de reset ou
+  confirmação de email.
+- O model `User` não tem `email_verified_at`, token de verificação, token
+  de reset, prazo de expiração ou preferência de notificação.
+
+O campo `users.email` é chave de identidade normalizada e única. Ter um
+endereço persistido **não é** ter capacidade de enviar email.
+
+#### Reutilização
+
+**Nenhum mecanismo/provedor é reutilizável porque nenhum existe.** O que
+pode ser reaproveitado num build futuro é somente:
+
+- o endereço autenticado em `User.email`;
+- a resolução do usuário por `get_current_user`;
+- a configuração por variável de ambiente já usada em outros domínios como
+  padrão operacional, não como implementação de email.
+
+Confirmação de recebimento, aviso de mudança de status e notificação de
+relatório pronto exigem escolher e integrar um provedor. O prazo de 48h não
+tem hoje nenhum canal transacional que o comunique.
+
+### 6. Arquivo ou entregável associado a uma conta
+
+#### Veredito
+
+**Não existe conceito de arquivo ou entregável associado a usuário.**
+
+Não há model, tabela ou endpoint de `UserFile`, `Attachment`, `Artifact`,
+`Deliverable`, `Report`, certificado baixável ou equivalente. Também não há
+coluna `BYTEA`/`LargeBinary`, object key, filename, MIME type, URL de
+download, `delivered_at` ou vínculo entre usuário e storage.
+
+#### Precedentes parciais reais
+
+Existem dois domínios que persistem fatos por conta:
+
+1. **Acesso a produto** — `ProductAccess.user_id` referencia `users.id`
+   com `ON DELETE CASCADE`. Guarda entitlement binário e data de ativação.
+2. **Progresso da Alexandria** — `ProgressEvent`, `AulaStatus`,
+   `BadgeAward` e `StudyStreak` também referenciam `users.id` com
+   `ON DELETE CASCADE`. Os endpoints usam `get_current_user` e filtram por
+   `user.id`, impedindo que uma conta leia o progresso de outra.
+
+Esses precedentes confirmam um padrão reutilizável de **posse por conta**:
+
+- FK `user_id → users.id`;
+- exclusão em cascata;
+- escrita e leitura autenticadas;
+- queries sempre escopadas ao usuário atual;
+- idempotência/constraints no domínio que precisa delas.
+
+#### Por que o progresso não é um entregável
+
+O progresso é estrutura **totalmente diferente no conteúdo e parcialmente
+reutilizável apenas no padrão de ownership**:
+
+- `progress_event` é log imutável de ações pedagógicas;
+- `entity_id` é string opaca de aula/instrumento/exercício/badge;
+- `metadata` é JSONB solto para contexto do evento, não arquivo;
+- `GET /api/progress/me` devolve apenas ids de aulas, badges e streak;
+  nem sequer expõe o `metadata` do log;
+- não há bytes, path, object key, nome, MIME type, tamanho, checksum,
+  autorização de download ou estado de entrega.
+
+Guardar path de relatório ou payload de arquivo em
+`progress_event.metadata` seria abuso do precedente: o log é fonte de verdade
+de aprendizagem, não registro operacional genérico, e sua API não oferece
+leitura do conteúdo.
+
+`ProductAccess` tem o mesmo limite por outro motivo: responde se o usuário
+tem acesso ao produto, não qual arquivo ele enviou ou recebeu.
+
+#### Reutilização
+
+**Reutilizável somente como padrão, não como tabela existente.** Um build
+futuro pode copiar a disciplina de FK, cascata e escopo autenticado dos
+models de progresso, mas precisa criar identidade própria para:
+
+- pedido/submissão;
+- arquivo de entrada;
+- relatório/entregável;
+- estado de revisão e entrega;
+- autorização de download.
+
+Isso não é mecanismo paralelo de conta: as novas entidades devem referenciar
+o mesmo `users.id`. É um novo domínio operacional ligado à identidade
+existente.
+
 ## Implicações obrigatórias para o próximo brief
 
 O próximo brief não pode presumir nenhuma das seguintes capacidades:
@@ -259,6 +374,9 @@ O próximo brief não pode presumir nenhuma das seguintes capacidades:
 4. `product_access` equivalendo a compra;
 5. uma linha de acesso representando múltiplas submissões;
 6. fila manual, status de 48h ou entrega já modelados.
+7. email transacional, confirmação de conta ou reset de senha;
+8. arquivo/artefato associado a usuário;
+9. `progress_event.metadata` funcionando como storage ou entrega.
 
 As únicas bases confirmadas e prontas para reaproveitamento são:
 
@@ -266,6 +384,7 @@ As únicas bases confirmadas e prontas para reaproveitamento são:
 2. PostgreSQL/SQLAlchemy/Alembic;
 3. catálogo canônico com `conta-de-luz-express`;
 4. entitlement idempotente por usuário/produto.
+5. padrão de ownership por `user_id`, FK com cascata e query autenticada.
 
 Qualquer outra capacidade precisa ser construída ou explicitamente
 descartada pelo war room. Ausência não foi preenchida por hipótese nesta

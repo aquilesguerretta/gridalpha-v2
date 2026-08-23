@@ -55,8 +55,12 @@ export const DESTINOS_BR: DestinoBR[] = [
     titulo: 'Conta de Luz Express',
     descricao:
       'Análise independente de fatura industrial — modalidade, demanda e oportunidades a validar.',
-    status: 'em-breve',
-    rota: null,
+    // Wave 2 de Conta de Luz Express: a superfície de intake existe em
+    // rota de TOPO (main.tsx), no mesmo precedente da Alexandria acima.
+    // Virar estes dois campos é o que faz a página de família renderizar
+    // "Aberto →" sozinha — nenhum componente muda para isso.
+    status: 'disponivel',
+    rota: '/conta-de-luz-express',
   },
   {
     id: 'diagnostico-energetico',

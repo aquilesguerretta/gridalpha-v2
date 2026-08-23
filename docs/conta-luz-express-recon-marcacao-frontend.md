@@ -260,3 +260,25 @@ nova de PNG por página já nasce `inline` e o problema não existe.
 - **O Journal tem `borderRadius` e tokens do terminal** — se alguém for
   reusar o lightbox dele como referência, precisa saber que ele não
   passa no NIVAR.
+
+---
+
+## Adendo — cruzamento com a recon de criação (CURSOR Wave 3)
+
+`docs/conta-luz-express-recon-marcacao-backend.md` (`47d694b`) entrou
+na branch durante esta wave, escrita em paralelo e sem ver este
+documento. As duas **convergem** nos requisitos de dado, o que vale
+registrar para o brief de build não ter que reconciliar:
+
+| Requisito | Este doc (§3.4) | CURSOR (§"Implicação para coordenadas") |
+| --- | --- | --- |
+| Página | obrigatória para PDF | "PDF — coordenada precisa de `page` explícita"; imagem sem `page` como regra declarada |
+| Base de coordenadas | dimensões em px OU fração 0-1 | propõe **normalizada `0..1`** relativa à página/imagem |
+| Dimensões da página | a renderização precisa delas | o backend **não guarda** largura/altura/MediaBox/rotação |
+
+Implicação da convergência: com base `0..1`, a renderização do §3.2
+multiplica pelas dimensões **que o frontend mede ao carregar a
+imagem** (`naturalWidth/naturalHeight`, ou a página do pdf.js) — o
+backend não precisa conhecer pixels, exatamente como a CURSOR observa.
+O único fato que os dois lados pedem e ninguém tem hoje é **contagem de
+páginas e rotação do PDF**, que só um parser fornece (§1, opções).

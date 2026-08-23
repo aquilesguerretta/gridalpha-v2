@@ -423,7 +423,6 @@ export function PortalBR() {
             {[
               '4 submercados no SIN',
               'Geografia IBGE · malhas v3',
-              `${DESTINOS_BR.length} destinos · ${DESTINOS_BR.filter((d) => d.status === 'disponivel').length} aberto hoje`,
               'PLD ilustrativo até o Terminal Brasil',
             ].map((fato, i) => (
               <span
@@ -441,7 +440,7 @@ export function PortalBR() {
 
 
 
-          {/* ─── 03 · Famílias (Wave 8) ────────────────────────────────
+          {/* ─── 01 · Famílias (Wave 8; renumerada na Wave 9) ─────────
               A grade de cinco cards de PRODUTO saiu; a faixa de cinco
               FAMÍLIAS COMERCIAIS entra no lugar, mantendo o número de
               seção 03 — a numeração NÃO desloca, e nenhuma outra seção
@@ -466,7 +465,7 @@ export function PortalBR() {
                 dois dígitos, no acento da casa. A nota é DERIVADA dos
                 dois catálogos, nunca digitada. */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>03</span>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
               <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Famílias</span>
               <span
                 aria-hidden="true"

@@ -13,6 +13,7 @@ import { SignupSuccessPage } from './pages/auth/SignupSuccessPage';
 import { AuthLayout } from './components/editorial/AuthLayout';
 import { AlexandriaHome } from './pages/alexandria/AlexandriaHome';
 import { PortalBR } from './pages/br/PortalBR';
+import { PortalBRRouter } from './pages/br/PortalBRRouter';
 import { AuthProvider } from './lib/auth/AuthContext';
 import { EntrarView } from './pages/conta/EntrarView';
 import { CriarContaView } from './pages/conta/CriarContaView';
@@ -124,7 +125,12 @@ createRoot(document.getElementById('root')!).render(
               agora que a raiz é o Portal, redirecionar deixaria o lado
               americano INALCANÇÁVEL em vez de oculto — o oposto do
               pedido. Esta rota é a única porta que resta para ele. */}
-          <Route path="/br" element={<PortalBR />} />
+          {/* Wave 8: `/br` deixa de ser rota RASA e vira splat, no
+              padrão que `/alexandria/*` já usava — o `index` do
+              PortalBRRouter continua servindo o Portal, e
+              `familia/:familiaId` abre a página da família. Link
+              antigo para `/br` segue válido, sem redirecionamento. */}
+          <Route path="/br/*" element={<PortalBRRouter />} />
           <Route path="/us" element={<LandingPage />} />
 
           {/* Endereço desconhecido cai na home brasileira, não na

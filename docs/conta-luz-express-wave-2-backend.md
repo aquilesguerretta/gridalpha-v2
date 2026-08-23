@@ -307,3 +307,53 @@ Smoke contra o banco de produção confirmou:
 e o contrato HTTP estão testados; entrega em caixa postal externa continua
 dependente de `RESEND_API_KEY`, remetente verificado e as quatro variáveis
 documentadas na Fase 1.
+
+## Fase 4 — Mecanismo de anexo do PDF pronto
+
+### Implementado
+
+```text
+POST /api/conta-luz-express/submissions/{id}/deliverable
+GET  /api/conta-luz-express/submissions/{id}/deliverable
+```
+
+O POST:
+
+- exige sessão normal da plataforma;
+- exige que o email da conta seja o `CLE_OPERATOR_EMAIL`;
+- aceita somente PDF por MIME e assinatura `%PDF-`;
+- aplica limite próprio de tamanho;
+- grava bytes e metadata na submissão específica;
+- muda `submitted → ready`;
+- registra `delivered_at`;
+- envia o email ao dono da submissão antes do commit;
+- persiste provider id e timestamp da notificação.
+
+Se o provider falha, a transação inteira é revertida: não existe estado
+`ready` sem email. Reenvio do mesmo PDF, identificado por SHA-256, é
+idempotente e não dispara novo email. Um PDF diferente sobre entrega já
+fechada retorna `409`, sem substituição silenciosa.
+
+O GET permite download apenas para o dono ou operador e devolve
+`Cache-Control: private, no-store` e `X-Content-Type-Options: nosniff`.
+
+### Verificação
+
+Smoke contra PostgreSQL de produção com:
+
+- PNG real de entrada: 1.456.260 bytes;
+- PDF real de saída: 2.178.084 bytes.
+
+Resultado:
+
+1. cliente anexando relatório → `403`;
+2. operador configurado anexando → `200`, status `ready`;
+3. email do cliente chamado uma vez, no endereço correto;
+4. listagem do perfil → `1 ready`, `0 submitted`;
+5. download pelo cliente → bytes idênticos ao PDF original;
+6. mesmo PDF novamente → idempotente, zero novo email;
+7. PDF diferente → `409`;
+8. contas e submissão descartáveis removidas por cascata.
+
+Nenhum painel de admin, role nova, engine de análise ou mecanismo de
+pagamento foi criado.

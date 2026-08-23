@@ -20,10 +20,15 @@ from app.services.conta_luz_email import (
     EmailConfigurationError,
     EmailDeliveryError,
     email_config,
+    notify_customer_deliverable_ready,
     notify_operator_new_submission,
     operator_email,
 )
-from app.services.conta_luz_storage import InvalidUpload, read_source_upload
+from app.services.conta_luz_storage import (
+    InvalidUpload,
+    read_deliverable_upload,
+    read_source_upload,
+)
 
 
 PRODUCT_ID = "conta-de-luz-express"
@@ -36,6 +41,20 @@ router = APIRouter(prefix="/api/conta-luz-express", tags=["conta-luz-express"])
 def _is_operator(user: User) -> bool:
     configured = operator_email()
     return bool(configured and user.email.lower() == configured)
+
+
+def _require_operator(user: User) -> None:
+    configured = operator_email()
+    if not configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="CLE_OPERATOR_EMAIL is not configured",
+        )
+    if user.email.lower() != configured:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="operator access required",
+        )
 
 
 def _require_entitlement(db: Session, user: User) -> None:
@@ -228,4 +247,94 @@ def download_source(
         content=stored.source_data,
         media_type=stored.source_content_type,
         headers=_download_headers(stored.source_filename),
+    )
+
+
+@router.post("/submissions/{submission_id}/deliverable")
+async def attach_deliverable(
+    submission_id: uuid.UUID = Path(...),
+    file: UploadFile = File(..., description="Final report PDF"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_operator(user)
+    try:
+        config = email_config()
+    except EmailConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    try:
+        deliverable = await read_deliverable_upload(file)
+    except InvalidUpload as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    submission = _get_submission_without_bytes(db, submission_id)
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="submission not found")
+    if submission.status == "ready":
+        if submission.deliverable_sha256 == deliverable.sha256:
+            return {**_submission_payload(submission), "alreadyReady": True}
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="submission already has a different deliverable",
+        )
+
+    customer = db.execute(
+        select(User).where(User.id == submission.user_id)
+    ).scalar_one()
+    delivered_at = datetime.now(timezone.utc)
+    submission.status = "ready"
+    submission.deliverable_filename = deliverable.filename
+    submission.deliverable_content_type = deliverable.content_type
+    submission.deliverable_size_bytes = deliverable.size_bytes
+    submission.deliverable_sha256 = deliverable.sha256
+    submission.deliverable_data = deliverable.data
+    submission.delivered_at = delivered_at
+
+    try:
+        db.flush()
+        receipt = notify_customer_deliverable_ready(
+            config=config,
+            submission_id=submission.id,
+            customer_name=customer.name,
+            customer_email=customer.email,
+        )
+        submission.customer_email_id = receipt.provider_id
+        submission.customer_notified_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(submission)
+    except EmailDeliveryError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"deliverable was not saved because customer notification failed: {exc}",
+        ) from exc
+    return {**_submission_payload(submission), "alreadyReady": False}
+
+
+@router.get("/submissions/{submission_id}/deliverable")
+def download_deliverable(
+    submission_id: uuid.UUID = Path(...),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    visible = _require_visible_submission(db, submission_id, user)
+    if visible.status != "ready":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="deliverable not ready",
+        )
+    stored = db.execute(
+        select(
+            ContaLuzSubmission.deliverable_data,
+            ContaLuzSubmission.deliverable_content_type,
+            ContaLuzSubmission.deliverable_filename,
+        ).where(ContaLuzSubmission.id == visible.id)
+    ).one()
+    return Response(
+        content=stored.deliverable_data,
+        media_type=stored.deliverable_content_type,
+        headers=_download_headers(stored.deliverable_filename),
     )

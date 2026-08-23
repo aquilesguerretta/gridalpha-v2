@@ -9284,6 +9284,126 @@ pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect` —
 - Três menções a `FaixaIndependencia` sobrevivem em **comentário
   histórico** de cabeçalho (Waves 1/6/8); zero código vivo.
 
+## ARCHITECT — PORTAL BR WAVE 10 · ENXUGAR FAMÍLIA, HERO E SLOT DE VÍDEO
+
+**Status:** fechada. Seis commits, um por fase, todos pushados.
+
+**N resolvido contra o CLAUDE.md do disco:** última numerada era a
+**Wave 9**, logo esta é a **10**.
+
+**Arquivos:** `FamiliaPage.tsx` · `PortalHero.tsx` · `PortalBR.tsx`.
+Nenhum arquivo novo — a Fase 5 confirmou que o slot cabe em JSX inline.
+
+### Fase 1 — os quatro pontos, medidos
+
+| Hipótese | Real |
+| --- | --- |
+| "As outras famílias" | `FamiliaPage.tsx` — **incondicional**, afeta as cinco rotas igual. O número dela era calculado (`numOutras`) |
+| Gravura da Alexandria | `/alexandria/gravuras/alexandria-gravura.png` — referenciada por `DestinoCard.tsx` (órfão) e **PRESENTE no disco** (655 KB, 1536×1024, cantos transparentes). Não é referência morta |
+| CTA do hero | a const `ctas` em `PortalHero.tsx`, usada nos **DOIS** layouts (imersivo e reduced-motion) |
+| Numeração | `PortalBR`: só `01` Famílias. `FamiliaPage`: `01` Produtos · `02` Alexandria (só Academy) · `numOutras` |
+
+### NÃO EXISTE GLIFO DE PLAY NO SISTEMA — reportado, não desenhado
+
+O brief autorizava usar um glifo de play "se existir no sistema".
+**Não existe.** O readme declara o conjunto unicode como FECHADO —
+`× – ↑ ↓ ↕ → ± ≥ ≤ ▾ ·` — e proíbe explicitamente "SVG desenhado à mão
+além das marcas entregues". Desenhar um triângulo de play seria
+introduzir dialeto visual estrangeiro no sistema. **O slot fica sem
+ícone**: a reserva fala por texto e fio, como o resto do sistema.
+
+### Fase 2 — "As outras famílias" sai
+
+Removida das cinco rotas de uma vez (era incondicional). Com ela fora, a
+numeração **deixa de ter buraco sem precisar renumerar nada**: Academy
+fecha em `01 · 02`, as outras quatro em `01` sozinho. `numOutras` e
+`outras` morreram junto, e `FAMILIAS_BR` deixou de ser importado no
+arquivo.
+
+### Fase 3 — a gravura na Academy
+
+O mesmo arquivo que ilustrava o card do destino antes da Wave 8, agora
+dentro do bloco condicionado a `familia.id === 'academy'`. Tratamento
+herdado do `DestinoCard`: `object-fit: contain` (nunca esticada) sobre
+o papel REAL do sistema Alexandria (`#F2E9D6`, hardcoded de propósito —
+importar `alexandria-tokens.ts` é proibido, e aqui a página CITA o
+produto, não acopla os dois sistemas). O papel **não inverte com o
+modo**, porque é retrato do outro produto, não superfície do Portal —
+verificado no noturno.
+
+**Consequência medida, não regressão:** a gravura empurrou os
+contadores para baixo da dobra, então eles passam a contar ao entrar na
+tela em vez de na carga. É o `IntersectionObserver` fazendo o que foi
+desenhado para fazer (`0·0·0` antes de rolar, `3·17·141` depois).
+
+### Fase 4 — CTA do hero sai inteiro
+
+Os dois botões e a linha "Sem custo · o produto aberto ativa no primeiro
+acesso" saíram **juntos**, como a unidade semântica que são — e dos
+**dois** layouts, porque a const era compartilhada. `Link` e
+`DESTINOS_BR` ficaram órfãos no arquivo e saíram junto.
+
+**Sem buraco, medido e não presumido:** a coluna do hero é flex com
+`gap: 18px`, e `gap` só se aplica entre filhos existentes. Confirmado no
+render — maior vão entre filhos = 18px = o próprio gap. O hero fecha em
+"Role — o mapa se constrói".
+
+**O CTA FINAL da landing continua intacto** — só o do hero saiu. As duas
+seções tinham o mesmo texto, e a verificação precisou ser escopada à
+coluna do hero para não confundir os dois.
+
+### Fase 5 — slot de vídeo, só reserva
+
+Entre Hero e Família, como `01`; Famílias renumerou para `02`, sem pular
+número. Cabeçalho no idioma das outras seções (número mono em acento ·
+etiqueta · fio · nota). Área em `16/9` — a proporção que o especimen
+declara para a peça de boot ("16:9 · 14 s · exportável como vídeo"), a
+única das seis pensada para virar clipe —, fio de 1px, raio zero, sem
+sombra, sem preenchimento.
+
+**ZERO lógica de player:** nenhum `<video>`, `<iframe>`, `controls`,
+`autoplay`, `poster` ou botão. A única ocorrência dessas palavras no
+arquivo é o comentário que declara a ausência delas. É reserva de
+layout — a wave que trouxer o clipe substitui o miolo e a moldura já
+está posicionada e medida.
+
+**De graça, já que o arquivo estava aberto:** o comentário de cabeçalho
+que dizia que `jaguar-tokens.ts` não podia ser removido porque `/conta`
+importava dele **ainda existia** e estava desatualizado — a migração de
+conta fechou em wave própria. Corrigido.
+
+### Verificação — 45 asserções, 0 falha
+
+As cinco páginas sem a seção removida (ausente do DOM **e do texto**) e
+com numeração sem buraco; gravura com `naturalWidth` real (1536×1024 —
+carregou de fato, não só a tag) e papel Alexandria por baixo; hero sem
+os dois botões e sem a linha de redutor, sem buraco (vão medido contra
+o gap), H1 e tese intactos verbatim; slot de vídeo depois do hero e
+antes da família, raio zero, fio 1px, sem sombra, 16:9, zero player;
+numeração `01 02`; noturno nas duas superfícies; três viewports sem
+overflow.
+
+**As duas falhas intermediárias foram do harness, e cada uma foi
+diagnosticada antes de ser tratada como tal:** (1) "Criar conta
+gratuita" ainda aparecia — investigado, está só na seção do CTA final,
+que esta wave não remove; (2) contadores em `0·0·0` — investigado,
+leem `3·17·141` depois de rolar até eles. Nenhuma das duas era
+regressão, e a prova de cada uma foi colhida antes da correção.
+
+**Gates:** `tsc -b` — 0 erros nos arquivos da wave (seguem os 7
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect` —
+"No findings. Surface is clean."
+
+### Registrado, não resolvido
+
+- **Sem glifo de play no sistema** (acima) — se o design quiser um, é
+  decisão de iconografia, que o readme declara "aberta e não tomada".
+- **`DestinoCard.tsx` segue órfão** — continua sendo a única outra
+  referência à gravura no código. Não é posse desta wave editar ou
+  apagar; a duplicação da constante é deliberada e está comentada.
+- **O slot de vídeo não tem clipe nem pôster** — por decisão do brief.
+  A próxima wave traz o conteúdo.
+
 ## CURSOR — CATÁLOGO /CONTA WAVE 1
 
 **Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.

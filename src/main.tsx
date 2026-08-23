@@ -18,6 +18,7 @@ import { AuthProvider } from './lib/auth/AuthContext';
 import { EntrarView } from './pages/conta/EntrarView';
 import { CriarContaView } from './pages/conta/CriarContaView';
 import { PerfilPlataforma } from './pages/conta/PerfilPlataforma';
+import { ContaDeLuzExpressPage } from './pages/conta-de-luz-express/ContaDeLuzExpressPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -110,6 +111,14 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/vault/:id" element={<GlobalShell initialView="vault" />} />
 
           <Route path="/alexandria/*" element={<AlexandriaHome />} />
+
+          {/* Conta de Luz Express (Wave 2) — rota de TOPO, no precedente
+              exato da Alexandria logo acima: a página de família aponta
+              para o produto, nunca o hospeda (recon, §5 Opção A). Rota
+              RASA de propósito — o fluxo v1 é uma tela só (intake +
+              confirmação como estados); vira splat quando houver
+              segunda superfície. */}
+          <Route path="/conta-de-luz-express" element={<ContaDeLuzExpressPage />} />
 
           {/* Portais de mercado. Mercado é segmento de URL, não estado em
               store: link compartilhável, bookmark funciona, sem hidratação.

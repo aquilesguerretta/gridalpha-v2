@@ -117,3 +117,43 @@ wordmark SVG inline com gradiente de incandescência, nos dois modos.
 Presente, sem ambiguidade — a página inteira é construída em cima dos
 tokens de `src/design/nivar/`, com `data-mode="noturno"` como escopo de
 alternância no elemento raiz.
+
+## Fase 3 — Convenção de rota para sub-página
+
+Lido de `src/main.tsx` (a única tabela de rotas do app — sem arquivo de
+rotas separado). Trecho relevante:
+
+```tsx
+<Route path="/" element={<PortalBR />} />
+...
+<Route path="/br" element={<PortalBR />} />
+<Route path="/us" element={<LandingPage />} />
+<Route path="*" element={<PortalBR />} />
+```
+
+**`/br` é rota RASA — não existe padrão de sub-rota hoje.** `/` e `/br`
+apontam para o mesmo componente `PortalBR`; `*` (catch-all) também. Não
+há nenhum `<Route path="/br/...">`, e `grep -rn "\"/br/" src/` devolve
+zero ocorrências em todo o código-fonte — nenhuma rota `/br/x` foi
+injetada por ninguém, em nenhum momento.
+
+**O padrão de sub-rota que existe no app é o da Alexandria, e é
+splat + router aninhado**, não rota rasa: `main.tsx` casa
+`/alexandria/*` com o componente `AlexandriaHome`, que por sua vez
+declara seu próprio `<Routes>` interno em `AlexandriaRouter.tsx`
+(`trilha/:trilhaId`, `biblioteca`, `perfil`, `atlas`, `glossario`, `*`).
+`AlexandriaHome.tsx` documenta explicitamente por que não usa
+`<Routes>` duplo por padrão do React Router.
+
+**Nada do que o Fable teria injetado tem rota própria para reconciliar**
+— porque não há evidência de que algo tenha sido injetado fora do que
+esta própria trilha (Waves 5-6 + revisões diretas) já registrou, e essa
+trilha nunca criou rota nova nenhuma. `/br` continua a única entrada.
+
+**Implicação para a Fase 5 (não decisão, só o fato):** cinco páginas de
+família (`Advisory`, `Intelligence`, `Academy`, `Software`, `Hardware`)
+exigem escolher entre dois padrões já existentes no app — rotas rasas
+adicionais em `main.tsx` (`/br/advisory`, `/br/intelligence`, …, ao
+lado de `/br`) ou o padrão splat+router-aninhado que a Alexandria já
+usa (`/br/*` com um `PortalBRRouter` interno). Nenhum dos dois está
+montado hoje; a escolha fica para o brief de construção.

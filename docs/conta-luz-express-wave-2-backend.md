@@ -1,6 +1,7 @@
 # Conta de Luz Express — Wave 2 · backend real
 
-**Status:** Fase 1 — decisões de storage, email e anexo.
+**Status:** implementação fechada; ativação externa de email pendente de
+credenciais Resend e domínio remetente verificado.
 
 **Autor:** CURSOR. **Data:** 23 de agosto de 2026.
 
@@ -357,3 +358,91 @@ Resultado:
 
 Nenhum painel de admin, role nova, engine de análise ou mecanismo de
 pagamento foi criado.
+
+## Fase 5 — Verificação e fechamento
+
+### Ciclo completo
+
+Uma única execução atravessou o fluxo inteiro, sem substituir as funções de
+email:
+
+```text
+upload → email Aquiles → leitura do original → anexo manual do PDF
+→ email cliente → status ready no perfil → download do relatório
+```
+
+Ambiente do teste:
+
+- PostgreSQL de produção;
+- TestClient sobre a aplicação real;
+- fronteira HTTP real do service Resend apontada para servidor controlado;
+- PDF real de entrada: 2.178.084 bytes;
+- PDF real de saída: 1.583.247 bytes;
+- duas contas descartáveis.
+
+Resultado:
+
+```text
+emails:                         2
+submissões ready no perfil:     1
+downloads byte-idênticos:       2
+ids de provider persistidos:    2
+idempotency keys conferidas:    2
+```
+
+Os payloads chegaram ao destinatário correto, com Bearer, User-Agent,
+links e chaves de idempotência. A listagem da conta mostrou o relatório e o
+download devolveu os mesmos bytes. As contas foram apagadas ao fim e a FK
+em cascata removeu a submissão.
+
+### Produção
+
+- migration em `0005_conta_luz_express (head)`;
+- serviço Railway online;
+- `/health` → `ok`;
+- OpenAPI publicado com os seis métodos da Conta de Luz Express;
+- deploy importa com `python-multipart`;
+- endpoint de upload em produção falha fechado com `503` enquanto a
+  configuração de email está ausente, sem persistir submissão órfã.
+
+O `alembic check` global ainda acusa drift histórico de PostGIS e índices de
+waves anteriores. O metadata desta wave foi reconciliado com os dois índices
+compostos da migration; uma segunda varredura devolveu **zero operação
+pendente para `conta_luz_submission`**.
+
+### Fronteiras auditadas
+
+Diff dos commits de implementação e fechamento:
+
+- zero mudança em `app/db/models/product_access.py`;
+- zero mudança em `app/db/models/progress.py`;
+- zero mudança em `app/services/progress_service.py`;
+- zero mudança em `app/routers/progress.py`;
+- zero arquivo de frontend;
+- zero ocorrência de Stripe, Pagar.me, Iugu, checkout, PIX ou código de
+  pagamento nos arquivos do backend desta wave.
+
+O novo domínio referencia `users.id`, mas não escreve em entitlement nem
+progresso.
+
+### Único bloqueio operacional
+
+A integração externa não pode ser declarada ativa porque o Railway segue
+sem:
+
+- `RESEND_API_KEY`;
+- `CLE_EMAIL_FROM`;
+- `CLE_OPERATOR_EMAIL`;
+- `CLE_APP_BASE_URL`.
+
+Para colocar intake em operação:
+
+1. verificar o domínio remetente no Resend;
+2. criar a chave;
+3. definir as quatro variáveis no serviço `gridalpha-v2`;
+4. redeploy;
+5. executar um smoke com caixas postais reais nos dois sentidos.
+
+Até isso acontecer, o backend recusa o upload com `503` em vez de prometer
+uma notificação que não consegue enviar. A implementação está fechada; a
+configuração de provider é o único passo externo restante.

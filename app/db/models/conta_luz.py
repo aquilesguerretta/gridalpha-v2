@@ -16,7 +16,17 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, LargeBinary, Text, func
+from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    LargeBinary,
+    Text,
+    desc,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -29,6 +39,16 @@ CONTA_LUZ_STATUSES: tuple[str, ...] = ("submitted", "ready")
 class ContaLuzSubmission(Base):
     __tablename__ = "conta_luz_submission"
     __table_args__ = (
+        Index(
+            "conta_luz_submission_user_created_idx",
+            "user_id",
+            desc("created_at"),
+        ),
+        Index(
+            "conta_luz_submission_status_created_idx",
+            "status",
+            "created_at",
+        ),
         CheckConstraint(
             "status IN ('submitted', 'ready')",
             name="conta_luz_submission_status_check",
@@ -72,7 +92,6 @@ class ContaLuzSubmission(Base):
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
-        index=True,
     )
     status: Mapped[str] = mapped_column(
         Text,

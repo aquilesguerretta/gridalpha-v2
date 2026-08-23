@@ -9543,3 +9543,120 @@ intocado (diff vazio) · zero código de pagamento.
 - **`ehAdvisory` é o segundo `if` hardcoded.** Generalizar o slot de
   família é decisão de arquitetura para o terceiro produto, não para o
   segundo (recon §2.3).
+
+## ARCHITECT — CONTA DE LUZ EXPRESS WAVE 3 · LIGAR UI REAL AO BACKEND REAL
+
+**Status:** fechada. Quatro commits, um por fase, todos pushados. Zero
+arquivo em `app/` (provado por `git show --numstat` dos meus commits:
+só `ContaDeLuzExpressPage.tsx`, `PerfilPlataforma.tsx` e o doc de
+recon). `br-destinos.ts` intocado nesta wave. `FamiliaPage.tsx` não
+precisou de mudança — o bloco `ehAdvisory` era copy estática desde a
+Wave 2, sem mock a tirar.
+
+### Fase 1 — contrato lido no código e MEDIDO ao vivo
+
+`app/routers/conta_luz.py` (CURSOR Wave 2): prefixo
+`/api/conta-luz-express`; `POST /submissions` **multipart, campo
+`file`**; `GET /submissions` → `{ data[], summary }` mais recente
+primeiro; `GET /{id}/deliverable` → bytes com `Content-Disposition:
+attachment`. Auth é o cookie do `AuthProvider` via
+`Depends(get_current_user)` — caminho relativo com `credentials:
+'include'`, como o `authApi.ts`. Resposta é JSON plano, não o envelope
+de mercado. Tabela completa no adendo da Wave 3 em
+`docs/conta-luz-express-recon-frontend.md`.
+
+**Dois estados no backend, três na UI:** `submitted` / `ready` por
+submissão; "nada enviado" é `data: []`. `deliverable` só vem com
+`ready` e **já traz o `downloadUrl`** — sem segunda chamada.
+
+**Guardas do POST na ordem real, cada uma medida com sessão:**
+`403` sem entitlement → `503` sem as quatro variáveis de email (com
+entitlement: `CLE_APP_BASE_URL is not configured`) → `413`/`415` pelo
+arquivo (tipo detectado pelos BYTES) → `502` se o Resend falhar, com
+rollback.
+
+### Correção à premissa do brief: não existe backend de dev
+
+O brief diz que "em desenvolvimento o endpoint funciona". Vale para o
+harness Python da CURSOR (TestClient em processo + Resend simulado),
+**não para o browser**: `vite.config.ts` faz proxy de `/api` para o
+Railway de produção, `VITE_BACKEND_URL` está vazio, nenhum processo
+local. O browser só alcança produção, onde o `503` **está** ativo.
+
+Consequência, e como foi tratada: a fiação é real e idêntica ao que
+rodará com as variáveis; o `503` virou um dos estados tratados. O que
+NÃO pôde ser provado ponta a ponta pelo browser é "upload → `ready`" —
+**dependência das quatro variáveis no Railway** (ação do Aquiles), não
+falha desta wave. O render dos estados `submitted`/`ready` foi provado
+contra o payload EXATO do router por interceptação de transporte (o
+código de produto não muda; só a resposta da rede é injetada).
+
+### Fase 2 — envio
+
+`enviarSubmissao()` (multipart, `AuthError` com status preservado — o
+`pedir()` do `authApi` só fala JSON). **Ativação antes do envio**, no
+padrão `PerfilStub`: `myProducts()` → `activateProduct` só se faltar.
+Estado de carregamento flagrado NO MEIO da chamada real: botão
+`disabled` + `aria-busy` + "Enviando…", nota "A fatura está subindo".
+Erro sem semáforo — fio `--campo-erro-fio` (brasa) + glifo `×`, `role=
+alert`, mensagem por status (0/401/403/413/415/502/503). Medido: `GET
+/products/me` → `POST /submissions` → `503` → erro declarado, botão
+volta, **confirmação não abre**. A confirmação, quando abrir, mostra
+`source.filename`, `sizeBytes`, `id` e `createdAt` **da resposta**, não
+do browser. Rota protegida: sem sessão → `/entrar` com `de` para
+voltar (medido).
+
+### Fase 3 — status
+
+`listarSubmissoes()` em `useEffect` com `AbortController`, o mesmo
+idioma do `myProducts` no mesmo arquivo. Não depende de entitlement: o
+GET lista por `user_id` e devolve `[]` para quem nunca enviou (medido).
+**O seletor mock saiu inteiro** — `STATUS_CLE_MOCK`, `ROTULO_ESTADO`,
+`EstadoCle`, o grupo de botões e as duas notas de "demonstração": grep
+devolve zero. −135 linhas. O link de download é o `deliverable.
+downloadUrl` relativo com `download={filename}` — navegação de mesma
+origem, cookie viaja, sem fetch manual nem blob.
+
+Provado: `[]` → "Nada enviado" (do GET real, 200); `submitted` → fio
+`--rule-strong`, "Em leitura · 1 envio"; `ready` → fio brasa, "Parecer
+pronto · 2 envios", link `/api/conta-luz-express/submissions/{id}/
+deliverable`, "2,1 MB".
+
+### Verificação
+
+18/18 (3 superfícies × 1440/1920/3440 × claro/noturno): modo por
+computed style, zero overflow. **As duas correções da Wave 2 intactas**
+nas seis combinações do intake: input nativo em `opacity: 0`, botão
+"Escolher arquivo" em português, `.nv-btn:disabled` em `0.4`. `tsc -b`
+0 fora dos 7 de `nest/student/*` · `gridalpha-detect` "No findings" ·
+eslint limpo nos arquivos da wave · zero código de pagamento (as duas
+ocorrências de "pagamento" são a copy pré-existente de Assinatura).
+
+### Decisão declarada, com pendência
+
+`react-refresh/only-export-components` acusou as duas exportações do
+cliente no arquivo de componente. Sem posse para criar
+`src/lib/contaLuz/api.ts`, e duplicar o cliente no perfil seria a
+"segunda cópia que deriva" do contrato. **Suprimido na linha, com a
+razão:** custo é HMR fazer reload completo deste arquivo em dev; zero
+efeito em produção. **Pendência:** mover cliente + tipos para `src/lib/`
+quando uma wave tiver essa posse.
+
+### Efeito colateral registrado
+
+A sonda da Fase 1 ativou `conta-de-luz-express` na conta de teste
+`lyceum.w39.1785853407227@gridalpha.com`. Nenhuma submissão foi criada
+(o `503` rolou antes).
+
+### Registrado, não resolvido
+
+- **Prova ponta a ponta "upload → `ready` → download"** depende das
+  quatro variáveis (`CLE_APP_BASE_URL`, `CLE_OPERATOR_EMAIL`,
+  `RESEND_API_KEY`, `CLE_EMAIL_FROM`) no Railway. Quando entrarem, o
+  ciclo roda sem mudança de código.
+- **Sem polling nem refresh de status** — o perfil lê uma vez por
+  montagem. O aviso chega por email; reabrir a página basta. Polling é
+  decisão de produto, não desta wave.
+- **Cliente em arquivo de componente** (acima).
+- `react-hooks/set-state-in-effect` em `FamiliaPage.tsx:140` segue
+  pré-existente (Wave 9), não tocado.

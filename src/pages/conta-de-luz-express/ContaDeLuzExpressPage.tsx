@@ -210,7 +210,15 @@ async function falhar(res: Response): Promise<never> {
 }
 
 /** `POST /submissions` — multipart, campo `file`. Sem `Content-Type`
- *  manual: o browser põe o boundary. */
+ *  manual: o browser põe o boundary.
+ *
+ *  Exportar função de um arquivo de componente desliga o Fast Refresh
+ *  deste arquivo em dev (reload completo em vez de HMR) — só em dev,
+ *  zero efeito em produção. Aceito de propósito: a wave não tem posse
+ *  para criar `src/lib/contaLuz/api.ts`, e duplicar o cliente no perfil
+ *  criaria a "segunda cópia que deriva" do contrato. PENDÊNCIA: mover
+ *  cliente + tipos para `src/lib/` quando uma wave tiver essa posse. */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function enviarSubmissao(arquivo: File, signal?: AbortSignal): Promise<Submissao> {
   const fd = new FormData();
   fd.append('file', arquivo, arquivo.name);
@@ -232,6 +240,7 @@ export async function enviarSubmissao(arquivo: File, signal?: AbortSignal): Prom
 }
 
 /** `GET /submissions` — as submissões da conta, mais recente primeiro. */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function listarSubmissoes(signal?: AbortSignal): Promise<ListaSubmissoes> {
   let res: Response;
   try {

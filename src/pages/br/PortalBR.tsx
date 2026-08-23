@@ -39,6 +39,20 @@
 //   "China & Hardware" não existe no sistema: "China" só aparece como
 //     MERCADO GEOGRÁFICO no subtree americano. Nada a propagar.
 //
+// WAVE 9 · FASE 1 — estado real confirmado:
+//   TODAS as seções descontinuadas são INLINE AQUI. portalChrome.tsx
+//     tem ZERO delas — a extração da Wave 8 levou só wordmark + folha
+//     de CSS. Exceção: Independência é o componente FaixaIndependencia.
+//   NÃO EXISTE arquivo "página Academy": a Wave 8 fez UM componente
+//     parametrizado (FamiliaPage.tsx, useParams → familiaPorId) para
+//     as cinco rotas. O conteúdo da Alexandria entra lá CONDICIONADO a
+//     familia.id === 'academy', para as outras quatro (NUNCA MODIFICAR
+//     nesta wave) renderizarem exatamente igual.
+//   RODAPÉ é inline aqui; a coluna "Destinos" mapeia DESTINOS_BR.
+//   Dois textos envelhecem com o corte e a Fase 4 os trata: a faixa de
+//     fatos cita "até o Terminal Brasil" (que sai) e "N destinos".
+
+//
 // Header fixo → hero (mapa que se constrói no scroll) → índice de
 // destinos → faixa de independência (afirmativa, Wave 4) → rodapé real.
 //

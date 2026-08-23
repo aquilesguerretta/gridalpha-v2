@@ -218,11 +218,25 @@ export function FaixaFamilias() {
               <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-muted)' }}>
                 {familiaAtiva.paragrafo}
               </p>
+              {/* Um produto por span, separados por gap real — `join`
+                  com espaços não serve: o HTML colapsa whitespace e os
+                  dois produtos de Advisory colavam ("em construção
+                  Diagnóstico"). Achado no render, não na leitura. */}
               {produtosAtivos.length > 0 && (
-                <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
-                  {produtosAtivos
-                    .map((p) => `${p.titulo} · ${p.status === 'disponivel' ? 'aberto' : 'em construção'}`)
-                    .join('   ')}
+                <span
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px 20px',
+                    ...NT.proc,
+                    color: 'var(--text-faint)',
+                  }}
+                >
+                  {produtosAtivos.map((p) => (
+                    <span key={p.id} style={{ whiteSpace: 'nowrap' }}>
+                      {p.titulo} · {p.status === 'disponivel' ? 'aberto' : 'em construção'}
+                    </span>
+                  ))}
                 </span>
               )}
             </div>

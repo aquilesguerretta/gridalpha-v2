@@ -386,3 +386,100 @@ pelo mesmo motivo. Vetar é `git revert` de um commit.
   nesta wave** (seria chamada real de rede; a wave é mock). Fica
   documentado como a forma da fiação real.
 - `ehAcademy` (`FamiliaPage.tsx:231`) é o molde do `ehAdvisory`.
+
+---
+
+# Adendo — Wave 3, Fase 1 · contrato real dos endpoints
+
+Lido em `app/routers/conta_luz.py` (CURSOR Wave 2) e **medido ao vivo**
+contra o backend que o browser alcança, com sessão real. Nada presumido.
+
+## Endpoints (prefixo `/api/conta-luz-express`)
+
+| Método | Caminho | Auth | Request | Resposta |
+| --- | --- | --- | --- | --- |
+| `POST` | `/submissions` | cookie (`get_current_user`) | **multipart**, campo `file` | `201` + payload de submissão |
+| `GET` | `/submissions` | cookie | — | `{ data: payload[], summary: { count, submitted, ready } }`, mais recente primeiro |
+| `GET` | `/submissions/{id}` | cookie | — | payload |
+| `GET` | `/submissions/{id}/source` | cookie | — | bytes do arquivo enviado (`Content-Disposition: attachment`) |
+| `GET` | `/submissions/{id}/deliverable` | cookie | — | bytes do PDF final |
+| `POST` | `/submissions/{id}/deliverable` | cookie + operador | multipart | — (fora desta wave: é do operador) |
+
+**Autenticação é a mesma da plataforma** — `Depends(get_current_user)`,
+o cookie `httpOnly` que o `AuthProvider` já carrega. Chamada por caminho
+relativo com `credentials: 'include'`, igual ao `authApi.ts`. Não passa
+pelo `fetchEnvelope` de mercado: a resposta é JSON plano.
+
+## Payload de submissão
+
+```ts
+{
+  id: string;                // uuid
+  productId: 'conta-de-luz-express';
+  status: 'submitted' | 'ready';   // os DOIS estados do backend
+  source: { filename, contentType, sizeBytes, sha256, downloadUrl };
+  deliverable: null | { filename, contentType, sizeBytes, sha256, downloadUrl };
+  createdAt: string;         // ISO
+  updatedAt: string;
+  deliveredAt: string | null;
+}
+```
+
+**`deliverable` só existe com `status === 'ready'`** e já traz o
+`downloadUrl` (relativo) — o link do PDF final vem no próprio status,
+sem segunda chamada.
+
+## Mapa de estados: três na UI, dois no backend
+
+A UI da Wave 2 tinha `nada · em-leitura · pronto`. O backend tem
+`submitted · ready` **por submissão**. "Nada enviado" não é status —
+é `data.length === 0`. Mapeamento:
+
+| UI | Fonte |
+| --- | --- |
+| nada enviado | `GET /submissions` → `data: []` |
+| em leitura | última submissão com `status: 'submitted'` |
+| parecer pronto | última submissão com `status: 'ready'` → `deliverable.downloadUrl` |
+
+Como a lista vem ordenada por `created_at desc`, **`data[0]` é a
+submissão corrente**.
+
+## Guardas do POST, NA ORDEM em que disparam
+
+1. `_require_entitlement` → **`403`** `product 'conta-de-luz-express' is
+   not active for this account`. **Medido.** A Wave 2 não ativava o
+   produto (era mock); a fiação real precisa do padrão `PerfilStub`
+   (`myProducts()` → `activateProduct` se faltar) ANTES do envio.
+2. `email_config()` → **`503`** com o nome da variável ausente.
+   **Medido com entitlement: `CLE_APP_BASE_URL is not configured`.**
+3. `read_source_upload` → `413` (> 15 MB, `CLE_MAX_SOURCE_BYTES`) ou
+   `415` (tipo não aceito — detectado pelos BYTES, não só pelo header).
+4. Falha do Resend → `502`, com rollback — a submissão NÃO é criada.
+
+Também `401` sem sessão (medido) e, na listagem, `404` para id de
+outra conta (sem revelar existência).
+
+## Correção à premissa do brief — onde o `503` mora
+
+O brief diz que "em desenvolvimento o endpoint funciona" e que a CURSOR
+"testou o ciclo completo com PDFs reais". As duas coisas são verdade
+**dentro do harness Python dela** (TestClient em processo + transporte
+HTTP simulado do Resend — doc dela, §"Configuração necessária").
+
+**Não existe backend de dev alcançável pelo browser.** `vite.config.ts`
+faz proxy de `/api` para `DEFAULT_RAILWAY` (produção);
+`VITE_BACKEND_URL` está vazio no `.env.local`; nenhum processo local
+na 8000. Medido: `POST` com sessão e entitlement → **`503`** em
+produção.
+
+Consequência: a fiação se constrói igual e o `503` vira um dos estados
+tratados; mas a prova "upload real → status `ready`" ponta a ponta pelo
+browser **depende das quatro variáveis no Railway** (ação do Aquiles).
+Registrado como dependência de verificação, não como falha desta wave.
+
+## Efeito colateral da medição
+
+A sonda ativou `conta-de-luz-express` na conta de teste
+`lyceum.w39.1785853407227@gridalpha.com` (a mesma que as Waves 39/31
+deixaram no banco). É a ação que o produto fará de verdade; nenhuma
+submissão foi criada (o `503` rolou antes).

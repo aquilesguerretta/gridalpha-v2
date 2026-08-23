@@ -236,3 +236,77 @@ variante `nivar-wordmark-papel.svg` está em produção mas **sem
 consumidor** — a decisão de usar sempre o wordmark colorido (Revisão
 Direta 1) deixou essa variante órfã. Não é bug, é ativo disponível sem
 uso ainda.
+
+## Fase 5 — Consolidação e recomendação de sequência
+
+**Recomendação, não decisão.** A ordem abaixo é sugerida a partir do que
+as quatro fases acima mediram — quem escrever o próximo brief decide.
+
+### 1. Rota + página primeiro
+
+É o bloqueio estrutural: hoje **não existe nenhuma sub-rota sob `/br`**
+(Fase 3), e a seção "Destinos" da página ainda renderiza os **cinco
+cards de produto** (`DestinoCard` × `DESTINOS_BR`, Fase 2) — não a
+faixa de família que o Aquiles decidiu. Duas decisões de arquitetura
+precisam sair antes de qualquer página de família existir:
+
+- Escolher entre rota rasa (`/br/advisory` ao lado de `/br` em
+  `main.tsx`) ou splat + router aninhado (`/br/*` com um
+  `PortalBRRouter`, no padrão que `/alexandria/*` já usa) — Fase 3.
+- Decidir se a faixa de família substitui a seção "Destinos" no lugar,
+  ou se ganha seção própria — a numeração de seção do sistema
+  (`01`…`09`, Fase 2) precisaria deslocar de novo, como já aconteceu
+  três vezes nesta trilha (Wave 6, Revisão 1, Revisão 2).
+
+Isso desbloqueia tudo o mais: sem rota, não há "página própria" para
+cada família crescer; sem decidir onde a faixa entra, qualquer outra
+mudança na página corre risco de precisar refazer a numeração de novo.
+
+### 2. Login e perfil encaixados depois
+
+`AcessoConta.tsx` já está pronto — é widget de header, já em tokens
+NIVAR, zero adaptação. **`EntrarView` / `CriarContaView` /
+`PerfilPlataforma` / `ContaShell` não estão** — rodam sobre
+`jaguar-tokens.ts`, não sobre os tokens NIVAR que a página de Portal já
+usa (Fase 4). Migrar essas quatro telas (283 + 139 + 207 + 326 = 955
+linhas) para os tokens de `src/design/nivar/` é o mesmo tipo de
+trabalho que a Wave 5 já fez em `PortalBR.tsx` — replicável, mas é
+volume real, não ajuste cosmético. Faz sentido depois da estrutura de
+família estar de pé, porque a UI de conta provavelmente ganha um
+seletor ou indicador de família (qual produto/família a conta ativou),
+que só faz sentido desenhar depois que a família em si existe como
+conceito de rota e página.
+
+### 3. Esqueleto de vídeo e movimento por último
+
+O especime tem exatamente **uma** peça pensada para virar clipe: **06 ·
+Sequência de boot**, 14s, 16:9, "exportável como vídeo" (Fase 4). As
+outras 30 são demonstrações interativas de estado de UI — reusáveis
+como referência de comportamento (como a Wave 5-6 já fez: Corrente,
+Energização, o loader da casa), não como fonte de vídeo. Fazer o
+esqueleto de player+pôster antes de saber o conteúdo real de cada
+página de família significa desenhar uma moldura para um clipe que
+ainda não tem roteiro — melhor depois que ao menos a página mínima de
+uma família (a primeira a sair do papel) existir, para o pôster ter algo
+real para retratar em vez de mockup genérico.
+
+### Registrado, não resolvido por esta wave
+
+- **Onde a faixa de família entra na página** e **como a numeração de
+  seção reage** — decisão de composição, não desta wave de
+  reconhecimento.
+- **Rota rasa vs. splat aninhado** — as duas opções existem no app
+  hoje; nenhuma foi escolhida aqui.
+- **Migração de tokens das quatro telas de conta** — trabalho real
+  medido (955 linhas), não uma linha de CSS.
+- **Conteúdo de cada página de família** — esta wave não leu
+  `br-destinos.ts` para saber o que cada família herdaria de copy, por
+  estar fora da posse (`src/lib/data/` é NUNCA MODIFICAR, e mesmo
+  leitura não foi pedida nesta wave).
+
+---
+
+**Todos os quatro commits desta wave estão pushados** — confirmado por
+`git status -sb` sem `ahead`/`behind` depois de cada push (Fases 1-4).
+Zero arquivo de `src/` foi tocado; a única mudança em toda a wave é este
+documento.

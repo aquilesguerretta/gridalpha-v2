@@ -9440,3 +9440,106 @@ posse ARCHITECT. Sem o id no `catalog`, a linha deixa de renderizar.
 `us-terminal` restante em `app/`. Docs de auditoria ARCHITECT
 (`architect-shell-topology-audit.md`) registram o estado antigo de
 propósito — histórico, não catálogo vivo.
+
+## ARCHITECT — CONTA DE LUZ EXPRESS WAVE 2 · UI COM DADO MOCK
+
+**Status:** fechada. Seis commits, um por fase (a 3 em dois), todos
+pushados, intercalados com os quatro da CURSOR Wave 2 na mesma branch —
+**zero arquivo em comum**, provado por `git show --numstat` de cada
+commit: os meus tocam seis arquivos de `src/` + o doc de recon; os dela
+tocam `app/`, `requirements.txt` e o doc dela.
+
+**N resolvido:** a Wave 1 (recon) não registrou seção — a posse dela era
+só `docs/conta-luz-express-recon-frontend.md`. Esta é a primeira seção
+da trilha no CLAUDE.md e é a **Wave 2**.
+
+**Arquivos:** `src/pages/conta-de-luz-express/ContaDeLuzExpressPage.tsx`
+(NOVO) · `src/main.tsx` (uma rota) · `src/pages/br/FamiliaPage.tsx`
+(bloco `ehAdvisory`) · `src/pages/conta/PerfilPlataforma.tsx` (seção
+04) · `src/lib/data/br-destinos.ts` (duas linhas — ver exceção) · adendo
+de Fase 1 no doc de recon.
+
+### Fase 1 — as quatro hipóteses, reconciliadas contra a minha recon
+
+| Hipótese | Veredito |
+| --- | --- |
+| Rota de topo `/conta-de-luz-express` | **BATE** — é a Opção A da §5 da recon, a única com precedente exato (`/alexandria/*`). Sem descompasso. |
+| "Pipeline de PDF" no frontend | **Feature alheia** — `src/services/pdfExport.ts` (CONDUIT) GERA PDF com `@react-pdf/renderer` para export do terminal americano. Direção oposta do upload; não reutilizável, não tocado. |
+| Router próprio | **Não** — uma tela; intake e confirmação são ESTADOS. Rota rasa; vira splat quando houver segunda superfície. |
+| Os dois de "2 NO CATÁLOGO" | `conta-de-luz-express` + `diagnostico-energetico`. Só o primeiro é desta wave; o segundo ficou byte-idêntico. |
+
+### Exceção mínima de posse, declarada ANTES de editar
+
+A Fase 3 pede "troca de `status`+`rota`" — campos que vivem em
+`src/lib/data/br-destinos.ts`, listado como NUNCA MODIFICAR. As duas
+instruções colidem e **não existe caminho alternativo**: cinco
+consumidores leem `status`/`rota` de `DESTINOS_BR`, e qualquer override
+seria a "segunda cópia que deriva" que o próprio `PerfilPlataforma`
+proíbe. O precedente da Academy fez exatamente isso nesse arquivo.
+**Commit isolado `265ca02`, duas linhas de dado, revert limpo** — mesma
+classe das exceções das LYCEUM Waves 15 e 38.
+
+### O que entrou
+
+- **Intake** (`/conta-de-luz-express`): identidade do produto com a
+  `PlantaBaixa` já desenhada (viva, não redesenhada), campo de arquivo
+  PDF/imagem com validação de TIPO só (sem limite de tamanho — o
+  contrato de storage não existia), confirmação com protocolo sintético
+  em mono, rotulada `amostra ilustrativa`. **Zero rede**: grep de
+  `fetch|activateProduct|myProducts` devolve só os 3 comentários que
+  declaram a ausência; o log de rede de 19 montagens mostra só
+  `/api/auth/me` (AuthProvider global) e `/api/products/me` (seção
+  Produtos do perfil, pré-existente).
+- **Advisory real**: a linha vira "Aberto →" pela troca de dado (nenhum
+  componente muda para isso — confirmado), e o bloco `02 · Conta de Luz
+  Express` entra por `ehAdvisory`, o **mesmo padrão hardcoded** do
+  `ehAcademy`. Nenhum número inventado (não há contagem real de
+  análises).
+- **Perfil, seção 04**: os três estados — nada enviado · em leitura ·
+  parecer pronto — sem semáforo: texto em etiqueta, fio `--rule-strong`
+  em repouso e `--accent-house` quando há parecer. Seletor de estado
+  **visível e rotulado como mock**, porque o brief pede os três
+  testáveis. De graça: a linha do produto na seção 03 ganhou "Abrir"
+  sozinha pela mesma troca de dado.
+
+### Sem componente de upload no sistema — e o que isso custou
+
+O NIVAR não tem `FileInput` (zero ocorrência em `components/`). Composto
+de caixa de fio + botão + `Tag`. Dois achados que **só o render pegou**:
+o `<input type=file>` nativo escreve "Choose File / No file chosen" em
+inglês e não aceita tradução — resolvido com input invisível por cima de
+desenho próprio (o truque do `Slider` do sistema); e `.nv-btn:disabled`
+não está na `FOLHA_PORTAL` (o Portal nunca precisou), então o botão
+"Enviar" nascia cheio com campo vazio — regra adicionada localmente.
+
+### As quatro famílias, byte a byte
+
+`innerHTML` do `<main>` capturado ANTES da Fase 3 e depois da Fase 4,
+com ids de `useId` normalizados: **Hardware 5.798 · Academy 10.170 ·
+Software 6.190 · Intelligence 6.201 — idênticos**. Advisory 7.282 →
+10.767, com "Em construção" caindo de 2 para 1 (só Diagnóstico).
+
+### Verificação
+
+18/18 combinações (3 superfícies × 1440/1920/3440 × claro/noturno):
+`data-mode` e fundo por computed style, zero overflow, zero erro de
+console. Fluxo real: inválido → `×` + fio brasa; válido → "1,5 MB" com
+vírgula; enviar → confirmação; "Enviar outra" → intake limpo; os três
+estados do perfil por clique. `tsc -b` 0 erros fora dos 7 de
+`nest/student/*` · `gridalpha-detect` "No findings" · `DestinoCard.tsx`
+intocado (diff vazio) · zero código de pagamento.
+
+### Registrado, não resolvido
+
+- **`react-hooks/set-state-in-effect` em `FamiliaPage.tsx:140`** — no
+  `ContadorVivo` da Wave 9 (`b585513`), pré-existente: o mesmo erro
+  aparece no arquivo de antes desta wave. Fora de escopo.
+- **Hora do mock exibe no fuso do browser** (`14:02-03:00` → `13:02`
+  no de automação). É `toLocaleString` fazendo o certo; vira não-issue
+  com hora real do backend.
+- **O seletor de estado e o `href="#parecer-mock"`** saem junto com o
+  mock quando `GET` de submissão existir — a CURSOR Wave 2 entregou o
+  backend em paralelo; a fiação é a próxima wave.
+- **`ehAdvisory` é o segundo `if` hardcoded.** Generalizar o slot de
+  família é decisão de arquitetura para o terceiro produto, não para o
+  segundo (recon §2.3).

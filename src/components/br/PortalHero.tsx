@@ -57,7 +57,6 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
-import { Link } from 'react-router-dom';
 
 import {
   BRASIL_OUTLINE_D,
@@ -65,7 +64,6 @@ import {
   SUBMERCADOS,
   type SubmercadoPath,
 } from '../../lib/geo/brasil-outline';
-import { DESTINOS_BR } from '../../lib/data/br-destinos';
 
 export interface PortalHeroProps {
   titulo: string;
@@ -485,30 +483,6 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
     </p>
   );
 
-  // CTA acima da dobra (revisão pós-Wave 6, anatomia de landing):
-  // primário do sistema + secundário para o produto aberto, com o
-  // redutor de risco FACTUAL ao lado — criar conta é gratuito
-  // (Identidade Wave 9), nunca promessa de economia.
-  const rotaAlexandria = DESTINOS_BR.find((d) => d.id === 'alexandria')?.rota ?? '/alexandria';
-  const ctas = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-        <Link className="nv-btn nv-btn--primario" to="/criar-conta">
-          Criar conta gratuita
-        </Link>
-        <Link className="nv-btn nv-btn--secundario" to={rotaAlexandria}>
-          Conhecer a Alexandria
-          <span className="nv-btn__glifo" aria-hidden="true">
-            →
-          </span>
-        </Link>
-      </div>
-      <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
-        Sem custo · o produto aberto ativa no primeiro acesso
-      </span>
-    </div>
-  );
-
   const barraPld = (
     <div
       style={{
@@ -635,7 +609,6 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
           <h1 style={{ ...NT.display2, margin: 0, color: 'var(--text-strong)' }}>{titulo}</h1>
           {tese}
           <p style={{ ...NT.lede, margin: 0, color: 'var(--text-muted)' }}>{subtitulo}</p>
-          {ctas}
         </div>
         {/* min 770px: abaixo disso a escala do viewBox (720u) derruba a
             sigla de 14u para menos de 13px renderizados — piso da Wave
@@ -746,7 +719,6 @@ export function PortalHero({ titulo, subtitulo, scrollHost, onRegiaoClick }: Por
           <h1 style={{ ...NT.display2, margin: 0, color: 'var(--text-strong)' }}>{titulo}</h1>
           {tese}
           <p style={{ ...NT.lede, margin: 0, color: 'var(--text-muted)' }}>{subtitulo}</p>
-          {ctas}
           <span
             style={{
               ...NT.etiqueta,

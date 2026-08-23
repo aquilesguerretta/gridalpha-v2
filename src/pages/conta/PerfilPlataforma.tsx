@@ -32,6 +32,13 @@ import { DESTINOS_BR } from '../../lib/data/br-destinos';
 import { useAuth } from '../../lib/auth/AuthContext';
 import type { ProductsResponse } from '../../lib/auth/authApi';
 import { ContaShell, NT } from './ContaShell';
+// Cliente e tipo do contrato real (CURSOR Wave 2), exportados pela
+// página de intake — nenhum arquivo novo é posse desta trilha, e a
+// forma do payload tem UM dono, não dois.
+import {
+  listarSubmissoes,
+  type Submissao,
+} from '../conta-de-luz-express/ContaDeLuzExpressPage';
 
 /** Id do catálogo → rótulo. Deriva do id quando ninguém nomeou ainda,
  *  em vez de esconder o produto ou inventar nome.
@@ -66,51 +73,15 @@ function formatarData(iso: string): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
-// ─── Conta de Luz Express — status MOCK (Conta de Luz Express Wave 2) ──
-// Os três estados do fluxo v1: nada enviado · em leitura · parecer
-// pronto. DADO LOCAL, trocável pelo seletor visível na própria seção —
-// o brief pede os três visíveis para teste. Nenhuma chamada de rede:
-// o backend de submissão/entrega não existe (recon backend §1, §6), e
-// a CURSOR está construindo storage + email em paralelo. Quando o
-// endpoint chegar, `StatusCle` vira resposta de `GET` e o seletor sai.
-type EstadoCle = 'nada' | 'em-leitura' | 'pronto';
-
-interface StatusCle {
-  estado: EstadoCle;
-  /** Protocolo do último envio — null quando nada foi enviado. */
-  protocolo: string | null;
-  /** Nome do arquivo enviado — null quando nada foi enviado. */
-  arquivo: string | null;
-  /** ISO do envio — null quando nada foi enviado. */
-  enviadoEm: string | null;
-  /** ISO da entrega do parecer — só no estado `pronto`. */
-  prontoEm: string | null;
-}
-
-/** Amostra fixa por estado. Datas FIXAS, não relativas a "hoje" — a
- *  mesma disciplina do progresso mock da Alexandria (FOUNDRY Wave 3). */
-const STATUS_CLE_MOCK: Record<EstadoCle, StatusCle> = {
-  nada: { estado: 'nada', protocolo: null, arquivo: null, enviadoEm: null, prontoEm: null },
-  'em-leitura': {
-    estado: 'em-leitura',
-    protocolo: 'CLE-20260819-0412',
-    arquivo: 'fatura-julho-2026.pdf',
-    enviadoEm: '2026-08-19T14:02:00-03:00',
-    prontoEm: null,
-  },
-  pronto: {
-    estado: 'pronto',
-    protocolo: 'CLE-20260812-0087',
-    arquivo: 'fatura-junho-2026.pdf',
-    enviadoEm: '2026-08-12T09:31:00-03:00',
-    prontoEm: '2026-08-14T17:45:00-03:00',
-  },
-};
-
-const ROTULO_ESTADO: Record<EstadoCle, string> = {
-  nada: 'Nada enviado',
-  'em-leitura': 'Em leitura',
-  pronto: 'Parecer pronto',
+// ─── Conta de Luz Express — status REAL (Wave 3) ─────────────────
+// `GET /api/conta-luz-express/submissions` devolve as submissões da
+// conta, mais recente primeiro (contrato lido em app/routers/
+// conta_luz.py e medido). O backend tem DOIS estados por submissão —
+// `submitted` e `ready`; "nada enviado" não é status, é lista vazia.
+// O seletor mock da Wave 2 saiu por completo: não virou flag.
+const ROTULO_STATUS: Record<Submissao['status'], string> = {
+  submitted: 'Em leitura',
+  ready: 'Parecer pronto',
 };
 
 export function PerfilPlataforma() {
@@ -121,8 +92,10 @@ export function PerfilPlataforma() {
   const [produtos, setProdutos] = useState<ProductsResponse | null>(null);
   const [erroProdutos, setErroProdutos] = useState(false);
   const [saindo, setSaindo] = useState(false);
-  // Estado MOCK da Conta de Luz Express — trocável pelo seletor da seção.
-  const [estadoCle, setEstadoCle] = useState<EstadoCle>('nada');
+  // Submissões REAIS da Conta de Luz Express. `null` = ainda não
+  // respondeu; `[]` = nada enviado. Mesmo idioma do `produtos` acima.
+  const [submissoes, setSubmissoes] = useState<Submissao[] | null>(null);
+  const [erroSubmissoes, setErroSubmissoes] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -135,6 +108,21 @@ export function PerfilPlataforma() {
       });
     return () => ctrl.abort();
   }, [user, myProducts]);
+
+  // Uma chamada por montagem, abortada no desmonte — igual à de produtos.
+  // Não depende de entitlement: o GET lista por `user_id` e devolve `[]`
+  // para quem nunca enviou (medido), então não há 403 a tratar aqui.
+  useEffect(() => {
+    if (!user) return;
+    const ctrl = new AbortController();
+    listarSubmissoes(ctrl.signal)
+      .then((r) => setSubmissoes(r.data))
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setErroSubmissoes(true);
+      });
+    return () => ctrl.abort();
+  }, [user]);
 
   // Enquanto `/api/auth/me` não respondeu, ninguém pode concluir "não
   // logado" — só "ainda não sabemos". Redirecionar aqui expulsaria
@@ -359,60 +347,32 @@ export function PerfilPlataforma() {
 
         {/* ─── Conta de Luz Express ────────────────────────────── */}
         {/* Status do produto ABERTO de Advisory — o parecer chega AQUI,
-            no perfil, com aviso por email (v1 decidida). Três estados,
-            sem semáforo: texto, fio e protocolo em mono. Dado MOCK com
-            seletor visível e rotulado; ver o cabeçalho de STATUS_CLE_MOCK. */}
-        <Secao numero="04" titulo="Conta de Luz Express" nota={ROTULO_ESTADO[estadoCle]}>
-          <StatusConta status={STATUS_CLE_MOCK[estadoCle]} />
-
-          {/* Seletor de estado — só existe porque o dado é mock. Sai
-              junto com o mock quando o endpoint chegar. */}
-          <div
-            style={{
-              marginTop: '4px',
-              paddingTop: '12px',
-              borderTop: 'var(--fio) solid var(--rule)',
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: '14px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <span
-              style={{
-                fontFamily: 'var(--font-data)',
-                fontWeight: 400,
-                fontSize: '10.5px',
-                lineHeight: 1.5,
-                letterSpacing: '.06em',
-                textTransform: 'uppercase',
-                color: 'var(--ilustrativa-fg)',
-                borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
-                paddingBottom: '2px',
-              }}
-            >
-              Amostra ilustrativa — estado trocável para teste
-            </span>
-            <div className="nv-modo" role="group" aria-label="Estado de demonstração">
-              {(['nada', 'em-leitura', 'pronto'] as const).map((e, i) => (
-                <span key={e} style={{ display: 'contents' }}>
-                  {i > 0 && (
-                    <span className="nv-modo__sep" aria-hidden="true">
-                      ·
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    className={`nv-modo__op${estadoCle === e ? ' nv-modo__op--ativo' : ''}`}
-                    aria-pressed={estadoCle === e}
-                    onClick={() => setEstadoCle(e)}
-                  >
-                    {ROTULO_ESTADO[e]}
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
+            no perfil, com aviso por email. Lido do backend a cada
+            montagem. Sem semáforo: texto, fio e id em mono. */}
+        <Secao
+          numero="04"
+          titulo="Conta de Luz Express"
+          nota={
+            erroSubmissoes
+              ? undefined
+              : submissoes === null
+                ? undefined
+                : submissoes.length === 0
+                  ? 'Nada enviado'
+                  : `${ROTULO_STATUS[submissoes[0].status]} · ${submissoes.length} ${submissoes.length === 1 ? 'envio' : 'envios'}`
+          }
+        >
+          {erroSubmissoes ? (
+            <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+              Não foi possível carregar os envios agora. Recarregue a página.
+            </p>
+          ) : submissoes === null ? (
+            <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+              Carregando envios…
+            </p>
+          ) : (
+            <StatusConta submissao={submissoes[0] ?? null} />
+          )}
         </Secao>
       </div>
     </ContaShell>
@@ -420,6 +380,29 @@ export function PerfilPlataforma() {
 }
 
 // ─── Peças da prancha ─────────────────────────────────────────────
+
+/** Nome com a extensão em peso 500 — idioma do DownloadLink do sistema
+ *  ("nome e extensão em mono"). Tudo num span só: o gap do flex fica
+ *  entre o glifo e o nome, nunca dentro do nome. */
+function nomeComExtensao(nome: string): React.ReactNode {
+  const i = nome.lastIndexOf('.');
+  if (i <= 0) return nome;
+  return (
+    <>
+      {nome.slice(0, i)}
+      <b style={{ fontWeight: 500 }}>{nome.slice(i)}</b>
+    </>
+  );
+}
+
+/** Tamanho legível, vírgula decimal como o sistema manda. */
+function formatarTamanho(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} KB`;
+  const mb = kb / 1024;
+  return `${mb.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
+}
 
 function formatarDataHora(iso: string): string {
   const d = new Date(iso);
@@ -438,8 +421,8 @@ function formatarDataHora(iso: string): string {
  *  único sinal visual é o fio — `--rule-strong` em repouso,
  *  `--accent-house` quando há parecer para abrir. Idioma do
  *  `DataFreshness` do sistema ("frescor de dado não é semáforo"). */
-function StatusConta({ status }: { status: StatusCle }) {
-  if (status.estado === 'nada') {
+function StatusConta({ submissao }: { submissao: Submissao | null }) {
+  if (submissao === null) {
     return (
       // Estado vazio DECLARADO — mesmo contorno tracejado das seções
       // "ainda não existe", com a porta de entrada real.
@@ -465,7 +448,7 @@ function StatusConta({ status }: { status: StatusCle }) {
     );
   }
 
-  const pronto = status.estado === 'pronto';
+  const pronto = submissao.status === 'ready' && submissao.deliverable !== null;
   const linhas: Array<{ k: string; v: React.ReactNode }> = [
     {
       k: 'Protocolo',
@@ -474,21 +457,22 @@ function StatusConta({ status }: { status: StatusCle }) {
           style={{
             fontFamily: 'var(--font-data)',
             fontWeight: 500,
+            fontSize: 'var(--ts-dado-4)',
             fontVariantNumeric: 'tabular-nums lining-nums',
             color: 'var(--text-strong)',
           }}
         >
-          {status.protocolo}
+          {submissao.id}
         </span>
       ),
     },
-    { k: 'Arquivo', v: status.arquivo },
-    { k: 'Enviado em', v: status.enviadoEm ? formatarDataHora(status.enviadoEm) : '—' },
+    { k: 'Arquivo', v: submissao.source.filename },
+    { k: 'Enviado em', v: formatarDataHora(submissao.createdAt) },
     {
       k: pronto ? 'Parecer em' : 'Situação',
       v: pronto
-        ? status.prontoEm
-          ? formatarDataHora(status.prontoEm)
+        ? submissao.deliveredAt
+          ? formatarDataHora(submissao.deliveredAt)
           : '—'
         : 'Uma pessoa está lendo a fatura. O aviso por email sai quando o parecer ficar pronto.',
     },
@@ -524,16 +508,17 @@ function StatusConta({ status }: { status: StatusCle }) {
         ))}
       </dl>
 
-      {pronto ? (
+      {pronto && submissao.deliverable ? (
         // O parecer é um documento que já existe — DownloadLink do
-        // sistema, não botão: "download é link, não botão". O href é
-        // MOCK (âncora inerte, rotulada): não existe artefato nem
-        // autorização de download no backend (recon backend §6).
+        // sistema, não botão: "download é link, não botão". O href é o
+        // `downloadUrl` RELATIVO do backend; o cookie de sessão viaja
+        // na navegação (mesma origem) e o servidor responde
+        // `Content-Disposition: attachment` — o browser baixa, sem
+        // fetch manual e sem blob.
         <a
           className="conta-link"
-          href="#parecer-mock"
-          onClick={(e) => e.preventDefault()}
-          aria-describedby="cle-parecer-mock-nota"
+          href={submissao.deliverable.downloadUrl}
+          download={submissao.deliverable.filename}
           style={{
             alignSelf: 'flex-start',
             display: 'inline-flex',
@@ -549,30 +534,26 @@ function StatusConta({ status }: { status: StatusCle }) {
           </span>
           {/* Nome + extensão num span só: o gap do flex é entre o glifo
               e o nome, nunca dentro do nome do arquivo. */}
-          <span>
-            parecer-{status.protocolo?.toLowerCase()}
-            <b style={{ fontWeight: 500 }}>.pdf</b>
+          <span>{nomeComExtensao(submissao.deliverable.filename)}</span>
+          {/* .nv-baixar__meta do sistema — mono versalete, tabular. */}
+          <span
+            style={{
+              fontFamily: 'var(--font-data)',
+              fontWeight: 400,
+              fontSize: '10px',
+              letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              color: 'var(--text-faint)',
+              fontVariantNumeric: 'tabular-nums',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {formatarTamanho(submissao.deliverable.sizeBytes)}
           </span>
         </a>
       ) : (
         <span style={{ ...NT.nota, color: 'var(--text-muted)' }}>
           Nenhuma ação necessária nesta etapa.
-        </span>
-      )}
-      {pronto && (
-        <span
-          id="cle-parecer-mock-nota"
-          style={{
-            fontFamily: 'var(--font-data)',
-            fontWeight: 400,
-            fontSize: '10.5px',
-            lineHeight: 1.5,
-            letterSpacing: '.06em',
-            textTransform: 'uppercase',
-            color: 'var(--text-faint)',
-          }}
-        >
-          Documento de demonstração — o arquivo real chega com o backend
         </span>
       )}
     </div>

@@ -229,6 +229,14 @@ export function FamiliaPage() {
   // não. Com a seção "As outras famílias" fora (Wave 10), a numeração
   // não tem mais buraco: Academy fecha em 01·02, as demais em 01.
   const ehAcademy = familia.id === 'academy';
+  // Conta de Luz Express Wave 2: a Advisory ganha bloco próprio pelo
+  // MESMO padrão — condicional hardcoded, não slot genérico. A recon
+  // desta trilha (§2.3) mediu que não existe `familia.blocoExtra`; o
+  // segundo `if` é a decisão mais barata e fica declarada como tal.
+  // Generalizar o slot é decisão de arquitetura para quando o terceiro
+  // produto abrir, não para o segundo.
+  const ehAdvisory = familia.id === 'advisory';
+  // Numeração: Academy e Advisory fecham em 01·02; as outras três em 01.
 
   return (
     <div
@@ -605,6 +613,108 @@ export function FamiliaPage() {
                     Contagem derivada do catálogo extraído
                   </span>
                 </div>
+              </div>
+            </section>
+          )}
+
+          {/* ─── 02 · Conta de Luz Express (Conta de Luz Express Wave 2) ──
+              Só a Advisory renderiza este bloco. O produto ABERTO da
+              família: o que ele faz, o que NÃO faz, e a porta de entrada.
+              Nenhum número — não existe contagem real de análises ainda,
+              e inventar uma seria o erro que a Academy evita ao derivar
+              os dela do catálogo. */}
+          {ehAdvisory && (
+            <section
+              aria-label="Conta de Luz Express"
+              style={{
+                padding: '32px 0',
+                borderTop: 'var(--fio) solid var(--rule)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+                <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
+                  02
+                </span>
+                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
+                  Conta de Luz Express
+                </span>
+                <span
+                  aria-hidden="true"
+                  style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
+                />
+                <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>o produto aberto hoje</span>
+              </div>
+
+              {/* Três colunas de bordas colapsadas: o que entra · o que
+                  sai · o que não é. A terceira é a tese da casa aplicada
+                  ao produto — não é rodapé legal, é o que o diferencia. */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  borderTop: 'var(--fio) solid var(--rule)',
+                  borderBottom: 'var(--fio) solid var(--rule)',
+                }}
+              >
+                {[
+                  {
+                    k: 'O que entra',
+                    v: 'Uma fatura de energia industrial — PDF ou imagem — enviada pela conta.',
+                  },
+                  {
+                    k: 'O que sai',
+                    v: 'Parecer sobre modalidade tarifária, demanda contratada e oportunidades a validar, com o contraditório junto.',
+                  },
+                  {
+                    k: 'O que não é',
+                    v: 'Não vende energia, não intermedia contrato, não recebe comissão. Nenhuma economia é prometida.',
+                  },
+                ].map((col, i) => (
+                  <div
+                    key={col.k}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      padding: '20px 24px',
+                      borderLeft: i > 0 ? 'var(--fio) solid var(--rule)' : 'none',
+                    }}
+                  >
+                    <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>{col.k}</span>
+                    <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-body)' }}>{col.v}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                {(() => {
+                  // A rota vem do CATÁLOGO, nunca digitada aqui — mesmo
+                  // idioma do CTA da Academy.
+                  const cle = produtos.find((d) => d.id === 'conta-de-luz-express');
+                  return cle && cle.rota ? (
+                    <Link
+                      className="nv-btn nv-btn--secundario"
+                      to={cle.rota}
+                      onClick={(e) => {
+                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
+                          return;
+                        e.preventDefault();
+                        comTransicao(() => navigate(cle.rota as string));
+                      }}
+                    >
+                      Enviar uma fatura
+                      <span className="nv-btn__glifo" aria-hidden="true">
+                        →
+                      </span>
+                    </Link>
+                  ) : null;
+                })()}
+                <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
+                  Leitura manual · sem cobrança nesta etapa
+                </span>
               </div>
             </section>
           )}

@@ -74,3 +74,46 @@ trabalho, seguindo o sistema NIVAR (confirmado na Fase 2, abaixo). Não há
 evidência no histórico git de uma segunda rodada de ajuste ("tirar a
 prévia sempre-ligada em favor de vídeo, reordenar seções") tendo
 rodado — se ela aconteceu, não chegou a commit nenhum nesta branch.
+
+## Fase 2 — Estado real de `/br` hoje
+
+Lido direto de `src/pages/br/PortalBR.tsx` (HEAD `5f4662a`), não presumido.
+Nove `<section>` na página, nesta ordem — clique real não foi necessário
+para confirmar a ordem porque o JSX é sequencial e sem `sort`/condicional
+de reordenação:
+
+| # | `aria-label` / `aria-labelledby` | Conteúdo |
+| --- | --- | --- |
+| — | (hero, componente `PortalHero`) | H1, tese, subtítulo, CTA duplo, mapa dos 4 submercados |
+| 1 | "O portal em números" | faixa de fatos (4 submercados, geografia IBGE, contagem de destinos) |
+| 2 | "Prévia do Terminal Brasil — amostra ilustrativa" | terminal que liga ao entrar em viewport |
+| 3 | "Como a NIVAR lê o mercado" | 4 passos com fio de corrente |
+| 4 | "Destinos" | **os CINCO CARDS DE PRODUTO ainda estão aqui** — `DestinoCard` × `DESTINOS_BR`, não a faixa de família que o Aquiles decidiu |
+| 5 | "A Alexandria em números" | contador real (3 trilhas / 17 módulos / 141 aulas) |
+| 6 | `#br-conflito` (componente inline) | seção Conflito de Interesse |
+| 7 | `#br-independencia` (componente `FaixaIndependencia`) | os três compromissos afirmativos |
+| 8 | `#br-perguntas` | FAQ, 5 perguntas |
+| 9 | "Criar conta" | CTA final |
+
+**Não é a versão das Waves 1-4** (cinco cards + Independência + rodapé
+sem o resto), **não é um híbrido em transição** — é exatamente o estado
+final que a Wave 6 e as duas revisões diretas fecharam, de ponta a ponta.
+**O glossário que a Revisão Direta 1 tinha adicionado não está mais na
+página** — confirmado ausente (a Revisão Direta 2 o removeu, como o
+próprio `CLAUDE.md` registra).
+
+### Marca — GridAlpha ou NIVAR
+
+`grep -in "gridalpha" src/pages/br/PortalBR.tsx src/components/br/*.tsx`
+devolve **zero ocorrências** nos cinco arquivos (`PortalBR.tsx`,
+`PortalHero.tsx`, `DestinoCard.tsx`, `FaixaIndependencia.tsx`,
+`SeletorMercado.tsx`, `AcessoConta.tsx`). A marca visível é NIVAR — o
+wordmark SVG inline com gradiente de incandescência, nos dois modos.
+
+### Teste decisivo dos tokens
+
+`grep -c` de `--accent-house`, `--text-strong`, `data-mode`,
+`--surface-page`, `var(--rule` em `PortalBR.tsx`: **90 ocorrências**.
+Presente, sem ambiguidade — a página inteira é construída em cima dos
+tokens de `src/design/nivar/`, com `data-mode="noturno"` como escopo de
+alternância no elemento raiz.

@@ -31,7 +31,7 @@ import '../../design/nivar/space.css';
 import '../../design/nivar/motion.css';
 
 import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
-import { FAMILIAS_BR, familiaPorId, produtosDaFamilia } from '../../lib/data/br-familias';
+import { familiaPorId, produtosDaFamilia } from '../../lib/data/br-familias';
 // Números REAIS do produto aberto — derivados do catálogo da
 // Alexandria (LEITURA, nunca modificação): se o currículo crescer, a
 // página acompanha sozinha. Migrados da landing na Wave 9.
@@ -213,12 +213,11 @@ export function FamiliaPage() {
   if (!familia) return null;
 
   const produtos = produtosDaFamilia(familia);
-  const outras = FAMILIAS_BR.filter((f) => f.id !== familia.id);
-  // Só a Academy ganha o bloco de números da Alexandria. As outras
-  // quatro renderizam exatamente como antes desta wave — o arquivo é
-  // compartilhado, o conteúdo não.
+  // Só a Academy ganha o bloco de números da Alexandria; as outras
+  // quatro renderizam sem ele — o arquivo é compartilhado, o conteúdo
+  // não. Com a seção "As outras famílias" fora (Wave 10), a numeração
+  // não tem mais buraco: Academy fecha em 01·02, as demais em 01.
   const ehAcademy = familia.id === 'academy';
-  const numOutras = ehAcademy ? '03' : '02';
 
   return (
     <div
@@ -572,66 +571,6 @@ export function FamiliaPage() {
             </section>
           )}
 
-          {/* As outras quatro — a faixa continua alcançável de dentro
-              da página, sem obrigar a voltar ao Portal. */}
-          <section
-            aria-label="As outras famílias"
-            style={{
-              padding: '32px 0',
-              borderTop: 'var(--fio) solid var(--rule)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '20px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>{numOutras}</span>
-              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
-                As outras famílias
-              </span>
-              <span
-                aria-hidden="true"
-                style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
-              />
-            </div>
-            {/* Peso igual é DELIBERADO: as quatro famílias restantes não
-                têm hierarquia entre si — a única que se destaca é a
-                desta página, e ela está fora desta grade justamente por
-                isso. (Sem diretiva de supressão: medido, este grid não
-                dispara a regra — suprimir o que não acusa seria ruído.) */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                border: 'var(--fio) solid var(--rule)',
-              }}
-            >
-              {outras.map((f, i) => (
-                <Link
-                  key={f.id}
-                  to={`/br/familia/${f.id}`}
-                  onClick={(e) => {
-                    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                    e.preventDefault();
-                    comTransicao(() => navigate(`/br/familia/${f.id}`));
-                  }}
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                    padding: '16px',
-                    textDecoration: 'none',
-                    border: 'none',
-                    borderLeft: i > 0 ? 'var(--fio) solid var(--rule)' : 'none',
-                    borderTop: `2px solid ${f.hex}`,
-                  }}
-                >
-                  <span style={{ ...NT.titulo2, color: 'var(--text-strong)' }}>{f.nome}</span>
-                  <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>{f.dominio}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
         </div>
 
         <footer

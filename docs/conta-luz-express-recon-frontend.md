@@ -307,3 +307,82 @@ Derivada dos achados acima, na ordem em que as dependências mandam:
   produto aberto expõe isso, seja ele Conta de Luz Express ou outro.
 - **`FamiliaBR` não tem campo de conteúdo próprio.** Se a resposta ao
   item anterior for "generalizar", é aqui que o campo nasce.
+
+---
+
+# Adendo — Wave 2, Fase 1 · reconciliação antes de construir
+
+Quatro hipóteses do brief da Wave 2, cada uma confirmada contra o disco
+antes de criar qualquer arquivo.
+
+## H1 · Rota: a recomendação do war room BATE com a recon
+
+War room recomendou `/conta-de-luz-express`, rota de topo. É
+**exatamente a Opção A** da §5 acima — a única das três com precedente
+**exato** (`/alexandria/*`, `main.tsx:112`). A recon tinha deixado A × B
+como decisão de arquitetura de informação (irmão × filho do Portal); o
+war room decidiu por irmão. Nenhum descompasso. Segue.
+
+## H2 · O "pipeline de PDF" do frontend é feature ALHEIA
+
+Localizado: `src/services/pdfExport.ts` + `src/services/pdfTemplates/`
+(CONDUIT, Wave 4 do terminal americano). Usa `@react-pdf/renderer` para
+**GERAR** PDF a partir de dado estruturado — `exportStrategyMemo`,
+`exportStorageBidPack`, `exportUnderwritingMemo`, `exportAnalystReport`
+— e devolve Blob para download no cliente.
+
+É a **direção oposta** do que este produto precisa: aqui o usuário
+**sobe** um PDF/imagem, ninguém gera nada. Não existe ali parser,
+leitor, `<input type="file">` nem tratamento de upload. Coincidência de
+palavra-chave, como o brief suspeitou. **Não reutilizável; não tocado.**
+
+## H3 · Número real de telas: UMA
+
+O fluxo v1 é: upload (PDF ou imagem) → enviar → confirmação. Intake e
+confirmação são **estados** de uma tela, não telas — a confirmação não
+tem endereço próprio a citar nem conteúdo que justifique navegação. O
+"relatório pronto" vive no Perfil (Fase 4), não aqui.
+
+Logo: **rota rasa `/conta-de-luz-express`, um componente, sem router
+próprio.** `AlexandriaRouter` tem dez rotas porque a Alexandria tem dez
+superfícies; montar um splat para uma tela seria estrutura maior que o
+necessário — o que o brief mandou evitar. Se a v2 trouxer histórico de
+envios ou tela de relatório, a rota vira splat nessa hora, sem
+migração (o padrão `/x/*` já existe para copiar).
+
+## H4 · Os dois produtos de "2 NO CATÁLOGO"
+
+`br-familias.ts:109` — `produtoIds: ['conta-de-luz-express',
+'diagnostico-energetico']`. Confirmado em `br-destinos.ts:54` e `:62`.
+**Só `conta-de-luz-express` é desta wave**; `diagnostico-energetico`
+fica `em-breve`/`rota: null`, byte-idêntico.
+
+## Conflito de posse, declarado ANTES de editar
+
+A Fase 3 pede "troca de `status`+`rota`, sem tocar componente". Esses
+dois campos vivem em **`src/lib/data/br-destinos.ts`**, e o brief lista
+`src/lib/data/` como NUNCA MODIFICAR. As duas instruções colidem.
+
+Medido: **cinco consumidores** leem `status`/`rota` de `DESTINOS_BR`
+(`FamiliaPage.tsx:426`, `FaixaFamilias.tsx:115/237`, `PortalBR.tsx:540`,
+`PerfilPlataforma.tsx:250`, mais o `DestinoCard` morto). Não existe
+caminho para "Aberto →" sem alterar esse dado — qualquer alternativa
+(mapa paralelo, override em componente) seria exatamente a "segunda
+cópia que deriva" que o próprio `PerfilPlataforma` documenta como
+proibida. E o precedente da Academy fez isso nesse arquivo: o
+`status: 'disponivel'` da Alexandria mora em `br-destinos.ts`.
+
+**Decisão:** editar `br-destinos.ts` em **duas linhas** (`status` e
+`rota` de um único produto), em commit próprio e isolado, porque é a
+única forma de entregar a Fase 3 como o brief a descreve. É a
+"exceção mínima de posse" que Waves 15 e 38 do LYCEUM já registraram
+pelo mesmo motivo. Vetar é `git revert` de um commit.
+
+## O que fica pronto para as Fases 2-4
+
+- `PlantaBaixa` (vivo, `DestinoCard.tsx:105-114`) é a geometria do
+  produto — reusada, não redesenhada.
+- `PerfilStub.tsx:102-127` é o padrão de ativação — **não replicado
+  nesta wave** (seria chamada real de rede; a wave é mock). Fica
+  documentado como a forma da fiação real.
+- `ehAcademy` (`FamiliaPage.tsx:231`) é o molde do `ehAdvisory`.

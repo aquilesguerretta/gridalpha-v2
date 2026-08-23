@@ -206,3 +206,51 @@ As decisões acima foram tomadas só depois de confirmar que:
 - nenhum mecanismo de pagamento precisa ou pode entrar.
 
 Fases 2–4 implementarão exatamente este recorte.
+
+## Fase 2 — Modelo e upload
+
+### Implementado
+
+- `ContaLuzSubmission`, model irmão de `ProductAccess`, com FK
+  `user_id → users.id ON DELETE CASCADE`;
+- migration aditiva `0005_conta_luz_express`;
+- storage `BYTEA` do documento de entrada e do PDF final nullable;
+- status fechado em `submitted` / `ready`, com constraint que impede estado
+  `ready` sem PDF completo;
+- metadata de nome, MIME, tamanho e SHA-256 dos dois arquivos;
+- campos de notificação preparados para a Fase 3;
+- `POST /api/conta-luz-express/submissions`;
+- `GET /api/conta-luz-express/submissions`;
+- `GET /api/conta-luz-express/submissions/{id}`;
+- `GET /api/conta-luz-express/submissions/{id}/source`.
+
+O upload aceita PDF, JPEG, PNG e WebP por assinatura de arquivo, não só pelo
+header declarado. Tipo incompatível retorna `415`, arquivo vazio `422` e
+arquivo acima do limite `413`. O nome é reduzido ao basename e limpo de
+caracteres de controle.
+
+O endpoint exige o entitlement existente de `conta-de-luz-express`, mas só o
+lê. Usuário sem ativação recebe `403`. Leituras de outra conta retornam
+`404`, sem revelar que o id existe.
+
+### Migration e smoke real
+
+Migration aplicada no PostgreSQL de produção:
+
+```text
+0004_progress → 0005_conta_luz_express (head)
+```
+
+Smoke com conta descartável e PNG real de 1.456.260 bytes:
+
+1. upload sem entitlement → `403`;
+2. ativação pelo endpoint existente → `200`;
+3. upload → `201`, status `submitted`, tamanho e hash persistidos;
+4. listagem da conta → uma submissão;
+5. detalhe da conta dona → `200`;
+6. download → bytes idênticos ao arquivo de origem;
+7. segunda conta tentando ler o id → `404`;
+8. contas descartáveis removidas; cascata limpou acesso e submissão.
+
+Nenhum arquivo de frontend, `product_access.py` ou tabela de progresso foi
+modificado.

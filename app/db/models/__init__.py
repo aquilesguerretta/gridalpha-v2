@@ -4,6 +4,7 @@ from app.db.models.country_energy import (
     CountryEnergyFieldSource,
     CountryEnergyProfile,
 )
+from app.db.models.conta_luz import CONTA_LUZ_STATUSES, ContaLuzSubmission
 from app.db.models.infrastructure import BatteryAsset, GenerationUnit, TransmissionSegment
 from app.db.models.product_access import PRODUCT_CATALOG, PRODUCT_IDS, ProductAccess
 from app.db.models.progress import (
@@ -18,6 +19,7 @@ from app.db.models.user import User
 
 __all__ = [
     "AULA_STATUSES",
+    "CONTA_LUZ_STATUSES",
     "EVENT_TYPES",
     "FIELD_DEFINITIONS",
     "FIELD_NAMES",
@@ -28,6 +30,7 @@ __all__ = [
     "BatteryAsset",
     "CountryEnergyFieldSource",
     "CountryEnergyProfile",
+    "ContaLuzSubmission",
     "GenerationUnit",
     "ProductAccess",
     "ProgressEvent",

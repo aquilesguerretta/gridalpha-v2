@@ -10,6 +10,7 @@ from app.routers import (
     atlas,
     atlas_world,
     auth,
+    conta_luz,
     energy,
     fuel_mix,
     lmp,
@@ -86,6 +87,9 @@ app.include_router(atlas_world.router)  # /api/atlas/world/*
 
 # Wave 11 progress — per-account lesson/badge/streak tracking, event-logged.
 app.include_router(progress.router)  # /api/progress/*
+
+# Conta de Luz Express Wave 2 — authenticated intake and manual delivery.
+app.include_router(conta_luz.router)  # /api/conta-luz-express/*
 
 
 @app.get("/health")

@@ -38,6 +38,17 @@ import { familiaPorId, produtosDaFamilia } from '../../lib/data/br-familias';
 import { ALEXANDRIA_TRILHAS } from '../../lib/data/alexandria-trilhas';
 import { ALEXANDRIA_BLOCKS } from '../../lib/data/alexandria-blocks';
 
+// ─── Gravura da Alexandria (Wave 10) ─────────────────────────────────
+// O mesmo arquivo que ilustrava o card do destino na landing antes da
+// Wave 8 — confirmado presente no disco na Fase 1, não é referência
+// morta. A cor de papel é a do sistema ALEXANDRIA, literal: a gravura
+// tem cantos transparentes e foi desenhada para esse fundo. Hardcoded
+// de propósito, como o DestinoCard já fazia — importar
+// `alexandria-tokens.ts` é proibido, e aqui a página CITA o produto,
+// não acopla os dois sistemas.
+const ALEXANDRIA_GRAVURA_SRC = '/alexandria/gravuras/alexandria-gravura.png';
+const ALEXANDRIA_PAPEL = '#F2E9D6';
+
 const MEDIDA = '1200px';
 const RESPIRO_LATERAL = '32px';
 
@@ -496,6 +507,33 @@ export function FamiliaPage() {
                 gap: '20px',
               }}
             >
+              {/* A gravura do produto — sobre o papel real do sistema
+                  Alexandria, `contain` para nunca esticar, e os cantos
+                  transparentes revelando o papel por baixo. Retrato do
+                  outro produto: o papel viaja junto e NÃO inverte com o
+                  modo, porque é citação, não superfície do Portal. */}
+              <div
+                style={{
+                  background: ALEXANDRIA_PAPEL,
+                  border: 'var(--fio) solid var(--rule)',
+                  padding: '16px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                }}
+              >
+                <img
+                  src={ALEXANDRIA_GRAVURA_SRC}
+                  alt="Bússola, mapa do Brasil e torre de transmissão — gravura da Alexandria"
+                  style={{
+                    width: '100%',
+                    maxWidth: '520px',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    display: 'block',
+                  }}
+                />
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
                 <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
                   02

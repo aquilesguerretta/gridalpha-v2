@@ -157,3 +157,82 @@ adicionais em `main.tsx` (`/br/advisory`, `/br/intelligence`, …, ao
 lado de `/br`) ou o padrão splat+router-aninhado que a Alexandria já
 usa (`/br/*` com um `PortalBRRouter` interno). Nenhum dos dois está
 montado hoje; a escolha fica para o brief de construção.
+
+## Fase 4 — Inventário dos ativos reusáveis
+
+Cada item confirmado por `git log` no arquivo real (não presumido pelo
+que uma wave anterior *disse* ter feito) e por leitura de conteúdo.
+
+### Login / conta — `AcessoConta.tsx` não é a tela de login
+
+O brief chama `AcessoConta.tsx` de "(login)". **Não é.** Confirmado por
+leitura: é o widget de 109 linhas no cabeçalho do Portal (mostra
+"Entrar" sem sessão, "Conta · nome" com sessão) — só um link, não um
+formulário. A tela de login real é `EntrarView.tsx` (139 linhas), com
+`CriarContaView.tsx` (207) para cadastro e `PerfilPlataforma.tsx` (326)
+para o perfil, todas envelopadas por `ContaShell.tsx` (283).
+
+| Arquivo | `git log` (mais recente primeiro) | Mudou desde a última wave que o tocou? |
+| --- | --- | --- |
+| `AcessoConta.tsx` | `4ca139d` (minha própria Wave 5) ← `fc9ff54` (Identidade Wave 1, criação) | Não — meu próprio commit é o mais recente |
+| `PerfilPlataforma.tsx` | `c429a21` (minha revisão direta) ← Topologia Wave 3 ← Identidade Wave 1 | Não |
+| `EntrarView.tsx` | (não tocado por nenhuma wave desta trilha) | — |
+| `ContaShell.tsx` | (idem) | — |
+
+**Reusabilidade — precisa de adaptação, não está pronto como está.**
+`grep` em `ContaShell.tsx` e `EntrarView.tsx` por tokens: **1 ocorrência
+de `jaguar-tokens` em cada, zero de `--accent-house`/`--surface-*`**.
+Ou seja: o texto GridAlpha→NIVAR já foi trocado nessas telas (revisão
+direta anterior), mas o SISTEMA DE COR E ESPAÇO por baixo continua
+sendo `src/design/jaguar-tokens.ts`, não os tokens NIVAR de
+`src/design/nivar/`. Reusar essas telas dentro da estrutura de família
+exige a mesma migração de tokens que `PortalBR.tsx` já passou — a
+pendência que a própria Wave 5 registrou ("A migração de `/conta` para
+NIVAR (hoje em Jaguar) é wave própria") continua aberta, e ainda não é
+esta wave.
+
+### Especime de movimento — SEIS seções está certo; DEZ peças está errado
+
+O brief herdou "dez peças em seis seções" de citação anterior. **Medido
+no DOM renderizado** (não no HTML bruto — o agrupamento é montado por
+JS), a estrutura real é:
+
+| # | Seção | Contagem própria da seção |
+| --- | --- | --- |
+| 01 | A marca surgindo | 5 variantes — Colapso, Energização, Corrente, Religamento, Sincronização |
+| 02 | Estados de carregamento | 9 estados — desenho, nunca spinner |
+| 03 | Loaders de dado | 6 leituras — "o dado desenha a própria espera" |
+| 04 | Estados de produto | Score · Simulação · Apuração · Comparador |
+| 05 | Transições e sobreposição | 6 movimentos — corte por opacidade e fio |
+| 06 | Sequência de boot | 1 composição, 16:9 · 14s · exportável como vídeo |
+
+**Seis seções, sim. Não dez peças — trinta e uma.** Confirmado por
+segunda via independente: `data-el` únicos no DOM renderizado somam
+**34**, dos quais três (`page`, `rm`, `b`) são controles estruturais do
+harness, não peças de animação — sobram **31**. `5 + 9 + 6 + 4 + 6 + 1
+(boot) = 31`, batendo exatamente com a contagem de `data-el`. O brief
+que abriu esta wave já avisava para não copiar números de citação
+antiga sem reconferir — este é exatamente esse caso.
+
+**Reusabilidade:** alta, sem adaptação de código — é HTML/CSS/JS
+autocontido, não componente React. O que a esqueleto de vídeo do
+Aquiles (player + pôster) precisaria é da peça **06 · Sequência de
+boot** especificamente ("16:9 · 14s · exportável como vídeo") — é a
+única das seis pensada para virar clipe, as outras cinco são
+demonstrações interativas de estado de UI, não sequência de abertura.
+
+### Tokens de produção + wordmark de substrato escuro
+
+`src/design/nivar/` — confirmado intocado desde a FOUNDRY NIVAR Wave 2
+(`f0603df`, wordmark papel) por `git log`. Contém `colors.css`,
+`typography.css`, `space.css`, `motion.css`, `fonts.css`, `base.css` e
+`assets/nivar-wordmark-papel.svg`. **Reusabilidade: total, já em
+produção** — é exatamente o que `PortalBR.tsx` importa hoje (90
+ocorrências de tokens, Fase 2). Qualquer página de família nova herda
+os mesmos tokens sem nenhuma adaptação.
+
+Nota que a Revisão Direta 1 já registrou e que continua válida: a
+variante `nivar-wordmark-papel.svg` está em produção mas **sem
+consumidor** — a decisão de usar sempre o wordmark colorido (Revisão
+Direta 1) deixou essa variante órfã. Não é bug, é ativo disponível sem
+uso ainda.

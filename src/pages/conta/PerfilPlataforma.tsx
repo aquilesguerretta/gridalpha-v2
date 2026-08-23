@@ -66,6 +66,53 @@ function formatarData(iso: string): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+// ─── Conta de Luz Express — status MOCK (Conta de Luz Express Wave 2) ──
+// Os três estados do fluxo v1: nada enviado · em leitura · parecer
+// pronto. DADO LOCAL, trocável pelo seletor visível na própria seção —
+// o brief pede os três visíveis para teste. Nenhuma chamada de rede:
+// o backend de submissão/entrega não existe (recon backend §1, §6), e
+// a CURSOR está construindo storage + email em paralelo. Quando o
+// endpoint chegar, `StatusCle` vira resposta de `GET` e o seletor sai.
+type EstadoCle = 'nada' | 'em-leitura' | 'pronto';
+
+interface StatusCle {
+  estado: EstadoCle;
+  /** Protocolo do último envio — null quando nada foi enviado. */
+  protocolo: string | null;
+  /** Nome do arquivo enviado — null quando nada foi enviado. */
+  arquivo: string | null;
+  /** ISO do envio — null quando nada foi enviado. */
+  enviadoEm: string | null;
+  /** ISO da entrega do parecer — só no estado `pronto`. */
+  prontoEm: string | null;
+}
+
+/** Amostra fixa por estado. Datas FIXAS, não relativas a "hoje" — a
+ *  mesma disciplina do progresso mock da Alexandria (FOUNDRY Wave 3). */
+const STATUS_CLE_MOCK: Record<EstadoCle, StatusCle> = {
+  nada: { estado: 'nada', protocolo: null, arquivo: null, enviadoEm: null, prontoEm: null },
+  'em-leitura': {
+    estado: 'em-leitura',
+    protocolo: 'CLE-20260819-0412',
+    arquivo: 'fatura-julho-2026.pdf',
+    enviadoEm: '2026-08-19T14:02:00-03:00',
+    prontoEm: null,
+  },
+  pronto: {
+    estado: 'pronto',
+    protocolo: 'CLE-20260812-0087',
+    arquivo: 'fatura-junho-2026.pdf',
+    enviadoEm: '2026-08-12T09:31:00-03:00',
+    prontoEm: '2026-08-14T17:45:00-03:00',
+  },
+};
+
+const ROTULO_ESTADO: Record<EstadoCle, string> = {
+  nada: 'Nada enviado',
+  'em-leitura': 'Em leitura',
+  pronto: 'Parecer pronto',
+};
+
 export function PerfilPlataforma() {
   const { user, loading, logout, myProducts } = useAuth();
   const location = useLocation();
@@ -74,6 +121,8 @@ export function PerfilPlataforma() {
   const [produtos, setProdutos] = useState<ProductsResponse | null>(null);
   const [erroProdutos, setErroProdutos] = useState(false);
   const [saindo, setSaindo] = useState(false);
+  // Estado MOCK da Conta de Luz Express — trocável pelo seletor da seção.
+  const [estadoCle, setEstadoCle] = useState<EstadoCle>('nada');
 
   useEffect(() => {
     if (!user) return;
@@ -307,12 +356,228 @@ export function PerfilPlataforma() {
             que o servidor reconhece.
           </p>
         </Secao>
+
+        {/* ─── Conta de Luz Express ────────────────────────────── */}
+        {/* Status do produto ABERTO de Advisory — o parecer chega AQUI,
+            no perfil, com aviso por email (v1 decidida). Três estados,
+            sem semáforo: texto, fio e protocolo em mono. Dado MOCK com
+            seletor visível e rotulado; ver o cabeçalho de STATUS_CLE_MOCK. */}
+        <Secao numero="04" titulo="Conta de Luz Express" nota={ROTULO_ESTADO[estadoCle]}>
+          <StatusConta status={STATUS_CLE_MOCK[estadoCle]} />
+
+          {/* Seletor de estado — só existe porque o dado é mock. Sai
+              junto com o mock quando o endpoint chegar. */}
+          <div
+            style={{
+              marginTop: '4px',
+              paddingTop: '12px',
+              borderTop: 'var(--fio) solid var(--rule)',
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: '14px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-data)',
+                fontWeight: 400,
+                fontSize: '10.5px',
+                lineHeight: 1.5,
+                letterSpacing: '.06em',
+                textTransform: 'uppercase',
+                color: 'var(--ilustrativa-fg)',
+                borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
+                paddingBottom: '2px',
+              }}
+            >
+              Amostra ilustrativa — estado trocável para teste
+            </span>
+            <div className="nv-modo" role="group" aria-label="Estado de demonstração">
+              {(['nada', 'em-leitura', 'pronto'] as const).map((e, i) => (
+                <span key={e} style={{ display: 'contents' }}>
+                  {i > 0 && (
+                    <span className="nv-modo__sep" aria-hidden="true">
+                      ·
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className={`nv-modo__op${estadoCle === e ? ' nv-modo__op--ativo' : ''}`}
+                    aria-pressed={estadoCle === e}
+                    onClick={() => setEstadoCle(e)}
+                  >
+                    {ROTULO_ESTADO[e]}
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        </Secao>
       </div>
     </ContaShell>
   );
 }
 
 // ─── Peças da prancha ─────────────────────────────────────────────
+
+function formatarDataHora(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** Os três estados da Conta de Luz Express no perfil. Sem verde de
+ *  sucesso nem amarelo de espera: o estado é TEXTO em etiqueta, e o
+ *  único sinal visual é o fio — `--rule-strong` em repouso,
+ *  `--accent-house` quando há parecer para abrir. Idioma do
+ *  `DataFreshness` do sistema ("frescor de dado não é semáforo"). */
+function StatusConta({ status }: { status: StatusCle }) {
+  if (status.estado === 'nada') {
+    return (
+      // Estado vazio DECLARADO — mesmo contorno tracejado das seções
+      // "ainda não existe", com a porta de entrada real.
+      <div
+        style={{
+          border: '1px dashed var(--rule-strong)',
+          borderRadius: 0,
+          padding: '20px 22px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Nenhuma fatura enviada</span>
+        <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+          O parecer de uma fatura chega nesta seção, com aviso por email, depois que a
+          leitura terminar. Nada foi enviado por esta conta ainda.
+        </p>
+        <Link className="conta-link" to="/conta-de-luz-express" style={{ alignSelf: 'flex-start' }}>
+          Enviar uma fatura
+        </Link>
+      </div>
+    );
+  }
+
+  const pronto = status.estado === 'pronto';
+  const linhas: Array<{ k: string; v: React.ReactNode }> = [
+    {
+      k: 'Protocolo',
+      v: (
+        <span
+          style={{
+            fontFamily: 'var(--font-data)',
+            fontWeight: 500,
+            fontVariantNumeric: 'tabular-nums lining-nums',
+            color: 'var(--text-strong)',
+          }}
+        >
+          {status.protocolo}
+        </span>
+      ),
+    },
+    { k: 'Arquivo', v: status.arquivo },
+    { k: 'Enviado em', v: status.enviadoEm ? formatarDataHora(status.enviadoEm) : '—' },
+    {
+      k: pronto ? 'Parecer em' : 'Situação',
+      v: pronto
+        ? status.prontoEm
+          ? formatarDataHora(status.prontoEm)
+          : '—'
+        : 'Uma pessoa está lendo a fatura. O aviso por email sai quando o parecer ficar pronto.',
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        borderLeft: `2px solid ${pronto ? 'var(--accent-house)' : 'var(--rule-strong)'}`,
+        paddingLeft: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+      }}
+    >
+      {/* // gridalpha-detect-disable-next-line equal-weight-grid — par rótulo/valor no registro do DataTable; não há célula focal numa ficha */}
+      <dl
+        style={{
+          margin: 0,
+          display: 'grid',
+          gridTemplateColumns: 'auto minmax(0, 1fr)',
+          gap: '8px 20px',
+          alignItems: 'baseline',
+        }}
+      >
+        {linhas.map((l) => (
+          <div key={l.k} style={{ display: 'contents' }}>
+            <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>{l.k}</dt>
+            <dd style={{ margin: 0, ...NT.corpo, color: 'var(--text-body)', overflowWrap: 'anywhere' }}>
+              {l.v}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {pronto ? (
+        // O parecer é um documento que já existe — DownloadLink do
+        // sistema, não botão: "download é link, não botão". O href é
+        // MOCK (âncora inerte, rotulada): não existe artefato nem
+        // autorização de download no backend (recon backend §6).
+        <a
+          className="conta-link"
+          href="#parecer-mock"
+          onClick={(e) => e.preventDefault()}
+          aria-describedby="cle-parecer-mock-nota"
+          style={{
+            alignSelf: 'flex-start',
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            gap: '10px',
+            fontFamily: 'var(--font-data)',
+            fontSize: '12.5px',
+            letterSpacing: '.01em',
+          }}
+        >
+          <span aria-hidden="true" style={{ color: 'var(--text-faint)' }}>
+            ↓
+          </span>
+          {/* Nome + extensão num span só: o gap do flex é entre o glifo
+              e o nome, nunca dentro do nome do arquivo. */}
+          <span>
+            parecer-{status.protocolo?.toLowerCase()}
+            <b style={{ fontWeight: 500 }}>.pdf</b>
+          </span>
+        </a>
+      ) : (
+        <span style={{ ...NT.nota, color: 'var(--text-muted)' }}>
+          Nenhuma ação necessária nesta etapa.
+        </span>
+      )}
+      {pronto && (
+        <span
+          id="cle-parecer-mock-nota"
+          style={{
+            fontFamily: 'var(--font-data)',
+            fontWeight: 400,
+            fontSize: '10.5px',
+            lineHeight: 1.5,
+            letterSpacing: '.06em',
+            textTransform: 'uppercase',
+            color: 'var(--text-faint)',
+          }}
+        >
+          Documento de demonstração — o arquivo real chega com o backend
+        </span>
+      )}
+    </div>
+  );
+}
 
 /** Cabeçalho de seção — número em mono no acento da casa, título em
  *  Zilla Slab, fio e nota alinhados na mesma linha de base. Mesmo

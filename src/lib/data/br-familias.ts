@@ -65,8 +65,11 @@ export const FAMILIAS_BR: FamiliaBR[] = [
     dominio: 'Medição em campo, telemetria, ativo físico',
     hex: '#B8481F',
     token: 'var(--family-hardware)',
+    // O parágrafo descreve a família e PARA. A declaração de prateleira
+    // vazia mora só na seção de produtos — vendo renderizado, as duas
+    // frases apareciam quase idênticas na mesma tela.
     paragrafo:
-      'O que se instala e se mede no local — medidor, telemetria, ativo em campo. Nenhum produto desta família está catalogado no repositório hoje.',
+      'O que se instala e se mede no local — medidor de campo, telemetria, ativo físico. É a ponta da casa que toca o equipamento, não o dado sobre ele.',
     produtoIds: [],
     porQue:
       'Nenhum dos cinco produtos catalogados é medição física. A família existe na arquitetura de marca; a prateleira dela ainda está vazia, e a página diz isso.',

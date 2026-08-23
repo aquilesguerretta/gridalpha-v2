@@ -8993,6 +8993,172 @@ sem loop nenhum; sem overflow em 1440/1920/3440. As únicas 2 falhas de
 harness da rodada: filtro de número que não distinguia passo de seção,
 e a suíte que pegou o bug real do boot.
 
+## ARCHITECT — PORTAL BR WAVE 8 · FAIXA DE FAMÍLIA E CINCO PÁGINAS MÍNIMAS
+
+**Status:** fechada. Os cinco cards de PRODUTO saem; entra a faixa das
+cinco FAMÍLIAS COMERCIAIS, e `/br` ganha a primeira sub-rota da sua
+história. Cinco commits, um por fase, todos pushados.
+
+**N resolvido contra o CLAUDE.md do disco:** a última seção numerada era
+a **Wave 6**; a wave de reconhecimento que produziu
+`docs/portal-br-familia-audit.md` commitou como "wave 7" mas **não
+registrou seção** (o brief dela dava posse só do documento). Logo esta é
+a **Wave 8** — e a lacuna da 7 fica registrada aqui.
+
+**Arquivos:** `src/lib/data/br-familias.ts` (NOVO) ·
+`src/components/br/FaixaFamilias.tsx` (NOVO) ·
+`src/components/br/portalChrome.tsx` (NOVO, extração) ·
+`src/pages/br/FamiliaPage.tsx` (NOVO) ·
+`src/pages/br/PortalBRRouter.tsx` (NOVO) · `PortalBR.tsx` · `main.tsx` ·
+`FaixaIndependencia.tsx` intocada (a numeração NÃO deslocou — ver abaixo).
+
+### Fase 1 — as três hipóteses, medidas
+
+| Hipótese | Real |
+| --- | --- |
+| Onde Destinos renderiza | **Inline em `PortalBR.tsx`**; só a célula era componente (`DestinoCard.tsx`) |
+| Padrão de sub-rota | `src/pages/alexandria/AlexandriaRouter.tsx` — splat no `main.tsx`, `<Routes>` com `index` + paths RELATIVOS + catch-all |
+| Mapa família→produto | **NÃO EXISTIA.** `br-destinos.ts` é lista plana; o `PRODUCT_CATALOG` do backend é a mesma lista de ids (é o que UMA conta ativa, não o mapa público). Autorado nesta wave |
+
+**"China & Hardware" não existe no sistema.** "China" só aparece como
+MERCADO GEOGRÁFICO no subtree americano (`landing/Footer.tsx`,
+`landing/Hero.tsx`, `ThreeMarkets.tsx`, `vault/VaultIndex.tsx`) — nunca
+como nome de família. Nada a propagar: "Hardware" já era o nome canônico
+do design system. Os cinco hexes batem literais com a linha 3 de
+`colors.css`; nenhum veio de memória.
+
+### O mapa família→produto — extração × atribuição, declarado
+
+**EXTRAÍDO** literal do design system: nome, hex e a linha de DOMÍNIO das
+cinco famílias. **ATRIBUÍDO** pelo implementador, sujeito a veto: qual
+produto pertence a qual família — nenhuma fonte do repositório declarava
+esse vínculo. Cada atribuição saiu de cruzar a descrição do próprio
+produto com o domínio da família, e o porquê está em `porQue` no dado:
+
+| Família | Produtos catalogados |
+| --- | --- |
+| Hardware | **nenhum** |
+| Academy | Alexandria (ABERTO) |
+| Software | Terminal Brasil |
+| Advisory | Conta de Luz Express · Diagnóstico Energético |
+| Intelligence | Energy Brief |
+
+**Hardware fica vazia, e esse é o estado real** — nenhum dos cinco
+produtos catalogados é medição em campo. A regra da wave era não inventar
+produto; a página declara a prateleira vazia em contorno tracejado, no
+mesmo registro de honestidade de nulo do resto do projeto. Os 44 produtos
+do plano de negócios não estão no repositório; só estes cinco estão.
+
+O módulo LÊ `br-destinos.ts` e nunca a redigita: título, descrição,
+status e rota vêm de lá. Trava em DEV avisa produto órfão ou em duas
+famílias.
+
+### SEGUNDA EXCEÇÃO DECLARADA AO "NUNCA ESCALA EM HOVER"
+
+O sistema proíbe animar escala em elemento de interface; a única exceção
+até aqui era o loader da marca ("transform SÓ na marca"). O item da faixa
+cresce no hover (`scale(1.045)`) — **decisão do Aquiles, não bug nem
+descuido**, registrada aqui como a exceção nº 2. Continua
+compositor-safe (só `transform`), sem sombra, sem raio, e colapsa com os
+tokens sob `prefers-reduced-motion` (medido: `--dur-hover: 1ms`).
+
+### A cor da família é FIO, nunca texto
+
+A tabela de contraste do sistema é literal: advisory lê **1,9:1** e
+intelligence **1,4:1** sobre papel, e o readme chama isso de "o erro mais
+fácil de cometer neste sistema". Por isso a cor de família aparece só
+como fio de acento de 2px e marcador quadrado de 9px; o texto fica em
+`--text-strong` nas cinco. Uniforme por disciplina — colorir só as três
+que passam faria a faixa parecer três famílias destacadas e duas
+apagadas. Medido: a cor de família **não inverte com o modo** (é a escala
+de incandescência, não alias semântico).
+
+**A ordem da faixa é a da escala de incandescência** — hardware → academy
+→ software → advisory → intelligence, do mais frio ao mais quente. A
+faixa inteira lê como o gradiente da casa.
+
+### Rota — convenção herdada, não inventada
+
+`main.tsx` passa de `/br` raso para `/br/*` → `PortalBRRouter`, que
+declara `index` → Portal, `familia/:familiaId` → `FamiliaPage`, `*` →
+Portal. É o padrão da Alexandria, com `familia/` no lugar de `trilha/`.
+Rota rasa (`/br/advisory`) era a alternativa; ficou de fora porque o
+segmento nu competiria com qualquer sub-página futura (`/br/precos`) e
+obrigaria a desambiguar depois. **Link antigo para `/br` segue válido**,
+sem redirecionamento — o `index` do splat serve o Portal.
+
+**A numeração de seção NÃO deslocou.** A faixa ocupa o mesmo `03` que
+Destinos ocupava; nenhuma outra seção precisou ser renumerada — ao
+contrário das três vezes anteriores nesta trilha.
+
+### UM componente, cinco rotas
+
+`FamiliaPage` é um componente parametrizado pela rota, não cinco arquivos
+quase idênticos: a diferença entre as famílias é DADO, não estrutura, e
+cinco cópias divergiriam na primeira correção feita em uma só. Quando uma
+família crescer o bastante para pedir composição própria, ela ganha o
+arquivo dela e a rota aponta para lá.
+
+`portalChrome.tsx` é EXTRAÇÃO mecânica de `PortalBR.tsx` — o wordmark
+inline (88 linhas) e a folha de CSS escopada (197 linhas), sem uma linha
+de mudança de conteúdo, porque a página de família precisa da mesma
+moldura. **`NT` (papéis tipográficos) NÃO foi extraído de propósito** —
+cada componente do Portal declara os seus, e a razão está escrita no
+próprio `PortalBR`: importar criaria ciclo página→componente→página, e a
+referência `var()` já garante que o valor nunca diverge.
+
+### Dois defeitos que só o render mostrou
+
+1. **Produtos colados na prévia** — `join('   ')` com espaços não separa:
+   o HTML colapsa whitespace, e os dois produtos de Advisory apareciam
+   como "em construção Diagnóstico". Trocado por span por produto com
+   `gap` real.
+2. **Frase repetida em Hardware** — o parágrafo da família e a caixa de
+   prateleira vazia diziam quase a mesma sentença na mesma tela. O
+   parágrafo passou a descrever a família e parar; a declaração de vazio
+   mora só na seção de produtos.
+
+Nenhum dos dois aparece em leitura de código.
+
+### Verificação — 52 asserções, 0 falha
+
+Clique REAL nos cinco caminhos pelo botão "Ver página completa" da
+prévia: URL, H1, `document.title`, contagem de produtos e estado, os dois
+extremos (Academy com link real para `/alexandria?trilha=brasil`;
+Hardware com prateleira vazia declarada e zero produto inventado).
+Mais: hover crescendo (`matrix(1,0,0,1,0,0)` → `matrix(1.045,…)`), fio na
+cor real medida, navegação lateral entre famílias, volta ao Portal pelo
+cabeçalho, id inválido caindo no Portal, `/br` ainda servindo o Portal,
+noturno nas duas superfícies, reduced-motion, e três viewports sem
+overflow. A única falha intermediária foi do harness — regex
+case-sensitive contra `innerText`, que devolve a etiqueta já em caixa
+alta pelo `text-transform` (sétima ocorrência do padrão nesta trilha).
+
+**Gates:** `tsc -b` — 0 erros nos arquivos da wave (seguem os 7
+pré-existentes de Recharts em `nest/student/*`). `gridalpha-detect` —
+"No findings. Surface is clean." O único P2 (`equal-weight-grid` na linha
+de produto) foi suprimido com diretiva e razão: linha de lista no
+registro do `DataTable` do sistema não tem célula focal. A supressão foi
+apontada ao alvo certo depois de medir — a primeira tentativa foi para
+um grid que não disparava.
+
+### Registrado, não resolvido
+
+- **A wave de reconhecimento (7) não tem seção no CLAUDE.md** — o brief
+  dela não dava posse do arquivo. O documento existe em
+  `docs/portal-br-familia-audit.md`.
+- **`DestinoCard.tsx` ficou sem consumidor de grade** — o componente
+  segue no disco, intocado, e `PlantaBaixa` continua servindo o overlay
+  "em breve". Disponível para a página de família reusar como card de
+  produto quando alguma delas crescer.
+- **`br-familias.ts` é arquivo NOVO em `src/lib/data/`**, diretório que o
+  brief lista como NUNCA MODIFICAR. Nenhum arquivo existente foi tocado —
+  é criação, não modificação, e o módulo só LÊ `br-destinos.ts`. Vetar é
+  mover um arquivo.
+- **Conta e vídeo seguem fora**, como o brief travou — a migração de
+  `/conta` (955 linhas ainda em `jaguar-tokens.ts`) e o esqueleto de
+  vídeo são as próximas da sequência que a auditoria recomendou.
+
 ## CURSOR — CATÁLOGO /CONTA WAVE 1
 
 **Status:** fechada. `us-terminal` sai do catálogo que `/conta` consome.

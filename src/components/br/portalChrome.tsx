@@ -174,26 +174,6 @@ export const FOLHA_PORTAL = `
           animation: nivar-pulso 1400ms var(--ease-loop) infinite;
         }
 
-        /* Loader da casa (peça Colapso/boot) — o N da marca entrando
-           por transform. TRANSFORM SÓ NA MARCA: esta é a exceção única
-           do sistema, com traço constante via non-scaling-stroke. */
-        @keyframes nivar-loader-entra {
-          from { transform: scale(0.12) rotate(-720deg); }
-          to   { transform: scale(1) rotate(0deg); }
-        }
-        .nivar-loader-n {
-          transform-origin: 50% 50%;
-          animation: nivar-loader-entra 1400ms var(--ease) forwards;
-        }
-
-        /* Ponto "ao vivo" da prévia — respiração por opacidade em
-           loop (peça Ao vivo), nunca cor de status. */
-        @keyframes nivar-vivo { 0%, 45% { opacity: 1; } 55%, 90% { opacity: 0.25; } 100% { opacity: 1; } }
-        .nivar-vivo-ponto { animation: nivar-vivo 3000ms var(--ease-loop) infinite; }
-
-        /* Entrada escalonada de passos/contadores por viewport. */
-        .nivar-passo { opacity: 0; animation: nv-surge var(--dur-hover) var(--ease) forwards; }
-
         /* Link de lista (rodapé) — o tratamento de link do sistema:
            cor de link com sublinhado por fio que NUNCA some; no hover o
            texto muda de cor e o fio assume a cor do texto. */
@@ -271,23 +251,6 @@ export const FOLHA_PORTAL = `
           animation: nivar-desenha var(--dur-desenho) var(--ease) forwards;
         }
 
-        /* Série da amostra — desenho longo do sistema (1200ms), easing
-           único; o ponto final surge DEPOIS que a linha termina. As
-           durações vêm de token, então reduced-motion colapsa sozinho. */
-        .nivar-serie-linha {
-          stroke-dasharray: 1;
-          stroke-dashoffset: 1;
-          animation: nivar-desenha var(--dur-desenho-longo) var(--ease) forwards;
-        }
-        .nivar-serie-ponto {
-          opacity: 0;
-          animation: nv-surge var(--dur-hover) var(--ease) var(--dur-desenho-longo) forwards;
-        }
-        /* Verbete do glossário — revelação por surgimento, tokens. */
-        .nivar-verbete {
-          opacity: 0;
-          animation: nv-surge var(--dur-hover) var(--ease) forwards;
-        }
         @media (prefers-reduced-motion: reduce) {
           .nivar-planta [data-traco],
           .nivar-wm [data-wm-traco] {

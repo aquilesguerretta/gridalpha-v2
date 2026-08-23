@@ -11,8 +11,9 @@
 //     src/lib/geo/brasil-outline.ts (dado, fora desta wave)
 //   AcessoConta.tsx — terceiro bloco do header; entra na reskin para o
 //     cabeçalho não ficar meio-tema no noturno
-// jaguar-tokens.ts NÃO pode ser removido: /conta (fora da posse)
-// também importa dele. O Portal apenas se desliga.
+// (A nota sobre jaguar-tokens.ts que vivia aqui saiu na Wave 10: a
+// superfície /conta migrou para os tokens NIVAR em wave própria, e a
+// dependência que ela descrevia não existe mais.)
 //
 // WAVE 6 · FASE 1 — pontos de inserção confirmados:
 //   tese — entre H1 e subtítulo, nos DOIS layouts do PortalHero
@@ -446,11 +447,68 @@ export function PortalBR() {
 
 
 
-          {/* ─── 01 · Famílias (Wave 8; renumerada na Wave 9) ─────────
+          {/* ─── 01 · Vídeo (Wave 10) — RESERVA DE LAYOUT ─────────────
+              Só referência: a área existe, o clipe não. Zero lógica de
+              player, zero <video>, zero controle — a wave que trouxer o
+              clipe substitui o miolo deste bloco e a moldura já está
+              posicionada e medida.
+
+              SEM GLIFO DE PLAY: o design system declara o conjunto de
+              glifos como FECHADO (× – ↑ ↓ ↕ → ± ≥ ≤ ▾ ·) e proíbe "SVG
+              desenhado à mão além das marcas entregues". Não existe
+              play ali, e desenhar um seria introduzir dialeto visual
+              estrangeiro. A reserva fala por texto e fio, como o resto
+              do sistema. */}
+          <section
+            aria-label="Vídeo"
+            style={{
+              padding: '32px 0',
+              borderTop: 'var(--fio) solid var(--rule)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
+              <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Vídeo</span>
+              <span
+                aria-hidden="true"
+                style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
+              />
+              <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>reserva de layout</span>
+            </div>
+
+            {/* Área reservada — fio de 1px, raio zero, sem
+                preenchimento e sem sombra. 16:9 é a proporção que o
+                especimen de movimento declara para a peça de boot
+                ("16:9 · 14 s · exportável como vídeo"), a única das
+                seis pensada para virar clipe. */}
+            <div
+              style={{
+                aspectRatio: '16 / 9',
+                width: '100%',
+                border: 'var(--fio) solid var(--rule-strong)',
+                borderRadius: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+              }}
+            >
+              <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>
+                Área reservada
+              </span>
+              <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
+                16:9 · o clipe chega em wave própria
+              </span>
+            </div>
+          </section>
+
+          {/* ─── 02 · Famílias (Wave 8; renumerada nas Waves 9 e 10) ─
               A grade de cinco cards de PRODUTO saiu; a faixa de cinco
-              FAMÍLIAS COMERCIAIS entra no lugar, mantendo o número de
-              seção 03 — a numeração NÃO desloca, e nenhuma outra seção
-              precisou ser renumerada. A casa marca a família, não o
+              FAMÍLIAS COMERCIAIS entra no lugar. A casa marca a família, não o
               produto (arquitetura de marca do design system); os cinco
               produtos continuam existindo, agora dentro da página da
               família a que pertencem. */}
@@ -471,7 +529,7 @@ export function PortalBR() {
                 dois dígitos, no acento da casa. A nota é DERIVADA dos
                 dois catálogos, nunca digitada. */}
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
+              <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>02</span>
               <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Famílias</span>
               <span
                 aria-hidden="true"

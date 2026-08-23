@@ -92,8 +92,9 @@ import '../../design/nivar/typography.css';
 import '../../design/nivar/space.css';
 import '../../design/nivar/motion.css';
 
-import { DESTINOS_BR, type DestinoBR } from '../../lib/data/br-destinos';
-import { FAMILIAS_BR } from '../../lib/data/br-familias';
+import { DESTINOS_BR } from '../../lib/data/br-destinos';
+
+import { FAMILIAS_BR, rotaDaFamilia } from '../../lib/data/br-familias';
 import type { SubmercadoPath } from '../../lib/geo/brasil-outline';
 // DestinoCard saiu do import na Wave 8 junto com a grade de cinco
 // cards — o COMPONENTE fica no disco, intocado, para a página de
@@ -231,11 +232,6 @@ export function PortalBR() {
     comTransicao(() =>
       setZoom({ titulo: 'Terminal Brasil', destinoId: 'terminal-brasil', regiao }),
     );
-  }, []);
-
-  const abrirDestino = useCallback((destino: DestinoBR) => {
-    retornoFocoRef.current = document.activeElement as HTMLElement | null;
-    comTransicao(() => setZoom({ titulo: destino.titulo, destinoId: destino.id }));
   }, []);
 
   const fechar = useCallback(() => {
@@ -521,10 +517,9 @@ export function PortalBR() {
           </section>
         </div>
 
-        {/* Rodapé real (Wave 3) — do esboço do design original:
-            papelSunken, textura sutil de rede, citação de fonte em
-            Geist Mono. Desacoplado da FaixaIndependencia, que segue
-            TODO aguardando copy revisada. */}
+        {/* Rodapé real (Wave 3) — superfície recuada, textura de rede
+            hairline, citação de fonte em mono. A coluna de destinos
+            virou coluna de FAMÍLIAS na Wave 9. */}
         <footer
           style={{
             position: 'relative',
@@ -574,33 +569,26 @@ export function PortalBR() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Destinos</span>
-                {DESTINOS_BR.map((d) =>
-                  d.status === 'disponivel' && d.rota ? (
-                    <Link
-                      key={d.id}
-                      className="nivar-flink"
-                      to={d.rota}
-                      onClick={(e) => {
-                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-                          return;
-                        e.preventDefault();
-                        comTransicao(() => navigate(d.rota as string));
-                      }}
-                    >
-                      {d.titulo}
-                    </Link>
-                  ) : (
-                    <button
-                      key={d.id}
-                      type="button"
-                      className="nivar-flink"
-                      onClick={() => abrirDestino(d)}
-                    >
-                      {d.titulo} · em breve
-                    </button>
-                  ),
-                )}
+                {/* Wave 9: a coluna deixa de listar PRODUTO solto e passa
+                    a refletir as cinco FAMÍLIAS, com a rota real de cada
+                    uma. A casa marca a família — o rodapé agora diz o
+                    mesmo que a faixa. Nenhum link morto: as cinco páginas
+                    existem desde a Wave 8. */}
+                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>Famílias</span>
+                {FAMILIAS_BR.map((f) => (
+                  <Link
+                    key={f.id}
+                    className="nivar-flink"
+                    to={rotaDaFamilia(f.id)}
+                    onClick={(e) => {
+                      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                      e.preventDefault();
+                      comTransicao(() => navigate(rotaDaFamilia(f.id)));
+                    }}
+                  >
+                    {f.nome}
+                  </Link>
+                ))}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

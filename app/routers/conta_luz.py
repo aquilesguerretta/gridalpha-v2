@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import uuid
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, File, HTTPException, Path, UploadFile, status
@@ -16,6 +16,13 @@ from app.db.models.product_access import PRODUCT_IDS, ProductAccess
 from app.db.models.user import User
 from app.db.session import get_db
 from app.services.auth_service import get_current_user
+from app.services.conta_luz_email import (
+    EmailConfigurationError,
+    EmailDeliveryError,
+    email_config,
+    notify_operator_new_submission,
+    operator_email,
+)
 from app.services.conta_luz_storage import InvalidUpload, read_source_upload
 
 
@@ -26,12 +33,8 @@ if PRODUCT_ID not in PRODUCT_IDS:
 router = APIRouter(prefix="/api/conta-luz-express", tags=["conta-luz-express"])
 
 
-def _operator_email() -> str:
-    return os.environ.get("CLE_OPERATOR_EMAIL", "").strip().lower()
-
-
 def _is_operator(user: User) -> bool:
-    configured = _operator_email()
+    configured = operator_email()
     return bool(configured and user.email.lower() == configured)
 
 
@@ -132,6 +135,13 @@ async def create_submission(
 ):
     _require_entitlement(db, user)
     try:
+        config = email_config()
+    except EmailConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    try:
         source = await read_source_upload(file)
     except InvalidUpload as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
@@ -146,8 +156,25 @@ async def create_submission(
         source_data=source.data,
     )
     db.add(submission)
-    db.commit()
-    db.refresh(submission)
+    try:
+        db.flush()
+        receipt = notify_operator_new_submission(
+            config=config,
+            submission_id=submission.id,
+            customer_name=user.name,
+            customer_email=user.email,
+            source_filename=source.filename,
+        )
+        submission.operator_email_id = receipt.provider_id
+        submission.operator_notified_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(submission)
+    except EmailDeliveryError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"submission was not saved because operator notification failed: {exc}",
+        ) from exc
     return _submission_payload(submission)
 
 

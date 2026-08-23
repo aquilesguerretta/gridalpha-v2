@@ -254,3 +254,56 @@ Smoke com conta descartável e PNG real de 1.456.260 bytes:
 
 Nenhum arquivo de frontend, `product_access.py` ou tabela de progresso foi
 modificado.
+
+## Fase 3 — Email transacional nos dois sentidos
+
+### Implementado
+
+Service Resend por REST, usando `httpx` já instalado:
+
+- email ao operador quando uma submissão nova chega;
+- email ao usuário quando o relatório fica pronto;
+- versões texto e HTML;
+- escaping do conteúdo vindo do usuário;
+- `reply_to` para o operador;
+- `User-Agent` explícito;
+- idempotency keys `cle-submission-{id}` e `cle-ready-{id}`;
+- timeout e erros separados de configuração e entrega;
+- ids do provider e timestamps reservados no model.
+
+O email do operador inclui cliente, arquivo, id, link autenticado de detalhe
+e link de download do original. O email do usuário aponta para a rota real
+`/conta-de-luz-express` e para o download autenticado do PDF.
+
+### Garantia no intake
+
+O endpoint valida a configuração de email antes de ler o arquivo. A
+submissão é enviada ao Resend dentro da transação, antes do commit:
+
+- notificação aceita → id/timestamp persistidos e commit;
+- provider falha → rollback e `502`;
+- configuração ausente → `503`, sem submissão criada.
+
+Isso evita aceitar silenciosamente uma conta de luz que o operador nunca
+fica sabendo que chegou.
+
+### Verificação
+
+Transporte HTTP controlado exerceu os dois sentidos:
+
+- dois destinatários corretos;
+- duas idempotency keys corretas;
+- HTML escapado;
+- ids do provider capturados.
+
+Smoke contra o banco de produção confirmou:
+
+1. notificação do operador persistida junto da submissão;
+2. falha forçada do provider retorna `502`;
+3. a transação da segunda submissão é revertida;
+4. a conta descartável foi removida ao fim.
+
+**Limite honesto:** nenhuma credencial Resend existe no Railway. A integração
+e o contrato HTTP estão testados; entrega em caixa postal externa continua
+dependente de `RESEND_API_KEY`, remetente verificado e as quatro variáveis
+documentadas na Fase 1.

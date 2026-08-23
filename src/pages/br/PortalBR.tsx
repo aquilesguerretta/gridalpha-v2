@@ -24,6 +24,21 @@
 //     <FaixaIndependencia/>, reusando o padrão de grade dela; a
 //     numeração de seção desloca (Conflito=02, Independência=03)
 //
+// WAVE 8 · FASE 1 — caminhos e fonte de dado confirmados:
+//   DESTINOS é INLINE aqui (seção + grid); só a célula é componente
+//     (DestinoCard.tsx). A faixa de família substitui a seção inteira.
+//   PADRÃO DE SUB-ROTA — modelo é src/pages/alexandria/AlexandriaRouter
+//     .tsx: main.tsx casa `/alexandria/*`, o componente delega a um
+//     router com <Route index> + paths RELATIVOS + <Route path="*">.
+//     Replicado como `/br/*` → PortalBRRouter, com `familia/:familiaId`
+//     no lugar de `trilha/:trilhaId`. Convenção herdada, não inventada.
+//   MAPA FAMÍLIA→PRODUTO NÃO EXISTIA — br-destinos.ts é lista plana de
+//     cinco produtos sem atributo de família, e o PRODUCT_CATALOG do
+//     backend é a mesma lista de ids (é o que UMA conta ativa, não o
+//     mapa público). Autorado nesta wave em src/lib/data/br-familias.ts.
+//   "China & Hardware" não existe no sistema: "China" só aparece como
+//     MERCADO GEOGRÁFICO no subtree americano. Nada a propagar.
+//
 // Header fixo → hero (mapa que se constrói no scroll) → índice de
 // destinos → faixa de independência (afirmativa, Wave 4) → rodapé real.
 //

@@ -483,3 +483,92 @@ A sonda ativou `conta-de-luz-express` na conta de teste
 `lyceum.w39.1785853407227@gridalpha.com` (a mesma que as Waves 39/31
 deixaram no banco). É a ação que o produto fará de verdade; nenhuma
 submissão foi criada (o `503` rolou antes).
+
+---
+
+# Adendo — Wave 5 · Fase 1 (migrar pro cliente canônico)
+
+## Numeração: é a Wave 5, não a 4
+
+O brief presumia 4. Contra o disco:
+
+- **`CLAUDE.md`** — a última seção registrada da trilha é
+  `ARCHITECT — CONTA DE LUZ EXPRESS WAVE 3` (L9547). Não há seção de
+  Wave 4.
+- **`git log`** — mas existem TRÊS commits `wave 4` desta trilha:
+  `7d7a8db` (fase 1 · recon de renderização com marcação),
+  `d6fa95d` (fase 2 · `docs/pendencias-infra.md`) e
+  `5de9ba7` (adendo cruzando com a recon da CURSOR). Os três tocaram
+  **só documentação** — foi uma wave de reconhecimento, cuja posse não
+  incluía o `CLAUDE.md`.
+
+Precedente exato no repositório: a wave de reconhecimento que produziu
+`docs/portal-br-familia-audit.md` commitou como "wave 7" sem registrar
+seção, e a numerada seguinte foi a **8**, não a 7 (Portal BR Wave 8).
+Mesma regra aqui — o número 4 já está gasto no histórico. Esta é a **5**.
+
+## H1 — a Wave 3 rodou? SIM
+
+Não presumido pelo comentário de código. Confirmado nas duas fontes:
+
+| Sinal | Evidência |
+| --- | --- |
+| `CLAUDE.md` L9547 | seção completa, **status fechada** |
+| `git log` | `a00dc31` fase 1 · `16500eb` fase 2 (envio) · `9877cc4` fase 3 (status) · `4848925` fase 4 (verificação e fechamento) |
+
+A premissa do brief está correta: a UI já fala com o backend real. Esta
+wave não liga nada — troca a fonte do cliente.
+
+## H2 — a página ainda usa cliente e tipos locais? SIM, intocada
+
+`ContaDeLuzExpressPage.tsx` L169-260, exatamente como a Wave 3 deixou:
+`ArquivoSubmissao` · `Submissao` · `ListaSubmissoes` · `BASE` ·
+`falhar()` · `enviarSubmissao()` · `listarSubmissoes()`, mais os dois
+`eslint-disable react-refresh/only-export-components`.
+
+**Achado que amplia a migração — as duas exportações estão ÓRFÃS.**
+O comentário do arquivo declara o motivo de exportá-las: *"Exportada
+para o PerfilPlataforma ler o status com o mesmo tipo"*. Esse motivo
+morreu — `PerfilPlataforma.tsx` **já migrou** para o canônico (L43-47:
+`criarClienteSubmissoes`, `FLUXOS_SUBMISSAO`, `FluxoSubmissao`,
+`Submissao` de `../../lib/submissoes/api`) e **não importa nada** da
+página de CLE.
+
+Varredura de consumidores em todo o `src/`:
+
+| Símbolo | Consumidores |
+| --- | --- |
+| `listarSubmissoes` | **zero** — nem dentro do próprio arquivo |
+| `enviarSubmissao` | **um**, interno (L350, `aoEnviar`) |
+
+Logo a migração não é só troca de import: apaga duas exportações sem
+consumidor e as duas supressões de lint que só existiam por causa
+delas. Fecha por inteiro a pendência que a Wave 3 registrou.
+
+## H3 — o `status` de CLE já deveria ter mudado e não mudou? NÃO
+
+`br-destinos.ts` já traz `conta-de-luz-express` com
+`status: 'disponivel'` e `rota: '/conta-de-luz-express'`, desde a Wave
+2 (`265ca02`, a exceção mínima de posse daquela wave). **Não há
+esquecimento a corrigir — o arquivo não será tocado.**
+
+Os dois produtos estão mesmo em estados diferentes, como o brief
+suspeitava: `solar-proposal-validator` segue `em-breve` / `rota: null`
+**deliberadamente** (regra absoluta da Solar Wave 2 — "registrado, não
+ativado"), não por esquecimento. Abrir Solar é decisão da trilha dela,
+não desta.
+
+## Diferença de contrato a absorver na Fase 2
+
+`Submissao.productId` é literal `'conta-de-luz-express'` na cópia local
+e `string` no canônico. É alargamento — nenhum uso da página depende da
+estreiteza, e o `FLUXO_CLE` do registro canônico carrega o `prefixo`
+`/api/conta-luz-express`, idêntico ao `BASE` local.
+
+## Risco de sessão paralela
+
+A Solar Proposal Validator Wave 3 está em voo (`ae7be75` é HEAD) e a
+fase dela é justamente ligar a página dela ao canônico — ou seja, pode
+escrever em `src/lib/submissoes/api.ts`, que é SOMENTE LEITURA aqui.
+Meu consumo depende só de `criarClienteSubmissoes` e dos tipos.
+`git diff --stat` real e pathspec explícito antes de cada commit.

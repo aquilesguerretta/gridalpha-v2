@@ -134,7 +134,8 @@ export interface FluxoSubmissao {
   productId: string;
   /** Prefixo da API deste produto — lido do router real, nunca chutado. */
   prefixo: string;
-  /** O backend deste fluxo está no ar e o produto aberto? */
+  /** O backend deste fluxo está no ar? Governa se o perfil CONSULTA o
+   *  endpoint — abertura pública é outra coisa (status do catálogo). */
   aoVivo: boolean;
   /** Porta de entrada do intake, para o CTA do estado vazio. */
   rotaEnvio: string;
@@ -167,10 +168,13 @@ export const FLUXOS_SUBMISSAO: FluxoSubmissao[] = [
     // LIDO do router real (app/routers/solar_proposal.py, CURSOR
     // Wave 2) — mesmo contrato da CLE, campo a campo.
     prefixo: '/api/solar-proposal-validator',
-    // Registrado, não ativado (regra absoluta da Wave 2 desta trilha):
-    // a seção do perfil declara o estado futuro e nada é consultado.
-    // Virar o fluxo é trocar este campo quando o produto abrir.
-    aoVivo: false,
+    // Wave 3 da trilha: o backend está NO AR (medido — GET sem sessão
+    // devolve 401, mesmo comportamento do de CLE) e a página de intake
+    // envia de verdade, então o perfil passa a LER o endpoint real.
+    // `aoVivo` governa a consulta, não a abertura pública: o produto
+    // segue 'em-breve' no catálogo até o Railway ter as variáveis de
+    // email — decisão separada, registrada em docs/pendencias-infra.md.
+    aoVivo: true,
     rotaEnvio: '/solar-proposal-validator',
     copy: {
       vazioEtiqueta: 'Nenhuma proposta enviada',

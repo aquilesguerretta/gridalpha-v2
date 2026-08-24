@@ -423,3 +423,83 @@ Sem escrever uma linha:
 8. **`DestinoCard.tsx` segue como código morto** com duas exportações
    vivas. Não é problema desta wave; é contexto para quem for editar
    `PLANTAS`.
+
+
+---
+
+# Adendo — Wave 3, Fase 1 · contrato real confirmado
+
+Confirmação contra o DISCO e contra PRODUÇÃO, não contra a memória da
+Wave 2. Posse: este adendo é aditivo num doc desta própria trilha — o
+brief da Wave 3 não o lista, mas a fase exige commit de relatório e
+este é o documento vivo (mesmo precedente do adendo da CLE Wave 3).
+
+## H1 · Os três endpoints, lidos do router real
+
+`app/routers/solar_proposal.py` (CURSOR Wave 2), prefixo
+`/api/solar-proposal-validator`:
+
+| Endpoint | Forma |
+| --- | --- |
+| `POST /submissions` | multipart, campo `file` → **201** com `_submission_payload` |
+| `GET /submissions` | `{ data[], summary: {count, submitted, ready} }`, mais recente primeiro, **sem exigir entitlement** (lista por `user_id`) |
+| `GET /submissions/{id}/source` · `/deliverable` | bytes com `Content-Disposition: attachment`, `nosniff`, `no-store` |
+
+Payload **campo a campo igual ao de CLE** (`id, productId, status,
+source{filename,contentType,sizeBytes,sha256,downloadUrl},
+deliverable|null, createdAt, updatedAt, deliveredAt`).
+
+**Guardas do POST, na ordem em que disparam:**
+
+1. `_require_entitlement` → **403** `product 'solar-proposal-validator' is not active for this account`
+2. `email_config()` → **503** nomeando a variável ausente — o conjunto
+   é `SPV_APP_BASE_URL` / `ADVISORY_OPERATOR_EMAIL` / `SPV_EMAIL_FROM`
+   / `RESEND_API_KEY` (operador COMPARTILHADO com CLE; `SPV_*` próprios)
+3. `read_source_upload` → **415** por ASSINATURA DE BYTES (PDF `%PDF-`,
+   JPEG, PNG, WEBP — declarado divergente da assinatura também é 415) ·
+   **413** acima de 15 MB (`SPV_MAX_SOURCE_BYTES`, default 15 MiB)
+4. Resend falhou → **502** com rollback (a submissão NÃO fica gravada)
+
+**Produção MEDIDA por HTTPS**: `GET /api/solar-proposal-validator/
+submissions` sem sessão → **401 `not authenticated`** — o router está
+NO AR, mesmo comportamento do de CLE. O que falta em produção são as
+variáveis de email (o 503 da guarda 2), não o deploy.
+
+## H2 · Onde o modo DEMO- vive na página
+
+Cirurgia limpa, sem lógica real enredada:
+
+- `submissaoDemonstracao()` — a fábrica do protocolo sintético; único
+  consumidor é `aoEnviar` (uma linha).
+- `aoEnviar` — síncrono, zero rede; vira async com o cliente canônico.
+- O banner tracejado "Demonstração — o envio ainda não abriu" na
+  seção 01.
+- Rótulos do estado confirmado: nota do cabeçalho `demonstração`,
+  "Demonstração registrada na tela", "Protocolo de demonstração",
+  "Gerado em", "O que aconteceu", botão "Testar com outro arquivo",
+  nota "Nada sai desta tela", botão "Testar o fluxo".
+
+Nada mais na página depende do mock.
+
+## H3 · A página NÃO tem cópia de cliente
+
+Ela importa **só `type Submissao`** de `src/lib/submissoes/api.ts` —
+zero `fetch`, zero cliente próprio (grep: nenhuma ocorrência de
+`criarClienteSubmissoes`, `enviarSubmissao` ou `fetch(` no arquivo).
+Não existe segunda cópia a matar: a fiação entra direto pelo canônico.
+(A cópia local que segue viva é a da PÁGINA DE CLE — fora desta wave,
+como a Wave 2 já registrou.)
+
+## Consequência para a Fase 2
+
+- Envio via `criarClienteSubmissoes` do canônico, com o prefixo do
+  REGISTRO (`FLUXOS_SUBMISSAO`) — uma fonte só.
+- Ativação antes do envio (`myProducts` → `activateProduct` só se
+  faltar) + guarda de rota por sessão — o par que a CLE Wave 3 trouxe
+  junto, e que a Wave 2 desta trilha declarou que entraria com a fiação.
+- Mapa de erro por status na página: 0 rede · 401 sessão · 403
+  entitlement · 413 tamanho (15 MB é declarável agora — o contrato
+  existe) · 415 tipo · 502 notificação · 503 variável de produção.
+- Em dev, o ciclo real esperado termina no **503** (variáveis de email
+  ausentes em produção, para onde o proxy aponta) — estado declarado na
+  tela, não falha da fiação.

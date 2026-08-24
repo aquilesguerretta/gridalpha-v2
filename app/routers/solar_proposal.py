@@ -35,8 +35,7 @@ router = APIRouter(
 
 
 def _operator_email() -> str:
-    # Phase 3 renames this shared Advisory identity without changing its value.
-    return os.environ.get("CLE_OPERATOR_EMAIL", "").strip().lower()
+    return os.environ.get("ADVISORY_OPERATOR_EMAIL", "").strip().lower()
 
 
 def _is_operator(user: User) -> bool:
@@ -49,7 +48,7 @@ def _require_operator(user: User) -> None:
     if not configured:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="CLE_OPERATOR_EMAIL is not configured",
+            detail="ADVISORY_OPERATOR_EMAIL is not configured",
         )
     if user.email.lower() != configured:
         raise HTTPException(

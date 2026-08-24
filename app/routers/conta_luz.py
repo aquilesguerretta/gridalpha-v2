@@ -48,7 +48,7 @@ def _require_operator(user: User) -> None:
     if not configured:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="CLE_OPERATOR_EMAIL is not configured",
+            detail="ADVISORY_OPERATOR_EMAIL is not configured",
         )
     if user.email.lower() != configured:
         raise HTTPException(

@@ -6,7 +6,8 @@ Resolver em lote quando tiver ajuda. Não bloqueia build de feature.
   [ ] RESEND_API_KEY — conta no Resend + verificação do domínio
       nivar.com.br via registro DNS
   [ ] CLE_EMAIL_FROM — proposta: contato@nivar.com.br
-  [ ] CLE_OPERATOR_EMAIL — assumido como o email do Aquiles, confirmar
+  [ ] ADVISORY_OPERATOR_EMAIL — operador compartilhado entre os produtos
+      Advisory; assumido como o email do Aquiles, confirmar
   [ ] CLE_APP_BASE_URL — URL real de produção, ainda não confirmada
 
 ── PERFORMANCE (FOUNDRY NIVAR Wave 1, não urgente)

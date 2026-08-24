@@ -46,9 +46,11 @@ def email_config() -> EmailConfig:
     base_url = _required_env("CLE_APP_BASE_URL").rstrip("/")
     if not base_url.startswith(("https://", "http://")):
         raise EmailConfigurationError("CLE_APP_BASE_URL must be an absolute HTTP(S) URL")
-    operator = _required_env("CLE_OPERATOR_EMAIL").lower()
+    operator = _required_env("ADVISORY_OPERATOR_EMAIL").lower()
     if "@" not in operator:
-        raise EmailConfigurationError("CLE_OPERATOR_EMAIL must be an email address")
+        raise EmailConfigurationError(
+            "ADVISORY_OPERATOR_EMAIL must be an email address"
+        )
     return EmailConfig(
         api_key=_required_env("RESEND_API_KEY"),
         sender=_required_env("CLE_EMAIL_FROM"),
@@ -61,7 +63,7 @@ def email_config() -> EmailConfig:
 
 def operator_email() -> str:
     """Return the configured operator identity without requiring all email config."""
-    return os.environ.get("CLE_OPERATOR_EMAIL", "").strip().lower()
+    return os.environ.get("ADVISORY_OPERATOR_EMAIL", "").strip().lower()
 
 
 def send_transactional_email(

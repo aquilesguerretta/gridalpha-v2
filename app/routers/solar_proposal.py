@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import uuid
 from datetime import datetime, timezone
 
@@ -17,6 +16,14 @@ from app.db.models.user import User
 from app.db.session import get_db
 from app.services.advisory_files import download_headers
 from app.services.auth_service import get_current_user
+from app.services.solar_proposal_email import (
+    AdvisoryEmailDeliveryError,
+    SolarEmailConfigurationError,
+    email_config,
+    notify_customer_deliverable_ready,
+    notify_operator_new_submission,
+    operator_email,
+)
 from app.services.solar_proposal_storage import (
     InvalidAdvisoryUpload,
     read_deliverable_upload,
@@ -34,17 +41,13 @@ router = APIRouter(
 )
 
 
-def _operator_email() -> str:
-    return os.environ.get("ADVISORY_OPERATOR_EMAIL", "").strip().lower()
-
-
 def _is_operator(user: User) -> bool:
-    configured = _operator_email()
+    configured = operator_email()
     return bool(configured and user.email.lower() == configured)
 
 
 def _require_operator(user: User) -> None:
-    configured = _operator_email()
+    configured = operator_email()
     if not configured:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -145,6 +148,13 @@ async def create_submission(
 ):
     _require_entitlement(db, user)
     try:
+        config = email_config()
+    except SolarEmailConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    try:
         source = await read_source_upload(file)
     except InvalidAdvisoryUpload as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
@@ -159,8 +169,28 @@ async def create_submission(
         source_data=source.data,
     )
     db.add(submission)
-    db.commit()
-    db.refresh(submission)
+    try:
+        db.flush()
+        receipt = notify_operator_new_submission(
+            config=config,
+            submission_id=submission.id,
+            customer_name=user.name,
+            customer_email=user.email,
+            source_filename=source.filename,
+        )
+        submission.operator_email_id = receipt.provider_id
+        submission.operator_notified_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(submission)
+    except AdvisoryEmailDeliveryError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "submission was not saved because operator notification "
+                f"failed: {exc}"
+            ),
+        ) from exc
     return _submission_payload(submission)
 
 
@@ -228,6 +258,13 @@ async def attach_deliverable(
 ):
     _require_operator(user)
     try:
+        config = email_config()
+    except SolarEmailConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    try:
         deliverable = await read_deliverable_upload(file)
     except InvalidAdvisoryUpload as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
@@ -246,15 +283,39 @@ async def attach_deliverable(
             detail="submission already has a different deliverable",
         )
 
+    customer = db.execute(
+        select(User).where(User.id == submission.user_id)
+    ).scalar_one()
+    delivered_at = datetime.now(timezone.utc)
     submission.status = "ready"
     submission.deliverable_filename = deliverable.filename
     submission.deliverable_content_type = deliverable.content_type
     submission.deliverable_size_bytes = deliverable.size_bytes
     submission.deliverable_sha256 = deliverable.sha256
     submission.deliverable_data = deliverable.data
-    submission.delivered_at = datetime.now(timezone.utc)
-    db.commit()
-    db.refresh(submission)
+    submission.delivered_at = delivered_at
+
+    try:
+        db.flush()
+        receipt = notify_customer_deliverable_ready(
+            config=config,
+            submission_id=submission.id,
+            customer_name=customer.name,
+            customer_email=customer.email,
+        )
+        submission.customer_email_id = receipt.provider_id
+        submission.customer_notified_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(submission)
+    except AdvisoryEmailDeliveryError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "deliverable was not saved because customer notification "
+                f"failed: {exc}"
+            ),
+        ) from exc
     return {**_submission_payload(submission), "alreadyReady": False}
 
 

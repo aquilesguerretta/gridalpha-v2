@@ -41,6 +41,11 @@ import { flushSync } from 'react-dom';
 
 import { useAuth } from '../../lib/auth/AuthContext';
 import { AuthError } from '../../lib/auth/authApi';
+import {
+  criarClienteSubmissoes,
+  FLUXOS_SUBMISSAO,
+  type Submissao,
+} from '../../lib/submissoes/api';
 
 // Tokens NIVAR — só arquivos de VARIÁVEL, como PortalBR e FamiliaPage.
 // base.css fica de fora: restila elemento global e vazaria para outras
@@ -59,6 +64,13 @@ import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
 import { PlantaBaixa } from '../../components/br/DestinoCard';
 
 const PRODUTO_ID = 'conta-de-luz-express';
+
+// O prefixo da API vem do REGISTRO — uma fonte só; digitá-lo aqui
+// abriria a divergência que o registro existe para impedir. Era
+// exatamente o que o `const BASE` local fazia até a Wave 5.
+const FLUXO_CLE = FLUXOS_SUBMISSAO.find((f) => f.productId === PRODUTO_ID);
+if (!FLUXO_CLE) throw new Error(`fluxo '${PRODUTO_ID}' ausente de FLUXOS_SUBMISSAO`);
+const clienteCle = criarClienteSubmissoes(FLUXO_CLE.prefixo);
 const MEDIDA = '1200px';
 const RESPIRO_LATERAL = '32px';
 const MEDIDA_FORM = '62ch';
@@ -162,101 +174,22 @@ function formatarTamanho(bytes: number): string {
   return `${mb.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
 }
 
-// ─── Contrato do backend (CURSOR Wave 2) ────────────────────────────
-// Forma EXATA de `_submission_payload` em app/routers/conta_luz.py.
-// Exportada para o PerfilPlataforma ler o status com o mesmo tipo —
-// nenhum arquivo novo é posse desta wave, então o cliente mora aqui.
-export interface ArquivoSubmissao {
-  filename: string;
-  contentType: string;
-  sizeBytes: number;
-  sha256: string;
-  /** Relativo — `/api/conta-luz-express/submissions/{id}/{source|deliverable}`. */
-  downloadUrl: string;
-}
-
-export interface Submissao {
-  id: string;
-  productId: 'conta-de-luz-express';
-  /** Os DOIS estados do backend. "Nada enviado" não é status: é lista vazia. */
-  status: 'submitted' | 'ready';
-  source: ArquivoSubmissao;
-  /** Só com `status === 'ready'`; já traz o `downloadUrl` do PDF final. */
-  deliverable: ArquivoSubmissao | null;
-  createdAt: string;
-  updatedAt: string;
-  deliveredAt: string | null;
-}
-
-export interface ListaSubmissoes {
-  data: Submissao[];
-  summary: { count: number; submitted: number; ready: number };
-}
-
-const BASE = '/api/conta-luz-express';
-
-/** Lê `{"detail": "..."}` do backend e devolve `AuthError` com o
- *  status preservado — o mesmo idioma do `pedir()` de authApi.ts, que
- *  não serve aqui porque só fala JSON e o envio é multipart. */
-async function falhar(res: Response): Promise<never> {
-  let detalhe = `HTTP ${res.status}`;
-  try {
-    const corpo = (await res.json()) as { detail?: unknown };
-    if (typeof corpo?.detail === 'string') detalhe = corpo.detail;
-  } catch {
-    /* corpo não-JSON: fica o status */
-  }
-  throw new AuthError(detalhe, res.status);
-}
-
-/** `POST /submissions` — multipart, campo `file`. Sem `Content-Type`
- *  manual: o browser põe o boundary.
- *
- *  Exportar função de um arquivo de componente desliga o Fast Refresh
- *  deste arquivo em dev (reload completo em vez de HMR) — só em dev,
- *  zero efeito em produção. Aceito de propósito: a wave não tem posse
- *  para criar `src/lib/contaLuz/api.ts`, e duplicar o cliente no perfil
- *  criaria a "segunda cópia que deriva" do contrato. PENDÊNCIA: mover
- *  cliente + tipos para `src/lib/` quando uma wave tiver essa posse. */
-// eslint-disable-next-line react-refresh/only-export-components
-export async function enviarSubmissao(arquivo: File, signal?: AbortSignal): Promise<Submissao> {
-  const fd = new FormData();
-  fd.append('file', arquivo, arquivo.name);
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}/submissions`, {
-      method: 'POST',
-      body: fd,
-      credentials: 'include',
-      headers: { Accept: 'application/json' },
-      signal,
-    });
-  } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') throw err;
-    throw new AuthError(err instanceof Error ? err.message : 'Falha de rede.', 0);
-  }
-  if (!res.ok) return falhar(res);
-  return (await res.json()) as Submissao;
-}
-
-/** `GET /submissions` — as submissões da conta, mais recente primeiro. */
-// eslint-disable-next-line react-refresh/only-export-components
-export async function listarSubmissoes(signal?: AbortSignal): Promise<ListaSubmissoes> {
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}/submissions`, {
-      credentials: 'include',
-      headers: { Accept: 'application/json' },
-      signal,
-    });
-  } catch (err) {
-    if (err instanceof Error && err.name === 'AbortError') throw err;
-    throw new AuthError(err instanceof Error ? err.message : 'Falha de rede.', 0);
-  }
-  if (!res.ok) return falhar(res);
-  return (await res.json()) as ListaSubmissoes;
-}
-
+// ─── Contrato do backend ───────────────────────────────────
+// Tipos e cliente vinham DAQUI até a Wave 5. A Wave 3 registrou por
+// escrito que moravam neste arquivo por falta de posse para criar
+// `src/lib/`, e que mover era pendência; o Solar Proposal Validator
+// Wave 2 criou o canônico em `src/lib/submissoes/api.ts` — mesmo
+// contrato, campo a campo — e deixou a troca marcada. É esta.
+//
+// O que sumiu junto: as duas exportações (`enviarSubmissao`,
+// `listarSubmissoes`) e as duas supressões de
+// `react-refresh/only-export-components` que só existiam por causa
+// delas. O motivo declarado para exportar — "para o PerfilPlataforma
+// ler o status com o mesmo tipo" — já tinha morrido: o perfil migrou
+// para o canônico e não importa nada daqui. `listarSubmissoes` estava
+// com ZERO consumidor em todo o `src/`.
+//
+// Fast Refresh volta a valer neste arquivo, de graça.
 /** O que a tela diz para cada status do backend. Sem semáforo: é texto.
  *  Os números vêm das guardas reais do router, na ordem em que disparam. */
 function mensagemDeErro(err: unknown): string {
@@ -347,7 +280,7 @@ export function ContaDeLuzExpressPage() {
       if (!products.some((p) => p.productId === PRODUTO_ID)) {
         await activateProduct(PRODUTO_ID);
       }
-      const criada = await enviarSubmissao(arquivo);
+      const criada = await clienteCle.enviar(arquivo);
       setSubmissao(criada);
       comTransicao(() => setEtapa('confirmado'));
     } catch (err) {

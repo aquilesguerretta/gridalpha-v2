@@ -32,13 +32,19 @@ import { DESTINOS_BR } from '../../lib/data/br-destinos';
 import { useAuth } from '../../lib/auth/AuthContext';
 import type { ProductsResponse } from '../../lib/auth/authApi';
 import { ContaShell, NT } from './ContaShell';
-// Cliente e tipo do contrato real (CURSOR Wave 2), exportados pela
-// página de intake — nenhum arquivo novo é posse desta trilha, e a
-// forma do payload tem UM dono, não dois.
+// Cliente e tipos do contrato de submissão — agora em `src/lib/`
+// (Solar Proposal Validator Wave 2, Fase 2), pagando a pendência que a
+// Conta de Luz Express Wave 3 registrou por escrito: o cliente morava
+// num arquivo de componente por falta de posse. O perfil deixa de
+// importar de página e passa a mapear o REGISTRO de fluxos — uma seção
+// de status por produto com fluxo de envio, número derivado da
+// posição, fetch só para fluxo com backend no ar.
 import {
-  listarSubmissoes,
+  criarClienteSubmissoes,
+  FLUXOS_SUBMISSAO,
+  type FluxoSubmissao,
   type Submissao,
-} from '../conta-de-luz-express/ContaDeLuzExpressPage';
+} from '../../lib/submissoes/api';
 
 /** Id do catálogo → rótulo. Deriva do id quando ninguém nomeou ainda,
  *  em vez de esconder o produto ou inventar nome.
@@ -92,10 +98,10 @@ export function PerfilPlataforma() {
   const [produtos, setProdutos] = useState<ProductsResponse | null>(null);
   const [erroProdutos, setErroProdutos] = useState(false);
   const [saindo, setSaindo] = useState(false);
-  // Submissões REAIS da Conta de Luz Express. `null` = ainda não
+  // Submissões REAIS, por produto do registro. `null` = ainda não
   // respondeu; `[]` = nada enviado. Mesmo idioma do `produtos` acima.
-  const [submissoes, setSubmissoes] = useState<Submissao[] | null>(null);
-  const [erroSubmissoes, setErroSubmissoes] = useState(false);
+  const [submissoesPor, setSubmissoesPor] = useState<Record<string, Submissao[] | null>>({});
+  const [erroSubmissoesPor, setErroSubmissoesPor] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user) return;
@@ -109,18 +115,24 @@ export function PerfilPlataforma() {
     return () => ctrl.abort();
   }, [user, myProducts]);
 
-  // Uma chamada por montagem, abortada no desmonte — igual à de produtos.
-  // Não depende de entitlement: o GET lista por `user_id` e devolve `[]`
-  // para quem nunca enviou (medido), então não há 403 a tratar aqui.
+  // Uma chamada por fluxo AO VIVO por montagem, abortada no desmonte —
+  // igual à de produtos. Não depende de entitlement: o GET lista por
+  // `user_id` e devolve `[]` para quem nunca enviou (medido), então não
+  // há 403 a tratar aqui. Fluxo com `aoVivo: false` NUNCA é consultado —
+  // a seção dele declara o estado futuro em vez de colher um 404.
   useEffect(() => {
     if (!user) return;
     const ctrl = new AbortController();
-    listarSubmissoes(ctrl.signal)
-      .then((r) => setSubmissoes(r.data))
-      .catch((err: unknown) => {
-        if (err instanceof Error && err.name === 'AbortError') return;
-        setErroSubmissoes(true);
-      });
+    for (const fluxo of FLUXOS_SUBMISSAO) {
+      if (!fluxo.aoVivo) continue;
+      criarClienteSubmissoes(fluxo.prefixo)
+        .listar(ctrl.signal)
+        .then((r) => setSubmissoesPor((s) => ({ ...s, [fluxo.productId]: r.data })))
+        .catch((err: unknown) => {
+          if (err instanceof Error && err.name === 'AbortError') return;
+          setErroSubmissoesPor((s) => ({ ...s, [fluxo.productId]: true }));
+        });
+    }
     return () => ctrl.abort();
   }, [user]);
 
@@ -345,35 +357,73 @@ export function PerfilPlataforma() {
           </p>
         </Secao>
 
-        {/* ─── Conta de Luz Express ────────────────────────────── */}
-        {/* Status do produto ABERTO de Advisory — o parecer chega AQUI,
-            no perfil, com aviso por email. Lido do backend a cada
-            montagem. Sem semáforo: texto, fio e id em mono. */}
-        <Secao
-          numero="04"
-          titulo="Conta de Luz Express"
-          nota={
-            erroSubmissoes
-              ? undefined
-              : submissoes === null
-                ? undefined
-                : submissoes.length === 0
-                  ? 'Nada enviado'
-                  : `${ROTULO_STATUS[submissoes[0].status]} · ${submissoes.length} ${submissoes.length === 1 ? 'envio' : 'envios'}`
-          }
-        >
-          {erroSubmissoes ? (
-            <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
-              Não foi possível carregar os envios agora. Recarregue a página.
-            </p>
-          ) : submissoes === null ? (
-            <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
-              Carregando envios…
-            </p>
-          ) : (
-            <StatusConta submissao={submissoes[0] ?? null} />
-          )}
-        </Secao>
+        {/* ─── Fluxos de submissão, um por produto ─────────────── */}
+        {/* Status dos produtos com fluxo de envio — o parecer chega
+            AQUI, no perfil, com aviso por email. Uma seção por fluxo do
+            REGISTRO (src/lib/submissoes), com o número DERIVADO da
+            posição depois das três seções fixas — era `04` digitado, o
+            mesmo defeito de numeração que a FamiliaPage tinha. Fluxo
+            sem backend no ar declara o estado futuro, sem fetch. Sem
+            semáforo: texto, fio e id em mono. */}
+        {FLUXOS_SUBMISSAO.map((fluxo, i) => {
+          const numero = String(4 + i).padStart(2, '0');
+          const submissoes = submissoesPor[fluxo.productId] ?? null;
+          const erroSubmissoes = erroSubmissoesPor[fluxo.productId] ?? false;
+          return (
+            <Secao
+              key={fluxo.productId}
+              numero={numero}
+              titulo={rotularProduto(fluxo.productId)}
+              nota={
+                !fluxo.aoVivo
+                  ? 'Em construção'
+                  : erroSubmissoes
+                    ? undefined
+                    : submissoes === null
+                      ? undefined
+                      : submissoes.length === 0
+                        ? 'Nada enviado'
+                        : `${ROTULO_STATUS[submissoes[0].status]} · ${submissoes.length} ${submissoes.length === 1 ? 'envio' : 'envios'}`
+              }
+            >
+              {!fluxo.aoVivo ? (
+                /* Fluxo declarado, ainda não aberto — contorno tracejado,
+                   o registro de "ainda não existe" do sistema. Nada é
+                   consultado e nada finge estar no ar. */
+                <div
+                  style={{
+                    border: '1px dashed var(--rule-strong)',
+                    borderRadius: 0,
+                    padding: '20px 22px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                  }}
+                >
+                  <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>
+                    Fluxo ainda não aberto
+                  </span>
+                  <p
+                    style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}
+                  >
+                    O envio deste produto ainda não abriu. Quando abrir, os envios e o parecer
+                    aparecem nesta seção, com aviso por email.
+                  </p>
+                </div>
+              ) : erroSubmissoes ? (
+                <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+                  Não foi possível carregar os envios agora. Recarregue a página.
+                </p>
+              ) : submissoes === null ? (
+                <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+                  Carregando envios…
+                </p>
+              ) : (
+                <StatusSubmissao submissao={submissoes[0] ?? null} fluxo={fluxo} />
+              )}
+            </Secao>
+          );
+        })}
       </div>
     </ContaShell>
   );
@@ -416,12 +466,19 @@ function formatarDataHora(iso: string): string {
   });
 }
 
-/** Os três estados da Conta de Luz Express no perfil. Sem verde de
+/** Os três estados de um fluxo de submissão no perfil. Sem verde de
  *  sucesso nem amarelo de espera: o estado é TEXTO em etiqueta, e o
  *  único sinal visual é o fio — `--rule-strong` em repouso,
  *  `--accent-house` quando há parecer para abrir. Idioma do
- *  `DataFreshness` do sistema ("frescor de dado não é semáforo"). */
-function StatusConta({ submissao }: { submissao: Submissao | null }) {
+ *  `DataFreshness` do sistema ("frescor de dado não é semáforo").
+ *  A copy vem do REGISTRO do fluxo — explícita por produto. */
+function StatusSubmissao({
+  submissao,
+  fluxo,
+}: {
+  submissao: Submissao | null;
+  fluxo: FluxoSubmissao;
+}) {
   if (submissao === null) {
     return (
       // Estado vazio DECLARADO — mesmo contorno tracejado das seções
@@ -436,13 +493,14 @@ function StatusConta({ submissao }: { submissao: Submissao | null }) {
           gap: '10px',
         }}
       >
-        <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Nenhuma fatura enviada</span>
+        <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>
+          {fluxo.copy.vazioEtiqueta}
+        </span>
         <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
-          O parecer de uma fatura chega nesta seção, com aviso por email, depois que a
-          leitura terminar. Nada foi enviado por esta conta ainda.
+          {fluxo.copy.vazioCorpo}
         </p>
-        <Link className="conta-link" to="/conta-de-luz-express" style={{ alignSelf: 'flex-start' }}>
-          Enviar uma fatura
+        <Link className="conta-link" to={fluxo.rotaEnvio} style={{ alignSelf: 'flex-start' }}>
+          {fluxo.copy.vazioCta}
         </Link>
       </div>
     );
@@ -474,7 +532,7 @@ function StatusConta({ submissao }: { submissao: Submissao | null }) {
         ? submissao.deliveredAt
           ? formatarDataHora(submissao.deliveredAt)
           : '—'
-        : 'Uma pessoa está lendo a fatura. O aviso por email sai quando o parecer ficar pronto.',
+        : fluxo.copy.emLeitura,
     },
   ];
 

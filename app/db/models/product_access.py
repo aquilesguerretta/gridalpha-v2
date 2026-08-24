@@ -31,6 +31,7 @@ PRODUCT_CATALOG: tuple[str, ...] = (
     "terminal-brasil",
     "energy-brief",
     "conta-de-luz-express",
+    "solar-proposal-validator",
     "diagnostico-energetico",
 )
 PRODUCT_IDS: frozenset[str] = frozenset(PRODUCT_CATALOG)

@@ -142,7 +142,6 @@ export function PerformanceHistory({ onSelectEvent }: Props) {
                 fill: C.textMuted,
                 fontFamily: F.mono,
                 fontSize: 10,
-                fontVariantNumeric: 'tabular-nums',
               }}
               stroke={C.borderDefault}
               tickLine={false}
@@ -153,7 +152,6 @@ export function PerformanceHistory({ onSelectEvent }: Props) {
                 fill: C.textMuted,
                 fontFamily: F.mono,
                 fontSize: 10,
-                fontVariantNumeric: 'tabular-nums',
               }}
               tickFormatter={(v) =>
                 v === 0 ? '$0' : v > 0 ? `+$${v}` : `−$${Math.abs(v)}`
@@ -174,12 +172,14 @@ export function PerformanceHistory({ onSelectEvent }: Props) {
                 color: C.textPrimary,
               }}
               labelFormatter={(v) => `Trade #${v}`}
-              formatter={(value: number, _name, ctx) => {
+              formatter={(value, _name, ctx) => {
+                if (value == null) return ['—', 'cumulative'];
+                const n = Number(value);
                 const trade = (ctx?.payload as ChartPoint | undefined)
                   ?.tradePnLUSD;
                 const tradeSign = trade !== undefined && trade < 0 ? '−' : '+';
                 return [
-                  `$${Math.abs(value).toLocaleString()}`,
+                  `$${Math.abs(n).toLocaleString()}`,
                   trade !== undefined
                     ? `cumulative (this trade ${tradeSign}$${Math.abs(trade).toLocaleString()})`
                     : 'cumulative',
@@ -205,7 +205,6 @@ export function PerformanceHistory({ onSelectEvent }: Props) {
                   r={5}
                   fill={C.falconGold}
                   stroke={C.falconGold}
-                  isFront
                   onClick={() => onSelectEvent?.(p.positionId)}
                 />
               ))}

@@ -11,7 +11,7 @@
 // LMP, IRR delta. Records the snapshot back into the sandbox store
 // so HypotheticalProjectLibrary's status strip flips green/red.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   Bar,
   BarChart,
@@ -297,7 +297,6 @@ function SnapshotBlock({
                 fill: C.textMuted,
                 fontFamily: F.mono,
                 fontSize: 10,
-                fontVariantNumeric: 'tabular-nums',
               }}
               tickFormatter={(v) => `$${v}M`}
               stroke={C.borderDefault}
@@ -315,7 +314,9 @@ function SnapshotBlock({
                 fontSize: 11,
                 color: C.textPrimary,
               }}
-              formatter={(value: number) => [`$${value}M`, 'revenue']}
+              formatter={(value) =>
+                value != null ? [`$${Number(value)}M`, 'revenue'] : ['—', 'revenue']
+              }
             />
             <Legend
               wrapperStyle={{

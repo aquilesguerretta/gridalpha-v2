@@ -121,6 +121,24 @@ const PLANTAS: Record<string, Traco[]> = {
     { el: 'line', attrs: { x1: 20, y1: 116, x2: 244, y2: 116 } },
     { el: 'line', attrs: { x1: 20, y1: 132, x2: 152, y2: 132 } },
   ],
+  // Solar Proposal Validator (Wave 2 da trilha): o documento da
+  // proposta à esquerda, a divisa das DUAS TRILHAS de leitura
+  // (regulatória / técnica) e os TRÊS vereditos possíveis à direita —
+  // a estrutura real do Módulo 11 ("roteador de veredito — três
+  // classes, todas alcançáveis"), não layout genérico.
+  'solar-proposal-validator': [
+    moldura,
+    { el: 'rect', attrs: { x: 24, y: 20, width: 130, height: 18 } },
+    { el: 'line', attrs: { x1: 24, y1: 56, x2: 154, y2: 56 } },
+    { el: 'line', attrs: { x1: 24, y1: 72, x2: 154, y2: 72 } },
+    { el: 'line', attrs: { x1: 24, y1: 88, x2: 154, y2: 88 } },
+    { el: 'line', attrs: { x1: 24, y1: 104, x2: 154, y2: 104 } },
+    { el: 'line', attrs: { x1: 24, y1: 120, x2: 130, y2: 120 } },
+    { el: 'line', attrs: { x1: 170, y1: 20, x2: 170, y2: 130 } },
+    { el: 'rect', attrs: { x: 186, y: 20, width: 70, height: 26 } },
+    { el: 'rect', attrs: { x: 186, y: 62, width: 70, height: 26 } },
+    { el: 'rect', attrs: { x: 186, y: 104, width: 70, height: 26 } },
+  ],
 };
 
 const PLANTA_GENERICA: Traco[] = [

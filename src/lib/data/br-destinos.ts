@@ -63,6 +63,20 @@ export const DESTINOS_BR: DestinoBR[] = [
     rota: '/conta-de-luz-express',
   },
   {
+    id: 'solar-proposal-validator',
+    titulo: 'Solar Proposal Validator',
+    descricao:
+      'Análise independente de proposta solar — enquadramento, regime de compensação e premissas a validar.',
+    // Solar Proposal Validator Wave 2: REGISTRADO, não ativado. O id já
+    // existe no PRODUCT_CATALOG do backend e o router está no ar
+    // (CURSOR Wave 2), mas abrir o produto é a próxima wave — regra
+    // absoluta desta. Virar é o mesmo par de campos da CLE:
+    // status: 'disponivel' + rota: '/solar-proposal-validator' (a rota
+    // de topo já existe em main.tsx; a página roda em demonstração).
+    status: 'em-breve',
+    rota: null,
+  },
+  {
     id: 'diagnostico-energetico',
     titulo: 'Diagnóstico Energético',
     descricao: 'Análise 360° do custo energético de uma operação industrial.',

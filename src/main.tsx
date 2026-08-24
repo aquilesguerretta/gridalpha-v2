@@ -19,6 +19,7 @@ import { EntrarView } from './pages/conta/EntrarView';
 import { CriarContaView } from './pages/conta/CriarContaView';
 import { PerfilPlataforma } from './pages/conta/PerfilPlataforma';
 import { ContaDeLuzExpressPage } from './pages/conta-de-luz-express/ContaDeLuzExpressPage';
+import { SolarProposalValidatorPage } from './pages/solar-proposal-validator/SolarProposalValidatorPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -119,6 +120,13 @@ createRoot(document.getElementById('root')!).render(
               confirmação como estados); vira splat quando houver
               segunda superfície. */}
           <Route path="/conta-de-luz-express" element={<ContaDeLuzExpressPage />} />
+
+          {/* Solar Proposal Validator (Wave 2) — mesma decisão de rota
+              da CLE acima. A página roda em DEMONSTRAÇÃO e o produto
+              segue 'em-breve' no catálogo (registrado, não ativado):
+              a rota existe para a superfície ser real e verificável;
+              nenhum link público aponta para cá até o produto abrir. */}
+          <Route path="/solar-proposal-validator" element={<SolarProposalValidatorPage />} />
 
           {/* Portais de mercado. Mercado é segmento de URL, não estado em
               store: link compartilhável, bookmark funciona, sem hidratação.

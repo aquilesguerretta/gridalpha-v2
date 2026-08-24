@@ -342,6 +342,35 @@ export const BLOCOS_FAMILIA: BlocoFamiliaProduto[] = [
     ctaRotulo: 'Enviar uma fatura',
     ctaNota: 'Leitura manual · sem cobrança nesta etapa',
   },
+  {
+    // Solar Proposal Validator Wave 2, Fase 4 — REGISTRADO, não
+    // ativado. O produto está `em-breve` no catálogo (rota null), então
+    // o CTA não renderiza — só a nota. Copy do MÓDULO 11 da Alexandria,
+    // a especificação real do produto: separar fato de premissa,
+    // perguntas de negociação com base normativa citada, e a disciplina
+    // de linguagem que o próprio módulo trava (oportunidades a validar,
+    // nunca economia prometida).
+    produtoId: 'solar-proposal-validator',
+    ariaLabel: 'Solar Proposal Validator',
+    titulo: 'Solar Proposal Validator',
+    nota: 'em construção',
+    colunas: [
+      {
+        k: 'O que entra',
+        v: 'Uma proposta comercial de sistema solar — PDF ou imagem — enviada pela conta.',
+      },
+      {
+        k: 'O que sai',
+        v: 'Parecer que separa fato de premissa em cada linha — enquadramento, regime de compensação, geração estimada — com as perguntas de negociação e a base normativa citada.',
+      },
+      {
+        k: 'O que não é',
+        v: 'Não vende sistema, não indica instalador, não recebe comissão. Nenhuma economia é prometida.',
+      },
+    ],
+    ctaRotulo: null,
+    ctaNota: 'Em construção · o envio abre com a ativação do produto',
+  },
 ];
 
 /** Os blocos de uma família, NA ORDEM dos produtos dela — a numeração

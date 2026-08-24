@@ -162,4 +162,23 @@ export const FLUXOS_SUBMISSAO: FluxoSubmissao[] = [
         'Uma pessoa está lendo a fatura. O aviso por email sai quando o parecer ficar pronto.',
     },
   },
+  {
+    productId: 'solar-proposal-validator',
+    // LIDO do router real (app/routers/solar_proposal.py, CURSOR
+    // Wave 2) — mesmo contrato da CLE, campo a campo.
+    prefixo: '/api/solar-proposal-validator',
+    // Registrado, não ativado (regra absoluta da Wave 2 desta trilha):
+    // a seção do perfil declara o estado futuro e nada é consultado.
+    // Virar o fluxo é trocar este campo quando o produto abrir.
+    aoVivo: false,
+    rotaEnvio: '/solar-proposal-validator',
+    copy: {
+      vazioEtiqueta: 'Nenhuma proposta enviada',
+      vazioCorpo:
+        'O parecer de uma proposta chega nesta seção, com aviso por email, depois que a leitura terminar. Nada foi enviado por esta conta ainda.',
+      vazioCta: 'Enviar uma proposta',
+      emLeitura:
+        'Uma pessoa está lendo a proposta. O aviso por email sai quando o parecer ficar pronto.',
+    },
+  },
 ];

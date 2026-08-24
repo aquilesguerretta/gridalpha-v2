@@ -106,9 +106,9 @@ export const FAMILIAS_BR: FamiliaBR[] = [
     token: 'var(--family-advisory)',
     paragrafo:
       'Parecer sobre um caso concreto, com o contraditório produzido junto — não depois. A conclusão vem acompanhada do argumento que a contesta.',
-    produtoIds: ['conta-de-luz-express', 'diagnostico-energetico'],
+    produtoIds: ['conta-de-luz-express', 'solar-proposal-validator', 'diagnostico-energetico'],
     porQue:
-      'Os dois são análise de um caso específico com conclusão a defender — fatura industrial e custo energético de uma operação. É parecer, não série contínua nem formação.',
+      'Os três são análise de um caso concreto com conclusão a defender — fatura industrial, proposta comercial de sistema solar e custo energético de uma operação. É parecer, não série contínua nem formação.',
   },
   {
     id: 'intelligence',

@@ -17,7 +17,7 @@
 // vazia sem explicação — a mesma honestidade de nulo do resto do
 // projeto.
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 
@@ -32,22 +32,12 @@ import '../../design/nivar/motion.css';
 
 import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
 import { familiaPorId, produtosDaFamilia } from '../../lib/data/br-familias';
-// Números REAIS do produto aberto — derivados do catálogo da
-// Alexandria (LEITURA, nunca modificação): se o currículo crescer, a
-// página acompanha sozinha. Migrados da landing na Wave 9.
-import { ALEXANDRIA_TRILHAS } from '../../lib/data/alexandria-trilhas';
-import { ALEXANDRIA_BLOCKS } from '../../lib/data/alexandria-blocks';
-
-// ─── Gravura da Alexandria (Wave 10) ─────────────────────────────────
-// O mesmo arquivo que ilustrava o card do destino na landing antes da
-// Wave 8 — confirmado presente no disco na Fase 1, não é referência
-// morta. A cor de papel é a do sistema ALEXANDRIA, literal: a gravura
-// tem cantos transparentes e foi desenhada para esse fundo. Hardcoded
-// de propósito, como o DestinoCard já fazia — importar
-// `alexandria-tokens.ts` é proibido, e aqui a página CITA o produto,
-// não acopla os dois sistemas.
-const ALEXANDRIA_GRAVURA_SRC = '/alexandria/gravuras/alexandria-gravura.png';
-const ALEXANDRIA_PAPEL = '#F2E9D6';
+// A camada de profundidade por produto (Solar Proposal Validator
+// Wave 2, Fase 1): substitui os dois condicionais hardcoded
+// (`ehAcademy`, `ehAdvisory`) por um slot declarado em módulo próprio.
+// A gravura, os contadores e a copy dos blocos migraram para lá — o
+// conteúdo visível é o mesmo; o mecanismo é que mudou.
+import { blocosDosProdutos } from '../../components/br/blocosFamilia';
 
 const MEDIDA = '1200px';
 const RESPIRO_LATERAL = '32px';
@@ -101,89 +91,6 @@ const NT = {
   } satisfies CSSProperties,
 } as const;
 
-// ─── Migrado da landing na Wave 9 ────────────────────────────────────
-// "A Alexandria em números" saiu do Portal e passou a viver aqui, na
-// família a que o produto pertence. O conteúdo é o mesmo, verbatim: a
-// contagem é DERIVADA dos catálogos (nenhum número digitado) e conta
-// com smoothstep ao entrar na tela — a peça bScore do especimen.
-
-/** Entrou na tela uma vez (IntersectionObserver, dispara uma vez e
- *  desconecta — mesmo padrão do DestinoCard). */
-function useEntrouNaTela<T extends HTMLElement>(limiar = 0.25) {
-  const ref = useRef<T | null>(null);
-  const [visto, setVisto] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || visto) return;
-    const io = new IntersectionObserver(
-      ([entrada]) => {
-        if (entrada.isIntersecting) {
-          setVisto(true);
-          io.disconnect();
-        }
-      },
-      { threshold: limiar },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [visto, limiar]);
-  return { ref, visto };
-}
-
-/** Contador que sobe com smoothstep quando entra na tela (1400ms), em
- *  rAF. Reduced-motion nasce pronto. */
-function ContadorVivo({ valor, reduzido }: { valor: number; reduzido: boolean }) {
-  const { ref, visto } = useEntrouNaTela<HTMLSpanElement>(0.4);
-  const [mostrado, setMostrado] = useState(reduzido ? valor : 0);
-  useEffect(() => {
-    if (!visto || reduzido) {
-      if (reduzido) setMostrado(valor);
-      return;
-    }
-    const DUR = 1400;
-    let raf = 0;
-    let inicio: number | null = null;
-    const passo = (ts: number) => {
-      if (inicio === null) inicio = ts;
-      const p = Math.min(1, (ts - inicio) / DUR);
-      const suave = p * p * (3 - 2 * p);
-      setMostrado(Math.round(valor * suave));
-      if (p < 1) raf = requestAnimationFrame(passo);
-    };
-    raf = requestAnimationFrame(passo);
-    return () => cancelAnimationFrame(raf);
-  }, [visto, valor, reduzido]);
-  return (
-    <span
-      ref={ref}
-      data-numeric
-      style={{
-        fontFamily: 'var(--font-data)',
-        fontWeight: 'var(--fw-dado-forte)' as CSSProperties['fontWeight'],
-        fontSize: 'var(--ts-dado-1)',
-        lineHeight: 'var(--lh-dado-1)' as CSSProperties['lineHeight'],
-        letterSpacing: 'var(--tr-dado-1)',
-        fontVariantNumeric: 'tabular-nums',
-        color: 'var(--accent-house)',
-      }}
-    >
-      {mostrado.toLocaleString('pt-BR')}
-    </span>
-  );
-}
-
-/** Derivado, nunca digitado. */
-const ALEXANDRIA_STATS = (() => {
-  const trilhas = ALEXANDRIA_TRILHAS.length;
-  const modulos = ALEXANDRIA_BLOCKS.length;
-  const aulas = ALEXANDRIA_TRILHAS.reduce((soma, t) => soma + (t.totalAulas ?? 0), 0);
-  return [
-    { rotulo: 'trilhas de formação', valor: trilhas },
-    { rotulo: 'módulos catalogados', valor: modulos },
-    { rotulo: 'aulas confirmadas', valor: aulas },
-  ];
-})();
-
 function comTransicao(mudanca: () => void) {
   const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reduzido && 'startViewTransition' in document) {
@@ -224,19 +131,13 @@ export function FamiliaPage() {
   if (!familia) return null;
 
   const produtos = produtosDaFamilia(familia);
-  // Só a Academy ganha o bloco de números da Alexandria; as outras
-  // quatro renderizam sem ele — o arquivo é compartilhado, o conteúdo
-  // não. Com a seção "As outras famílias" fora (Wave 10), a numeração
-  // não tem mais buraco: Academy fecha em 01·02, as demais em 01.
-  const ehAcademy = familia.id === 'academy';
-  // Conta de Luz Express Wave 2: a Advisory ganha bloco próprio pelo
-  // MESMO padrão — condicional hardcoded, não slot genérico. A recon
-  // desta trilha (§2.3) mediu que não existe `familia.blocoExtra`; o
-  // segundo `if` é a decisão mais barata e fica declarada como tal.
-  // Generalizar o slot é decisão de arquitetura para quando o terceiro
-  // produto abrir, não para o segundo.
-  const ehAdvisory = familia.id === 'advisory';
-  // Numeração: Academy e Advisory fecham em 01·02; as outras três em 01.
+  // A camada de profundidade: um bloco por produto que DECLARA o slot
+  // em `blocosFamilia.tsx`, na ordem dos produtos da família. A
+  // numeração de seção deriva daqui — 01 é a lista de produtos, os
+  // blocos seguem em 02, 03… conforme existirem. Era este o defeito
+  // que os dois condicionais hardcoded escondiam: `02` digitado em
+  // dois lugares do mesmo arquivo.
+  const blocos = blocosDosProdutos(produtos);
 
   return (
     <div
@@ -498,227 +399,131 @@ export function FamiliaPage() {
             )}
           </section>
 
-          {/* ─── 02 · A Alexandria em números (migrado na Wave 9) ─────
-              Saiu da landing e passou a viver na família a que o produto
-              pertence. Só a Academy renderiza este bloco; as outras
-              quatro famílias não têm nada aqui. O tamanho REAL do que já
-              está aberto, derivado do catálogo — nenhum número digitado
-              — contando com smoothstep ao entrar na tela. */}
-          {ehAcademy && (
-            <section
-              aria-label="A Alexandria em números"
-              style={{
-                padding: '32px 0',
-                borderTop: 'var(--fio) solid var(--rule)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
-              }}
-            >
-              {/* A gravura do produto — sobre o papel real do sistema
-                  Alexandria, `contain` para nunca esticar, e os cantos
-                  transparentes revelando o papel por baixo. Retrato do
-                  outro produto: o papel viaja junto e NÃO inverte com o
-                  modo, porque é citação, não superfície do Portal. */}
-              <div
+          {/* ─── Camada de profundidade — um bloco por produto ────────
+              Declarada em `blocosFamilia.tsx`, renderizada na ordem dos
+              produtos da família, com o número de seção DERIVADO da
+              posição — nunca digitado. Família cujos produtos não
+              declaram bloco nenhum fecha em 01 sozinho, como antes. */}
+          {blocos.map((bloco, i) => {
+            const numero = String(2 + i).padStart(2, '0');
+            const destino = produtos.find((d) => d.id === bloco.produtoId);
+            const rota = destino?.rota ?? null;
+            const Antes = bloco.Antes;
+            const Corpo = bloco.Corpo;
+            return (
+              <section
+                key={bloco.produtoId}
+                aria-label={bloco.ariaLabel}
                 style={{
-                  background: ALEXANDRIA_PAPEL,
-                  border: 'var(--fio) solid var(--rule)',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'center',
-                }}
-              >
-                <img
-                  src={ALEXANDRIA_GRAVURA_SRC}
-                  alt="Bússola, mapa do Brasil e torre de transmissão — gravura da Alexandria"
-                  style={{
-                    width: '100%',
-                    maxWidth: '520px',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    display: 'block',
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-                <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
-                  02
-                </span>
-                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
-                  A Alexandria em números
-                </span>
-                <span
-                  aria-hidden="true"
-                  style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
-                />
-                <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>o produto aberto hoje</span>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  padding: '32px 0',
                   borderTop: 'var(--fio) solid var(--rule)',
-                  borderBottom: 'var(--fio) solid var(--rule)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px',
                 }}
               >
-                {ALEXANDRIA_STATS.map((st, i) => (
-                  <div
-                    key={st.rotulo}
+                {Antes ? <Antes /> : null}
+
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
+                  <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
+                    {numero}
+                  </span>
+                  <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
+                    {bloco.titulo}
+                  </span>
+                  <span
+                    aria-hidden="true"
                     style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '6px',
-                      padding: '20px 24px',
-                      borderLeft: i > 0 ? 'var(--fio) solid var(--rule)' : 'none',
+                      flex: 1,
+                      borderTop: 'var(--fio) solid var(--rule)',
+                      alignSelf: 'center',
                     }}
-                  >
-                    <ContadorVivo valor={st.valor} reduzido={reduzidoPagina} />
-                    <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>{st.rotulo}</span>
-                  </div>
-                ))}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    gap: '10px',
-                    padding: '20px 24px',
-                    borderLeft: 'var(--fio) solid var(--rule)',
-                  }}
-                >
-                  {(() => {
-                    const alexandria = produtos.find((d) => d.id === 'alexandria');
-                    return alexandria && alexandria.rota ? (
-                      <Link
-                        className="nv-btn nv-btn--secundario"
-                        to={alexandria.rota}
-                        onClick={(e) => {
-                          if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-                            return;
-                          e.preventDefault();
-                          comTransicao(() => navigate(alexandria.rota as string));
+                  />
+                  <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>{bloco.nota}</span>
+                </div>
+
+                {Corpo ? (
+                  <Corpo produtos={produtos} reduzido={reduzidoPagina} />
+                ) : (
+                  <>
+                    {bloco.colunas.length > 0 && (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                          borderTop: 'var(--fio) solid var(--rule)',
+                          borderBottom: 'var(--fio) solid var(--rule)',
                         }}
                       >
-                        Entrar na Alexandria
-                        <span className="nv-btn__glifo" aria-hidden="true">
-                          →
-                        </span>
-                      </Link>
-                    ) : null;
-                  })()}
-                  <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
-                    Contagem derivada do catálogo extraído
-                  </span>
-                </div>
-              </div>
-            </section>
-          )}
+                        {bloco.colunas.map((col, ci) => (
+                          <div
+                            key={col.k}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px',
+                              padding: '20px 24px',
+                              borderLeft: ci > 0 ? 'var(--fio) solid var(--rule)' : 'none',
+                            }}
+                          >
+                            <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>
+                              {col.k}
+                            </span>
+                            <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-body)' }}>
+                              {col.v}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-          {/* ─── 02 · Conta de Luz Express (Conta de Luz Express Wave 2) ──
-              Só a Advisory renderiza este bloco. O produto ABERTO da
-              família: o que ele faz, o que NÃO faz, e a porta de entrada.
-              Nenhum número — não existe contagem real de análises ainda,
-              e inventar uma seria o erro que a Academy evita ao derivar
-              os dela do catálogo. */}
-          {ehAdvisory && (
-            <section
-              aria-label="Conta de Luz Express"
-              style={{
-                padding: '32px 0',
-                borderTop: 'var(--fio) solid var(--rule)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '20px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
-                <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>
-                  02
-                </span>
-                <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
-                  Conta de Luz Express
-                </span>
-                <span
-                  aria-hidden="true"
-                  style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
-                />
-                <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>o produto aberto hoje</span>
-              </div>
-
-              {/* Três colunas de bordas colapsadas: o que entra · o que
-                  sai · o que não é. A terceira é a tese da casa aplicada
-                  ao produto — não é rodapé legal, é o que o diferencia. */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                  borderTop: 'var(--fio) solid var(--rule)',
-                  borderBottom: 'var(--fio) solid var(--rule)',
-                }}
-              >
-                {[
-                  {
-                    k: 'O que entra',
-                    v: 'Uma fatura de energia industrial — PDF ou imagem — enviada pela conta.',
-                  },
-                  {
-                    k: 'O que sai',
-                    v: 'Parecer sobre modalidade tarifária, demanda contratada e oportunidades a validar, com o contraditório junto.',
-                  },
-                  {
-                    k: 'O que não é',
-                    v: 'Não vende energia, não intermedia contrato, não recebe comissão. Nenhuma economia é prometida.',
-                  },
-                ].map((col, i) => (
-                  <div
-                    key={col.k}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      padding: '20px 24px',
-                      borderLeft: i > 0 ? 'var(--fio) solid var(--rule)' : 'none',
-                    }}
-                  >
-                    <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>{col.k}</span>
-                    <p style={{ ...NT.corpo, margin: 0, color: 'var(--text-body)' }}>{col.v}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                {(() => {
-                  // A rota vem do CATÁLOGO, nunca digitada aqui — mesmo
-                  // idioma do CTA da Academy.
-                  const cle = produtos.find((d) => d.id === 'conta-de-luz-express');
-                  return cle && cle.rota ? (
-                    <Link
-                      className="nv-btn nv-btn--secundario"
-                      to={cle.rota}
-                      onClick={(e) => {
-                        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
-                          return;
-                        e.preventDefault();
-                        comTransicao(() => navigate(cle.rota as string));
-                      }}
-                    >
-                      Enviar uma fatura
-                      <span className="nv-btn__glifo" aria-hidden="true">
-                        →
-                      </span>
-                    </Link>
-                  ) : null;
-                })()}
-                <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
-                  Leitura manual · sem cobrança nesta etapa
-                </span>
-              </div>
-            </section>
-          )}
-
+                    {(bloco.ctaRotulo && rota) || bloco.ctaNota ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '16px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {/* A rota vem do CATÁLOGO, nunca digitada aqui.
+                            Produto sem rota não ganha link morto — só a
+                            nota, se houver. */}
+                        {bloco.ctaRotulo && rota ? (
+                          <Link
+                            className="nv-btn nv-btn--secundario"
+                            to={rota}
+                            onClick={(e) => {
+                              if (
+                                e.button !== 0 ||
+                                e.metaKey ||
+                                e.ctrlKey ||
+                                e.shiftKey ||
+                                e.altKey
+                              )
+                                return;
+                              e.preventDefault();
+                              comTransicao(() => navigate(rota));
+                            }}
+                          >
+                            {bloco.ctaRotulo}
+                            <span className="nv-btn__glifo" aria-hidden="true">
+                              →
+                            </span>
+                          </Link>
+                        ) : null}
+                        {bloco.ctaNota ? (
+                          <span style={{ ...NT.proc, color: 'var(--text-faint)' }}>
+                            {bloco.ctaNota}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </section>
+            );
+          })}
         </div>
 
         <footer

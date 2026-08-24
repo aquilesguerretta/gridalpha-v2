@@ -14,25 +14,37 @@
 // relatório, classificador de porte, roteador de regime, duas trilhas
 // de leitura e os três vereditos.
 //
-// MODO DEMONSTRAÇÃO, ZERO REDE — o precedente da CLE Wave 2. O
-// `status` do produto no catálogo NÃO é 'disponivel' nesta wave (regra
-// absoluta do brief): o backend da CURSOR aterrissou na árvore em
-// paralelo, mas ativação e envio real são a próxima wave, junto com a
-// guarda de rota por sessão (o mesmo par que a CLE Wave 3 trouxe
-// junto). O envio aqui produz um protocolo SINTÉTICO, rotulado de
-// demonstração na tela — nada afirma recebimento.
+// FIAÇÃO REAL (Wave 3). O modo demonstração da Wave 2 (protocolo
+// sintético local, zero rede) saiu por inteiro. O envio é
+// `POST /api/solar-proposal-validator/submissions`, multipart, campo
+// `file` — contrato LIDO em `app/routers/solar_proposal.py` e MEDIDO
+// contra produção (adendo Wave 3 no doc de recon da trilha). Tudo
+// passa pelo cliente CANÔNICO de `src/lib/submissoes` — esta página
+// nunca teve cópia própria (H3 da Fase 1), e o prefixo vem do
+// REGISTRO, não digitado aqui.
 //
-// Os TIPOS vêm de `src/lib/submissoes` (Fase 2 desta wave) — quando a
-// fiação real chegar, a troca é `submissaoDemonstracao(arquivo)` →
-// `criarClienteSubmissoes(PREFIXO).enviar(arquivo)`, e o resto da
-// tela não muda.
+// ATIVAÇÃO ANTES DO ENVIO: o POST exige entitlement (403 — guarda 1
+// do router). Padrão da CLE: `myProducts()` primeiro, `activateProduct`
+// só se faltar. GUARDA DE ROTA por sessão entra junto com a fiação —
+// o par que a CLE Wave 3 trouxe junto e que a Wave 2 desta trilha
+// declarou que entraria agora.
+//
+// O backend responde 503 nomeando a variável de ambiente ausente
+// enquanto o email do operador não estiver configurado em produção
+// (SPV_APP_BASE_URL / ADVISORY_OPERATOR_EMAIL / SPV_EMAIL_FROM /
+// RESEND_API_KEY — operador COMPARTILHADO com a CLE). É guarda dele,
+// não defeito daqui: a tela declara o 503 sem fingir que enviou.
+//
+// O `status` público segue 'em-breve' (regra absoluta desta wave):
+// abrir o produto é decisão de quando o Railway estiver configurado,
+// não de quando o código funciona em dev.
 //
 // DISCIPLINA DE LINGUAGEM (regra do projeto, e a linguagem de saída
 // que o próprio Módulo 11 declara): nenhuma economia é prometida —
 // "oportunidades a validar", nunca "economize X%".
 
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 
 // Tokens NIVAR — só arquivos de VARIÁVEL, como toda superfície do
@@ -44,12 +56,24 @@ import '../../design/nivar/space.css';
 import '../../design/nivar/motion.css';
 
 import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
-// A planta baixa do produto — `PLANTA_GENERICA` cobre até a geometria
-// própria entrar em `PLANTAS` (recon §3.1: fallback, nunca quebra).
+// A planta baixa do produto — geometria própria em `PLANTAS` desde a
+// Wave 2, Fase 4.
 import { PlantaBaixa } from '../../components/br/DestinoCard';
-import type { Submissao } from '../../lib/submissoes/api';
+import { useAuth } from '../../lib/auth/AuthContext';
+import { AuthError } from '../../lib/auth/authApi';
+import {
+  criarClienteSubmissoes,
+  FLUXOS_SUBMISSAO,
+  type Submissao,
+} from '../../lib/submissoes/api';
 
 const PRODUTO_ID = 'solar-proposal-validator';
+
+// O prefixo da API vem do REGISTRO — uma fonte só; digitá-lo aqui
+// abriria a divergência que o registro existe para impedir.
+const FLUXO_SPV = FLUXOS_SUBMISSAO.find((f) => f.productId === PRODUTO_ID);
+if (!FLUXO_SPV) throw new Error(`fluxo '${PRODUTO_ID}' ausente de FLUXOS_SUBMISSAO`);
+const clienteSpv = criarClienteSubmissoes(FLUXO_SPV.prefixo);
 const MEDIDA = '1200px';
 const RESPIRO_LATERAL = '32px';
 const MEDIDA_FORM = '62ch';
@@ -147,28 +171,32 @@ function formatarTamanho(bytes: number): string {
   return `${mb.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} MB`;
 }
 
-/** A submissão SINTÉTICA da demonstração. Nada sai desta tela: o
- *  protocolo é gerado localmente e rotulado como ilustrativo em toda
- *  aparição. Quando a fiação real chegar, esta função morre e o
- *  `enviar()` de `src/lib/submissoes` entra no lugar. */
-function submissaoDemonstracao(arquivo: File): Submissao {
-  const agora = new Date().toISOString();
-  return {
-    id: `DEMO-${Date.now().toString(36).toUpperCase()}`,
-    productId: PRODUTO_ID,
-    status: 'submitted',
-    source: {
-      filename: arquivo.name,
-      contentType: arquivo.type,
-      sizeBytes: arquivo.size,
-      sha256: '',
-      downloadUrl: '',
-    },
-    deliverable: null,
-    createdAt: agora,
-    updatedAt: agora,
-    deliveredAt: null,
-  };
+/** O que a tela diz para cada status do backend. Sem semáforo: é
+ *  texto. Os números vêm das guardas REAIS do router, na ordem em que
+ *  disparam (adendo Wave 3): 403 entitlement · 503 variável de email ·
+ *  415 assinatura de bytes · 413 acima de 15 MB · 502 com rollback. */
+function mensagemDeErro(err: unknown): string {
+  if (!(err instanceof AuthError)) return 'Algo falhou do nosso lado. Tente de novo em instantes.';
+  switch (err.status) {
+    case 0:
+      return 'Não foi possível falar com o servidor. Verifique a conexão.';
+    case 401:
+      return 'A sessão expirou. Entre de novo para enviar.';
+    case 403:
+      return 'O produto não está ativo nesta conta. Recarregue a página e tente de novo.';
+    case 413:
+      return 'Arquivo grande demais. O limite é 15 MB.';
+    case 415:
+      return `O servidor não reconheceu o arquivo como ${EXTENSOES_LEGIVEIS}. Exporte de novo e tente outra vez.`;
+    case 502:
+      return 'O aviso ao analista falhou e o envio não foi registrado. Tente de novo em instantes.';
+    case 503:
+      // Guarda de produção do backend: configuração de email ausente.
+      // Não fingir que enviou — declarar.
+      return 'O recebimento de propostas ainda não está ligado neste ambiente. O envio não foi registrado.';
+    default:
+      return 'Algo falhou do nosso lado. Tente de novo em instantes.';
+  }
 }
 
 type Etapa = 'intake' | 'confirmado';
@@ -182,7 +210,11 @@ export function SolarProposalValidatorPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [etapa, setEtapa] = useState<Etapa>('intake');
   const [submissao, setSubmissao] = useState<Submissao | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
   const [plantaVisivel, setPlantaVisivel] = useState(false);
+  const { user, loading, myProducts, activateProduct } = useAuth();
+  const location = useLocation();
 
   // Identidade de documento — entra e sai com a página, como o Portal.
   useEffect(() => {
@@ -217,23 +249,45 @@ export function SolarProposalValidatorPage() {
     setArquivo(f);
   }
 
-  function aoEnviar(e: React.FormEvent) {
+  async function aoEnviar(e: React.FormEvent) {
     e.preventDefault();
-    if (!arquivo) return;
-    // ZERO REDE: a demonstração gera o protocolo localmente. A fiação
-    // real (ativação + POST multipart) entra na wave que virar o
-    // `status` do produto — junto com a guarda de rota por sessão,
-    // como a CLE Wave 3 fez.
-    setSubmissao(submissaoDemonstracao(arquivo));
-    comTransicao(() => setEtapa('confirmado'));
+    if (!arquivo || enviando) return;
+    setErroEnvio(null);
+    setEnviando(true);
+    try {
+      // Entitlement primeiro — o POST devolve 403 sem ele (guarda 1 do
+      // router, medida). Consulta antes de ativar: idempotente no
+      // backend, mas não é motivo para uma escrita por envio.
+      const { products } = await myProducts();
+      if (!products.some((p) => p.productId === PRODUTO_ID)) {
+        await activateProduct(PRODUTO_ID);
+      }
+      const criada = await clienteSpv.enviar(arquivo);
+      setSubmissao(criada);
+      comTransicao(() => setEtapa('confirmado'));
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      setErroEnvio(mensagemDeErro(err));
+    } finally {
+      setEnviando(false);
+    }
   }
 
-  function novoTeste() {
+  function novoEnvio() {
     setArquivo(null);
     setErro(null);
+    setErroEnvio(null);
     setSubmissao(null);
     if (inputRef.current) inputRef.current.value = '';
     comTransicao(() => setEtapa('intake'));
+  }
+
+  // Rota protegida — o envio é por conta. Enquanto `/api/auth/me` não
+  // respondeu ninguém conclui "não logado"; só com `loading === false`
+  // e sem usuário é que vai para /entrar, carregando o destino para
+  // voltar aqui (mesmo mecanismo do PerfilPlataforma e da CLE).
+  if (!loading && !user) {
+    return <Navigate to="/entrar" replace state={{ de: location.pathname }} />;
   }
 
   return (
@@ -505,9 +559,9 @@ export function SolarProposalValidatorPage() {
             </div>
           </section>
 
-          {/* ─── 01 · Envio (demonstração) ───────────────────────── */}
+          {/* ─── 01 · Envio ──────────────────────────────────────── */}
           <section
-            aria-label="Envio da proposta — demonstração"
+            aria-label="Envio da proposta"
             aria-live="polite"
             style={{
               padding: '32px 0',
@@ -520,38 +574,15 @@ export function SolarProposalValidatorPage() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '14px' }}>
               <span style={{ ...NT.proc, fontWeight: 500, color: 'var(--accent-house)' }}>01</span>
               <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
-                {etapa === 'intake' ? 'Envio da proposta' : 'Demonstração registrada na tela'}
+                {etapa === 'intake' ? 'Envio da proposta' : 'Proposta recebida'}
               </span>
               <span
                 aria-hidden="true"
                 style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
               />
               <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
-                {etapa === 'intake' ? EXTENSOES_LEGIVEIS : 'demonstração'}
+                {etapa === 'intake' ? EXTENSOES_LEGIVEIS : 'registrada'}
               </span>
-            </div>
-
-            {/* O estado do produto, DECLARADO antes do formulário —
-                contorno tracejado, o registro de "ainda não existe" do
-                sistema. Nada nesta seção finge envio real. */}
-            <div
-              style={{
-                border: 'var(--fio) dashed var(--rule-strong)',
-                padding: '14px 18px',
-                maxWidth: MEDIDA_FORM,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
-              <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>
-                Demonstração — o envio ainda não abriu
-              </span>
-              <p style={{ ...NT.nota, margin: 0, color: 'var(--text-muted)' }}>
-                Esta tela mostra o fluxo do produto sem enviar nada: o arquivo não sai do seu
-                navegador e nenhum protocolo é registrado. O envio real abre quando o produto
-                for ativado.
-              </p>
             </div>
 
             {etapa === 'intake' ? (
@@ -634,22 +665,57 @@ export function SolarProposalValidatorPage() {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                  <button type="submit" className="nv-btn nv-btn--primario" disabled={!arquivo}>
-                    Testar o fluxo
-                    <span className="nv-btn__glifo" aria-hidden="true">
-                      →
+                {/* Erro de ENVIO — separado do erro de arquivo: fio em
+                    brasa + glifo, nunca semáforo. Mesmo padrão da CLE. */}
+                {erroEnvio ? (
+                  <span
+                    role="alert"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      gap: '8px',
+                      ...NT.nota,
+                      color: 'var(--campo-erro-fg, var(--text-strong))',
+                      borderLeft: '2px solid var(--campo-erro-fio)',
+                      paddingLeft: '10px',
+                    }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      style={{ fontFamily: 'var(--font-data)', color: 'var(--campo-erro-fio)' }}
+                    >
+                      ×
                     </span>
+                    {erroEnvio}
+                  </span>
+                ) : null}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  <button
+                    type="submit"
+                    className="nv-btn nv-btn--primario"
+                    disabled={!arquivo || enviando}
+                    aria-busy={enviando || undefined}
+                  >
+                    {enviando ? 'Enviando…' : 'Enviar a proposta'}
+                    {!enviando && (
+                      <span className="nv-btn__glifo" aria-hidden="true">
+                        →
+                      </span>
+                    )}
                   </button>
                   <span style={{ ...NT.nota, color: 'var(--text-muted)' }} aria-live="polite">
-                    Nada sai desta tela — demonstração.
+                    {enviando
+                      ? 'A proposta está subindo para o servidor.'
+                      : 'Sem cobrança nesta etapa.'}
                   </span>
                 </div>
               </form>
             ) : (
-              /* Confirmação da DEMONSTRAÇÃO — estado da mesma tela. O
-                 protocolo é sintético e diz isso em toda linha; nenhum
-                 texto afirma recebimento. */
+              /* Confirmação — estado da mesma tela, não tela nova. Sem
+                 verde de sucesso: texto, fio e o id da submissão em
+                 mono. Tudo vem da RESPOSTA do backend — nome, tamanho e
+                 id são o que foi gravado, não o que o browser tinha. */
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: MEDIDA_FORM }}>
                 {/* // gridalpha-detect-disable-next-line equal-weight-grid — par rótulo/valor no registro do DataTable do sistema; não há célula focal numa ficha */}
                 <div
@@ -672,9 +738,7 @@ export function SolarProposalValidatorPage() {
                       </span>
                     )}
                   </span>
-                  <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>
-                    Protocolo de demonstração
-                  </span>
+                  <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Protocolo</span>
                   <span
                     style={{
                       fontFamily: 'var(--font-data)',
@@ -687,23 +751,34 @@ export function SolarProposalValidatorPage() {
                   >
                     {submissao?.id}
                   </span>
-                  <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Gerado em</span>
+                  <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Recebida em</span>
                   <span style={{ ...NT.corpo, color: 'var(--text-body)' }}>
                     {submissao ? formatarDataHora(submissao.createdAt) : '—'}
                   </span>
-                  <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>
-                    O que aconteceu
-                  </span>
+                  <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Prazo</span>
                   <span style={{ ...NT.corpo, color: 'var(--text-body)' }}>
-                    Nada foi enviado — este protocolo é ilustrativo, gerado no seu navegador, e
-                    não está registrado em lugar nenhum. Quando o produto abrir, o envio real
-                    devolve um protocolo do servidor e o parecer chega no perfil da conta.
+                    O parecer chega no perfil da conta, com aviso por email, quando a leitura
+                    terminar.
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                  <button type="button" className="nv-btn nv-btn--secundario" onClick={novoTeste}>
-                    Testar com outro arquivo
+                  <Link
+                    className="nv-btn nv-btn--primario"
+                    to="/conta"
+                    onClick={(e) => {
+                      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                      e.preventDefault();
+                      comTransicao(() => navigate('/conta'));
+                    }}
+                  >
+                    Ver no perfil
+                    <span className="nv-btn__glifo" aria-hidden="true">
+                      →
+                    </span>
+                  </Link>
+                  <button type="button" className="nv-btn nv-btn--terciario" onClick={novoEnvio}>
+                    Enviar outra proposta
                   </button>
                 </div>
               </div>

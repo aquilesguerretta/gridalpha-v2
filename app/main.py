@@ -19,6 +19,7 @@ from app.routers import (
     products,
     progress,
     reserve_margin,
+    solar_proposal,
     spark_spread,
     stream,
     weather,
@@ -90,6 +91,9 @@ app.include_router(progress.router)  # /api/progress/*
 
 # Conta de Luz Express Wave 2 — authenticated intake and manual delivery.
 app.include_router(conta_luz.router)  # /api/conta-luz-express/*
+
+# Solar Proposal Validator Wave 2 — sibling Advisory intake and delivery.
+app.include_router(solar_proposal.router)  # /api/solar-proposal-validator/*
 
 
 @app.get("/health")

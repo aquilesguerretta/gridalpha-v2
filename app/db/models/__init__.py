@@ -15,6 +15,10 @@ from app.db.models.progress import (
     ProgressEvent,
     StudyStreak,
 )
+from app.db.models.solar_proposal import (
+    SOLAR_PROPOSAL_STATUSES,
+    SolarProposalSubmission,
+)
 from app.db.models.user import User
 
 __all__ = [
@@ -25,6 +29,7 @@ __all__ = [
     "FIELD_NAMES",
     "PRODUCT_CATALOG",
     "PRODUCT_IDS",
+    "SOLAR_PROPOSAL_STATUSES",
     "AulaStatus",
     "BadgeAward",
     "BatteryAsset",
@@ -34,6 +39,7 @@ __all__ = [
     "GenerationUnit",
     "ProductAccess",
     "ProgressEvent",
+    "SolarProposalSubmission",
     "StudyStreak",
     "TransmissionSegment",
     "User",

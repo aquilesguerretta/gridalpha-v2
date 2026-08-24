@@ -9660,3 +9660,142 @@ A sonda da Fase 1 ativou `conta-de-luz-express` na conta de teste
 - **Cliente em arquivo de componente** (acima).
 - `react-hooks/set-state-in-effect` em `FamiliaPage.tsx:140` segue
   pré-existente (Wave 9), não tocado.
+
+## ARCHITECT — CONTA DE LUZ EXPRESS WAVE 5 · MIGRAR PRO CLIENTE CANÔNICO
+
+**Status:** fechada. Três commits, um por fase, todos pushados. Um único
+arquivo de produto modificado: **29 inserções / 96 deleções**.
+
+**N resolvido contra o disco, e o brief estava errado.** O brief presumia
+4. O `CLAUDE.md` fecha a trilha na **Wave 3** — mas o `git log` já gastou
+`wave 4` em três commits desta mesma trilha (`7d7a8db` fase 1 · `d6fa95d`
+fase 2 · `5de9ba7` adendo), uma wave de **reconhecimento que só tocou
+documentação** e cuja posse não incluía o `CLAUDE.md`. Precedente exato:
+a recon que produziu `docs/portal-br-familia-audit.md` commitou como
+"wave 7" sem registrar seção, e a numerada seguinte foi a 8. Mesma regra
+— esta é a **5**.
+
+### Fase 1 — as três hipóteses, contra o disco
+
+**H1 — a Wave 3 rodou?** SIM, e não pelo comentário de código: seção
+fechada no `CLAUDE.md` L9547 **e** quatro commits reais (`a00dc31` fase
+1 · `16500eb` envio · `9877cc4` status · `4848925` fechamento). A UI já
+falava com o backend real; esta wave não liga nada.
+
+**H2 — a página ainda usa cliente e tipos locais?** SIM, intocada
+(L169-260). E o achado que **ampliou a migração**: as duas exportações
+estavam **órfãs**. O comentário do arquivo declarava o motivo de
+exportá-las — *"para o PerfilPlataforma ler o status com o mesmo tipo"* —
+e esse motivo já tinha morrido: `PerfilPlataforma.tsx` migrou para o
+canônico e **não importa nada** da página. Varredura em todo o `src/`:
+
+| Símbolo | Consumidores |
+| --- | --- |
+| `listarSubmissoes` | **zero** — nem dentro do próprio arquivo |
+| `enviarSubmissao` | **um**, interno (`aoEnviar`) |
+
+**H3 — o `status` já deveria ter mudado e não mudou?** NÃO.
+`conta-de-luz-express` já é `'disponivel'` com rota desde a Wave 2
+(`265ca02`). **Não havia esquecimento — `br-destinos.ts` não foi
+tocado.** Os dois produtos estão mesmo em estados diferentes, como o
+brief suspeitava: Solar segue `em-breve` **deliberadamente** (regra
+absoluta da trilha dela), não por descuido. Nenhuma decisão de política
+foi tomada aqui.
+
+### Fase 2 — o que saiu, e o que veio de graça
+
+Saiu o bloco de contrato inteiro: `ArquivoSubmissao`, `Submissao`,
+`ListaSubmissoes`, `BASE`, `falhar()`, `enviarSubmissao()`,
+`listarSubmissoes()` — mais as **duas supressões de
+`react-refresh/only-export-components`**, que só existiam por causa das
+exportações órfãs. **Fast Refresh volta a valer no arquivo**, fechando a
+pendência que a Wave 3 registrou por escrito.
+
+**O `const BASE` era a divergência que o registro existe para impedir.**
+O prefixo passa a vir de `FLUXOS_SUBMISSAO`, no mesmo idioma da página de
+Solar (`FLUXO_CLE` + guarda de ausência + `criarClienteSubmissoes`).
+`PRODUTO_ID` fica: é a chave de busca no registro, não uma segunda cópia
+do prefixo.
+
+`mensagemDeErro` **fica na página** de propósito — é leitura de tela das
+guardas do router (0/401/403/413/415/502/503), não cliente. Alargamento
+absorvido sem atrito: `Submissao.productId` era literal na cópia local e
+é `string` no canônico; nenhum uso dependia da estreiteza.
+
+**Zero `fetch(` restante no arquivo.**
+
+### Fase 3 — A/B real contra a versão pré-migração
+
+Não bastou comparar contra o relatório da Wave 3: a versão pré-migração
+foi **restaurada no disco** (`git show 3c40c73:…`), exercitada com a
+MESMA sonda, e depois devolvida por `git checkout`. Os dois lados,
+medidos por DOM e rede:
+
+| Observável | Pré | Pós |
+| --- | --- | --- |
+| endpoint | `POST /api/conta-luz-express/submissions` | idem |
+| ordem | `GET /products/me` → `POST /submissions` | idem (+ `activate` quando falta entitlement) |
+| estado de carregamento | `disabled` · `aria-busy=true` · "Enviando…" | idem |
+| resposta | `503 · CLE_APP_BASE_URL is not configured` | idem |
+| mensagem | "O recebimento de faturas ainda não está ligado neste ambiente. O envio não foi registrado." | idem |
+| botão depois | volta a "Enviar para análise→" | idem |
+| confirmação | **não abre** | idem |
+
+Também conferido na versão migrada: tamanho formatado em pt-BR
+("2 KB"), validação de tipo no cliente antes da rede ("Formato não
+aceito. Envie PDF · JPG · PNG · WEBP."), CTA "Enviar uma fatura" do
+Perfil chegando na rota, e o Perfil intacto — seção 04 lendo
+`GET /api/conta-luz-express/submissions` → 200 → "NADA ENVIADO" (o
+consumidor original das exportações apagadas, sem regressão).
+
+**Fonte única, provada por varredura e não por leitura:** um só arquivo
+constrói a requisição (`src/lib/submissoes/api.ts`), três consumidores a
+importam (CLE, Solar, Perfil), e **zero tipo do contrato existe fora do
+canônico**. A duplicação acabou.
+
+Zero overflow horizontal em 1280, 1440 e 1920. Console limpo em aba
+nova.
+
+### Nota de ambiente
+
+O painel Browser nasceu **0×0 e `visibilityState: hidden`** —
+`window.innerWidth` medido antes de acreditar em qualquer layout. O
+`screenshot` não compõe frames nesta sessão; a verificação foi por DOM e
+por corpo de resposta de rede, que é a prova certa aqui, já que a
+migração é **invisível por design**.
+
+Artefato registrado: durante o A/B, trocar o arquivo por baixo do Vite
+deixou o grafo de módulo **preso numa versão antiga** — a página parava
+de montar com `does not provide an export named 'ContaDeLuzExpressPage'`
+apesar de o export estar no disco. Não é defeito do produto: reescrever
+o arquivo (forçando invalidação) devolveu a montagem, e aba nova depois
+da restauração dá console limpo. Quem repetir um A/B por troca de
+arquivo vai encontrar isso.
+
+### Higiene de sessão
+
+A Solar Proposal Validator Wave 3 esteve em voo o tempo todo — no
+momento da Fase 2, `SolarProposalValidatorPage.tsx` tinha **263 linhas
+não commitadas** na árvore. Os três commits usaram **pathspec explícito**
+com `git diff --cached --numstat` conferido: nenhum arquivo dela entrou
+em commit meu, e `.claude/launch.json` (que carrega entradas de várias
+sessões) segue não commitado. Ela commitou depois de mim (`f94974e`,
+`f5847a5`) sem tocar no meu arquivo.
+
+**Gates:** `tsc -b` — **0 erros** na árvore inteira (os 7 pré-existentes
+de Recharts em `nest/student/*` foram fechados por `0e07771`, fora desta
+wave). `eslint` limpo no arquivo. `gridalpha-detect` — "No findings.
+Surface is clean."
+
+### Registrado, não resolvido
+
+- **A prova ponta a ponta "upload → `ready` → download" segue
+  bloqueada** pelas quatro variáveis no Railway (`CLE_APP_BASE_URL`,
+  `CLE_OPERATOR_EMAIL`, `RESEND_API_KEY`, `CLE_EMAIL_FROM`) — ação do
+  Aquiles, pendência herdada da Wave 3, não desta. O `503` medido aqui é
+  o mesmo daquela wave.
+- **A wave de reconhecimento de marcação (commitada como "wave 4") segue
+  sem seção no `CLAUDE.md`** — a posse dela era só documentação
+  (`docs/conta-luz-express-recon-marcacao-frontend.md`,
+  `docs/pendencias-infra.md`). É a lacuna que custou a renumeração desta
+  wave; fica registrada para quem for numerar a próxima.

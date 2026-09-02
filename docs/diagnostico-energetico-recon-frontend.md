@@ -383,3 +383,133 @@ pelo sistema que serve, no mesmo nível de `br/`, `alexandria/` e
 `terminal/`, que é como o repo já separa por sistema visual. O CSS
 viaja com eles, no idioma que o Portal já usa (`<style>` com o texto
 verbatim), para não depender de ordem de import de folha global.
+
+---
+
+# Adendo — Wave 3, Fase 1 · contrato real, e três divergências
+
+Lido em `app/routers/diagnostico.py` e `app/routers/conversations.py`
+(CURSOR Wave 2). Nada presumido pela semelhança de nome — foi
+exatamente onde a checagem pagou.
+
+## H1 · Os quatro campos: nome bate, FORMA não
+
+Contrato real (`CreateDiagnosticoRequest`, alias camelCase,
+`populate_by_name`):
+
+| JSON | Tipo | Obrigatório | Teto |
+| --- | --- | --- | --- |
+| `sector` | `str` | **sim** | 200 |
+| `monthlyConsumptionBand` | `str` | **sim** | 80 |
+| `tariffModality` | `str \| null` | não | 80 |
+| `concern` | `str` | **sim** | 4000 |
+
+Resposta (`_payload`): `id`, `productId`, os quatro campos,
+`createdAt`, `updatedAt`. **Sem `status`, sem `deliverable`.**
+`GET /submissions` devolve `{data[], summary:{count}}`, mais recente
+primeiro. `403` sem entitlement, como CLE e Solar.
+
+### Divergência 1 — `concern` é obrigatório; meu campo era opcional
+
+O mock rotula o campo de texto como *"Opcional. Uma frase já ajuda a
+direcionar a apuração."* O backend recusa vazio (`_strip_required`).
+Enviar o formulário sem contexto daria `422`.
+
+### Divergência 2 — duas entradas minhas, um campo lá
+
+O mock tem **duas** coisas onde o backend tem **uma**: as caixas "o que
+está em jogo" (múltipla escolha) e o textarea "Contexto". Não existe
+coluna para a múltipla escolha.
+
+**Reconciliação, e é decisão desta wave** (o brief da Wave 2 previu:
+"pode divergir levemente; a fiação da Wave 3 reconcilia"): as duas
+entradas compõem UM `concern`. As marcadas viram uma primeira linha
+legível, o texto livre vem embaixo. Nada se perde, e o backend não
+precisa mudar. As caixas continuam sendo a forma de responder — só a
+serialização é que junta.
+
+Consequência para o rótulo: o campo de contexto deixa de ser opcional
+**quando nada foi marcado**. Com caixa marcada, o `concern` já tem
+conteúdo e o texto segue opcional de verdade. A validação de cliente
+passa a exigir "pelo menos uma das duas".
+
+### Divergência 3 — `'nao-sei'` viraria a string `"nao-sei"`
+
+O mock usa `value: 'nao-sei'` como opção de primeira classe. O backend
+trata `tariffModality` como `str | null` e converte **string vazia em
+`null`** — mas `"nao-sei"` é string não-vazia: seria gravada literal,
+como se fosse uma modalidade tarifária chamada "nao-sei".
+
+Correção: `'nao-sei'` mapeia para `null` no envio. O valor continua
+sendo opção de primeira classe na tela; só não viaja como texto.
+
+## H2 · O cliente canônico NÃO serve — e o motivo não é o transporte
+
+`src/lib/submissoes/api.ts` foi construído em volta de arquivo, e a
+incompatibilidade é de **contrato**, não só de `FormData`:
+
+- `ClienteSubmissoes.enviar(arquivo: File)` — a assinatura exige `File`;
+- o corpo é `FormData` com campo `file`, fixo;
+- o tipo `Submissao` tem `status: 'submitted'|'ready'`, `source`
+  (obrigatório), `deliverable`, `deliveredAt` — **nenhum desses campos
+  existe** no payload de Diagnóstico;
+- `ListaSubmissoes.summary` é `{count, submitted, ready}`; o de
+  Diagnóstico é `{count}`.
+
+Alargar o tipo para caber os dois deixaria `source` e `status`
+opcionais para todo mundo — e são justamente os campos de que CLE e
+Solar dependem. Seria enfraquecer dois contratos que funcionam para
+acomodar um terceiro que não é do mesmo domínio: os três compartilham
+a palavra "submissions" na URL, não a forma.
+
+**Reporto e proponho, como o brief pede:** dois módulos novos, nenhum
+tocando o canônico.
+
+| Módulo | Por quê |
+| --- | --- |
+| `src/lib/diagnostico/api.ts` | intake estruturado; tipo próprio, sem `status`/`source` |
+| `src/lib/conversas/api.ts` | conversa e mensagem são **domínio de plataforma**, não de Diagnóstico — a CURSOR modelou assim de propósito, e CLE/Solar herdam sem reescrever |
+
+Cliente em arquivo de componente já foi pago uma vez nesta trilha (a
+CLE Wave 3 suprimiu `react-refresh/only-export-components` e a Wave 5
+extraiu). Nasce em `src/lib/` direto.
+
+## H3 · Conversa: o par de origem é o contrato
+
+`POST /api/conversations` — `productId` (obrigatório, validado contra
+`PRODUCT_IDS`), `originKind`/`originId` (opcionais, mas **`model_validator`
+exige os dois juntos ou nenhum**), `subject`, `body` opcionais.
+
+`originKind` para este produto é a constante literal
+`"diagnostico_energetico_submission"`
+(`app/db/models/conversation.py:41`), e `_verify_diagnostico_origin`
+confirma que o `originId` é uma submissão **da própria conta**.
+
+O POST é **idempotente por origem**: com `originId` presente, procura
+conversa existente do mesmo par antes de criar.
+
+- `GET /api/conversations` → `{data[], summary:{count}}`, sem mensagens,
+  ordenado por `updatedAt desc`.
+- `GET /api/conversations/{id}` → conversa **com** `messages[]`,
+  ordenadas `createdAt asc`.
+- `POST /api/conversations/{id}/messages` → `{body}`; `403` se não for
+  o dono.
+
+**Autoria vem do servidor:** `role` (`"customer"` / operador) no payload
+da mensagem. O mock usa `autor: 'casa' | 'cliente'` — mapeia para
+`role`, e o fio à esquerda (`--accent-house` vs `--rule`) continua igual.
+
+## H4 · Onde o compositor vive
+
+`HistoricoDiagnostico.tsx:320` — `<textarea disabled>` dentro de
+`.nv-campo--desabilitado`, com a nota `--ilustrativa-*` ao lado. A
+composição `PublicationList` + `Collapsible` (linhas 270-295) **não é
+tocada**: habilitar é trocar o bloco do compositor e a fonte de
+`MENSAGENS`, nada mais.
+
+## Perfil — já generalizado
+
+`PerfilPlataforma.tsx` itera `FLUXOS_SUBMISSAO` (L368) e renderiza
+`StatusSubmissao` por fluxo. Mas o registro é do cliente de ARQUIVO, e
+Diagnóstico não cabe nele (H2) — a Fase 4 acrescenta a seção deste
+produto lendo do cliente próprio, sem alterar o laço dos outros dois.

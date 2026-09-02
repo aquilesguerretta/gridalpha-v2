@@ -11,6 +11,7 @@ from app.routers import (
     atlas_world,
     auth,
     conta_luz,
+    diagnostico,
     energy,
     fuel_mix,
     lmp,
@@ -94,6 +95,9 @@ app.include_router(conta_luz.router)  # /api/conta-luz-express/*
 
 # Solar Proposal Validator Wave 2 — sibling Advisory intake and delivery.
 app.include_router(solar_proposal.router)  # /api/solar-proposal-validator/*
+
+# Diagnóstico Energético Wave 2 — structured scoping intake (not a file upload).
+app.include_router(diagnostico.router)  # /api/diagnostico-energetico/*
 
 
 @app.get("/health")

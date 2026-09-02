@@ -30,6 +30,10 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { DESTINOS_BR } from '../../lib/data/br-destinos';
 import { useAuth } from '../../lib/auth/AuthContext';
+// Cliente PRÓPRIO — o Diagnóstico não tem arquivo, `status` nem
+// `deliverable`, então não cabe no registro de `FLUXOS_SUBMISSAO`.
+// Ver o cabeçalho de `src/lib/diagnostico/api.ts`.
+import { listarEscopos, type SubmissaoDiagnostico } from '../../lib/diagnostico/api';
 import type { ProductsResponse } from '../../lib/auth/authApi';
 import { ContaShell, NT } from './ContaShell';
 // Cliente e tipos do contrato de submissão — agora em `src/lib/`
@@ -64,6 +68,8 @@ import {
  *  `/us`, mas não é anunciado por superfície nenhuma. Quando o portal
  *  americano voltar à mesa, o rótulo volta — de preferência por
  *  `DESTINOS_BR`, não por um mapa paralelo. */
+const PRODUTO_DIAGNOSTICO = 'diagnostico-energetico';
+
 function rotularProduto(productId: string): string {
   const destino = DESTINOS_BR.find((d) => d.id === productId);
   if (destino) return destino.titulo;
@@ -102,6 +108,10 @@ export function PerfilPlataforma() {
   // respondeu; `[]` = nada enviado. Mesmo idioma do `produtos` acima.
   const [submissoesPor, setSubmissoesPor] = useState<Record<string, Submissao[] | null>>({});
   const [erroSubmissoesPor, setErroSubmissoesPor] = useState<Record<string, boolean>>({});
+  // Escopos do Diagnóstico. `null` = ainda não respondeu; `[]` = nada
+  // aberto — mesmo idioma dos dois acima.
+  const [escopos, setEscopos] = useState<SubmissaoDiagnostico[] | null>(null);
+  const [erroEscopos, setErroEscopos] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -133,6 +143,21 @@ export function PerfilPlataforma() {
           setErroSubmissoesPor((s) => ({ ...s, [fluxo.productId]: true }));
         });
     }
+    return () => ctrl.abort();
+  }, [user]);
+
+  // Uma chamada por montagem, abortada no desmonte. Como nos fluxos, o
+  // GET lista por `user_id` e devolve `[]` para quem nunca abriu escopo
+  // — não depende de entitlement, então não há 403 a tratar.
+  useEffect(() => {
+    if (!user) return;
+    const ctrl = new AbortController();
+    listarEscopos(ctrl.signal)
+      .then((r) => setEscopos(r.data))
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setErroEscopos(true);
+      });
     return () => ctrl.abort();
   }, [user]);
 
@@ -424,6 +449,35 @@ export function PerfilPlataforma() {
             </Secao>
           );
         })}
+
+        {/* ─── Diagnóstico Energético ──────────────────────────── */}
+        {/* Produto de ESCOPO, não de arquivo: não há `status` nem
+            entrega para ler, então a seção conta o que existe — os
+            escopos abertos — e aponta para onde a conversa acontece.
+            O número segue os fluxos em vez de ser digitado. */}
+        <Secao
+          numero={String(4 + FLUXOS_SUBMISSAO.length).padStart(2, '0')}
+          titulo={rotularProduto(PRODUTO_DIAGNOSTICO)}
+          nota={
+            erroEscopos || escopos === null
+              ? undefined
+              : escopos.length === 0
+                ? 'Nada aberto'
+                : `${escopos.length} ${escopos.length === 1 ? 'escopo' : 'escopos'}`
+          }
+        >
+          {erroEscopos ? (
+            <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+              Não foi possível carregar os escopos agora. Recarregue a página.
+            </p>
+          ) : escopos === null ? (
+            <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+              Carregando escopos…
+            </p>
+          ) : (
+            <StatusDiagnostico escopo={escopos[0] ?? null} />
+          )}
+        </Secao>
       </div>
     </ContaShell>
   );
@@ -472,6 +526,99 @@ function formatarDataHora(iso: string): string {
  *  `--accent-house` quando há parecer para abrir. Idioma do
  *  `DataFreshness` do sistema ("frescor de dado não é semáforo").
  *  A copy vem do REGISTRO do fluxo — explícita por produto. */
+function StatusDiagnostico({ escopo }: { escopo: SubmissaoDiagnostico | null }) {
+  if (escopo === null) {
+    return (
+      <div
+        style={{
+          border: '1px dashed var(--rule-strong)',
+          borderRadius: 0,
+          padding: '20px 22px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+      >
+        <span style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Nenhum escopo aberto</span>
+        <p style={{ ...NT.corpo, margin: 0, fontSize: '15px', color: 'var(--text-muted)' }}>
+          O diagnóstico começa por quatro perguntas sobre a operação. A conversa com quem apura
+          acontece na própria página do produto. Nada foi aberto por esta conta ainda.
+        </p>
+        <Link
+          className="conta-link"
+          to="/diagnostico-energetico"
+          style={{ alignSelf: 'flex-start' }}
+        >
+          Abrir um diagnóstico
+        </Link>
+      </div>
+    );
+  }
+
+  const linhas: Array<{ k: string; v: React.ReactNode }> = [
+    {
+      k: 'Protocolo',
+      v: (
+        <span
+          style={{
+            fontFamily: 'var(--font-data)',
+            fontWeight: 500,
+            fontSize: 'var(--ts-dado-4)',
+            fontVariantNumeric: 'tabular-nums lining-nums',
+            color: 'var(--text-strong)',
+            overflowWrap: 'anywhere',
+          }}
+        >
+          {escopo.id}
+        </span>
+      ),
+    },
+    { k: 'Setor', v: escopo.sector },
+    { k: 'Consumo', v: escopo.monthlyConsumptionBand },
+    // `null` é o "não sei dizer" que o backend gravou.
+    { k: 'Modalidade', v: escopo.tariffModality ?? 'não informada' },
+    { k: 'Aberto em', v: formatarDataHora(escopo.createdAt) },
+  ];
+
+  return (
+    /* Fio SEMPRE em `--rule-strong`: o backend deste produto não tem
+       estado de "pronto" para o acento da casa marcar. Inventar um
+       seria semáforo com outro nome. */
+    <div
+      style={{
+        borderLeft: '2px solid var(--rule-strong)',
+        paddingLeft: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+      }}
+    >
+      {/* // gridalpha-detect-disable-next-line equal-weight-grid — par rótulo/valor no registro do DataTable; não há célula focal numa ficha */}
+      <dl
+        style={{
+          margin: 0,
+          display: 'grid',
+          gridTemplateColumns: 'auto minmax(0, 1fr)',
+          gap: '8px 20px',
+          alignItems: 'baseline',
+        }}
+      >
+        {linhas.map((l) => (
+          <div key={l.k} style={{ display: 'contents' }}>
+            <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>{l.k}</dt>
+            <dd style={{ margin: 0, ...NT.corpo, fontSize: '15px', color: 'var(--text-body)' }}>
+              {l.v}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <Link className="conta-link" to="/diagnostico-energetico" style={{ alignSelf: 'flex-start' }}>
+        Abrir o acompanhamento
+      </Link>
+    </div>
+  );
+}
+
 function StatusSubmissao({
   submissao,
   fluxo,

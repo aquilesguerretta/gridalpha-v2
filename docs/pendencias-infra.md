@@ -88,3 +88,38 @@ Resolver em lote quando tiver ajuda. Não bloqueia build de feature.
   mercado (services/api/client.ts, lib/backendBase.ts), não a
   identidade. Corrigir no painel do Vercel, não em código.
   [ ] VITE_BACKEND_URL — acrescentar "https:" no painel do Vercel
+
+  FASE 3 BLOQUEADA — O VERCEL NÃO ESTÁ DEPLOYANDO A BRANCH
+  A correção está commitada e pushada (vercel.json em afd4470, presente
+  em origin/feature/full-shell-buildout, confirmado por git ls-tree),
+  mas NÃO ESTÁ NO AR. Medido:
+
+    · dois pushes feitos; nenhum deploy novo saiu
+    · bundle servido continua /assets/index-ClKWmVcq.js
+      Last-Modified: 02/09/2026 10:15:21 GMT, Age ~6h — anterior aos
+      pushes
+    · build local do mesmo commit gera index-37zdRyIP.js, hash
+      diferente: a fonte mudou, o deploy é que não acompanhou
+    · NÃO é o domínio: gridalpha.vercel.app serve exatamente o mesmo
+      deploy velho (mesmo hash, mesmo Last-Modified) que
+      nivar.com.br. O projeto inteiro parou de produzir deploy.
+    · NÃO é build quebrado: `npm run build` (tsc -b && vite build)
+      passa exit 0 em 26s na branch atual
+
+  Só o painel do Vercel resolve. Verificar, nesta ordem:
+    [ ] Settings > Git — o projeto está conectado a ESTE repositório?
+    [ ] Settings > Git > Production Branch — está mesmo em
+        feature/full-shell-buildout e foi salvo?
+    [ ] Deployments — existe deploy com status Error/Canceled depois
+        das 10:15 GMT de 02/09? (se sim, o log diz o motivo)
+    [ ] Settings > Git > Ignored Build Step — está vazio?
+    [ ] A integração Git não foi desconectada / não está pausada?
+
+  Quando um deploy novo sair, a verificação de ponta a ponta é:
+    curl -s -o /dev/null -w "%{http_code}" https://nivar.com.br/entrar
+      -> tem que virar 200 (hoje 404)
+    curl -s https://nivar.com.br/api/auth/me
+      -> tem que virar 401 {"detail":"not authenticated"} (hoje 404 do
+         Vercel), que é a resposta REAL do backend atravessando o
+         rewrite
+  Só depois disso faz sentido criar conta em nivar.com.br/criar-conta.

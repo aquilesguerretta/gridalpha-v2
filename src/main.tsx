@@ -20,6 +20,7 @@ import { CriarContaView } from './pages/conta/CriarContaView';
 import { PerfilPlataforma } from './pages/conta/PerfilPlataforma';
 import { ContaDeLuzExpressPage } from './pages/conta-de-luz-express/ContaDeLuzExpressPage';
 import { SolarProposalValidatorPage } from './pages/solar-proposal-validator/SolarProposalValidatorPage';
+import { DiagnosticoEnergeticoPage } from './pages/diagnostico-energetico/DiagnosticoEnergeticoPage';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -127,6 +128,14 @@ createRoot(document.getElementById('root')!).render(
               a rota existe para a superfície ser real e verificável;
               nenhum link público aponta para cá até o produto abrir. */}
           <Route path="/solar-proposal-validator" element={<SolarProposalValidatorPage />} />
+
+          {/* Diagnóstico Energético (Wave 2) — rota de TOPO, no mesmo
+              precedente dos dois produtos Advisory acima. A página roda
+              em DEMONSTRAÇÃO: o catálogo mantém `status: 'em-breve'` e
+              `rota: null`, então a família mostra "Em construção" sem
+              link. A rota existe para a página ser alcançável e
+              testável, como a Solar já fez. */}
+          <Route path="/diagnostico-energetico" element={<DiagnosticoEnergeticoPage />} />
 
           {/* Portais de mercado. Mercado é segmento de URL, não estado em
               store: link compartilhável, bookmark funciona, sem hidratação.

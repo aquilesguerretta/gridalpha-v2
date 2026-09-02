@@ -16,21 +16,44 @@
 //   · ACOMPANHAMENTO — o trabalho dura semanas, então a tela mostra
 //     histórico de evento e troca de mensagem, não um estado só.
 //
-// ─── DADO MOCK PONTA A PONTA ─────────────────────────────────────────
-// ZERO chamada de rede nesta wave. A CURSOR está construindo o backend
-// deste produto em paralelo; a fiação é a próxima wave. Nada aqui chama
-// `fetch`, `activateProduct` nem `myProducts` — o único estado que sai
-// da tela é `console` nenhum: fica em `useState`.
+// ─── FIAÇÃO REAL (Wave 3) ────────────────────────────────────────────
+// O escopo vai por `POST /api/diagnostico-energetico/submissions` —
+// JSON estruturado, sem arquivo. Contrato lido em
+// `app/routers/diagnostico.py` e reconciliado na Fase 1 desta wave.
 //
-// A página roda em DEMONSTRAÇÃO, e diz isso: o catálogo mantém
-// `status: 'em-breve'` e `rota: null`, então a família mostra "Em
-// construção" sem link. A rota de topo existe para a página ser
-// alcançável e testável — mesma disciplina que a Solar Proposal
-// Validator Wave 2 já aplicou.
+// TRÊS RECONCILIAÇÕES, porque o mock da Wave 2 e o backend divergiam:
+//
+//   1. `concern` é OBRIGATÓRIO no backend (`_strip_required`); o campo
+//      de contexto era rotulado opcional. Agora a regra é "pelo menos
+//      uma das duas entradas" — caixa marcada OU texto.
+//   2. O mock tem DUAS entradas (caixas de "o que está em jogo" e o
+//      texto livre) onde o backend tem UM campo. As duas compõem um
+//      `concern` só: as marcadas viram a primeira linha, o texto vem
+//      embaixo. Nada se perde e o backend não muda.
+//   3. `'nao-sei'` viraria a string literal "nao-sei" gravada como se
+//      fosse uma modalidade tarifária. Mapeia para `null` no envio —
+//      continua opção de primeira classe na tela, só não viaja como
+//      texto.
+//
+// ATIVAÇÃO ANTES DO ENVIO: o POST exige entitlement (`403` sem ele).
+// Padrão do PerfilStub: `myProducts()` primeiro, `activateProduct` só
+// se faltar — idempotente no backend, mas idempotente não é motivo
+// para gastar escrita a cada envio.
+//
+// O catálogo NÃO muda nesta wave: `status: 'em-breve'` e `rota: null`
+// seguem, então a família continua mostrando "Em construção" sem link.
+// Ligar a tela e anunciar o produto são decisões separadas.
 
 import { useEffect, useId, useState, type CSSProperties } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
+
+import { useAuth } from '../../lib/auth/AuthContext';
+import { AuthError } from '../../lib/auth/authApi';
+import {
+  enviarEscopo,
+  type SubmissaoDiagnostico,
+} from '../../lib/diagnostico/api';
 
 // Tokens NIVAR — só arquivos de VARIÁVEL, como PortalBR e FamiliaPage.
 import '../../design/nivar/fonts.css';
@@ -110,6 +133,19 @@ const NT = {
   } satisfies CSSProperties,
 } as const;
 
+/** Data e hora no fuso do leitor — o backend devolve ISO com offset. */
+function formatarDataHora(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 function comTransicao(mudanca: () => void) {
   const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reduzido && 'startViewTransition' in document) {
@@ -168,6 +204,33 @@ const PREOCUPACOES = [
   { id: 'expansao', rotulo: 'Expansão de carga' },
 ] as const;
 
+/** As duas entradas viram UM `concern` — reconciliação 2 da Fase 1.
+ *  As marcadas primeiro, em linha legível; o texto livre embaixo. */
+function comporConcern(marcadas: ReadonlySet<string>, texto: string): string {
+  const rotulos = PREOCUPACOES.filter((p) => marcadas.has(p.id)).map((p) => p.rotulo);
+  const linha = rotulos.length > 0 ? `Em jogo: ${rotulos.join(' · ')}` : '';
+  const livre = texto.trim();
+  return [linha, livre].filter(Boolean).join('\n\n');
+}
+
+/** O que a tela diz para cada guarda do router, na ordem em que elas
+ *  disparam. Sem semáforo: o fio e o glifo carregam o sinal. */
+function mensagemDeErro(err: unknown): string {
+  if (!(err instanceof AuthError)) return 'Algo falhou do nosso lado. Tente de novo em instantes.';
+  switch (err.status) {
+    case 0:
+      return 'Não foi possível falar com o servidor. Verifique a conexão.';
+    case 401:
+      return 'A sessão expirou. Entre de novo para enviar.';
+    case 403:
+      return 'O produto não está ativo nesta conta. Recarregue a página e tente de novo.';
+    case 422:
+      return 'O servidor recusou o escopo. Revise os campos e tente de novo.';
+    default:
+      return 'Algo falhou do nosso lado. Tente de novo em instantes.';
+  }
+}
+
 type Etapa = 'intake' | 'confirmado';
 
 export function DiagnosticoEnergeticoPage() {
@@ -183,7 +246,12 @@ export function DiagnosticoEnergeticoPage() {
   const [modalidade, setModalidade] = useState('nao-sei');
   const [marcadas, setMarcadas] = useState<ReadonlySet<string>>(new Set());
   const [contexto, setContexto] = useState('');
-  const [erros, setErros] = useState<{ setor?: string; faixa?: string }>({});
+  const [erros, setErros] = useState<{ setor?: string; faixa?: string; concern?: string }>({});
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState<string | null>(null);
+  const [submissao, setSubmissao] = useState<SubmissaoDiagnostico | null>(null);
+  const { user, loading, myProducts, activateProduct } = useAuth();
+  const location = useLocation();
 
   useEffect(() => {
     const anterior = document.title;
@@ -207,24 +275,55 @@ export function DiagnosticoEnergeticoPage() {
     });
   }
 
-  function aoEnviar(e: React.FormEvent) {
+  async function aoEnviar(e: React.FormEvent) {
     e.preventDefault();
-    // Validação de cliente é conveniência; a de verdade será a do
-    // backend quando ele existir. Só os dois campos sem os quais um
-    // parecer não começa.
-    const achados: { setor?: string; faixa?: string } = {};
+    if (enviando) return;
+    // Validação de cliente é conveniência; a de verdade é a do backend.
+    // `concern` entrou aqui porque o router o exige — sem isso o envio
+    // levaria 422 depois de uma ida à rede.
+    const concern = comporConcern(marcadas, contexto);
+    const achados: { setor?: string; faixa?: string; concern?: string } = {};
     if (!setor) achados.setor = 'Escolha o setor da operação.';
     if (!faixa) achados.faixa = 'Escolha a faixa de consumo.';
+    if (!concern) achados.concern = 'Marque ao menos uma opção acima ou escreva o contexto.';
     setErros(achados);
     if (Object.keys(achados).length > 0) return;
-    // MOCK — nenhuma rede. Quando a CURSOR entregar o endpoint, este é
-    // o ponto que passa a esperar a resposta.
-    comTransicao(() => setEtapa('confirmado'));
+
+    setErroEnvio(null);
+    setEnviando(true);
+    try {
+      // Entitlement primeiro — o POST devolve 403 sem ele.
+      const { products } = await myProducts();
+      if (!products.some((p) => p.productId === PRODUTO_ID)) {
+        await activateProduct(PRODUTO_ID);
+      }
+      const criada = await enviarEscopo({
+        sector: rotuloSetor,
+        monthlyConsumptionBand: rotuloFaixa,
+        // Reconciliação 3: "não sei dizer" viaja como null, nunca texto.
+        tariffModality: modalidade === 'nao-sei' ? null : rotuloModalidade,
+        concern,
+      });
+      setSubmissao(criada);
+      comTransicao(() => setEtapa('confirmado'));
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      setErroEnvio(mensagemDeErro(err));
+    } finally {
+      setEnviando(false);
+    }
   }
 
   const rotuloSetor = SETORES.find((s) => s.value === setor)?.label ?? '—';
   const rotuloFaixa = FAIXAS_CONSUMO.find((f) => f.value === faixa)?.label ?? '—';
   const rotuloModalidade = MODALIDADES.find((m) => m.value === modalidade)?.label ?? '—';
+
+  // Rota protegida — o escopo é por conta. Enquanto `/api/auth/me` não
+  // respondeu ninguém conclui "não logado"; só com `loading === false`
+  // e sem usuário é que vai para /entrar, carregando o destino.
+  if (!loading && !user) {
+    return <Navigate to="/entrar" replace state={{ de: location.pathname }} />;
+  }
 
   return (
     <div
@@ -405,7 +504,7 @@ export function DiagnosticoEnergeticoPage() {
                 style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
               />
               <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
-                {etapa === 'intake' ? 'quatro perguntas' : 'amostra ilustrativa'}
+                {etapa === 'intake' ? 'quatro perguntas' : 'registrado'}
               </span>
             </div>
 
@@ -484,9 +583,23 @@ export function DiagnosticoEnergeticoPage() {
                       />
                     ))}
                   </EscolhaFila>
-                  <span style={{ ...NT.nota, color: 'var(--text-faint)' }}>
-                    Quantas quiser. Nenhuma marcada também é informação.
-                  </span>
+                  {erros.concern ? (
+                    <span
+                      style={{ ...NT.nota, display: 'flex', gap: '6px', color: 'var(--campo-erro-texto)' }}
+                    >
+                      <i
+                        aria-hidden="true"
+                        style={{ fontFamily: 'var(--font-data)', fontStyle: 'normal', color: 'var(--campo-erro-fio)' }}
+                      >
+                        ×
+                      </i>
+                      {erros.concern}
+                    </span>
+                  ) : (
+                    <span style={{ ...NT.nota, color: 'var(--text-faint)' }}>
+                      Quantas quiser — ou descreva no campo abaixo.
+                    </span>
+                  )}
                 </fieldset>
 
                 <CampoTexto
@@ -495,18 +608,54 @@ export function DiagnosticoEnergeticoPage() {
                   onChange={setContexto}
                   linhas={4}
                   placeholder="O que motivou procurar uma leitura independente agora."
-                  nota="Opcional. Uma frase já ajuda a direcionar a apuração."
+                  nota={
+                    marcadas.size > 0
+                      ? 'Opcional. Uma frase já ajuda a direcionar a apuração.'
+                      : 'Descreva o que está em jogo, ou marque uma opção acima.'
+                  }
                 />
 
+                {erroEnvio && (
+                  // Erro de rede/servidor — mesmo padrão de CLE e Solar:
+                  // fio em brasa e glifo ×, o texto carrega a leitura.
+                  <div
+                    role="alert"
+                    style={{
+                      ...NT.corpo,
+                      fontSize: '13.5px',
+                      color: 'var(--text-strong)',
+                      borderTop: '2px solid var(--campo-erro-fio)',
+                      paddingTop: '10px',
+                      display: 'flex',
+                      gap: '8px',
+                    }}
+                  >
+                    <i
+                      aria-hidden="true"
+                      style={{ fontFamily: 'var(--font-data)', fontStyle: 'normal', color: 'var(--campo-erro-fio)' }}
+                    >
+                      ×
+                    </i>
+                    <span>{erroEnvio}</span>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                  <button type="submit" className="nv-btn nv-btn--primario">
-                    Abrir diagnóstico
-                    <span className="nv-btn__glifo" aria-hidden="true">
-                      →
-                    </span>
+                  <button
+                    type="submit"
+                    className="nv-btn nv-btn--primario"
+                    disabled={enviando || loading}
+                    aria-busy={enviando || undefined}
+                  >
+                    {enviando ? 'Abrindo…' : 'Abrir diagnóstico'}
+                    {!enviando && (
+                      <span className="nv-btn__glifo" aria-hidden="true">
+                        →
+                      </span>
+                    )}
                   </button>
-                  <span style={{ ...NT.nota, color: 'var(--text-muted)' }}>
-                    Sem cobrança nesta etapa.
+                  <span style={{ ...NT.nota, color: 'var(--text-muted)' }} aria-live="polite">
+                    {enviando ? 'O escopo está indo para o servidor.' : 'Sem cobrança nesta etapa.'}
                   </span>
                 </div>
               </form>
@@ -526,48 +675,63 @@ export function DiagnosticoEnergeticoPage() {
                     padding: '12px 0',
                   }}
                 >
+                  {/* Tudo abaixo vem da RESPOSTA do backend — é o que
+                      foi gravado, não o que o browser tinha em estado. */}
+                  <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Protocolo</dt>
+                  <dd
+                    style={{
+                      margin: 0,
+                      fontFamily: 'var(--font-data)',
+                      fontSize: 'var(--ts-dado-4)',
+                      fontWeight: 500,
+                      color: 'var(--text-strong)',
+                      fontVariantNumeric: 'tabular-nums lining-nums',
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
+                    {submissao?.id}
+                  </dd>
                   <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Setor</dt>
                   <dd style={{ margin: 0, ...NT.corpo, color: 'var(--text-strong)' }}>
-                    {rotuloSetor}
+                    {submissao?.sector}
                   </dd>
                   <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Consumo</dt>
                   <dd style={{ margin: 0, ...NT.corpo, color: 'var(--text-strong)' }}>
-                    {rotuloFaixa}
+                    {submissao?.monthlyConsumptionBand}
                   </dd>
                   <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Modalidade</dt>
                   <dd style={{ margin: 0, ...NT.corpo, color: 'var(--text-body)' }}>
-                    {rotuloModalidade}
+                    {/* `null` é o "não sei dizer" que o backend gravou —
+                        e dizer isso é mais honesto que repetir o rótulo. */}
+                    {submissao?.tariffModality ?? 'não informada'}
                   </dd>
                   <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Em jogo</dt>
+                  <dd
+                    style={{
+                      margin: 0,
+                      ...NT.corpo,
+                      color: 'var(--text-body)',
+                      whiteSpace: 'pre-line',
+                    }}
+                  >
+                    {submissao?.concern}
+                  </dd>
+                  <dt style={{ ...NT.etiqueta, color: 'var(--text-faint)' }}>Aberto em</dt>
                   <dd style={{ margin: 0, ...NT.corpo, color: 'var(--text-body)' }}>
-                    {marcadas.size === 0
-                      ? 'nada assinalado'
-                      : PREOCUPACOES.filter((p) => marcadas.has(p.id))
-                          .map((p) => p.rotulo)
-                          .join(' · ')}
+                    {submissao ? formatarDataHora(submissao.createdAt) : '—'}
                   </dd>
                 </dl>
-
-                {/* Honestidade de mock, no idioma `--ilustrativa-*`. */}
-                <span
-                  style={{
-                    ...NT.proc,
-                    justifySelf: 'start',
-                    color: 'var(--ilustrativa-fg)',
-                    borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
-                    paddingBottom: '2px',
-                  }}
-                >
-                  Amostra ilustrativa — escopo não registrado; o intake real chega com o backend
-                </span>
 
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     className="nv-btn nv-btn--terciario"
-                    onClick={() => comTransicao(() => setEtapa('intake'))}
+                    onClick={() => {
+                      setSubmissao(null);
+                      comTransicao(() => setEtapa('intake'));
+                    }}
                   >
-                    Revisar o escopo
+                    Abrir outro diagnóstico
                   </button>
                 </div>
               </div>

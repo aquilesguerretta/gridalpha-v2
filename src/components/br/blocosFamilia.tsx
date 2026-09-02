@@ -371,6 +371,39 @@ export const BLOCOS_FAMILIA: BlocoFamiliaProduto[] = [
     ctaRotulo: null,
     ctaNota: 'Em construção · o envio abre com a ativação do produto',
   },
+  // ─── Advisory · Diagnóstico Energético ─────────────────────────────
+  // Diagnóstico Energético Wave 2. O TERCEIRO produto Advisory a
+  // declarar bloco — e a prova de que o slot aguenta: a numeração de
+  // seção deriva da ordem do catálogo, então esta entrada nasce como
+  // `04` sem ninguém digitar o número.
+  //
+  // Sem `Corpo` e sem `Antes`: a faixa de três colunas é a forma que
+  // CLE e Solar usam, e a terceira coluna é sempre a tese da casa
+  // aplicada ao produto. `ctaRotulo: null` porque o catálogo mantém
+  // `rota: null` — produto sem rota anunciada não ganha link morto,
+  // mesmo com a página existindo em demonstração.
+  {
+    produtoId: 'diagnostico-energetico',
+    ariaLabel: 'Diagnóstico Energético',
+    titulo: 'Diagnóstico Energético',
+    nota: 'em construção',
+    colunas: [
+      {
+        k: 'O que entra',
+        v: 'Um escopo — setor, porte de consumo e o que está em jogo — mais a fatura e o contrato vigente da operação.',
+      },
+      {
+        k: 'O que sai',
+        v: 'Leitura da estrutura inteira: enquadramento, modalidade tarifária, demanda contratada e exposição, com o contraditório de cada conclusão e o percurso registrado enquanto a análise corre.',
+      },
+      {
+        k: 'O que não é',
+        v: 'Não vende energia, não intermedia contrato, não recebe comissão. Nenhuma economia é prometida.',
+      },
+    ],
+    ctaRotulo: null,
+    ctaNota: 'Em construção · o escopo abre com a ativação do produto',
+  },
 ];
 
 /** Os blocos de uma família, NA ORDEM dos produtos dela — a numeração

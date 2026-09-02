@@ -80,6 +80,12 @@ export const DESTINOS_BR: DestinoBR[] = [
     id: 'diagnostico-energetico',
     titulo: 'Diagnóstico Energético',
     descricao: 'Análise 360° do custo energético de uma operação industrial.',
+    // Diagnóstico Energético Wave 2: REGISTRADO, não ativado — mesma
+    // disciplina da Solar. A rota de topo `/diagnostico-energetico` já
+    // existe em main.tsx e a página roda em demonstração, mas o
+    // catálogo não anuncia: a família mostra "Em construção" sem link.
+    // Abrir é a wave de ativação, e é o mesmo par de campos:
+    // status: 'disponivel' + rota: '/diagnostico-energetico'.
     status: 'em-breve',
     rota: null,
   },

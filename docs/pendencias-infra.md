@@ -123,3 +123,35 @@ Resolver em lote quando tiver ajuda. Não bloqueia build de feature.
          Vercel), que é a resposta REAL do backend atravessando o
          rewrite
   Só depois disso faz sentido criar conta em nivar.com.br/criar-conta.
+
+── CONTA DE LUZ EXPRESS — ENVIO DE FATURA AINDA RECUSADO (aberto)
+   Registrado pela ARCHITECT, Método Wave 1, Fase 5. NÃO investigado
+   nesta wave — só registrado.
+
+  Sintoma: enviar uma fatura em produção devolve "O recebimento de
+  faturas ainda não está ligado neste ambiente". Essa é a mensagem que
+  o frontend mostra para um 503 do backend.
+
+  DIAGNÓSTICO NÃO FEITO. O teste de Network nunca rodou depois de as
+  seis variáveis serem coladas no Railway, então nada abaixo é
+  medição — é hipótese.
+
+  Hipótese mais provável: o serviço no Railway não reiniciou de
+  verdade depois de as variáveis serem coladas, e o container em pé
+  ainda é o que subiu sem elas. O guard que produz esse 503 lê a
+  variável no momento da requisição a partir do ambiente do processo,
+  então variável colada no painel sem redeploy não alcança o processo
+  antigo.
+
+  Como confirmar, quando for a hora (nesta ordem):
+    1. Abrir a aba Network e enviar uma fatura. Ler o STATUS e o corpo
+       do POST /api/conta-luz-express/submissions — o `detail` do 503
+       nomeia qual variável está faltando.
+    2. Se o detail nomear uma variável que você sabe que está colada:
+       é o container velho. Force um redeploy no Railway.
+    3. Se o detail nomear outra variável: falta essa mesma.
+    4. Se não for 503: a hipótese está errada e o diagnóstico começa
+       do zero, pelo status real.
+
+  As seis variáveis do fluxo: RESEND_API_KEY, ADVISORY_OPERATOR_EMAIL,
+  CLE_EMAIL_FROM, CLE_APP_BASE_URL, SPV_EMAIL_FROM, SPV_APP_BASE_URL.

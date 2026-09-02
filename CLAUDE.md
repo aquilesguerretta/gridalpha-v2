@@ -9799,3 +9799,131 @@ Surface is clean."
   (`docs/conta-luz-express-recon-marcacao-frontend.md`,
   `docs/pendencias-infra.md`). É a lacuna que custou a renumeração desta
   wave; fica registrada para quem for numerar a próxima.
+
+## ARCHITECT — DIAGNÓSTICO ENERGÉTICO WAVE 2 · UI COM DADO MOCK
+
+**Status:** fechada. Seis commits, um por fase, todos pushados. Zero
+arquivo em `app/` — provado por `git show --numstat` dos meus commits.
+`status: 'em-breve'` e `rota: null` preservados no catálogo.
+
+**N resolvido:** a Wave 1 (recon) não registrou seção — a posse dela
+era só o documento. Esta é a primeira seção da trilha e é a **Wave 2**.
+
+**Arquivos:** `src/components/nivar/campos.tsx` (NOVO) ·
+`src/pages/diagnostico-energetico/DiagnosticoEnergeticoPage.tsx` (NOVO)
+· `.../HistoricoDiagnostico.tsx` (NOVO) · `main.tsx` (uma rota) ·
+`blocosFamilia.tsx` (slot) · `br-destinos.ts` (só comentário).
+
+### Fase 1 — os quatro contratos, e a divergência que reportei antes de agir
+
+| Hipótese | Achado |
+| --- | --- |
+| Slot para o terceiro produto | Forma da Solar: sem `Antes`/`Corpo`, três colunas, `ctaRotulo: null`. Numeração deriva. |
+| `.nv-metodo*` | **Onze** classes, todas já em `FOLHA_PORTAL`. Nada a portar. |
+| `PublicationList` / `Collapsible` | **Só no skill** — zero ocorrência em `src/`, nem CSS nem componente. |
+| `field.css` | **115 linhas, 89 blocos** (o brief dizia 61), em cinco famílias. |
+
+**A divergência, declarada antes de portar:** o brief manda "os 61
+seletores entram em `src/`". Três famílias não têm consumidor:
+`.nv-acesso*` (15) é o **AuthForm** — a tela de login, que a migração
+de conta já resolveu com `.conta-campo` local; `.nv-multi*` (16) e
+`.nv-desl*` (14) não têm tela prevista. E `src/design/nivar/LEIA.md`
+declara: *"o CSS de componente entra POR DEMANDA, conforme cada tela
+usar — nada aterrissa em `src/` sem uso"*.
+
+Portei `.nv-campo*` + `.nv-escolha*` (**44 dos 89**). Trazer
+`.nv-acesso*` criaria segunda fonte para um papel já resolvido — a
+divergência que o registro existe para impedir. **Não precisou de wave
+própria:** os componentes do skill são finos; o custo é o CSS, que é
+cópia verbatim.
+
+### Fase 2 — o port
+
+`src/components/nivar/campos.tsx` — diretório novo nomeado pelo sistema
+que serve, no mesmo nível de `br/` e `alexandria/`. CSS injetado por
+`<EstilosCampos />`, não importado como folha global: é o idioma do
+Portal, não depende de ordem de import, e página sem formulário não
+carrega o CSS deles.
+
+`CampoTexto` (input/textarea, `--num` e unidade), `CampoSelect` (com o
+glifo `▾` do sistema; `appearance: none` porque a seta nativa é
+vocabulário de fora), `Escolha` (quadrado com `×` / círculo com disco),
+`EscolhaPilha`/`EscolhaFila`. A convenção ÚNICA de campo obrigatório —
+asterisco em acento + `obrigatório` para leitor de tela — veio junto.
+
+**`.nv-sr` teve de vir também:** o `Envelope` depende dela e ela mora
+em `base.css`, que não entra em `src/`. É regra de classe, não de
+elemento, então é segura.
+
+### Fase 3 — intake rico
+
+Quatro perguntas: setor, faixa de consumo, modalidade tarifária,
+o que está em jogo (múltipla) e contexto livre. **"Não sei dizer" é
+opção de primeira classe** na modalidade — é exatamente o que o cliente
+contrata a análise para descobrir; exigir a resposta seria pedir o
+resultado como pré-requisito da pergunta.
+
+Rota de topo `/diagnostico-energetico` em `main.tsx`, no precedente da
+Solar: **a página existe e roda em demonstração, o catálogo é que não
+anuncia**. `main.tsx` não estava na posse declarada — duas linhas,
+sem as quais a página não é alcançável nem testável.
+
+### O defeito que só o render pegou
+
+Os dois selects da primeira linha saíam desalinhados. Medido: o rótulo
+do campo SEM nota tinha **32px** de altura contra **13px** do vizinho.
+Causa: itens de grid com `stretch` — o campo mais curto estica para a
+altura da linha e o grid interno infla a linha do rótulo para preencher.
+`alignItems: 'start'` corrigiu; medido depois, ambos em 13px e mesmo
+`caixaTop`. Não aparece em leitura de código.
+
+### Fase 4 — timeline, e por que não é chat
+
+`PublicationList` + `Collapsible` portados verbatim. O `AIAssistant` foi
+descartado como precedente: balão colorido com `alignSelf` alternado é
+vocabulário de SaaS, em tokens de outro sistema, e nem é conversa entre
+dois humanos.
+
+Mensagem **não é balão**: fio à esquerda separa quem falou
+(`--accent-house` para a casa, `--rule` para o cliente) e a autoria é
+etiqueta versalete. O compositor aparece **desabilitado, com a razão ao
+lado** — não existe entidade de mensagem em lugar nenhum do produto, e
+um campo que aceita texto e o descarta seria pior que a ausência dele.
+
+### Fase 5 — método e registro
+
+`MethodDisclosure` **inline, não extraído** — é o segundo uso, a regra
+dos três não foi atingida. `useId()` no lugar do id fixo do hero
+(`metodo-pld-painel`), que colidiria. Ordem verificada no render:
+método → fonte → método publicado em → dado coletado em → premissas.
+
+Bloco declarado em `BLOCOS_FAMILIA`; a seção **`04` nasceu numerada
+sozinha**, e Diagnóstico segue sem link porque `rota` continua `null`.
+
+### Verificação
+
+12/12 combinações (2 superfícies × 1440/1920/3440 × claro/noturno):
+modo por computed style, zero overflow, **raio zero** em todo campo,
+escolha e botão. Fluxo real: submit vazio → dois erros com fio brasa e
+glifo `×`; preencher → erros somem; duas caixas marcam em acento;
+enviar → ficha com os rótulos certos. Timeline: 4 eventos, `+`→`−` com
+detalhe abrindo, 3 mensagens, compositor `disabled`.
+
+**Zero rede real:** o log mostra só `/api/auth/me` (AuthProvider
+global). A única ocorrência de `fetch` nos arquivos da wave é o
+comentário que declara a ausência.
+
+`tsc -b` **0 erros na árvore inteira** (os 7 pré-existentes de Recharts
+foram fechados fora desta wave) · `gridalpha-detect` "No findings" ·
+eslint limpo.
+
+### Registrado, não resolvido
+
+- **Três famílias de `field.css` seguem no skill** (`.nv-acesso*`,
+  `.nv-multi*`, `.nv-desl*`). Entram quando houver tela que as use.
+- **A thread é mock nos dois sentidos** — o backend deste produto foi
+  construído em paralelo por outra sessão; a fiação é a próxima wave.
+- **`[DATA]` literal** no MethodDisclosure, herdado do padrão do hero
+  (pendência da Portal BR Wave 6).
+- **O slot não avisa quando um produto não tem bloco** — pendência que
+  a recon já registrava; hoje todos os três Advisory têm o seu.

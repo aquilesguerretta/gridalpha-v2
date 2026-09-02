@@ -289,7 +289,7 @@ export function HistoricoDiagnostico({ NT }: { NT: Record<string, CSSProperties>
         </div>
 
         {/* ─── Mensagens ─────────────────────────────────────────── */}
-        {/* gridalpha-detect-disable-next-line equal-weight-grid — rótulo, lista e compositor empilhados; a hierarquia é vertical, não focal */}
+        {/* // gridalpha-detect-disable-next-line equal-weight-grid — rótulo, lista e compositor empilhados; a hierarquia é vertical, não focal */}
         <div style={{ display: 'grid', gap: '12px', minWidth: 0 }}>
           <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>Mensagens</span>
           <div style={{ borderTop: 'var(--fio) solid var(--rule-strong)' }}>

@@ -274,3 +274,112 @@ própria.
 - **Três cópias do mesmo valor de campo** vão existir se Diagnóstico
   repetir a estratégia local da CLE (§3). A terceira é onde a
   divergência costuma nascer.
+
+---
+
+# Adendo — Wave 2, Fase 1 · contratos confirmados antes de portar
+
+Quatro hipóteses do brief da Wave 2, medidas no disco antes de escrever
+markup ou portar CSS.
+
+## H1 · O slot, e como a Solar registrou a dela
+
+`BLOCOS_FAMILIA` recebe objetos `BlocoFamiliaProduto`. A entrada da
+Solar é a forma exata a seguir — sem `Antes`, sem `Corpo`, três
+colunas e CTA nulo:
+
+```
+produtoId · ariaLabel · titulo · nota
+colunas: [{k: 'O que entra'}, {k: 'O que sai'}, {k: 'O que não é'}]
+ctaRotulo: null      ← produto sem rota não ganha link morto
+ctaNota: 'Em construção · o envio abre com a ativação do produto'
+```
+
+A terceira coluna é sempre a tese da casa aplicada ao produto ("não
+vende, não intermedia, não recebe comissão"). Diagnóstico copia a
+forma, troca o conteúdo. Numeração deriva: com a entrada declarada, a
+seção nasce `04`.
+
+## H2 · As classes `.nv-metodo*`, lista completa
+
+Onze, todas já em `FOLHA_PORTAL` (`portalChrome.tsx`):
+
+```
+.nv-metodo · __ancora · __gatilho · __painel · __fio-desenho
+  · __corpo · __linha · __rot · __v · __v--dado · __premissas
+```
+
+O markup do hero (`PortalHero.tsx:533-598`) usa dez das onze —
+`__premissas` fica sem uso lá. **Nada a portar**; só escrever markup
+novo com `useId()` no lugar do id fixo (`metodo-pld-painel`), porque
+duas instâncias na mesma página colidiriam.
+
+## H3 · `PublicationList` e `Collapsible` — API real
+
+Ambos existem **só no skill**. Varredura por `nv-publista`, `nv-pub__`
+e `nv-recol` em `src/`: **zero ocorrência** — nem CSS, nem componente.
+São CSS puro + `.jsx` de referência a portar junto com a Fase 4.
+
+```
+PublicationList({ children })                    → <ol class=nv-publista>
+PublicationCard({ familia, tipo, titulo, resumo,
+                  data, leitura, href })         → <li class=nv-pub>
+Collapsible({ titulo, nota, aberta, onToggle,
+              padrao, id, fio, children })       → controlado OU interno
+```
+
+O `Collapsible` já resolve o dobro: aceita estado controlado (`aberta`
++ `onToggle`) ou gerencia o próprio (`padrao`). Marcador `+`/`−` em
+mono — **o sistema não gira glifo**, e a revelação é o fio de 700ms.
+
+## H4 · `field.css` — a medição, e uma divergência a reportar
+
+**115 linhas, 89 blocos de regra.** O brief fala em "61 seletores"; a
+contagem real por família de componente:
+
+| Família | Blocos | Componente | Diagnóstico usa? |
+| --- | --- | --- | --- |
+| `.nv-campo*` | 26 | Input, NumberInput, Select, UnitField | **Sim** — é o núcleo |
+| `.nv-escolha*` | 18 | Checkbox, Radio | **Provável** (setor, modalidade) |
+| `.nv-multi*` | 16 | MultiSelect | Não |
+| `.nv-desl*` | 14 | Slider | Não |
+| `.nv-acesso*` | 15 | **AuthForm** — tela de login | **Não** — outro produto |
+
+### A divergência, declarada antes de agir
+
+O brief manda "os 61 seletores entram em `src/`". A disciplina que a
+própria FOUNDRY declarou em `src/design/nivar/LEIA.md:3-4` diz o
+oposto:
+
+> Só os SEIS tokens estão aqui. O CSS de componente entra **por
+> demanda, conforme cada tela usar** — nada aterrissa em `src/` sem
+> uso.
+
+Portar `.nv-acesso*` (o formulário de acesso do sistema) seria trazer
+para `src/` o estilo de uma tela que **já existe e já resolveu isso de
+outro jeito** — `/entrar` e `/criar-conta` foram migradas para NIVAR na
+sua própria wave, com `.conta-campo` local. Duas fontes para o mesmo
+papel é exatamente a divergência que o registro existe para impedir.
+`.nv-multi*` e `.nv-desl*` não têm consumidor nenhum previsto.
+
+**Decisão, e é a recomendação:** portar `.nv-campo*` + `.nv-escolha*`
+(44 dos 89 blocos), verbatim nos valores, e deixar os outros três
+grupos no skill até existir tela que os use. Não é o port menor por
+prazo — é o port certo pela regra do sistema. Se o war room quiser os
+89 mesmo assim, é uma linha de brief e eu porto o resto.
+
+**O escopo NÃO precisa de wave própria.** Os componentes do skill são
+finos (o `Input.jsx` inteiro tem 30 linhas: um `Envelope` que monta
+rótulo + caixa + erro/nota, e o `<input>` dentro). O que custa é o CSS,
+que é cópia verbatim de valores já escritos.
+
+### Onde vai morar
+
+`src/design/nivar/` é a fonte dos tokens e está declarado NUNCA
+MODIFICAR nesta wave ("consome, não edita a fonte"); `FOLHA_PORTAL`
+está como somente-leitura. Então os componentes portados vão para
+**arquivo novo em `src/components/nivar/`** — diretório novo, nomeado
+pelo sistema que serve, no mesmo nível de `br/`, `alexandria/` e
+`terminal/`, que é como o repo já separa por sistema visual. O CSS
+viaja com eles, no idioma que o Portal já usa (`<style>` com o texto
+verbatim), para não depender de ordem de import de folha global.

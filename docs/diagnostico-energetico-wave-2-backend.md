@@ -1,6 +1,7 @@
 # Diagnóstico Energético — Wave 2 · backend real
 
-**Status:** Fase 1 confirmada. Tabelas ainda não criadas neste commit.
+**Status:** fechada. Schema aplicado em produção (`0007` + `0008`).
+Smoke ponta a ponta: **75 PASS / 0 FAIL**.
 
 **Autor:** CURSOR. **Data:** 1 de setembro de 2026.
 
@@ -97,7 +98,7 @@ igual aos outros dois.
 Kind opaco ao ligar mensagem: `diagnostico_energetico_submission`.
 Não é enum no banco — CLE/Solar entram depois sem migration.
 
-## O que as fases seguintes constroem
+## O que as fases seguintes construíram
 
 2. Tabelas `conversation`/`message` + helper `advisory_operator` +
    CLE/Solar passam a importar.
@@ -105,3 +106,65 @@ Não é enum no banco — CLE/Solar entram depois sem migration.
 4. Cliente abre conversa com `origin_*`; operador lista abertas de
    qualquer produto e responde.
 5. Ciclo ponta a ponta + prova de fronteira.
+
+## Endpoints
+
+Prefixo de intake: `/api/diagnostico-energetico`
+
+| método | caminho | quem |
+| --- | --- | --- |
+| `POST` | `/submissions` | cliente com entitlement — ficha JSON, 201 |
+| `GET` | `/submissions` | cliente — só os próprios casos |
+| `GET` | `/submissions/{id}` | dono **ou** operador (404 para o resto) |
+
+Prefixo de mensagem: `/api/conversations` — qualquer conta com
+`product_access` em **algum** produto. Papel `customer` vem do caller,
+nunca do body. Sem Anthropic.
+
+| método | caminho | quem |
+| --- | --- | --- |
+| `POST` | `/` | abre fio (`productId`, `originKind`/`originId` opcionais, `body` opcional). Reabrir o mesmo origin devolve 200 + `alreadyOpen: true` |
+| `GET` | `/` | lista os fios do caller |
+| `GET` | `/{id}` | dono **ou** operador |
+| `POST` | `/{id}/messages` | só o dono, `role=customer` |
+
+Prefixo de operador: `/api/operator/conversations` — `require_advisory_operator`.
+Zero painel. 503 se `ADVISORY_OPERATOR_EMAIL` falta; 403 se o e-mail não casa.
+
+| método | caminho |
+| --- | --- |
+| `GET` | `/` — todas as conversas `open`, qualquer produto |
+| `GET` | `/{id}` |
+| `POST` | `/{id}/messages` — `role=operator` |
+
+Kind opaco desta wave: `diagnostico_energetico_submission`. Sem FK.
+
+## Fase 5 — verificação
+
+`railway run py -3 -m alembic upgrade head` em produção:
+`0006_solar_proposal_validator` → `0007_conversation` →
+`0008_diagnostico_energetico`.
+
+Ciclo real (TestClient + banco de produção, contas descartáveis):
+ativar `diagnostico-energetico` → POST da ficha (tarifa vazia vira
+`null`) → abrir conversa no caso → cliente manda follow-up → operador
+vê na lista de abertas e responde → cliente lê a resposta. 401 sem
+sessão. 403 sem entitlement. 404 para conta alheia. 503/403 do
+operador com as **mesmas** `detail` que CLE/Solar tinham nas cópias
+locais. `ON DELETE CASCADE` limpou caso, fio e mensagens.
+
+**75 PASS / 0 FAIL.**
+
+### Fronteira
+
+| arquivo | diff desta wave |
+| --- | --- |
+| `product_access.py` | **zero** — o id já estava no catálogo; nenhum commit da wave o toca |
+| `conta_luz_submission` / `solar_proposal_submission` | **zero** — BYTEA intactas no banco |
+| `conta_luz.py` / `solar_proposal.py` | só extração: `_require_operator` / `_is_operator` saem, `require_advisory_operator` / `is_advisory_operator` entram. Status e `detail` idênticos |
+| pagamento | zero código novo; a única ocorrência de "payment" é o comentário do helper dizendo que **não** é flag de pagamento |
+| `src/` | intocado |
+| proxy Anthropic | intocado |
+
+Helper único: `app/services/advisory_operator.py`. Grep de
+`_require_operator` em `app/routers/` depois da extração: zero.

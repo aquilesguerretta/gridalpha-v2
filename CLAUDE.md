@@ -9927,3 +9927,181 @@ eslint limpo.
   (pendência da Portal BR Wave 6).
 - **O slot não avisa quando um produto não tem bloco** — pendência que
   a recon já registrava; hoje todos os três Advisory têm o seu.
+
+## ARCHITECT — DIAGNÓSTICO ENERGÉTICO WAVE 3 · LIGAR A UI REAL AO BACKEND REAL
+
+**Status:** fechada. Cinco commits, um por fase, todos pushados. Seis
+arquivos tocados, **nenhum** em `app/`, nenhum de CLE ou Solar, nenhum
+em `src/design/nivar/`. `br-destinos.ts` e `blocosFamilia.tsx`
+intocados — provado por `git diff --name-only` da wave inteira.
+
+**Arquivos:** `src/lib/diagnostico/api.ts` (NOVO) ·
+`src/lib/conversas/api.ts` (NOVO) · `DiagnosticoEnergeticoPage.tsx` ·
+`HistoricoDiagnostico.tsx` · `PerfilPlataforma.tsx` · adendo em
+`docs/diagnostico-energetico-recon-frontend.md`.
+
+### Fase 1 — o cliente canônico NÃO serve, e a razão é de contrato
+
+Reportado antes de criar módulo, como o brief exigiu.
+`src/lib/submissoes/api.ts` (CLE + Solar) é incompatível em três
+pontos, e nenhum deles é transporte:
+
+| ponto | canônico | Diagnóstico |
+| --- | --- | --- |
+| entrada | `enviar(arquivo: File)` | JSON estruturado, sem arquivo |
+| tipo | `status` · `source` (obrigatório) · `deliverable` · `deliveredAt` | **nenhum dos quatro existe** |
+| summary | `{count, submitted, ready}` | `{count}` |
+
+Alargar aquele tipo deixaria `source` e `status` opcionais para todos,
+enfraquecendo justamente os campos de que CLE e Solar dependem. Os três
+compartilham a palavra "submissions" na URL, não a forma do dado.
+**Dois módulos novos, canônico intocado.**
+
+`src/lib/conversas/` é separado de `src/lib/diagnostico/` de propósito:
+a CURSOR modelou `conversation`/`message` como domínio de PLATAFORMA —
+o endpoint recebe `productId` e um par `originKind`/`originId` opaco.
+Diagnóstico é o primeiro consumidor, não o dono; CLE e Solar herdam sem
+reescrever nada.
+
+### As três reconciliações — "soa equivalente" não é "é equivalente"
+
+Cada uma saiu de ler `app/routers/diagnostico.py` campo a campo, não de
+supor pelo nome:
+
+1. **`concern` é OBRIGATÓRIO** (`_strip_required`), e o campo de
+   contexto da Wave 2 era rotulado *opcional*. A regra virou "pelo menos
+   uma das duas entradas" — caixa marcada OU texto —, validada no
+   cliente para não gastar uma ida à rede antes do 422.
+2. **Duas entradas na tela, UM campo no backend.** As caixas de "o que
+   está em jogo" e o texto livre compõem um `concern` só: as marcadas
+   viram a primeira linha (`Em jogo: …`), o texto vem embaixo. Nada se
+   perde e o backend não muda. **Verificado nos dois sentidos** — só
+   caixa, e só texto livre.
+3. **`'nao-sei'` viraria a string literal gravada como se fosse uma
+   modalidade tarifária.** Mapeia para `null` no envio; segue opção de
+   primeira classe na tela, e a confirmação lê "não informada" a partir
+   do `null` que voltou, não do rótulo que o browser tinha.
+
+### Fase 2 — intake
+
+Ativação ANTES do envio, padrão do `PerfilStub`: `myProducts()` e
+`activateProduct` só se faltar (o POST devolve 403 sem entitlement;
+idempotente no backend não é motivo para gastar escrita a cada envio).
+Guarda de rota com o idioma da casa — enquanto `/api/auth/me` não
+respondeu ninguém conclui "não logado"; só `loading === false && !user`
+manda para `/entrar` carregando o destino.
+
+**A confirmação lê a RESPOSTA**, não o estado local: protocolo, setor,
+faixa, modalidade, `concern` (com `pre-line`, porque a composição tem
+duas linhas) e `createdAt`. Sequência medida na rede:
+
+```
+GET  /api/products/me                              200
+POST /api/products/diagnostico-energetico/activate 200
+POST /api/diagnostico-energetico/submissions       201
+```
+
+### Fase 3 — mensagem
+
+**Dois GETs na carga, nenhuma escrita.** `abrirConversa` é idempotente
+por origem e teria servido para "abrir ou continuar" numa chamada só —
+mas criaria a conversa ao simplesmente abrir a página, enchendo o banco
+de thread vazia. A leitura é `listarEscopos` → `listarConversas`
+(casando o par de origem) → `lerConversa` (a listagem vem **sem**
+mensagens). **A conversa nasce no primeiro envio**, que é quando existe
+conteúdo para ela carregar — `abrirConversa` com `body` cria as duas
+coisas de uma vez.
+
+`role` vem do SERVIDOR: `customer` é o dono da conta, qualquer outro
+papel é operador. Quem é a casa não é decisão da tela — o padrão do
+`className` é `nv-msg--casa` e só `customer` sai dele.
+
+O compositor deixou de nascer desabilitado. A razão pela qual ele
+nascia assim na Wave 2 — não existia entidade de mensagem em lugar
+nenhum do produto — deixou de valer quando a CURSOR fechou o domínio.
+Só desabilita **sem caso aberto**: a conversa é amarrada a um caso, e
+sem caso não há a que amarrar.
+
+**Amarração provada, não presumida:** o `originId` da conversa é
+byte-igual ao protocolo da submissão, e o `originKind` é a constante
+literal do servidor (`app/db/models/conversation.py:41`), importada e
+não digitada.
+
+### O que SEGUE mock, e por que isso é honesto
+
+**A trilha de evento operacional.** O backend tem submissão e conversa;
+**não tem** tabela de evento (apuração, documento recebido, parecer
+entregue). A coluna Histórico fica rotulada `amostra ilustrativa` no
+idioma `--ilustrativa-*` até existir de onde ler — inventar um endpoint
+para isso não era desta wave. É a **única** ocorrência da string em toda
+a superfície da wave, e ela é deliberada.
+
+### Fase 4 — status no perfil
+
+Seção nova, **fora de `FLUXOS_SUBMISSAO`** (que é o registro do cliente
+canônico, e o produto não cabe nele). Número DERIVADO —
+`4 + FLUXOS_SUBMISSAO.length` — em vez de digitado, o mesmo defeito de
+numeração que a `FamiliaPage` já tinha tido; a seção saiu em `06`.
+
+**O fio fica SEMPRE em `--rule-strong`.** Nos fluxos de CLE e Solar o
+acento da casa marca `ready`; este produto não tem estado de "pronto"
+no backend, e inventar um seria semáforo com outro nome.
+
+### Verificação — ciclo completo em conta NOVA
+
+| passo | resultado |
+| --- | --- |
+| `/diagnostico-energetico` sem sessão | redireciona para `/entrar` com o destino |
+| envio vazio | as três validações, inclusive a nova de `concern` |
+| escopo aberto | 201; confirmação com protocolo real e "não informada" a partir do `null` |
+| acompanhamento | de "NENHUM CASO ABERTO" para "CASO ABERTO"; compositor habilita |
+| primeira mensagem | conversa criada JÁ com a mensagem, amarrada ao caso |
+| recarga | mensagem persiste — veio dos dois GETs, não de estado |
+| segunda mensagem | anexa na ordem certa |
+| `/conta` | seção `06` com o MESMO protocolo aberto na página do produto |
+| conta vazia | "Nada aberto" em contorno tracejado, com a porta de entrada |
+| família Advisory | segue **"Em construção" sem link** — o catálogo não mudou |
+
+Estado de carregamento e erro **medidos**, os dois: "Enviando…" com
+`aria-busy=true`, botão e campo desabilitados e a nota viva trocada; o
+erro em fio de 2px `rgb(122,31,13)` com glifo `×`, raio 0, sem sombra,
+e **o texto do usuário preservado** para ele não perder o que escreveu.
+
+Dois modos e três viewports (1440×900, 1920×1080, 3440×1440): papel
+`#F6F2E9` ↔ tinta `#14120F` nas duas superfícies, fio da mensagem
+remapeando, raio 0, sem sombra, **zero overflow horizontal** em todas.
+
+**Nota de método — duas medições enganaram antes de acertar.** (1) O
+painel do Browser está ocluso, então `requestAnimationFrame` **e**
+`setTimeout` são estrangulados a ~1 Hz: o estado de carregamento existia
+e era invisível à amostragem. Provado atrasando **a rede** (não o código
+de produto) em 3 s. (2) Tentei exercitar o 422 com um corpo de 4.200
+caracteres contra o teto de 4.000 do router — e o build publicado
+**aceitou com 201**, o que significa que esse teto não está no ar. A
+premissa do teste é que estava errada, não o produto; o erro foi então
+injetado no transporte, com o código de produto intocado.
+
+### Registrado, não resolvido
+
+- **O lado do operador não pôde ser exercitado ponta a ponta.**
+  `POST /api/operator/conversations/{id}/messages` devolve
+  **503 `ADVISORY_OPERATOR_EMAIL is not configured`** — mesma classe das
+  quatro variáveis de CLE, ação do Aquiles no Railway. O ramo
+  `nv-msg--casa` renderiza a partir do `role` do servidor; sem a
+  variável, nenhuma mensagem de operador existe para atravessá-lo.
+- **O teto de 4.000 caracteres do corpo de mensagem não está no build
+  publicado** (medido: 4.200 passou com 201). Backend é posse CURSOR.
+- **Trilha de evento operacional** não existe no backend (acima).
+- **Sem polling** — a página lê uma vez por montagem e recarrega quando
+  um escopo novo é aberto. Ver mensagem nova pede recarregar.
+- **Duas contas de teste ficaram no banco** (`architect.w3.*` e
+  `architect.w3.vazio.*`), uma delas com uma mensagem de 4.200
+  caracteres da sonda do 422. Não há endpoint de exclusão no contrato —
+  mesma pendência das waves anteriores.
+- **`status: 'em-breve'` e `rota: null` seguem no catálogo**, como o
+  brief travou. Ligar a tela e anunciar o produto são decisões
+  separadas.
+
+**Gates:** `tsc -b` — **0 erros** na árvore inteira. `gridalpha-detect`
+sobre `src` — **0 P0**, 27 P2 (a linha de base documentada desde a
+Alexandria Wave 1, delta zero). `eslint` limpo nos arquivos da wave.

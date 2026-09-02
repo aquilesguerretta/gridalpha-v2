@@ -739,7 +739,7 @@ export function DiagnosticoEnergeticoPage() {
           </section>
 
           {/* ─── 02 · Acompanhamento ─────────────────────────────── */}
-          <HistoricoDiagnostico NT={NT} />
+          <HistoricoDiagnostico NT={NT} casoNovo={submissao} />
 
           {/* ─── 03 · Método ─────────────────────────────────────── */}
           <MetodoDiagnostico NT={NT} />

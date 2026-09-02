@@ -19,19 +19,36 @@
 //     anima.
 // Os dois existiam só no skill; o CSS vem portado aqui, verbatim.
 //
-// ─── DADO MOCK, DECLARADO ────────────────────────────────────────────
-// ZERO rede. Os eventos e as mensagens abaixo são amostra construída
-// para demonstração, rotulada na tela no idioma `--ilustrativa-*` do
-// sistema. O backend deste produto está sendo construído em paralelo
-// por outra sessão; a fiação é a próxima wave.
+// ─── MENSAGEM REAL (Wave 3), HISTÓRICO AINDA NÃO ─────────────────────
+// A thread está LIGADA: `POST /api/conversations` (idempotente por
+// origem), `GET /api/conversations/{id}` para ler, e
+// `POST /{id}/messages` para escrever. O compositor foi habilitado —
+// a razão pela qual ele nascia desabilitado (não existia entidade de
+// mensagem) deixou de valer quando a CURSOR fechou o domínio.
 //
-// A thread é MOCK EM DOIS SENTIDOS, e isso é deliberado: não existe
-// entidade de mensagem em lugar nenhum do produto (a recon confirmou
-// — nem frontend, nem backend). Um campo de escrita que não persiste
-// seria pior que a ausência dele, então o compositor aparece
-// DESABILITADO, com a razão escrita ao lado.
+// A conversa é amarrada ao CASO por `originKind`/`originId` — o par
+// que o backend exige junto ou nenhum. `originKind` é a constante
+// literal do servidor, não uma string digitada aqui.
+//
+// O HISTÓRICO DE EVENTO SEGUE MOCK, e isso é honesto: o backend tem
+// submissão e conversa, mas NÃO tem trilha de evento operacional
+// (apuração, documento recebido, parecer entregue). Inventar um
+// endpoint para isso não é desta wave; a lista fica rotulada
+// `amostra ilustrativa` até existir de onde ler.
 
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+
+import { AuthError } from '../../lib/auth/authApi';
+import { listarEscopos, type SubmissaoDiagnostico } from '../../lib/diagnostico/api';
+import {
+  abrirConversa,
+  enviarMensagem,
+  lerConversa,
+  listarConversas,
+  ORIGEM_DIAGNOSTICO,
+  type Conversa,
+  type Mensagem,
+} from '../../lib/conversas/api';
 
 /** CSS portado do skill: `.nv-publista`/`.nv-pub*` de
  *  `components/editorial/editorial.css` e `.nv-recol*` de
@@ -133,44 +150,23 @@ const EVENTOS: readonly EventoDiag[] = [
   },
 ];
 
-interface MensagemDiag {
-  id: string;
-  autor: 'casa' | 'cliente';
-  nome: string;
-  quando: string;
-  corpo: string;
-}
-
-const MENSAGENS: readonly MensagemDiag[] = [
-  {
-    id: 'm3',
-    autor: 'casa',
-    nome: 'NIVAR',
-    quando: '2026-08-28 · 16:12',
-    corpo:
-      'A série de demanda dos últimos doze ciclos está na apuração. Antes de fechar a recomendação, precisamos saber se houve parada programada em algum mês — isso muda a leitura da folga.',
-  },
-  {
-    id: 'm2',
-    autor: 'cliente',
-    nome: 'Você',
-    quando: '2026-08-21 · 09:40',
-    corpo: 'Enviei o contrato vigente e os dois aditivos de 2025.',
-  },
-  {
-    id: 'm1',
-    autor: 'casa',
-    nome: 'NIVAR',
-    quando: '2026-08-19 · 11:05',
-    corpo:
-      'Escopo confirmado. Para começar pela estrutura tarifária, o contrato de compra vigente é o próximo documento necessário.',
-  },
-];
-
 function formatarData(iso: string): string {
   const d = new Date(`${iso}T12:00:00`);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** Carimbo da mensagem — o backend devolve ISO com offset. */
+function formatarQuando(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 // ─── Collapsible, portado ────────────────────────────────────────────
@@ -225,7 +221,118 @@ function Recolhivel({
   );
 }
 
-export function HistoricoDiagnostico({ NT }: { NT: Record<string, CSSProperties> }) {
+const PRODUTO_ID = 'diagnostico-energetico';
+
+/** O que a tela diz para cada guarda, na ordem em que elas disparam. */
+function mensagemDeErro(err: unknown): string {
+  if (!(err instanceof AuthError)) return 'Algo falhou do nosso lado. Tente de novo em instantes.';
+  switch (err.status) {
+    case 0:
+      return 'Não foi possível falar com o servidor. Verifique a conexão.';
+    case 401:
+      return 'A sessão expirou. Entre de novo para responder.';
+    case 403:
+      return 'Esta conversa não é desta conta.';
+    case 404:
+      return 'A conversa não existe mais.';
+    case 422:
+      return 'O servidor recusou a mensagem. Revise o texto e tente de novo.';
+    default:
+      return 'Algo falhou do nosso lado. Tente de novo em instantes.';
+  }
+}
+
+export function HistoricoDiagnostico({
+  NT,
+  casoNovo,
+}: {
+  NT: Record<string, CSSProperties>;
+  /** O escopo recém-aberto nesta sessão. Serve só como GATILHO de
+   *  recarga — a lista real vem do backend, não deste prop. */
+  casoNovo?: SubmissaoDiagnostico | null;
+}) {
+  const [caso, setCaso] = useState<SubmissaoDiagnostico | null>(null);
+  const [conversa, setConversa] = useState<Conversa | null>(null);
+  const [mensagens, setMensagens] = useState<readonly Mensagem[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [texto, setTexto] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  const gatilho = casoNovo?.id ?? null;
+
+  // Carga: DOIS GETs, nenhuma escrita. `abrirConversa` criaria a
+  // conversa se ela não existisse — escrever ao simplesmente abrir a
+  // página encheria o banco de thread vazia. A conversa nasce no
+  // primeiro envio, que é quando existe conteúdo para ela carregar.
+  const carregar = useCallback(async (signal: AbortSignal) => {
+    setCarregando(true);
+    try {
+      const { data } = await listarEscopos(signal);
+      const maisRecente = data[0] ?? null;
+      setCaso(maisRecente);
+      if (!maisRecente) {
+        setConversa(null);
+        setMensagens([]);
+        return;
+      }
+      const { data: conversas } = await listarConversas(signal);
+      const daOrigem = conversas.find(
+        (c) => c.originKind === ORIGEM_DIAGNOSTICO && c.originId === maisRecente.id,
+      );
+      if (!daOrigem) {
+        setConversa(null);
+        setMensagens([]);
+        return;
+      }
+      // A listagem vem SEM mensagens — por isso a segunda leitura.
+      const cheia = await lerConversa(daOrigem.id, signal);
+      setConversa(cheia);
+      setMensagens(cheia.messages ?? []);
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      setErro(mensagemDeErro(err));
+    } finally {
+      setCarregando(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    void carregar(ac.signal);
+    return () => ac.abort();
+  }, [carregar, gatilho]);
+
+  async function aoResponder(e: React.FormEvent) {
+    e.preventDefault();
+    const corpo = texto.trim();
+    if (!corpo || !caso || enviando) return;
+    setErro(null);
+    setEnviando(true);
+    try {
+      if (conversa) {
+        const nova = await enviarMensagem(conversa.id, corpo);
+        setMensagens((antes) => [...antes, nova]);
+      } else {
+        // Primeira resposta: a conversa nasce JÁ com a mensagem, e
+        // amarrada ao caso pelo par que o backend exige junto.
+        const criada = await abrirConversa({
+          productId: PRODUTO_ID,
+          origem: { kind: ORIGEM_DIAGNOSTICO, id: caso.id },
+          body: corpo,
+        });
+        setConversa(criada);
+        setMensagens(criada.messages ?? []);
+      }
+      setTexto('');
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return;
+      setErro(mensagemDeErro(err));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
   return (
     <section
       aria-label="Acompanhamento"
@@ -244,7 +351,9 @@ export function HistoricoDiagnostico({ NT }: { NT: Record<string, CSSProperties>
           aria-hidden="true"
           style={{ flex: 1, borderTop: 'var(--fio) solid var(--rule)', alignSelf: 'center' }}
         />
-        <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>amostra ilustrativa</span>
+        <span style={{ ...NT.proc, color: 'var(--text-muted)' }}>
+          {caso ? 'caso aberto' : 'nenhum caso aberto'}
+        </span>
       </div>
 
       <div
@@ -257,7 +366,22 @@ export function HistoricoDiagnostico({ NT }: { NT: Record<string, CSSProperties>
       >
         {/* ─── Histórico ─────────────────────────────────────────── */}
         <div style={{ display: 'grid', gap: '12px', minWidth: 0 }}>
-          <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>Histórico</span>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+            <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>Histórico</span>
+            {/* A trilha de evento operacional não existe no backend —
+                submissão e conversa existem, evento não. Fica rotulada
+                até haver de onde ler. */}
+            <span
+              style={{
+                ...NT.proc,
+                color: 'var(--ilustrativa-fg)',
+                borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
+                paddingBottom: '2px',
+              }}
+            >
+              amostra ilustrativa
+            </span>
+          </div>
           <ol className="nv-publista">
             {EVENTOS.map((ev) => (
               <li key={ev.id} className="nv-pub">
@@ -293,49 +417,91 @@ export function HistoricoDiagnostico({ NT }: { NT: Record<string, CSSProperties>
         <div style={{ display: 'grid', gap: '12px', minWidth: 0 }}>
           <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>Mensagens</span>
           <div style={{ borderTop: 'var(--fio) solid var(--rule-strong)' }}>
-            {MENSAGENS.map((m) => (
-              <div
-                key={m.id}
-                className={`nv-msg${m.autor === 'casa' ? ' nv-msg--casa' : ''}`}
-              >
-                <div className="nv-msg__cab">
-                  <span className="nv-msg__autor">{m.nome}</span>
-                  <span className="nv-msg__quando">{m.quando}</span>
+            {carregando ? (
+              <p style={{ margin: 0, padding: '14px 0', ...NT.nota, color: 'var(--text-muted)' }}>
+                Carregando a conversa…
+              </p>
+            ) : mensagens.length === 0 ? (
+              <p style={{ margin: 0, padding: '14px 0', ...NT.nota, color: 'var(--text-muted)' }}>
+                {caso
+                  ? 'Nenhuma mensagem ainda. Escreva abaixo para falar com quem está apurando.'
+                  : 'A conversa abre junto com o primeiro diagnóstico.'}
+              </p>
+            ) : (
+              mensagens.map((m) => (
+                <div
+                  key={m.id}
+                  /* `role` vem do SERVIDOR — quem é a casa não é decisão
+                     da tela. Qualquer papel que não seja `customer` é
+                     operador, então o padrão é a casa. */
+                  className={`nv-msg${m.role === 'customer' ? '' : ' nv-msg--casa'}`}
+                >
+                  <div className="nv-msg__cab">
+                    <span className="nv-msg__autor">{m.role === 'customer' ? 'Você' : 'NIVAR'}</span>
+                    <span className="nv-msg__quando">{formatarQuando(m.createdAt)}</span>
+                  </div>
+                  <p className="nv-msg__corpo">{m.body}</p>
                 </div>
-                <p className="nv-msg__corpo">{m.corpo}</p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
-          {/* Compositor DESABILITADO — e a razão escrita ao lado. Não
-              existe entidade de mensagem em lugar nenhum do produto; um
-              campo que aceita texto e o descarta seria pior que a
-              ausência dele. */}
-          <div style={{ display: 'grid', gap: '8px', paddingTop: '4px' }}>
-            <div className="nv-campo nv-campo--desabilitado">
+          {/* Compositor HABILITADO. Só desabilita sem caso aberto —
+              a conversa é amarrada a um caso, e sem caso não há a que
+              amarrar. */}
+          <form onSubmit={aoResponder} style={{ display: 'grid', gap: '8px', paddingTop: '4px' }}>
+            <div className={`nv-campo${!caso || enviando ? ' nv-campo--desabilitado' : ''}`}>
               <div className="nv-campo__caixa">
                 <textarea
                   className="nv-campo__ctrl"
                   rows={2}
-                  disabled
-                  placeholder="Responder…"
-                  aria-label="Responder — indisponível nesta versão"
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  disabled={!caso || enviando}
+                  placeholder={caso ? 'Responder…' : 'Abra um diagnóstico para conversar'}
+                  aria-label="Responder"
                   style={{ resize: 'none' }}
                 />
               </div>
             </div>
-            <span
-              style={{
-                ...NT.proc,
-                justifySelf: 'start',
-                color: 'var(--ilustrativa-fg)',
-                borderBottom: 'var(--fio) solid var(--ilustrativa-fio)',
-                paddingBottom: '2px',
-              }}
-            >
-              Amostra ilustrativa — conversa de demonstração; o envio abre com o backend
-            </span>
-          </div>
+
+            {erro && (
+              // Erro sem semáforo: fio em brasa e glifo ×.
+              <div
+                role="alert"
+                style={{
+                  ...NT.nota,
+                  color: 'var(--text-strong)',
+                  borderTop: '2px solid var(--campo-erro-fio)',
+                  paddingTop: '8px',
+                  display: 'flex',
+                  gap: '8px',
+                }}
+              >
+                <i
+                  aria-hidden="true"
+                  style={{ fontFamily: 'var(--font-data)', fontStyle: 'normal', color: 'var(--campo-erro-fio)' }}
+                >
+                  ×
+                </i>
+                <span>{erro}</span>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+              <button
+                type="submit"
+                className="nv-btn nv-btn--secundario"
+                disabled={!caso || enviando || texto.trim() === ''}
+                aria-busy={enviando || undefined}
+              >
+                {enviando ? 'Enviando…' : 'Responder'}
+              </button>
+              <span style={{ ...NT.nota, color: 'var(--text-muted)' }} aria-live="polite">
+                {enviando ? 'A mensagem está indo para o servidor.' : 'Fica no registro do caso.'}
+              </span>
+            </div>
+          </form>
         </div>
       </div>
     </section>

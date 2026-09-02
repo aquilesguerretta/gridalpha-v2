@@ -11,6 +11,7 @@ from app.routers import (
     atlas_world,
     auth,
     conta_luz,
+    conversations,
     diagnostico,
     energy,
     fuel_mix,
@@ -98,6 +99,10 @@ app.include_router(solar_proposal.router)  # /api/solar-proposal-validator/*
 
 # Diagnóstico Energético Wave 2 — structured scoping intake (not a file upload).
 app.include_router(diagnostico.router)  # /api/diagnostico-energetico/*
+
+# Diagnóstico Energético Wave 2 — human messaging (any entitled product).
+app.include_router(conversations.router)  # /api/conversations/*
+app.include_router(conversations.operator_router)  # /api/operator/conversations/*
 
 
 @app.get("/health")

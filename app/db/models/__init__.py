@@ -5,6 +5,13 @@ from app.db.models.country_energy import (
     CountryEnergyProfile,
 )
 from app.db.models.conta_luz import CONTA_LUZ_STATUSES, ContaLuzSubmission
+from app.db.models.conversation import (
+    CONVERSATION_STATUSES,
+    MESSAGE_ROLES,
+    ORIGIN_DIAGNOSTICO_SUBMISSION,
+    Conversation,
+    Message,
+)
 from app.db.models.infrastructure import BatteryAsset, GenerationUnit, TransmissionSegment
 from app.db.models.product_access import PRODUCT_CATALOG, PRODUCT_IDS, ProductAccess
 from app.db.models.progress import (
@@ -24,7 +31,10 @@ from app.db.models.user import User
 __all__ = [
     "AULA_STATUSES",
     "CONTA_LUZ_STATUSES",
+    "CONVERSATION_STATUSES",
     "EVENT_TYPES",
+    "MESSAGE_ROLES",
+    "ORIGIN_DIAGNOSTICO_SUBMISSION",
     "FIELD_DEFINITIONS",
     "FIELD_NAMES",
     "PRODUCT_CATALOG",
@@ -36,7 +46,9 @@ __all__ = [
     "CountryEnergyFieldSource",
     "CountryEnergyProfile",
     "ContaLuzSubmission",
+    "Conversation",
     "GenerationUnit",
+    "Message",
     "ProductAccess",
     "ProgressEvent",
     "SolarProposalSubmission",

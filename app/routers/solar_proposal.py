@@ -15,6 +15,10 @@ from app.db.models.solar_proposal import SolarProposalSubmission
 from app.db.models.user import User
 from app.db.session import get_db
 from app.services.advisory_files import download_headers
+from app.services.advisory_operator import (
+    is_advisory_operator,
+    require_advisory_operator,
+)
 from app.services.auth_service import get_current_user
 from app.services.solar_proposal_email import (
     AdvisoryEmailDeliveryError,
@@ -22,7 +26,6 @@ from app.services.solar_proposal_email import (
     email_config,
     notify_customer_deliverable_ready,
     notify_operator_new_submission,
-    operator_email,
 )
 from app.services.solar_proposal_storage import (
     InvalidAdvisoryUpload,
@@ -39,25 +42,6 @@ router = APIRouter(
     prefix="/api/solar-proposal-validator",
     tags=["solar-proposal-validator"],
 )
-
-
-def _is_operator(user: User) -> bool:
-    configured = operator_email()
-    return bool(configured and user.email.lower() == configured)
-
-
-def _require_operator(user: User) -> None:
-    configured = operator_email()
-    if not configured:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="ADVISORY_OPERATOR_EMAIL is not configured",
-        )
-    if user.email.lower() != configured:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="operator access required",
-        )
 
 
 def _require_entitlement(db: Session, user: User) -> None:
@@ -95,7 +79,7 @@ def _require_visible_submission(
 ) -> SolarProposalSubmission:
     submission = _get_submission_without_bytes(db, submission_id)
     if submission is None or (
-        submission.user_id != user.id and not _is_operator(user)
+        submission.user_id != user.id and not is_advisory_operator(user)
     ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -256,7 +240,7 @@ async def attach_deliverable(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_operator(user)
+    require_advisory_operator(user)
     try:
         config = email_config()
     except SolarEmailConfigurationError as exc:

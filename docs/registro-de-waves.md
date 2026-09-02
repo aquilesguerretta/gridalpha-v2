@@ -101,6 +101,78 @@ só o de `git add -A`, que é estaticamente decidível.
 
 ---
 
+## ARCHITECT — MÉTODO WAVE 1 · AGENTS.MD, CLAUDE.MD E HOOKS — fechamento
+
+**Status:** fechada. Cinco commits, um por fase. **Zero arquivo de
+produto tocado** — a wave inteira mexeu em seis arquivos, nenhum em
+`src/` ou `app/` (provado por `git diff --name-only` do intervalo).
+Zero worktree criado ou configurado, como o brief travou.
+
+`CLAUDE.md`: **10.107 → 71 linhas**. Log movido para este arquivo,
+conferido **byte a byte** (a string inteira do trecho L74+ do commit
+anterior existe aqui, verbatim). `AGENTS.md`: 181 linhas.
+
+### O hook de `git add -A` — construído e PROVADO disparando
+
+`.claude/hooks/block-git-add-all.mjs`, registrado em
+`.claude/settings.json` como `PreToolUse` sobre `Bash`, filtrado por
+`if: "Bash(git *)"` para não subir processo em todo comando de shell.
+
+**Em Node e não em bash+jq:** `jq` não existe neste ambiente (medido);
+`node` já é dependência dura do repo — o auditor roda nele.
+
+Pipe-test antes de registrar: **16 de 16 casos corretos**. Bloqueia
+`git add -A`, `.`, `--all`, `-Au`, `cd src && git add -A`,
+`git -C /tmp/repo add .` e `git add src/a.ts .`. Deixa passar caminho
+explícito, `./src/lib/…`, `--no-all`, e `git status`/`git commit`.
+
+**Prova de que dispara, não só de que existe:** tentei `git add -A` de
+propósito num repositório descartável no scratchpad (descartável para
+que, se o hook falhasse, nada real fosse estagiado). A chamada foi
+NEGADA com a razão escrita, e `git diff --cached --name-only` ficou
+**vazio** — o comando nunca rodou. Em seguida `git add a.txt` estagiou
+normalmente, provando que não é bloqueio cego.
+
+### O segundo hook NÃO foi construído — e a razão está medida
+
+O brief pedia um hook contra asserção case-sensitive sobre `innerText`,
+descrito como bug repetido "sete vezes". A leitura do log desmente a
+contagem: **"defeito do harness" como classe aparece 7 vezes, e o bug
+de case aparece 2** (as duas linhas se rotulam "sexta" e "sétima
+ocorrência do padrão" — do padrão amplo). Além disso não existe corpus:
+`innerText` ocorre em dois arquivos rastreados, ambos prosa, zero
+harness — todo script de verificação desta trilha viveu no scratchpad.
+E o sinal decisivo é `text-transform`, CSS de runtime, fora do alcance
+de qualquer hook estático. Detalhe completo na seção da Fase 1 acima.
+
+A regra foi para `AGENTS.md` como disciplina escrita. Se um dia o
+Aquiles quiser a versão determinística mesmo assim, ela existe: alertar
+(não bloquear) quando um harness compara `innerText` contra literal
+minúsculo. Não foi construída porque dispararia em asserção legítima.
+
+### Gates
+
+`npx tsc -b` — limpo, idêntico a antes (a wave não toca código).
+`gridalpha-detect` sobre `src` — 0 P0, 27 P2, a linha de base.
+`git diff --cached --stat` conferido antes de cada um dos cinco commits.
+
+### Registrado, não resolvido
+
+- **`/context` não pôde ser rodado nesta sessão** para confirmar que
+  `AGENTS.md` aparece em Memory files: é comando interativo de terminal,
+  e a sessão não-interativa (`claude -p`) recusou com "Not logged in".
+  O que foi verificado: `@AGENTS.md` é a primeira linha do `CLAUDE.md`,
+  sem espaço espúrio (conferido com `cat -A`), e o arquivo existe e está
+  rastreado. Confirmar com `/context` numa sessão interativa.
+- **`CODEX-OPERATING-PROTOCOL.md`** segue na raiz, não rastreado, com os
+  invariantes já absorvidos pelo `AGENTS.md`. Decidir o destino dele é
+  do Aquiles — ver a Fase 1 acima.
+- **`.husky/pre-commit` continua não instalado.** Instalar é
+  `cp .husky/pre-commit .git/hooks/pre-commit && chmod +x` ou
+  `npx husky init`. Fora da posse desta wave.
+
+---
+
 ## Wave status
 
 | Wave | Status | Notes |

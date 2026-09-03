@@ -10207,3 +10207,144 @@ injetado no transporte, com o código de produto intocado.
 **Gates:** `tsc -b` — **0 erros** na árvore inteira. `gridalpha-detect`
 sobre `src` — **0 P0**, 27 P2 (a linha de base documentada desde a
 Alexandria Wave 1, delta zero). `eslint` limpo nos arquivos da wave.
+
+---
+
+## ARCHITECT — MÉTODO WAVE 2 · WORKTREE POR FERRAMENTA — Fase 1
+
+Confirmação das quatro hipóteses antes de criar qualquer worktree. Tudo
+abaixo foi **medido nesta máquina**, em `C:\dev\GridAlpha v2`, depois da
+migração para fora do OneDrive.
+
+**Nota de partida.** O `git pull --rebase` do brief **falhou** —
+`cannot pull with rebase: You have unstaged changes`, por causa de
+`.claude/launch.json` modificado, que é justamente o arquivo que o
+`CLAUDE.md` manda nunca commitar. Em vez de stashar trabalho alheio
+(proibido pelo `AGENTS.md`), usei `git fetch` + `git rev-list
+--left-right --count`: **0 / 0**. Local e origin idênticos, nada a
+rebasear.
+
+### H1 — suporte a worktree: CONFIRMADO, sem ressalva
+
+`git version 2.53.0.windows.1`. `git worktree -h` lista os oito
+subcomandos (`add`, `list`, `lock`, `move`, `prune`, `remove`, `repair`,
+`unlock`) — inclusive `move` e `repair`, que são os mais novos da
+família. `git worktree list` responde com a árvore principal.
+
+### H1b — descoberta não prevista: a MESMA branch não pode ser checada em dois worktrees
+
+O brief presume "todos a partir da mesma branch base". O git **recusa**:
+
+```
+$ git worktree add <path> feature/full-shell-buildout
+Preparing worktree (checking out 'feature/full-shell-buildout')
+fatal: 'feature/full-shell-buildout' is already used by worktree at 'C:/dev/GridAlpha v2'
+exit=128
+```
+
+`git worktree list` permaneceu com **uma entrada** — nada foi criado. A
+ref pode ser a mesma *base de derivação*; não pode ser o mesmo *checkout*.
+Três saídas, e por que duas são recusadas:
+
+| saída | veredito |
+| --- | --- |
+| branch própria por ferramenta, derivada da base | **recomendada** — uso canônico do worktree |
+| `--detach` | recusada — commit em `HEAD` destacado nasce órfão, sem ref que o segure |
+| `--force` na mesma ref | recusada — duas árvores gravando a mesma ref; a segunda a commitar vê a própria árvore desatualizada |
+
+**Isto contradiz a disciplina de git vigente** ("Trabalho só em
+`feature/full-shell-buildout`"). Não é detalhe de implementação: é
+mudança de política, e a decisão é do Aquiles. Proposta a confirmar:
+`<ferramenta>/<assunto>` derivada de `feature/full-shell-buildout`, com
+integração de volta na base. A regra de **nunca push para `main`** não
+muda.
+
+### H2 — convenção de nome: proposta
+
+`C:\dev\gridalpha-v2-<ferramenta>` — irmã da árvore principal, nunca
+dentro dela.
+
+Três razões. **(1)** casa com o nome do repositório na origem
+(`gridalpha-v2`). **(2)** **sem espaço** — o nome da árvore principal tem
+um (`GridAlpha v2`), e espaço em caminho já custou nesta trilha: o
+`.mcp.json` carrega caminho com espaço e o `CLAUDE.md` registra `spawn
+UNKNOWN` do chromium sob o sandbox de shell. **(3)** a ausência de espaço
+passa a **distinguir visualmente** worktree de árvore principal no prompt
+do terminal.
+
+Consideradas e recusadas: `C:\dev\GridAlpha v2-cursor` (mantém o espaço,
+e o hífen colado no `v2` lê como parte da versão);
+`C:\dev\worktrees\cursor` (some com o nome do projeto no prompt e colide
+no dia em que outro repo entrar).
+
+A árvore principal **fica onde está**. Renomeá-la quebraria o `.mcp.json`
+outra vez e não é da posse desta wave.
+
+### H3 — o que um worktree novo precisa copiar à mão
+
+Levantado do `.gitignore` real cruzado com `git status --ignored`
+(18 entradas existentes) e com o que o projeto de fato lê para rodar
+(`import.meta.env.*` em `src`, scripts do `package.json`, `.mcp.json`).
+
+| caminho | worktree novo precisa? | como obter |
+| --- | --- | --- |
+| `.env.local` | **SIM** | copiar da árvore principal |
+| `node_modules/` — 903 MB, 42.960 arquivos | **SIM** | `npm ci` |
+| `.claude/settings.local.json` | conveniência | copiar |
+| `tools/gridalpha-detect/node_modules/` — 36 MB | só para rodar o auditor de lá | `npm ci` naquela pasta |
+| `tools/gridalpha-tokens-mcp/.venv/` — 117 MB | só para o MCP de tokens | refazer por `CONFIGURATION.md` |
+| `dist/` | não — saída de build | `npm run build` |
+| `__pycache__/` — 9 pastas | não | descartável |
+
+**`.env.local` é obrigatório, não opcional.** `src` lê
+`VITE_MAPBOX_TOKEN`, `VITE_API_URL`, `VITE_BACKEND_URL`,
+`VITE_NEWS_API_URL`, `VITE_MOCK_API`; sem o token o Mapbox não carrega.
+Há `.env.example` e `.env.local.example` **rastreados** — o worktree novo
+nasce com os dois —, mas eles trazem chave sem valor.
+
+**`.claude/settings.local.json` guarda só `permissions.allow`.** Não
+impede rodar; sem ele, a sessão nova no worktree re-pergunta cada
+permissão.
+
+**O backend NÃO precisa de nada.** Medido: não existe `.env` na raiz,
+não existe venv de backend no repo, e `app/` **não usa `dotenv`** — as
+variáveis (`DATABASE_URL`, `JWT_SECRET`, `SESSION_*`,
+`ADVISORY_OPERATOR_EMAIL`, …) vêm do Railway. O dev server encaminha
+`/api` para o Railway por padrão. Um worktree de front sobe com
+`.env.local` + `npm ci`, e nada além.
+
+**Armadilha que não é do `.gitignore`.** `.claude/launch.json` é
+**rastreado**: todo worktree novo nasce com a versão commitada, que
+carrega portas de outras sessões, e o `CLAUDE.md` proíbe commitá-lo.
+Divergir ali é o comportamento esperado, não defeito.
+
+**Armadilha de caminho absoluto — registrada, não resolvida.** O
+`.mcp.json` rastreado aponta o servidor `gridalpha-tokens` para
+`C:/Users/aquil/OneDrive - .../Desktop/GridAlpha v2/tools/gridalpha-tokens-mcp/.venv/Scripts/python.exe`,
+caminho que **deixou de existir na migração**. É a causa provável do
+`gridalpha-tokens (CONNECTION_CLOSED)` observado nesta sessão, e atinge
+igualmente toda worktree. `.mcp.json` não está na posse desta wave.
+
+### H4 — `node_modules`: instalação própria por worktree, sem compartilhamento
+
+Tecnicamente correto é **cada worktree instalar o seu**. Compartilhar por
+junction ou symlink funciona à primeira vista e quebra por três motivos:
+
+1. **Cache de pré-bundle do Vite.** O Vite grava em `node_modules/.vite`
+   (hoje ausente — não houve `npm run dev` desde a migração). Dois dev
+   servers sobre o mesmo `node_modules` disputam o mesmo cache; worktrees
+   em commits diferentes de `vite.config.ts` ou de dependência se
+   corrompem mutuamente. É o motivo que mata o compartilhamento.
+2. **`npm ci` obedece ao `package-lock.json` da árvore onde roda.** Com
+   `node_modules` compartilhado, quem rodar por último reescreve as
+   dependências da outra árvore — em silêncio, no meio da sessão dela.
+3. **Binário nativo por plataforma** está lá dentro:
+   `@rollup/rollup-win32-x64-msvc`, `@img/sharp-win32-x64`,
+   `@next/swc-win32-x64-msvc`. Compartilhar amarra as duas árvores à
+   mesma resolução de dependência opcional.
+
+**O custo é disco, não tempo.** O cache do npm já é global e compartilhado
+(`C:\Users\aquil\AppData\Local\npm-cache`), então `npm ci` num worktree
+novo é operação local, sem rede. Preço: ~903 MB por worktree. O `.git` da
+árvore principal (148 MB) **não** é duplicado — worktree usa o mesmo
+object store.

@@ -230,3 +230,44 @@ lang            en → pt-BR
    pendência registrada aqui.
 3. **Cópia de SEO.** Aprovar título, description, og:description e a
    saída de `og:image` acima antes da Fase 4.
+
+---
+
+# Fase 2 — fechada como INVENTÁRIO, sem ligar nada
+
+Decisão do Aquiles sobre as três perguntas acima, tomada com a medição
+à vista.
+
+**Nenhum arquivo foi ligado, apagado, movido ou renomeado.** A saída da
+fase é o inventário e, mais que ele, a **correção de posse**: os 61
+órfãos e o 404 da Alexandria são do LYCEUM, não do ARCHITECT. O brief
+desta wave presumiu o contrário; a medição desfez a presunção. Registro
+para a próxima wave que encostar em `public/alexandria/` partir da
+premissa certa — em `docs/pendencias-alexandria.md`, que é o entregável
+desta fase.
+
+Três precisões que entraram no registro por instrução direta, e que a
+medição sozinha não teria produzido:
+
+- **As 41 gravuras não são pendência de espécie alguma** — são reserva
+  de conteúdo. Ficam listadas só para não voltarem a ser contadas como
+  órfãs na próxima varredura.
+- **Nenhum dos 20 sem casa se apaga sem o LYCEUM conferir um a um.** Ao
+  menos três (badge-frame, frame-certificate, seal-wax) constam noutro
+  registro como asset PAGO à espera de fiação. Peso em disco não é razão
+  suficiente para destruir insumo comprado.
+- **A dependência do certificado tem nome**: `frame-certificate` não tem
+  para onde ir enquanto não existir o endpoint de emissão — o item 3.5
+  da Ordem de Jogo. A moldura é a última peça do fluxo, não a primeira.
+
+E `svg/_test/index.html` sai da contagem de órfãos e vira item próprio:
+o problema dele é ser superfície pública não intencional, não ser asset
+sem consumidor.
+
+## Fase 3 — o 404, e onde ele NÃO vai
+
+Os dois catch-all do ARCHITECT (`main.tsx:164`, `PortalBRRouter.tsx:32`)
+passam a servir um 404 real. O da Alexandria (`AlexandriaRouter.tsx:194`)
+fica intocado, com a restrição de linguagem registrada na pendência: quem
+o construir precisa falar navy/pergaminho/Cinzel, e **não** reusar o
+componente de erro do NIVAR nem o `NotFound` do Portal.

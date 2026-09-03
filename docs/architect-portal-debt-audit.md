@@ -271,3 +271,53 @@ passam a servir um 404 real. O da Alexandria (`AlexandriaRouter.tsx:194`)
 fica intocado, com a restrição de linguagem registrada na pendência: quem
 o construir precisa falar navy/pergaminho/Cinzel, e **não** reusar o
 componente de erro do NIVAR nem o `NotFound` do Portal.
+
+## Fase 4 — SEO escrito, e o cartão de compartilhamento que NÃO foi
+
+Cópia aprovada na Fase 1 (descrição A), escrita em `index.html`. Nada
+inventado depois da aprovação.
+
+**`og:image` ficou de fora por medição, não por preferência.** A
+instrução era conferir o arquivo antes de assumi-lo, e a conferência
+reprovou o candidato. `public/nivar-mark.png` foi decodificado byte a
+byte (zlib + defilter, não inspeção visual):
+
+| Medida | Valor |
+| --- | --- |
+| Dimensão / formato | 1024×1024, bitDepth 8, colorType 6 (RGBA) |
+| Peso | 573,0 KB |
+| Caixa do conteúdo | 942×937 — 92% do quadrado |
+| Corte 1.91:1 centrado | preserva **57,3%** do conteúdo |
+| Perda | **201 px em cima, 199 px embaixo** |
+
+O que os 400 px cortados contêm é a cabeça da figura e a base da
+lanterna — o corte decapita a marca. Isso reprova `summary_large_image`,
+que era a única variante que a proporção justificaria.
+
+Dois defeitos independentes se somam ao corte, e cada um sozinho já
+bastaria:
+
+- **Fundo transparente.** O canto (0,0) mede `[0,0,0,0]` — alpha zero,
+  não preto. Plataforma compõe transparência sobre branco ou sobre
+  preto conforme o tema de quem lê, sem contrato; a marca sairia
+  diferente para leitores diferentes.
+- **573 KB acima do teto de busca do WhatsApp**, que fica na casa dos
+  300 KB. No WhatsApp a prévia sairia sem imagem de qualquer maneira.
+
+Resultado: tags só de texto agora, e **cartão 1200×630 de verdade fica
+como passe de desenho próprio**. Prévia sem imagem é pior que prévia com
+imagem certa e melhor que prévia com a marca decapitada.
+
+### Pendências abertas por esta fase
+
+  [ ] Cartão de compartilhamento 1200×630, fundo opaco, abaixo de
+      300 KB. Enquanto não existir, `og:image` fica ausente de
+      propósito.
+  [ ] `lang="en"` no container das telas do terminal americano
+      (`/us`, `/nest`). A raiz passou a `pt-BR`, que é o idioma da
+      maioria da superfície; as páginas em português já declaram o
+      próprio `lang`, e as em inglês precisam fazer o mesmo.
+  [ ] Título e description POR ROTA para raspador de link. O que está
+      em `index.html` é o piso que toda rota mostra; `document.title`
+      em `useEffect` não é lido por quem não roda JS. Resolver exige
+      pré-render ou função de borda — decisão de plataforma.

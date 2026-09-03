@@ -14,6 +14,7 @@ import { AuthLayout } from './components/editorial/AuthLayout';
 import { AlexandriaHome } from './pages/alexandria/AlexandriaHome';
 import { PortalBR } from './pages/br/PortalBR';
 import { PortalBRRouter } from './pages/br/PortalBRRouter';
+import { NotFound } from './pages/NotFound';
 import { AuthProvider } from './lib/auth/AuthContext';
 import { EntrarView } from './pages/conta/EntrarView';
 import { CriarContaView } from './pages/conta/CriarContaView';
@@ -159,9 +160,17 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/br/*" element={<PortalBRRouter />} />
           <Route path="/us" element={<LandingPage />} />
 
-          {/* Endereço desconhecido cai na home brasileira, não na
-              landing americana. */}
-          <Route path="*" element={<PortalBR />} />
+          {/* Endereço desconhecido devolve um 404 REAL (Portal Debt
+              Wave 1). Até aqui caía na home brasileira em silêncio —
+              200 com o Portal —, e endereço errado ficava
+              indistinguível de endereço certo. O caminho pedido aparece
+              na tela, que é o único dado que um 404 de rota tem.
+
+              O catch-all da Alexandria (`AlexandriaRouter.tsx`) NÃO foi
+              tocado: é posse do LYCEUM e a superfície fala navy sobre
+              pergaminho. Pendência registrada em
+              `docs/pendencias-alexandria.md` §4. */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

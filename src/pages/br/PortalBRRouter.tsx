@@ -16,20 +16,24 @@
 // sub-página futura do Portal (`/br/precos`, `/br/sobre`) e obrigaria a
 // desambiguar depois; o prefixo `familia/` diz o que o segmento é.
 //
-// O catch-all manda endereço desconhecido para o Portal, não para uma
-// página de erro — mesmo comportamento que o `*` de `main.tsx` já tem.
+// O catch-all mandava endereço desconhecido para o Portal, não para
+// uma página de erro — mesmo comportamento que o `*` de `main.tsx`
+// tinha. A Portal Debt Wave 1 trocou os DOIS pelo 404 real: `/br/xyz`
+// devolvia 200 com o Portal, e endereço errado ficava indistinguível
+// de endereço certo.
 
 import { Route, Routes } from 'react-router-dom';
 
 import { PortalBR } from './PortalBR';
 import { FamiliaPage } from './FamiliaPage';
+import { NotFound } from '../NotFound';
 
 export function PortalBRRouter() {
   return (
     <Routes>
       <Route index element={<PortalBR />} />
       <Route path="familia/:familiaId" element={<FamiliaPage />} />
-      <Route path="*" element={<PortalBR />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

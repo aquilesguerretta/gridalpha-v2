@@ -18,7 +18,14 @@ CORREÇÃO DE POSSE — leia isto antes do resto
 
   NENHUM ARQUIVO FOI APAGADO, MOVIDO OU RENOMEADO. A wave só mediu.
 
-── 1 · GRAVURAS NÃO CHAMADAS — 41 arquivos, ~16 MB · NÃO É PENDÊNCIA
+── 0 · SOBRE OS NÚMEROS DE PESO ABAIXO
+   Medidos DEPOIS da wave `asset-cleanup` do Codex, que converteu 19
+   arquivos desta árvore e fechou enquanto a Portal Debt Wave 1 corria.
+   A conversão mudou o PESO, nunca a CONTAGEM: nenhum arquivo aqui
+   ganhou consumidor por ter emagrecido. `public/alexandria/` inteiro
+   caiu de 78 MB para 45 MB no mesmo movimento.
+
+── 1 · GRAVURAS NÃO CHAMADAS — 41 arquivos, ~14,8 MB · NÃO É PENDÊNCIA
    Reserva de conteúdo, não asset perdido. `ApostilaPanel.tsx:182`
    monta o caminho a partir do dado de módulo; as 41 são as que os 17
    arquivos de conteúdo ainda não citaram. Ligam-se sozinhas conforme
@@ -27,8 +34,13 @@ CORREÇÃO DE POSSE — leia isto antes do resto
    NÃO APAGAR. NÃO MEXER. Estão listadas aqui só para não voltarem a
    ser contadas como órfãs na próxima varredura.
 
-── 2 · VINTE ARQUIVOS SEM CONSUMIDOR E SEM CASA — ~30 MB
+── 2 · VINTE ARQUIVOS SEM CONSUMIDOR E SEM CASA — ~2,2 MB
    Zero referência em `src/`, e nenhum fluxo no app onde caibam hoje.
+
+   Eram ~30 MB na abertura desta wave; a conversão do Codex os levou a
+   ~2,2 MB. Registre a consequência: o argumento de "apagar por peso"
+   praticamente desapareceu junto. O que sobra é decisão de produto, e
+   ela continua valendo o mesmo.
 
    ATENÇÃO ANTES DE QUALQUER LIMPEZA: pelo menos três destes
    (badge-frame, frame-certificate, seal-wax) constam noutro registro

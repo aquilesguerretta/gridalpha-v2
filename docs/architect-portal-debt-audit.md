@@ -12,8 +12,17 @@ declara.
 ## 1 · Ativos órfãos em `public/alexandria/`
 
 **A premissa do brief era 14 arquivos / ~24 MB. A medição dá 61
-arquivos / ~45 MB.** O relatório anterior estava certo no tipo de
-problema e errado na escala por um fator de quatro.
+arquivos.** O relatório anterior estava certo no tipo de problema e
+errado na CONTAGEM por um fator de quatro.
+
+**O peso foi medido duas vezes, e as duas estão certas.** Na abertura
+desta wave os 61 pesavam **~45 MB**. Enquanto ela corria, a wave
+`wave/asset-cleanup` do Codex converteu 19 desses mesmos arquivos e
+fechou antes; depois do rebase sobre ela, os mesmos 61 pesam **~17 MB**,
+e `public/alexandria/` inteiro caiu de 78 MB para 45 MB. **A contagem
+não mudou** — nenhum arquivo ganhou consumidor —, só o peso. Os números
+da tabela abaixo são os de DEPOIS, medidos na árvore que este commit
+entrega.
 
 Método: para cada um dos 139 arquivos sob `public/alexandria/`, busca do
 nome em `src/` e `index.html` exigindo contexto de caminho
@@ -22,16 +31,16 @@ radical dá falso negativo em `bracket.svg`, que casa com a palavra
 inglesa "bracket" em oito arquivos do lado americano, nenhum deles
 consumidor.
 
-| Pasta | Total | Órfãos | Peso órfão |
+| Pasta | Total | Órfãos | Peso órfão (antes → depois do Codex) |
 | --- | --- | --- | --- |
-| `gravuras/` | 108 | 41 | ~16 MB |
-| `icones/` | 11 | **11** | ~22 MB |
-| `gamificacao/` | 3 | 3 | ~5,4 MB |
-| `svg/anotacao/` | 4 | 4 | ~4 KB |
-| `marca/` | 4 | 2 | ~2,8 MB |
+| `gravuras/` | 108 | 41 | ~16 MB → **14,8 MB** |
+| `icones/` | 11 | **11** | ~22 MB → **1,6 MB** |
+| `gamificacao/` | 3 | 3 | ~5,4 MB → **532 KB** |
+| `marca/` | 4 | 2 | ~2,8 MB → **124 KB** |
+| `svg/anotacao/` | 4 | 4 | ~4 KB (não tocado) |
 | `svg/nos-trilha/` | 6 | 0 | — |
 | `textura/`, `geo/` | 2 | 0 | — |
-| **Total** | **139** | **61** | **~45 MB** |
+| **Total** | **139** | **61** | ~45 MB → **~17 MB** |
 
 `icones/` conta 11 e não 10: `icon-compass-simple-on-cream.png` só
 aparece em `RailToggle.tsx:6`, **dentro de um comentário** que diz que a
@@ -321,3 +330,87 @@ imagem certa e melhor que prévia com a marca decapitada.
       em `index.html` é o piso que toda rota mostra; `document.title`
       em `useEffect` não é lido por quem não roda JS. Resolver exige
       pré-render ou função de borda — decisão de plataforma.
+
+---
+
+# Fase 5 — verificação e fechamento
+
+Tudo abaixo foi medido no navegador contra o dev server desta árvore,
+por medição no render, nunca por leitura de código.
+
+## O que foi verificado
+
+**404 · rota.** `/rota-que-nao-existe?ref=teste`,
+`/br/familia/nao-existe/xyz` e `/verificacao-final-fase-5` caem no 404;
+o endereço na tela bate caractere a caractere com `location.pathname +
+location.search`, query inclusa.
+
+**404 · sistema.** Fio superior `2px solid rgb(232,163,23)` — o
+`--advisory`, nunca vermelho de UI. `border-radius: 0px`,
+`box-shadow: none`. Zero `<img>` na página; o único `<svg>` é o
+wordmark. Nenhum bitmap decorativo, como a instrução exigia.
+
+**404 · dois modos.** Claro `#F6F2E9`, noturno `#14120F`, com
+`--text-strong`, `--text-muted` e `--text-faint` remapeados. O botão
+secundário mediu cor de fundo na primeira leitura e foi investigado até
+a causa: recálculo de estilo ainda não descarregado no painel, não
+defeito do produto — duas medições seguintes deram `#F6F2E9` em texto e
+borda, e a captura confirmou. **Oitava vez nesta trilha que a falha de
+verificação era do harness.**
+
+**404 · três viewports.** 1440×900, 1920×1080 e 3440×1440, sem overflow
+horizontal em nenhum. Em 3440 o `<main>` trava em 1200px e centra
+(x=1120), com o bloco em 560px — a medida de 60ch. Endereço de 175
+caracteres quebra em três linhas dentro do bloco, sem estourar.
+
+**404 · `noindex` sem contaminação.** A meta `robots=noindex` está
+presente no 404 e mede `REMOVIDO` depois de navegar para `/br` — o
+risco real dessa adição, verificado.
+
+**Sem regressão.** `/br` continua servindo o hero
+("Inteligência independente do setor elétrico brasileiro"),
+`/br/familia/advisory` continua servindo a família (título
+`NIVAR — Advisory`, sem `noindex`), e `/alexandria/rota-inventada`
+continua caindo no Hub, intocado.
+
+**SEO por view-source, não pela edição.** `curl` em
+`/uma/rota/qualquer` devolve as tags — prova de que o rewrite as serve
+em toda rota. `npm run build` limpo, e `dist/index.html` carrega as 12
+tags com UTF-8 válido e acentos intactos. Uma única ocorrência de tag de
+título no documento: o comentário foi reescrito para não citar marcação
+literal, porque raspador que usa regex em vez de parser leria a citação
+em vez da tag real.
+
+## Fronteiras, conferidas por diff e não por memória
+
+`git diff --name-only` da branch inteira contra a base:
+
+- `public/` — **0 arquivos**. Os 139 de `public/alexandria/` seguem
+  intactos; a Fase 2 mediu e não tocou.
+- `src/components/alexandria/`, `src/pages/alexandria/`, `app/` —
+  **0 arquivos**.
+
+Seis arquivos mudaram no total: dois documentos novos, `index.html`,
+`src/pages/NotFound.tsx` (novo) e as duas linhas de rota.
+
+## Gates
+
+`npx tsc -b` limpo · `gridalpha-detect src` em **0 P0 / 27 P2**, a linha
+de base intacta · `npm run test:games` 14/14.
+
+## Concorrência — a wave do Codex fechou primeiro
+
+`wave/asset-cleanup` (conversão de PNG e hospedagem de fonte) entrou na
+base durante esta wave, com **zero sobreposição de arquivo**: o rebase
+passou limpo nos quatro commits.
+
+Duas consequências conferidas depois do rebase, não presumidas:
+
+1. **Os pesos do inventário foram medidos de novo** e corrigidos na
+   §1 e na pendência. A contagem não mudou — nenhum arquivo ganhou
+   consumidor por ter emagrecido.
+2. **`index.html` e a hospedagem de fonte não conflitam.** O Codex
+   auto-hospedou Zilla Slab, Work Sans e JetBrains Mono em
+   `src/design/nivar/fonts.css`; o `<link>` e os dois `preconnect` que
+   restam em `index.html` servem **Instrument Serif**, que continua viva
+   em `src/design/tokens.ts:60`, do lado americano. Nada a remover.

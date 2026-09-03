@@ -85,8 +85,9 @@ backend nunca edita `src/`.
 
 ## Disciplina de git
 
-- Trabalho só em `feature/full-shell-buildout`. **Nunca push para
-  `main`.** Sem PR.
+- Trabalho só em `feature/full-shell-buildout` — a única exceção é a
+  branch `wave/<assunto>` de vida curta em worktree (abaixo). **Nunca
+  push para `main`.** Sem PR.
 - **Nunca `git add -A` nem `git add .`** — sempre caminho explícito. Já
   houve commit carregando trabalho não commitado de sessão paralela sob a
   mensagem errada (`f955e62`).
@@ -102,6 +103,29 @@ backend nunca edita `src/`.
   --left-right --count` em vez de stashar trabalho alheio.
 - `.claude/launch.json` carrega entradas de várias sessões — **não
   commite**.
+
+## Worktree por wave concorrente
+
+Duas waves ao mesmo tempo na mesma árvore compartilham o index, e é assim
+que commit de uma sessão carrega trabalho da outra. Worktree dá a cada
+wave HEAD e index próprios sobre o mesmo repositório. O eixo é **wave
+concorrente, não ferramenta** — duas janelas do mesmo agente colidem
+igual.
+
+- Pasta `C:\dev\gridalpha-v2-<assunto>`, branch `wave/<assunto>`.
+  **Prefixo de branch nunca leva nome de agente** (`cursor`,
+  `architect`, `lyceum` são agentes, não branches).
+- **Branch de worktree tem vida curta**: nasce na abertura da wave, morre
+  no fechamento. `feature/full-shell-buildout` segue sendo a fonte da
+  verdade o tempo todo.
+- **A fase de fechamento de toda wave feita em worktree termina com
+  rebase, merge `--ff-only`, branch apagada e worktree removido.** Wave
+  fechada não deixa branch nem pasta pendurada.
+- Sessão única sem concorrência **não** justifica worktree: custa ~1 GB e
+  um `npm ci`.
+
+Comando, checklist do que copiar à mão e armadilhas medidas em
+`docs/worktrees.md`.
 
 ## Disciplina de verificação
 

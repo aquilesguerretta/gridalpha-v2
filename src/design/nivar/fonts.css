@@ -1,4 +1,82 @@
-@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600&family=Work+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
-/* Zilla Slab, Work Sans, JetBrains Mono are served from Google Fonts (SIL OFL 1.1).
-   No local binaries were supplied. Drop woff2 files into assets/fonts/ and swap this
-   @import for @font-face rules if self-hosting is required. */
+/* Self-hosted Latin subsets. Zilla Slab, Work Sans, and JetBrains Mono are
+   licensed under the SIL Open Font License 1.1. */
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ZillaSlab-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/ZillaSlab-Medium.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Zilla Slab';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/ZillaSlab-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Work Sans';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/WorkSans-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Work Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/WorkSans-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Work Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/WorkSans-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Work Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/WorkSans-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2');
+}

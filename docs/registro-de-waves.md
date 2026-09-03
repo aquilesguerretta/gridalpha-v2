@@ -10422,3 +10422,65 @@ necessidade.
 árvore principal em `cf5d4e7` com as mesmas 8 entradas do início da
 sessão. O worktree em si segue vivo de propósito — a Fase 5 o remove, e
 é ela quem exercita a remoção.
+
+### Fases 3 e 4 — guia e AGENTS.md
+
+`docs/worktrees.md` (147 linhas) é a instrução: quando usar e quando
+**não** usar, convenção, comando de abertura, checklist do que copiar à
+mão, o `node_modules` próprio com as três razões, o ciclo de fechamento e
+as armadilhas medidas. Foi escolhido `docs/` e não `.claude/skills/`
+porque skill é vocabulário de geração carregado por sessão, e as duas que
+existem (`NIVAR Design System`, `gridalpha-terminal`) são sistema de
+design; guia de processo mora com `registro-de-waves.md` e
+`v2-backend-contract.md`.
+
+No `AGENTS.md`, seção `## Worktree por wave concorrente` — quatro linhas
+de regra e um ponteiro para o guia, sem duplicar conteúdo. E **uma
+correção na linha que abria a Disciplina de git**: "Trabalho só em
+`feature/full-shell-buildout`" ganhou a exceção da branch `wave/<assunto>`
+de vida curta. Sem isso, a regra nova contradiria a antiga dentro do
+mesmo arquivo.
+
+**Armadilha medida para o guia.** `git worktree remove` recusa com
+qualquer arquivo modificado **ou** não rastreado —
+`fatal: ... contains modified or untracked files`, exit 128, testado nos
+dois casos. É proteção, e o `--force` merece um olhar antes.
+
+### Fase 5 — verificação e fechamento
+
+**O worktree de teste saiu de verdade.** `git worktree remove` exit 0,
+`git branch -d wave/probe` (era `cf5d4e7`), `git worktree prune` exit 0.
+Depois: `git worktree list` com **uma entrada**; branches locais só
+`feature/full-shell-buildout` e `main`; **nenhuma `wave/*` na origin**;
+`.git/worktrees` **vazia**; e `C:\dev` com **só** `GridAlpha v2` — as
+duas pastas de worktree criadas nesta sessão sumiram do disco.
+
+**Gates.** `npx tsc -b` — **exit 0**. `gridalpha-detect` sobre `src` —
+**0 P0 / 27 P2**, delta zero contra a linha de base do `AGENTS.md`.
+Nenhum arquivo de produto foi tocado nesta wave: os quatro commits mexem
+em `docs/registro-de-waves.md`, `docs/worktrees.md` e `AGENTS.md`, e nada
+mais.
+
+**`AGENTS.md` como memory file — provado em parte, e a parte que falta
+está declarada.** O `@AGENTS.md` segue na linha 1 do `CLAUDE.md`, e o
+prompt desta sessão carrega o conteúdo do `AGENTS.md` sob "project
+instructions, checked into the codebase" — o mecanismo de import funciona.
+**O que não deu para provar:** que a seção nova aparece carregada, porque
+isso pede sessão nova e `/context`, e esta sessão é não-interativa. Mesma
+limitação que a Wave 1 registrou.
+
+### Registrado, não resolvido
+
+- **`.mcp.json` aponta para o caminho antigo do OneDrive** no servidor
+  `gridalpha-tokens`
+  (`C:/Users/aquil/OneDrive - .../Desktop/GridAlpha v2/tools/gridalpha-tokens-mcp/.venv/Scripts/python.exe`).
+  Causa provável do `CONNECTION_CLOSED` observado nesta sessão. Atinge
+  toda worktree. Fora da posse desta wave.
+- **`git pull --rebase` do início não roda** enquanto
+  `.claude/launch.json` estiver modificado na árvore — o que é o estado
+  normal. `git fetch` + `git rev-list --left-right --count` é o
+  substituto, e já está no `AGENTS.md`.
+- **`.claude/launch.json` segue modificado e não commitado**, como manda
+  o `CLAUDE.md`.
+- **`CODEX-OPERATING-PROTOCOL.md` segue não rastreado na raiz**, mesma
+  pendência que a Wave 1 deixou: o destino dele é decisão do Aquiles.

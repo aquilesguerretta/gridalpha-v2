@@ -10348,3 +10348,77 @@ junction ou symlink funciona à primeira vista e quebra por três motivos:
 novo é operação local, sem rede. Preço: ~903 MB por worktree. O `.git` da
 árvore principal (148 MB) **não** é duplicado — worktree usa o mesmo
 object store.
+
+### Fase 2 — worktree provado funcionando
+
+**Correção de escopo, do Aquiles, entre a Fase 1 e a Fase 2.** O eixo de
+separação **não é ferramenta, é sessão/wave concorrente** — duas janelas
+de Claude Code colidem no mesmo index exatamente como duas ferramentas
+diferentes colidiriam, e "por ferramenta" subestima a concorrência real
+desta trilha. Junto: o prefixo de branch **não** leva nome de ferramenta,
+porque `cursor` já é **nome de agente** neste projeto (dono do backend), e
+reusar o mesmo termo nos dois sentidos confunde quem for ler o histórico
+de branch depois.
+
+**Convenção final travada:**
+
+| eixo | decisão |
+| --- | --- |
+| pasta | `C:\dev\gridalpha-v2-<assunto-curto>` |
+| branch | `wave/<assunto-curto>`, derivada de `feature/full-shell-buildout` |
+| vida | curta — nasce na abertura da wave, morre no fechamento |
+| fonte da verdade | `feature/full-shell-buildout`, o tempo todo |
+
+`gridalpha-v2-wave-<assunto>` foi considerada e recusada: o prefixo
+`wave/` da branch já diz a natureza, e repeti-lo na pasta só alonga o
+caminho.
+
+**Erro de sequência, registrado.** A instrução de reportar a convenção
+antes de criar chegou **depois** de eu já ter criado
+`C:\dev\gridalpha-v2-cursor` com a branch `cursor/worktree-probe`. Foi
+desfeito na hora — `git worktree remove`, `git branch -D`, pasta
+verificada ausente do disco — antes de qualquer outra coisa. Ficou o
+worktree correto, `gridalpha-v2-probe` / `wave/probe`.
+
+**Achado colateral.** O `git worktree prune` falhou com `Permission
+denied` sobre `.git/worktrees/gifted-banach-fe000c` — **resíduo
+pré-existente de 22/abr**, órfão (sem arquivo `gitdir`) e invisível ao
+`git worktree list`, deixado por uso anterior de worktree nesta árvore.
+Removido à mão; `prune` agora sai com **exit 0**.
+
+#### As quatro provas
+
+Prova por execução, não por leitura de documentação.
+
+**1 — o `.git` do worktree é independente.** `.git` lá é **arquivo** de
+62 bytes, não pasta: `gitdir: C:/dev/GridAlpha v2/.git/worktrees/gridalpha-v2-probe`.
+`git rev-parse --git-dir` devolve esse caminho próprio; `--git-common-dir`
+devolve `C:/dev/GridAlpha v2/.git`. HEAD próprio (`wave/probe`, enquanto a
+principal segue em `feature/full-shell-buildout`) e **index próprio** de
+162.966 bytes. Objetos compartilhados, estado separado.
+
+**2 — o index não vaza, que é o defeito que motivou a wave.** Com
+`PROVA-WORKTREE.txt` **staged** no worktree, `git status` da árvore
+principal seguiu com as mesmas 8 entradas de sempre e **nada staged**. O
+arquivo nem existia no disco da principal. Numa árvore única, esse `git
+add` teria aparecido no index da outra sessão — que é como
+`f955e62` carregou trabalho alheio sob a mensagem errada.
+
+**3 — commit real, lido pela principal, sem conflito.** Commit `98c3906`
+feito no worktree. `git log wave/probe` **da árvore principal** enxerga
+o commit (object store compartilhado), e o HEAD da principal **não se
+moveu** — seguiu em `cf5d4e7`.
+
+**4 — o fechamento seria fast-forward.** `git merge-base --is-ancestor
+feature/full-shell-buildout wave/probe` → verdadeiro. O merge de volta
+não produziria merge commit, e o histórico linear da trilha se preserva.
+Medido por ancestralidade, **sem executar o merge**: a árvore principal
+tem `.claude/launch.json` modificado por sessão paralela, e mover o
+ponteiro dela para depois reverter arriscaria trabalho alheio sem
+necessidade.
+
+**Desfeito.** `git reset --hard cf5d4e7` no worktree: commit fora,
+`PROVA-WORKTREE.txt` fora do disco, `git status` do worktree vazio,
+árvore principal em `cf5d4e7` com as mesmas 8 entradas do início da
+sessão. O worktree em si segue vivo de propósito — a Fase 5 o remove, e
+é ela quem exercita a remoção.

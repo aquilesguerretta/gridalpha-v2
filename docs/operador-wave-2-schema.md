@@ -1,7 +1,7 @@
 # Portal do Operador — Wave 2 · Fase 1 — schema proposto
 
-**Status:** proposta. Zero migration, zero endpoint, zero alteração de
-model. Aguarda aprovação do Aquiles antes da Fase 2.
+**Status:** aprovada (3 de setembro de 2026), com uma mudança de
+vocabulário na porta de saída. Fase 2 aplica a `0009`.
 
 **Autor:** CURSOR. **Data:** 3 de setembro de 2026.
 
@@ -136,8 +136,10 @@ Vocabulário **inglês no banco e na API**, como o resto da casa
 | `in_review` | em análise | operador pegou | null |
 | `delivered` | entregue | PDF anexado | preenchido |
 
-Substitui `submitted` / `ready` em CLE e Solar. Diagnóstico **ganha**
-a coluna, default `received`.
+No **campo** (Postgres), substitui `submitted` / `ready`. Diagnóstico
+**ganha** a coluna, default `received`. Na **porta de saída** do
+cliente CLE/Solar, os literais velhos continuam como alias de leitura
+— ver abaixo.
 
 ### Por que não ficar com `submitted` / `ready` e só acrescentar um meio
 
@@ -198,20 +200,26 @@ sem PDF — isso é fato, não invenção.
 Índice novo em Diagnóstico: `(status, created_at)`, irmão do que CLE
 e Solar já têm.
 
-### Quebra de contrato no Portal do cliente
+### Alias de leitura no Portal do cliente (aprovado)
 
-`GET /api/conta-luz-express/submissions` e o irmão Solar devolvem
-`status` hoje como `submitted` \| `ready`. O cliente vivo
-(`src/lib/submissoes/api.ts`, fora desta posse) está tipado nesses
-dois literais. Trocar para `received` / `delivered` **quebra o
-Portal BR** até a ARCHITECT/FOUNDRY ajustarem o tipo.
+Uma língua no campo, duas na porta de saída, **por tempo determinado**.
 
-Esta wave **não** toca `src/`. A quebra fica registrada aqui. Não
-vou manter um alias `submitted` na API do cliente e `received` na do
-operador — duas línguas no mesmo campo é o bug da próxima wave.
+| porta | `status` | outro campo |
+| --- | --- | --- |
+| coluna Postgres | `received` \| `in_review` \| `delivered` | — |
+| fila do operador (Fase 3) | canônico | — |
+| GET CLE/Solar (cliente vivo) | alias: `received`/`in_review` → `submitted`; `delivered` → `ready` | `queueStatus` canônico, aditivo |
+| GET Diagnóstico | canônico (nunca teve `submitted`/`ready`; campo novo é aditivo) | — |
 
-`GET` de Diagnóstico hoje **não tem** `status`; acrescentar é
-aditivo.
+`in_review` aliasa para `submitted` no cliente: o tipo em
+`src/lib/submissoes/api.ts` não tem terceiro literal, e "em análise"
+é estado de operador.
+
+**Pendência explícita da wave de ligação (ARCHITECT):** migrar
+`src/lib/submissoes/api.ts` para o vocabulário canônico e **remover**
+o alias `submitted`/`ready` desta porta. Duas línguas permanentes é
+dívida; esta nota existe para a remoção não ficar silenciosa. Esta
+wave **não** toca `src/`.
 
 ---
 
@@ -396,17 +404,9 @@ produto.
 - Unificar storage/e-mail da CLE nos helpers compartilhados.
 - Política de retenção.
 
-## O que preciso que o Aquiles aprove
+## Aprovação
 
-1. Estados `received` / `in_review` / `delivered`, com a quebra
-   explícita de `submitted` / `ready` no Portal do cliente.
-2. Um `GET /api/operator/submissions` + `PATCH` no mesmo prefixo.
-3. Deliverable de Diagnóstico na mesma linha, conversa **não** fecha.
-4. Intake: `location` TEXT, `installation_size` TEXT,
-   `consuming_equipment` TEXT, `current_monthly_cost_brl` NUMERIC —
-   todos nullable; POST antigo válido.
-5. Uma `0009` com os três desenhos; helpers compartilhados intocados.
-
-Qualquer corte (manter `submitted`/`ready`, equipamento como lista,
-fechar o fio na entrega) é mais barato agora do que depois da
-migration existir.
+Aprovada em 3 de setembro de 2026, com uma mudança: o vocabulário
+canônico entra no campo; `submitted`/`ready` permanecem alias de
+leitura até a wave de ligação. Os outros quatro pontos seguem como
+propostos. A `0009` aplica os três desenhos nesta Fase 2.

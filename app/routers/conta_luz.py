@@ -11,6 +11,12 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session, defer
 
+from app.db.models.advisory_status import (
+    STATUS_DELIVERED,
+    STATUS_RECEIVED,
+    customer_status_alias,
+    is_delivered,
+)
 from app.db.models.conta_luz import ContaLuzSubmission
 from app.db.models.product_access import PRODUCT_IDS, ProductAccess
 from app.db.models.user import User
@@ -84,11 +90,14 @@ def _require_visible_submission(
 
 
 def _submission_payload(submission: ContaLuzSubmission) -> dict:
-    ready = submission.status == "ready"
+    ready = is_delivered(submission.status)
     return {
         "id": str(submission.id),
         "productId": PRODUCT_ID,
-        "status": submission.status,
+        # `status` is the legacy customer alias; `queueStatus` is canonical.
+        # Linking wave removes the alias — docs/operador-wave-2-schema.md.
+        "status": customer_status_alias(submission.status),
+        "queueStatus": submission.status,
         "source": {
             "filename": submission.source_filename,
             "contentType": submission.source_content_type,
@@ -151,7 +160,7 @@ async def create_submission(
 
     submission = ContaLuzSubmission(
         user_id=user.id,
-        status="submitted",
+        status=STATUS_RECEIVED,
         source_filename=source.filename,
         source_content_type=source.content_type,
         source_size_bytes=source.size_bytes,
@@ -257,7 +266,7 @@ async def attach_deliverable(
     submission = _get_submission_without_bytes(db, submission_id)
     if submission is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="submission not found")
-    if submission.status == "ready":
+    if is_delivered(submission.status):
         if submission.deliverable_sha256 == deliverable.sha256:
             return {**_submission_payload(submission), "alreadyReady": True}
         raise HTTPException(
@@ -269,7 +278,7 @@ async def attach_deliverable(
         select(User).where(User.id == submission.user_id)
     ).scalar_one()
     delivered_at = datetime.now(timezone.utc)
-    submission.status = "ready"
+    submission.status = STATUS_DELIVERED,
     submission.deliverable_filename = deliverable.filename
     submission.deliverable_content_type = deliverable.content_type
     submission.deliverable_size_bytes = deliverable.size_bytes
@@ -305,7 +314,7 @@ def download_deliverable(
     db: Session = Depends(get_db),
 ):
     visible = _require_visible_submission(db, submission_id, user)
-    if visible.status != "ready":
+    if not is_delivered(visible.status):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="deliverable not ready",

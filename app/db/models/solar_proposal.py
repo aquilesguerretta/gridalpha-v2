@@ -29,9 +29,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.models.advisory_status import QUEUE_STATUSES, STATUS_RECEIVED
 
 
-SOLAR_PROPOSAL_STATUSES: tuple[str, ...] = ("submitted", "ready")
+SOLAR_PROPOSAL_STATUSES: tuple[str, ...] = QUEUE_STATUSES
 
 
 class SolarProposalSubmission(Base):
@@ -48,7 +49,7 @@ class SolarProposalSubmission(Base):
             "created_at",
         ),
         CheckConstraint(
-            "status IN ('submitted', 'ready')",
+            "status IN ('received', 'in_review', 'delivered')",
             name="solar_proposal_submission_status_check",
         ),
         CheckConstraint(
@@ -58,7 +59,7 @@ class SolarProposalSubmission(Base):
         CheckConstraint(
             """
             (
-              status = 'submitted'
+              status IN ('received', 'in_review')
               AND deliverable_data IS NULL
               AND deliverable_filename IS NULL
               AND deliverable_content_type IS NULL
@@ -68,7 +69,7 @@ class SolarProposalSubmission(Base):
             )
             OR
             (
-              status = 'ready'
+              status = 'delivered'
               AND deliverable_data IS NOT NULL
               AND deliverable_filename IS NOT NULL
               AND deliverable_content_type = 'application/pdf'
@@ -94,7 +95,7 @@ class SolarProposalSubmission(Base):
     status: Mapped[str] = mapped_column(
         Text,
         nullable=False,
-        server_default="submitted",
+        server_default=STATUS_RECEIVED,
     )
 
     source_filename: Mapped[str] = mapped_column(Text, nullable=False)

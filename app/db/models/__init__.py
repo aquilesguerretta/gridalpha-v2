@@ -4,6 +4,13 @@ from app.db.models.country_energy import (
     CountryEnergyFieldSource,
     CountryEnergyProfile,
 )
+from app.db.models.advisory_status import (
+    QUEUE_STATUSES,
+    STATUS_DELIVERED,
+    STATUS_IN_REVIEW,
+    STATUS_RECEIVED,
+    customer_status_alias,
+)
 from app.db.models.conta_luz import CONTA_LUZ_STATUSES, ContaLuzSubmission
 from app.db.models.conversation import (
     CONVERSATION_STATUSES,
@@ -12,7 +19,10 @@ from app.db.models.conversation import (
     Conversation,
     Message,
 )
-from app.db.models.diagnostico import DiagnosticoEnergeticoSubmission
+from app.db.models.diagnostico import (
+    DIAGNOSTICO_STATUSES,
+    DiagnosticoEnergeticoSubmission,
+)
 from app.db.models.infrastructure import BatteryAsset, GenerationUnit, TransmissionSegment
 from app.db.models.product_access import PRODUCT_CATALOG, PRODUCT_IDS, ProductAccess
 from app.db.models.progress import (
@@ -33,6 +43,12 @@ __all__ = [
     "AULA_STATUSES",
     "CONTA_LUZ_STATUSES",
     "CONVERSATION_STATUSES",
+    "DIAGNOSTICO_STATUSES",
+    "QUEUE_STATUSES",
+    "STATUS_DELIVERED",
+    "STATUS_IN_REVIEW",
+    "STATUS_RECEIVED",
+    "customer_status_alias",
     "EVENT_TYPES",
     "MESSAGE_ROLES",
     "ORIGIN_DIAGNOSTICO_SUBMISSION",

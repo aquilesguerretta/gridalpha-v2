@@ -7,8 +7,9 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
+from app.db.models.advisory_status import STATUS_RECEIVED
 from app.db.models.diagnostico import DiagnosticoEnergeticoSubmission
 from app.db.models.product_access import PRODUCT_IDS, ProductAccess
 from app.db.models.user import User
@@ -99,6 +100,7 @@ def _payload(row: DiagnosticoEnergeticoSubmission) -> dict:
     return {
         "id": str(row.id),
         "productId": PRODUCT_ID,
+        "status": row.status,
         "sector": row.sector,
         "monthlyConsumptionBand": row.monthly_consumption_band,
         "tariffModality": row.tariff_modality,
@@ -114,9 +116,9 @@ def _require_visible(
     user: User,
 ) -> DiagnosticoEnergeticoSubmission:
     row = db.execute(
-        select(DiagnosticoEnergeticoSubmission).where(
-            DiagnosticoEnergeticoSubmission.id == submission_id
-        )
+        select(DiagnosticoEnergeticoSubmission)
+        .where(DiagnosticoEnergeticoSubmission.id == submission_id)
+        .options(defer(DiagnosticoEnergeticoSubmission.deliverable_data))
     ).scalar_one_or_none()
     if row is None or (
         row.user_id != user.id and not is_advisory_operator(user)
@@ -137,6 +139,7 @@ def create_submission(
     _require_entitlement(db, user)
     row = DiagnosticoEnergeticoSubmission(
         user_id=user.id,
+        status=STATUS_RECEIVED,
         sector=body.sector,
         monthly_consumption_band=body.monthly_consumption_band,
         tariff_modality=body.tariff_modality,
@@ -156,6 +159,7 @@ def list_my_submissions(
     rows = db.execute(
         select(DiagnosticoEnergeticoSubmission)
         .where(DiagnosticoEnergeticoSubmission.user_id == user.id)
+        .options(defer(DiagnosticoEnergeticoSubmission.deliverable_data))
         .order_by(DiagnosticoEnergeticoSubmission.created_at.desc())
     ).scalars()
     data = [_payload(row) for row in rows]

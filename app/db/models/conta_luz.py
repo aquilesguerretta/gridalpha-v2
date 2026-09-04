@@ -31,9 +31,10 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
+from app.db.models.advisory_status import QUEUE_STATUSES, STATUS_RECEIVED
 
 
-CONTA_LUZ_STATUSES: tuple[str, ...] = ("submitted", "ready")
+CONTA_LUZ_STATUSES: tuple[str, ...] = QUEUE_STATUSES
 
 
 class ContaLuzSubmission(Base):
@@ -50,7 +51,7 @@ class ContaLuzSubmission(Base):
             "created_at",
         ),
         CheckConstraint(
-            "status IN ('submitted', 'ready')",
+            "status IN ('received', 'in_review', 'delivered')",
             name="conta_luz_submission_status_check",
         ),
         CheckConstraint(
@@ -60,7 +61,7 @@ class ContaLuzSubmission(Base):
         CheckConstraint(
             """
             (
-              status = 'submitted'
+              status IN ('received', 'in_review')
               AND deliverable_data IS NULL
               AND deliverable_filename IS NULL
               AND deliverable_content_type IS NULL
@@ -70,7 +71,7 @@ class ContaLuzSubmission(Base):
             )
             OR
             (
-              status = 'ready'
+              status = 'delivered'
               AND deliverable_data IS NOT NULL
               AND deliverable_filename IS NOT NULL
               AND deliverable_content_type = 'application/pdf'
@@ -96,7 +97,7 @@ class ContaLuzSubmission(Base):
     status: Mapped[str] = mapped_column(
         Text,
         nullable=False,
-        server_default="submitted",
+        server_default=STATUS_RECEIVED,
     )
 
     source_filename: Mapped[str] = mapped_column(Text, nullable=False)

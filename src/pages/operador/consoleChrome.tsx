@@ -62,7 +62,7 @@ import '../../design/nivar/motion.css';
 
 import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
 import { EstilosTabela } from '../../components/nivar/tabela';
-import { MarcaCasa, MarcaFamilia } from '../../components/nivar/marcas';
+import { Figura, PATRONO_DA_CASA, PATRONO_DA_FAMILIA } from '../../components/nivar/patrono';
 import { familiaPorId } from '../../lib/data/br-familias';
 import {
   familiasParaLateral,
@@ -73,8 +73,8 @@ import {
 import { pendentes } from '../../lib/operador/mock';
 
 export const RESPIRO_LATERAL = '40px';
-const LATERAL_ABERTA = '256px';
-const LATERAL_RECOLHIDA = '60px';
+const LATERAL_ABERTA = '272px';
+const LATERAL_RECOLHIDA = '72px';
 const CHAVE_LATERAL = 'nivar.operador.lateral';
 
 /** Papéis tipográficos do console. Três registros nítidos, como o
@@ -182,6 +182,7 @@ function EstilosConsole() {
          O nome estava enterrado num parágrafo; a superfície precisa se
          apresentar no mesmo olhar em que a casa se apresenta. */
       .op-mast__id{display:flex;align-items:center;gap:16px}
+      .op-mast__diogenes{margin-right:2px}
       .op-mast__sep{width:1px;height:26px;background:var(--fio-tinta);flex:none}
       .op-mast__nome{font-family:var(--font-display);font-weight:500;font-size:19px;line-height:1.2;letter-spacing:-.006em;color:var(--text-invert)}
       [data-mode="noturno"] .op-mast{background:var(--surface-raised)}
@@ -205,24 +206,28 @@ function EstilosConsole() {
 
       /* ─── LATERAL — papel, texto com fio, nunca caixa ───────────── */
       .op-lat{display:flex;flex-direction:column;min-height:0;overflow-y:auto;overflow-x:hidden;border-right:var(--fio) solid var(--rule-strong);background:var(--surface-page);padding:22px 0 18px}
-      .op-lat__fila{display:flex;align-items:center;gap:12px;padding:8px 18px 8px 16px;margin:0 0 18px;border-left:2px solid transparent;text-decoration:none;color:var(--text-strong);transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease)}
+      .op-lat__fila{display:flex;align-items:center;gap:12px;padding:8px 18px 8px 14px;margin:0 0 16px;border-left:2px solid transparent;text-decoration:none;color:var(--text-strong);transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease)}
       .op-lat__fila:hover{color:var(--fg-hover)}
       .op-lat__fila[aria-current="page"]{border-left-color:var(--accent-house)}
-      .op-lat__fam{margin:0 0 16px}
+      .op-lat__fam{margin:0 0 12px}
       /* Cabeça de família: marca + nome + fio que enche — o divisor com
          rótulo do sistema, com a marca no lugar do versalete. A cor da
          família entra SÓ na marca. */
-      .op-lat__cab{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:10px;padding:0 18px 0 16px;color:var(--text-strong)}
-      .op-lat__cab .op-lat__marca{color:var(--fam)}
+      .op-lat__cab{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:12px;padding:0 18px 0 14px;color:var(--text-strong);text-decoration:none}
       .op-lat__cab .op-lat__fio{height:var(--fio);background:var(--rule)}
+      /* O patrono é o botão da família, e aparece INTEIRO sempre —
+         "mostrar a todos" foi o pedido. A primeira passada apagava as
+         famílias sem fila a 60% e elas viravam fantasma sobre o papel;
+         o estado já está dito em texto, a figura não precisa repeti-lo. */
+      .op-lat__figura{opacity:1}
       .op-lat__fam[data-estado="sem-fila"] .op-lat__cab,.op-lat__fam[data-estado="prateleira-vazia"] .op-lat__cab{color:var(--text-muted)}
-      .op-lat__item{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 18px 6px 46px;border-left:2px solid transparent;text-decoration:none;color:var(--text-body);font-family:var(--font-body);font-weight:400;font-size:13.5px;line-height:1.3;letter-spacing:.01em;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease)}
+      .op-lat__item{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 18px 6px 70px;border-left:2px solid transparent;text-decoration:none;color:var(--text-body);font-family:var(--font-body);font-weight:400;font-size:13.5px;line-height:1.3;letter-spacing:.01em;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease)}
       .op-lat__item:hover{color:var(--fg-hover)}
       .op-lat__item[aria-current="page"]{color:var(--text-strong);font-weight:500;border-left-color:var(--fam)}
       .op-lat__item[data-sem-fila]{color:var(--text-faint);cursor:default}
       .op-lat__item:focus-visible,.op-lat__fila:focus-visible,.op-lat__toggle:focus-visible{outline:2px solid var(--accent-focus);outline-offset:-2px}
       .op-lat__n{font-family:var(--font-data);font-weight:400;font-size:11px;letter-spacing:.06em;color:var(--text-faint);font-variant-numeric:tabular-nums lining-nums;flex:none}
-      .op-lat__vazia{display:block;padding:5px 18px 4px 46px;font-family:var(--font-data);font-weight:400;font-size:10.5px;letter-spacing:.06em;color:var(--text-faint)}
+      .op-lat__vazia{display:block;padding:5px 18px 4px 70px;font-family:var(--font-data);font-weight:400;font-size:10.5px;letter-spacing:.06em;color:var(--text-faint)}
       .op-lat__toggle{margin:auto 0 0;padding:10px 18px 0 16px;background:none;border:0;border-top:var(--fio) solid var(--rule);text-align:left;font-family:var(--font-data);font-weight:400;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-faint);cursor:pointer;transition:color var(--dur-hover) var(--ease)}
       .op-lat__toggle:hover{color:var(--fg-hover)}
 
@@ -232,8 +237,8 @@ function EstilosConsole() {
 
       /* ─── RECOLHIDA: só as marcas, empilhadas ───────────────────── */
       [data-lateral="recolhida"] .op-lat__rotulo,[data-lateral="recolhida"] .op-lat__n,[data-lateral="recolhida"] .op-lat__fio,[data-lateral="recolhida"] .op-lat__item,[data-lateral="recolhida"] .op-lat__vazia{display:none}
-      [data-lateral="recolhida"] .op-lat__fila{padding:8px 0 8px 17px;gap:0;margin-bottom:14px}
-      [data-lateral="recolhida"] .op-lat__cab{grid-template-columns:auto;padding:7px 0 7px 17px;border-left:2px solid transparent}
+      [data-lateral="recolhida"] .op-lat__fila{padding:8px 0 8px 13px;gap:0;margin-bottom:12px}
+      [data-lateral="recolhida"] .op-lat__cab{grid-template-columns:auto;padding:6px 0 6px 13px;border-left:2px solid transparent}
       [data-lateral="recolhida"] .op-lat__fam{margin:0}
       [data-lateral="recolhida"] .op-lat__fam[data-ativa] .op-lat__cab{border-left-color:var(--fam)}
       [data-lateral="recolhida"] .op-lat__toggle{padding-left:0;text-align:center}
@@ -381,7 +386,8 @@ export function ConsoleLayout() {
       <header className="op-mast">
         <div>
           <div className="op-mast__id">
-            <Link to="/br" aria-label="NIVAR — voltar ao Portal Brasil" onClick={ir('/br')} style={{ display: 'inline-flex' }}>
+            <Link to="/br" aria-label="NIVAR — voltar ao Portal Brasil" onClick={ir('/br')} style={{ display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
+              <Figura patrono={PATRONO_DA_CASA} tamanho={52} decorativo className="op-mast__diogenes" />
               <WordmarkNivar altura={34} idSufixo="op-mast" />
             </Link>
             <span className="op-mast__sep" aria-hidden="true" />
@@ -438,7 +444,7 @@ export function ConsoleLayout() {
             onClick={ir('/operador')}
             title={recolhida ? 'Fila completa' : undefined}
           >
-            <MarcaCasa tamanho={22} idSufixo="lat" />
+            <Figura patrono={PATRONO_DA_CASA} tamanho={44} decorativo className="op-lat__figura" />
             <span className="op-lat__rotulo" style={{ ...CT.nome, flex: 1 }}>
               Fila completa
             </span>
@@ -453,11 +459,11 @@ export function ConsoleLayout() {
             const alvoRecolhida = primeiroComFila ? `/operador/${primeiroComFila}` : undefined;
             const cabeca = (
               <>
-                <MarcaFamilia
-                  familia={familia.id}
-                  tamanho={22}
-                  style={{ color: 'var(--fam)' }}
-                  rotulada={recolhida}
+                <Figura
+                  patrono={PATRONO_DA_FAMILIA[familia.id]}
+                  tamanho={44}
+                  decorativo={!recolhida}
+                  className="op-lat__figura"
                 />
                 <span className="op-lat__rotulo" style={CT.nome}>
                   {familia.nome}

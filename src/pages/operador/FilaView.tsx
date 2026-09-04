@@ -28,6 +28,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { CT, comTransicao } from './consoleChrome';
 import { EstadoVazio, Frescor, Tabela, type ColunaTabela, type Ordem } from '../../components/nivar/tabela';
 import { nomeDoProduto, produtoComFilaPorId } from '../../lib/operador/catalogo';
+import { familiaPorId } from '../../lib/data/br-familias';
+import { Figura, PATRONO_DA_CASA, PATRONO_DA_FAMILIA } from '../../components/nivar/patrono';
 import { AGORA_DA_AMOSTRA, filaDe, type PedidoNaFila } from '../../lib/operador/mock';
 import { formatarData, formatarIdade, idadePorExtenso, medirIdade } from '../../lib/operador/idade';
 
@@ -83,6 +85,10 @@ export function FilaView() {
   const segmento = pathname.replace(/^\/operador\/?/, '').split('/')[0];
   const produto = segmento ? produtoComFilaPorId(segmento) : undefined;
   const titulo = produto ? nomeDoProduto(produto.produtoId) : 'Fila completa';
+  // Quem preside esta fila: o patrono da família aberta, ou Diógenes
+  // pela casa inteira.
+  const familia = produto ? familiaPorId(produto.familiaId) : undefined;
+  const patrono = familia ? PATRONO_DA_FAMILIA[familia.id] : PATRONO_DA_CASA;
 
   const [ordenadaPor, setOrdenadaPor] = useState('idade');
   const [ordem, setOrdem] = useState<Ordem>('desc');
@@ -202,12 +208,15 @@ export function FilaView() {
         <header
           style={{
             display: 'grid',
-            gap: '6px',
+            gridTemplateColumns: 'minmax(0,1fr) auto',
+            gap: '6px 28px',
+            alignItems: 'center',
             paddingLeft: '18px',
             borderLeft: '2px solid var(--acento-contexto)',
             marginBottom: '26px',
           }}
         >
+          <div style={{ display: 'grid', gap: '6px' }}>
           <p style={{ display: 'flex', alignItems: 'baseline', gap: '10px', margin: 0 }}>
             <span style={{ ...CT.heroi, color: 'var(--text-strong)' }}>{linhas.length}</span>
             <span style={{ ...CT.eyebrow, color: 'var(--text-muted)', fontSize: '11.5px' }}>
@@ -218,6 +227,10 @@ export function FilaView() {
           <p style={{ ...CT.lede, color: 'var(--text-muted)', margin: 0, maxWidth: '52ch', textWrap: 'pretty' } as CSSProperties}>
             {identidade} Do mais antigo ao mais recente — a idade é tempo decorrido, não prazo.
           </p>
+          </div>
+          {/* O patrono preside a fila. Figura, não ícone: 112px, à
+              direita do número, no mesmo bloco de herói. */}
+          <Figura patrono={patrono} tamanho={112} style={{ marginRight: '8px' }} />
         </header>
 
         <Tabela

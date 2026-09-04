@@ -23,6 +23,9 @@
 import type { CSSProperties, ReactNode } from 'react';
 
 import { CT } from './consoleChrome';
+import { Figura, PATRONO_DA_FAMILIA } from '../../components/nivar/patrono';
+import { familiaPorId } from '../../lib/data/br-familias';
+import { produtoComFilaPorId } from '../../lib/operador/catalogo';
 import { formatarData, formatarIdade, idadePorExtenso } from '../../lib/operador/idade';
 import { AGORA_DA_AMOSTRA, type PedidoNaFila } from '../../lib/operador/mock';
 
@@ -41,6 +44,8 @@ export function CabecalhoDoPedido({
    *  digitada, por quem monta. */
   deck: string;
 }) {
+  const fam = familiaPorId(produtoComFilaPorId(pedido.produtoId)?.familiaId ?? '');
+  const patrono = fam ? PATRONO_DA_FAMILIA[fam.id] : undefined;
   return (
     <header
       style={{
@@ -49,12 +54,15 @@ export function CabecalhoDoPedido({
         borderBottom: 'var(--fio) solid var(--rule-heavy)',
       }}
     >
-      <p style={{ ...CT.eyebrow, color: 'var(--text-faint)', margin: '0 0 8px' }}>
-        {produto}
-        <span aria-hidden="true" style={{ margin: '0 8px', color: 'var(--rule-strong)' }}>
-          ·
+      <p style={{ ...CT.eyebrow, color: 'var(--text-faint)', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {patrono ? <Figura patrono={patrono} tamanho={30} decorativo /> : null}
+        <span>
+          {produto}
+          <span aria-hidden="true" style={{ margin: '0 8px', color: 'var(--rule-strong)' }}>
+            ·
+          </span>
+          {pedido.id}
         </span>
-        {pedido.id}
       </p>
       <h1 style={{ ...CT.display, color: 'var(--text-strong)', margin: 0 }}>{pedido.cliente}</h1>
       <p style={{ ...CT.lede, color: 'var(--text-muted)', margin: '10px 0 0', maxWidth: '58ch', textWrap: 'pretty' } as CSSProperties}>

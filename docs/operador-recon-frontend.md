@@ -594,3 +594,111 @@ estado "em construção", sem decisão codificada à mão.
   nenhum** — `FLUXOS_SUBMISSAO` chega perto, mas não inclui Diagnóstico. Se
   a lateral for derivar dele, ele precisa passar a incluir os três, ou
   nascer uma lista irmã. Decisão da wave de build.
+
+---
+
+## Adendo — cruzamento com a recon CURSOR (Wave 1 de backend)
+
+`docs/operador-recon-backend.md` (714 linhas, `1baba6e`) entrou em
+`feature/full-shell-buildout` enquanto esta wave rodava, escrita em
+paralelo e sem ver este documento. Lida no fechamento da Fase 2. As duas
+convergem no essencial; **uma afirmação daqui precisa de correção, e três
+dependências que eu declarei em aberto têm resposta parcial.**
+
+### Correção — existe namespace `/api/operator/*`, e eu não o vi
+
+§6.2 diz que não há endpoint de fila. **Correto para submissão, incompleto
+como afirmação.** Existe `GET /api/operator/conversations`, que lista
+**todas** as conversas com `status: 'open'`, de qualquer `productId`.
+
+O que muda e o que não muda:
+
+- **O frontend não tem cliente para ele.** Varredura por `api/operator` em
+  `src/`: **zero ocorrências**. `src/lib/conversas/api.ts:17` aponta para
+  `/api/conversations` (o lado do cliente), não para o lado do operador.
+  Um cliente novo é peça da wave de build.
+- **Não é fila de pedidos, é caixa de fios.** A CURSOR mede: sem
+  paginação, sem filtro por produto ou família, sem nome ou e-mail do
+  cliente (o `userId` vem opaco, sem join), sem preview de última
+  mensagem, e **sem `messageCount`** (que existe em `GET /{id}` mas não
+  na listagem — `src/lib/conversas/api.ts:47` documenta o campo como
+  opcional, e isto explica por quê). `summary.product` é a string fixa
+  `"any"`, não um filtro.
+- **Não lista submissão de CLE nem de Solar** — só conversa, e hoje só o
+  Diagnóstico liga `originKind`/`originId`. Conversa `closed` some da
+  lista, então não há histórico por ali.
+
+**Consequência para a fila:** o console precisaria de **duas leituras
+por caso** — a conversa em `/api/operator/conversations` e a ficha em
+`GET /api/diagnostico-energetico/submissions/{originId}`. E para CLE e
+Solar não há caminho de operador nenhum: a CURSOR mede que o operador
+"sabe que chegou" **por e-mail**, e vê o caso **por UUID**. Não existe
+lista.
+
+Isso **reforça** §8: o endpoint de fila continua sendo dependência
+bloqueante. O que muda é que o namespace onde ele vai morar já existe.
+
+### Confirmações vindas do outro lado
+
+- **Papel de operador (§1.3).** Confirmado dos dois lados, e o mecanismo
+  real é mais estreito do que eu supus: `app/services/advisory_operator.py`
+  compara o e-mail da sessão contra a env `ADVISORY_OPERATOR_EMAIL` — 503
+  se a env falta, 403 se não casa. **Sem `role` no `User`**, sem allowlist
+  de vários operadores, sem audit log. E `ADVISORY_OPERATOR_EMAIL` segue
+  como pendência de produção em `docs/pendencias-infra.md`, ou seja, o
+  gate está **dormente**.
+
+  A armadilha que registrei em §1.3 fica ainda mais afiada: como o
+  e-mail de operador é **env de servidor**, o frontend não o conhece e não
+  pode replicar o gate. Ele continua precisando que o servidor diga se a
+  sessão é de operador — hoje o único jeito de descobrir é chamar um
+  endpoint de operador e ler o 403.
+
+- **Lido / não-lido (§6.4).** Confirmado: nenhuma coluna `read_at`,
+  `last_read_at` ou `seen_at` em `conversation` nem em `message`, e
+  `message` é append-only. O indicador é peça nova nos dois lados, como
+  eu disse.
+
+- **Estados de pedido (§6.1).** Confirmado: CLE e Solar são irmãs
+  `submitted`/`ready` com deliverable PDF; Diagnóstico **não tem ciclo de
+  deliverable nem e-mail transacional**. A CURSOR acrescenta o que eu não
+  podia ver: o Diagnóstico **não tem endpoint nem coluna de entrega** — o
+  operador não tem como devolver documento nenhum. A tela de Diagnóstico
+  do console, portanto, não é só "outra natureza de dado": é a única das
+  três **sem caminho de saída**.
+
+- **Famílias (§6.5).** Convergência exata, medida de dois lugares
+  diferentes. A CURSOR: `PRODUCT_CATALOG` é tupla plana de seis ids, com
+  **zero agrupamento por família**; Hardware e Software não têm id nenhum.
+  Eu, do lado do front: a taxonomia inteira vive em
+  `src/lib/data/br-familias.ts`. As duas recons chegam à mesma frase — o
+  nav multi-família **não tem backing de dado no backend**, e ou o front
+  carrega a taxonomia sozinho (como já faz no Portal), ou o backend ganha
+  catálogo de família.
+
+  Registro a diferença de contagem, que não é discordância: a CURSOR lê o
+  catálogo do backend, onde Hardware e Software não existem; eu leio o
+  catálogo do front, onde Software tem `terminal-brasil`. Os dois estão
+  certos sobre a própria fonte. O que vale para a lateral é o critério de
+  §6.5 — **produto com fila** —, e por ele nenhuma das duas contagens
+  muda a resposta: só Advisory aparece.
+
+- **Anotação (§4).** A CURSOR chega ao mesmo veredito por outro caminho:
+  16 tabelas, zero conceito de marcação, e a recon da CLE Wave 3 já tinha
+  fechado o terreno sem que nada fosse construído. **Duas recons de
+  frontend e duas de backend agora apontam para a mesma peça não
+  construída.** Isso é argumento a favor da divisão de §4.4, não contra:
+  a peça não é grande por falta de estudo.
+
+### O que a CURSOR levanta e este documento não cobria
+
+Fora da posse do frontend, mas o brief de build precisa saber que existe:
+
+- **Diagnóstico pode precisar de deliverable** — decisão do Aquiles, não
+  há endpoint nem coluna hoje.
+- **O intake de Diagnóstico não tem os campos** de localização, metragem,
+  equipamentos e custo; dois caminhos de schema reportados sem escolha.
+- **Retenção e LGPD: nada.** Sem política, sem TTL, sem endpoint de
+  exclusão. Histórico permanente é comportamento de fato, não decisão
+  documentada. Um console que exponha arquivo de cliente aumenta a
+  superfície disso.

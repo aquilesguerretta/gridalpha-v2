@@ -141,3 +141,160 @@ export function pedidoPorId(id: string): PedidoNaFila | undefined {
 export function pendentes(produtoId?: string): number {
   return filaDe(produtoId).filter((p) => p.status !== 'ready').length;
 }
+
+// ─── O QUE CADA DETALHE MOSTRA ───────────────────────────────────────
+// Campos por natureza de pedido. Os três blocos abaixo NÃO são invenção
+// de UI: cada um sai da copy pública do próprio produto, que é o
+// contrato que a casa já assumiu com o cliente.
+
+/** Ficha do Diagnóstico — os quatro campos que o cliente preenche, nos
+ *  nomes exatos de `src/lib/diagnostico/api.ts:29-40`. `tariffModality`
+ *  é `null` quando o cliente não sabe dizer, e "não sei" NUNCA viaja
+ *  como texto — o backend converte string vazia em `null`. */
+export interface FichaDiagnostico {
+  sector: string;
+  monthlyConsumptionBand: string;
+  tariffModality: string | null;
+  concern: string;
+}
+
+/** Uma mensagem do fio. `role` vem do SERVIDOR
+ *  (`src/lib/conversas/api.ts:23-25`): `customer` é o dono da conta,
+ *  qualquer outro papel é operador. */
+export interface MensagemMock {
+  id: string;
+  role: 'customer' | 'operator';
+  body: string;
+  createdAt: string;
+}
+
+export const FICHAS_MOCK: Record<string, FichaDiagnostico> = {
+  'dia-0b19': {
+    sector: 'Frigorífico / processamento de carnes',
+    monthlyConsumptionBand: '150 a 500 MWh/mês',
+    tariffModality: 'Azul A4',
+    concern:
+      'A conta subiu 30% de maio para agosto sem a produção ter mudado. Suspeito de ultrapassagem de demanda, mas não sei ler a fatura para confirmar.',
+  },
+  'dia-77e3': {
+    sector: 'Lavanderia industrial',
+    monthlyConsumptionBand: '30 a 150 MWh/mês',
+    tariffModality: null,
+    concern:
+      'Recebi proposta de mercado livre e quero entender se faz sentido antes de assinar qualquer coisa.',
+  },
+};
+
+export const FIO_MOCK: Record<string, MensagemMock[]> = {
+  'dia-0b19': [
+    {
+      id: 'm1',
+      role: 'customer',
+      body: 'Enviei o escopo. Consigo mandar a fatura por aqui se ajudar.',
+      createdAt: h(51),
+    },
+    {
+      id: 'm2',
+      role: 'operator',
+      body: 'Recebido. Vou precisar das páginas de demanda dos últimos três ciclos — pode anexar quando puder.',
+      createdAt: h(30),
+    },
+  ],
+  'dia-77e3': [],
+};
+
+/** Anatomia da fatura — os campos que o operador extrai de TODA fatura,
+ *  sempre os mesmos. Saem da copy pública da CLE, passo 2: "Modalidade
+ *  tarifária, demanda contratada e medida, tributos e encargos."
+ *  A ordem é a da leitura da fatura, não alfabética. */
+export const ANATOMIA_FATURA: { chave: string; rotulo: string; unidade?: string }[] = [
+  { chave: 'distribuidora', rotulo: 'Distribuidora' },
+  { chave: 'modalidade', rotulo: 'Modalidade tarifária' },
+  { chave: 'subgrupo', rotulo: 'Subgrupo' },
+  { chave: 'demandaContratada', rotulo: 'Demanda contratada', unidade: 'kW' },
+  { chave: 'demandaMedida', rotulo: 'Demanda medida', unidade: 'kW' },
+  { chave: 'ultrapassagem', rotulo: 'Ultrapassagem', unidade: 'kW' },
+  { chave: 'consumoPonta', rotulo: 'Consumo ponta', unidade: 'kWh' },
+  { chave: 'consumoForaPonta', rotulo: 'Consumo fora ponta', unidade: 'kWh' },
+  { chave: 'tributos', rotulo: 'Tributos' },
+  { chave: 'encargos', rotulo: 'Encargos' },
+];
+
+/** As duas trilhas de leitura da proposta solar. Copy pública, passo 2:
+ *  a regulatória "verifica porte, modalidade e regime de compensação";
+ *  a técnica "confronta geração estimada, degradação e trajetória
+ *  tarifária contra referência citável". */
+export const TRILHAS_SOLAR = ['regulatória', 'técnica'] as const;
+export type TrilhaSolar = (typeof TRILHAS_SOLAR)[number];
+
+/** A classificação de cada linha da proposta. Copy pública, passo 3 —
+ *  os quatro valores são literais dela, não escala inventada:
+ *  "fato com fonte, premissa ancorada, premissa não ancorada ou
+ *  embutida por omissão". */
+export const NATUREZAS_SOLAR = [
+  'fato com fonte',
+  'premissa ancorada',
+  'premissa não ancorada',
+  'embutida por omissão',
+] as const;
+export type NaturezaSolar = (typeof NATUREZAS_SOLAR)[number];
+
+/** Uma linha do livro-razão do Solar. A copy promete, por linha, a
+ *  natureza mais "as perguntas de negociação e a base normativa
+ *  citada" — as três colunas de trabalho saem daí. */
+export interface LinhaProposta {
+  id: string;
+  trilha: TrilhaSolar;
+  /** O que a proposta afirma, na letra dela. */
+  afirmacao: string;
+  natureza: NaturezaSolar | null;
+  pergunta: string;
+  baseNormativa: string;
+}
+
+export const LIVRO_RAZAO_MOCK: Record<string, LinhaProposta[]> = {
+  'sol-3c71': [
+    {
+      id: 'l1',
+      trilha: 'regulatória',
+      afirmacao: 'Sistema de 92 kWp enquadrado em microgeração distribuída.',
+      natureza: null,
+      pergunta: '',
+      baseNormativa: '',
+    },
+    {
+      id: 'l2',
+      trilha: 'regulatória',
+      afirmacao: 'Compensação integral dos créditos por 25 anos.',
+      natureza: null,
+      pergunta: '',
+      baseNormativa: '',
+    },
+    {
+      id: 'l3',
+      trilha: 'técnica',
+      afirmacao: 'Geração média de 11.400 kWh/mês no primeiro ano.',
+      natureza: null,
+      pergunta: '',
+      baseNormativa: '',
+    },
+    {
+      id: 'l4',
+      trilha: 'técnica',
+      afirmacao: 'Payback de 3,2 anos considerando reajuste tarifário de 8% ao ano.',
+      natureza: null,
+      pergunta: '',
+      baseNormativa: '',
+    },
+  ],
+  'sol-9a05': [
+    {
+      id: 'l1',
+      trilha: 'regulatória',
+      afirmacao: 'Enquadramento em minigeração, modalidade autoconsumo remoto.',
+      natureza: null,
+      pergunta: '',
+      baseNormativa: '',
+    },
+  ],
+};

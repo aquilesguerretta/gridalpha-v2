@@ -1,34 +1,56 @@
 // src/pages/operador/consoleChrome.tsx
-// ARCHITECT — Portal do Operador Wave 2, Fase 3.
+// ARCHITECT — Portal do Operador, revisão visual pós-Wave 2.
 //
-// O chassi do console: moldura, cabeçalho, lateral por família e a área
-// de trabalho. As quatro telas do console (fila, fila por produto e os
-// três detalhes) montam daqui.
+// O chassi do console: masthead em tinta, faixa incandescente, lateral
+// retrátil em papel com as cinco famílias, e a área de trabalho.
 //
-// ─── É O MESMO SISTEMA, OUTRO INSTRUMENTO ────────────────────────────
-// Vocabulário NIVAR igual ao do Portal — raio zero, zero sombra, fio de
-// 1px, dois modos por `data-mode`. O que muda é a ESCOLHA de componente:
-// o Portal usa cartão e prosa, o console usa tabela e mono tabular. A
-// leitura está em `docs/operador-recon-frontend.md` §5.2 — a deriva
-// começaria se o console quisesse um raio ou uma sombra "porque é
-// interno", não por ter layout próprio.
+// ─── O QUE MUDOU, E POR QUÊ ──────────────────────────────────────────
+// O Aquiles olhou a primeira versão e disse: "header horrível,
+// hierarquia horrível, sidebar tem que ser retrátil, tudo quadrado,
+// tudo preso, parece IA". Seis leitores varreram o sistema inteiro
+// (skill NIVAR, guidelines, calibragem, Portal BR, Alexandria, terminal,
+// e o próprio console) e convergiram num diagnóstico: o que lia como
+// gerado era UNIFORMIDADE — peso igual, fio igual em tudo, rótulo em
+// versalete em todo lugar, três caixas iguais, interface que se explica
+// em cada seção, controle morto por toda parte. Nenhum deles disse
+// "arredonde".
 //
-// Densidade maior não pede exceção de regra: o piso de 40-60 elementos
-// por tela do AGENTS.md é PISO, e `.nv-tab--zebra` já é vocabulário de
-// tabela longa.
+// A receita de masthead JÁ EXISTIA no sistema, na prova de calibragem
+// (guidelines/calibragem-01-cor-tipografia.html:12-17): tinta, wordmark
+// a 44px, subtítulo Work Sans 300 em 52ch, bloco meta à direita em mono
+// com a linha-chave em intelligence, e a faixa de 4px ABAIXO — o "fio de
+// 4px demarcando o topo de um documento". O console usava um quarto
+// dela. Agora usa inteira.
 //
-// ─── SEM GATE, E A TELA DIZ ISSO ─────────────────────────────────────
-// `PlatformUser` não tem papel (recon Wave 1 §1.3), e a CURSOR mediu
-// que o gate real do backend é por env (`ADVISORY_OPERATOR_EMAIL`), que
-// o frontend não conhece nem pode replicar. Esta superfície é alcançável
-// por endereço digitado. A tarja de aviso não é decoração: console sem
-// gate que não avisa é pior que console sem gate.
+// ─── A LATERAL É PAPEL, E ISSO FOI DECISÃO ───────────────────────────
+// Os leitores discordaram aqui. O do NIVAR mediu que advisory e
+// intelligence só leem como cor sobre tinta (1,9:1 e 1,4:1 sobre
+// papel). O da Alexandria registrou que "sidebar escuro à esquerda é o
+// oposto do sistema — e a regra falhou duas vezes". O crítico pediu uma
+// única região de tinta por tela.
 //
-// Um gate por lista de e-mail no cliente foi considerado e REJEITADO na
-// recon: daria a aparência da proteção sem a substância, porque a
-// recusa real é do endpoint, não da tela.
+// A resolução: a tinta vai no MASTHEAD (onde o sistema já a põe) e a
+// lateral fica em papel. As cinco famílias entram pela MARCA, em
+// currentColor na cor da própria família — que é o único lugar em que a
+// cor de família é permitida sobre papel (readme.md:60: "só fio, marca e
+// preenchimento"), e é precedente da faixa de famílias do Portal. O nome
+// fica em tinta e carrega a legibilidade; o traço carrega a identidade.
+//
+// ─── RECOLHER: A LARGURA SALTA, O RÓTULO SURGE ───────────────────────
+// Os seis leitores concordaram: posição de layout nunca anima
+// (motion.css:12-13; terminal-motion.md:64-66; .dc.html:302). Animar a
+// largura faria a tabela refluir quadro a quadro — "o sistema penando".
+// A largura troca por passo, o rótulo surge por opacidade (nv-surge), o
+// glifo não gira. O estado vive em localStorage.
+//
+// ─── UMA AUSÊNCIA DECLARADA POR TELA, NUM SELO ───────────────────────
+// A tarja de "sem verificação de operador" em toda tela era faixa cheia
+// de brasa, e o crítico foi direto: "frase que começa com 'Esta
+// superfície' é documentação, não interface". A ausência continua
+// declarada — uma linha no bloco meta do masthead, em mono faint. A
+// razão inteira mora em docs/operador-console-contratos.md §1.3.
 
-import { useCallback, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { Link, Outlet, useMatch, useNavigate } from 'react-router-dom';
 
@@ -40,73 +62,103 @@ import '../../design/nivar/motion.css';
 
 import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
 import { EstilosTabela } from '../../components/nivar/tabela';
-import { familiasComFila, nomeDoProduto, produtoComFilaPorId } from '../../lib/operador/catalogo';
+import { MarcaCasa, MarcaFamilia } from '../../components/nivar/marcas';
+import { familiaPorId } from '../../lib/data/br-familias';
+import {
+  familiasParaLateral,
+  nomeDoProduto,
+  produtoComFilaPorId,
+  PRODUTOS_COM_FILA,
+} from '../../lib/operador/catalogo';
 import { pendentes } from '../../lib/operador/mock';
 
-export const RESPIRO_LATERAL = '32px';
-const LARGURA_LATERAL = '236px';
+export const RESPIRO_LATERAL = '40px';
+const LATERAL_ABERTA = '256px';
+const LATERAL_RECOLHIDA = '60px';
+const CHAVE_LATERAL = 'nivar.operador.lateral';
 
-/** Papéis tipográficos, referenciando os tokens do NIVAR — nunca
- *  literal de escala. Declarados aqui e não importados de `ContaShell`
- *  pela mesma razão que `blocosFamilia.tsx` declara os seus: componente
- *  não importa de página, e o ciclo página→componente→página é o que
- *  essa duplicação deliberada evita. */
+/** Papéis tipográficos do console. Três registros nítidos, como o
+ *  sistema pede (tipo-pareamento.card.html): Zilla Slab 600 para
+ *  título, Work Sans 300 para olho e deck, JetBrains Mono para dado e
+ *  rótulo. A primeira versão do console nunca usou 600 nem 300 — e foi
+ *  por isso que tudo tinha o mesmo peso. */
 export const CT = {
+  /** Display — Zilla 600, 32px. O título de uma tela. */
+  display: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 600,
+    fontSize: 'var(--ts-display-3)',
+    lineHeight: 'var(--lh-display-3)',
+    letterSpacing: 'var(--tr-display-3)',
+  } satisfies CSSProperties,
+  /** Título de seção — Zilla 600, 19px. Toda seção tem NOME, não etiqueta. */
+  tituloSecao: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 600,
+    fontSize: '19px',
+    lineHeight: 1.24,
+    letterSpacing: '-.006em',
+  } satisfies CSSProperties,
+  /** Nome de item — Zilla 500, 14px. Família na lateral, produto na linha. */
+  nome: {
+    fontFamily: 'var(--font-display)',
+    fontWeight: 500,
+    fontSize: '14px',
+    lineHeight: 1.2,
+    letterSpacing: '-.005em',
+  } satisfies CSSProperties,
+  /** Deck / olho — Work Sans 300, 19px. A linha de identidade sob um número. */
+  lede: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 300,
+    fontSize: 'var(--ts-lede)',
+    lineHeight: 'var(--lh-lede)' as CSSProperties['lineHeight'],
+  } satisfies CSSProperties,
+  /** Corpo — Work Sans 400, 15px. */
+  corpo: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 400,
+    fontSize: 'var(--ts-corpo)',
+    lineHeight: 'var(--lh-corpo)' as CSSProperties['lineHeight'],
+  } satisfies CSSProperties,
+  /** Corpo leve — Work Sans 300, 13,5px. Nota que acompanha, não que explica. */
+  corpoLeve: {
+    fontFamily: 'var(--font-body)',
+    fontWeight: 300,
+    fontSize: 'var(--ts-corpo-2)',
+    lineHeight: 'var(--lh-corpo-2)' as CSSProperties['lineHeight'],
+  } satisfies CSSProperties,
+  /** Eyebrow — mono 500, 10,5px versalete. NO MÁXIMO dois papéis por tela. */
   eyebrow: {
     fontFamily: 'var(--font-data)',
     fontWeight: 500,
     fontSize: '10.5px',
-    lineHeight: 1.2,
-    letterSpacing: '.11em',
+    lineHeight: 1.5,
+    letterSpacing: '.09em',
     textTransform: 'uppercase',
   } satisfies CSSProperties,
-  etiqueta: {
-    fontFamily: 'var(--font-body)',
-    fontWeight: 500,
-    fontSize: 'var(--ts-etiqueta)',
-    lineHeight: 'var(--lh-etiqueta)' as CSSProperties['lineHeight'],
-    letterSpacing: 'var(--tr-etiqueta)',
-    textTransform: 'uppercase',
-  } satisfies CSSProperties,
-  titulo: {
-    fontFamily: 'var(--font-display)',
-    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
-    fontSize: 'var(--ts-titulo)',
-    lineHeight: 'var(--lh-titulo)' as CSSProperties['lineHeight'],
-    letterSpacing: 'var(--tr-titulo)',
-  } satisfies CSSProperties,
-  titulo2: {
-    fontFamily: 'var(--font-display)',
-    fontWeight: 'var(--fw-display)' as CSSProperties['fontWeight'],
-    fontSize: 'var(--ts-titulo-2)',
-    lineHeight: 'var(--lh-titulo-2)' as CSSProperties['lineHeight'],
-    letterSpacing: 'var(--tr-titulo-2)',
-  } satisfies CSSProperties,
-  corpo: {
-    fontFamily: 'var(--font-body)',
-    fontWeight: 'var(--fw-corpo)' as CSSProperties['fontWeight'],
-    fontSize: 'var(--ts-corpo)',
-    lineHeight: 'var(--lh-corpo)' as CSSProperties['lineHeight'],
-  } satisfies CSSProperties,
-  nota: {
-    fontFamily: 'var(--font-body)',
-    fontWeight: 'var(--fw-corpo)' as CSSProperties['fontWeight'],
-    fontSize: 'var(--ts-nota)',
-    lineHeight: 'var(--lh-nota)' as CSSProperties['lineHeight'],
-  } satisfies CSSProperties,
-  /** Dado em mono tabular — idade, data, contagem. */
+  /** Dado — mono 400, 12,5px tabular. */
   dado: {
     fontFamily: 'var(--font-data)',
     fontWeight: 400,
-    fontSize: '12px',
+    fontSize: '12.5px',
     lineHeight: 1.4,
+    fontVariantNumeric: 'tabular-nums lining-nums',
+  } satisfies CSSProperties,
+  /** Número-herói — mono 500, 40px, preso ao próprio sufixo. */
+  heroi: {
+    fontFamily: 'var(--font-data)',
+    fontWeight: 500,
+    fontSize: 'var(--ts-dado-1)',
+    lineHeight: 'var(--lh-dado-1)',
+    letterSpacing: '-.02em',
     fontVariantNumeric: 'tabular-nums lining-nums',
   } satisfies CSSProperties,
 } as const;
 
 /** startViewTransition com checagem de suporte. Mesma duplicação
- *  deliberada de `blocosFamilia.tsx:78` e `DestinoCard.tsx:60` —
- *  reduced-motion pula a transição por inteiro. */
+ *  deliberada de `blocosFamilia.tsx:78` — componente não importa de
+ *  página. Reduced-motion pula a transição. */
 export function comTransicao(mudanca: () => void) {
   const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reduzido && 'startViewTransition' in document) {
@@ -118,137 +170,174 @@ export function comTransicao(mudanca: () => void) {
   }
 }
 
-/** Regras do console que precisam de pseudo-classe — inline não alcança
- *  `:hover` nem `:focus-visible`. Mesmo idioma de `EstilosConta` e
- *  `FOLHA_PORTAL`: copiar as regras no subconjunto usado, com valores do
- *  sistema por `var()`, nunca literal de escala. */
+/** As regras do console que precisam de pseudo-classe ou de atributo
+ *  de estado. Valores do sistema por var(), nunca literal de escala.
+ *  Sem crase em comentário: isto é um template literal. */
 function EstilosConsole() {
   return (
     <style>{`
-      /* BARRA DE TOPO EM TINTA.
-         A página inteira vivia numa faixa de creme de ~5% de valor, e
-         por isso lia como lavagem: sem âncora, o olho não tem de onde
-         partir. --surface-ink existe no modo CLARO do sistema
-         exatamente para isto — não é invenção, é o token de superfície
-         escura que a folha provisiona e que ninguém tinha usado.
-         No noturno a página já é tinta, então a barra sobe para
-         --surface-raised para não sumir contra o próprio chão. */
-      .op-topo{background:var(--surface-ink);border-bottom:0}
-      .op-topo a,.op-topo span{color:var(--text-invert)}
-      .op-topo .nv-modo__op{color:var(--text-invert-muted)}
-      .op-topo .nv-modo__op:hover{color:var(--intelligence)}
-      .op-topo .nv-modo__op--ativo{color:var(--text-invert);border-bottom-color:var(--intelligence)}
-      .op-topo .nv-modo__sep{color:var(--fio-tinta)}
-      [data-mode="noturno"] .op-topo{background:var(--surface-raised);border-bottom:var(--fio) solid var(--rule)}
+      /* ─── MASTHEAD — receita da calibragem, em tinta ────────────── */
+      .op-mast{display:grid;grid-template-columns:1fr auto;align-items:end;gap:32px;padding:20px ${RESPIRO_LATERAL} 16px;background:var(--surface-ink);color:var(--text-invert)}
+      /* Wordmark da casa + fio vertical + NOME desta superfície em Zilla.
+         O nome estava enterrado num parágrafo; a superfície precisa se
+         apresentar no mesmo olhar em que a casa se apresenta. */
+      .op-mast__id{display:flex;align-items:center;gap:16px}
+      .op-mast__sep{width:1px;height:26px;background:var(--fio-tinta);flex:none}
+      .op-mast__nome{font-family:var(--font-display);font-weight:500;font-size:19px;line-height:1.2;letter-spacing:-.006em;color:var(--text-invert)}
+      [data-mode="noturno"] .op-mast{background:var(--surface-raised)}
+      .op-mast__sub{margin:9px 0 0;font-family:var(--font-body);font-weight:300;font-size:var(--ts-corpo-2);line-height:var(--lh-corpo-2);color:var(--text-invert-muted);max-width:60ch}
+      .op-mast__meta{display:grid;gap:4px;justify-items:end;text-align:right;font-family:var(--font-data);font-weight:500;font-size:10.5px;line-height:1.5;letter-spacing:.09em;text-transform:uppercase;color:var(--text-invert-faint)}
+      .op-mast__meta b{color:var(--intelligence);font-weight:500}
+      .op-mast__meta .op-mast__n{color:var(--text-invert);font-variant-numeric:tabular-nums lining-nums}
+      .op-mast .nv-modo{margin-top:6px}
+      .op-mast .nv-modo__op{color:var(--text-invert-faint)}
+      .op-mast .nv-modo__op:hover{color:var(--intelligence)}
+      .op-mast .nv-modo__op--ativo{color:var(--text-invert);border-bottom-color:var(--intelligence)}
+      .op-mast .nv-modo__sep{color:var(--fio-tinta)}
+      .op-mast a{color:inherit;text-decoration:none}
+      /* A faixa incandescente fecha o masthead por baixo: o topo do
+         documento, como a calibragem faz. Único gradiente da tela. */
+      .op-bar{height:4px;background:var(--gradiente-incandescente);flex:none}
 
-      /* RODAPÉ DA TABELA — a tabela terminava no ar. O tfoot do sistema
-         já traz fio pesado em cima e texto forte; usá-lo fecha a grade
-         e devolve a contagem no pé, onde o olho chega. */
-      .nv-tab tfoot td{padding:9px 14px;border-top:var(--fio-forte) solid var(--rule-heavy);background:var(--surface-sunken)}
+      /* ─── CORPO — lateral de largura DISCRETA, main flui ────────── */
+      .op-corpo{flex:1;display:grid;grid-template-columns:${LATERAL_ABERTA} minmax(0,1fr);min-height:0}
+      [data-lateral="recolhida"] .op-corpo{grid-template-columns:${LATERAL_RECOLHIDA} minmax(0,1fr)}
 
-      /* LATERAL — chão PRÓPRIO (--surface-sunken), não o mesmo do corpo.
-         Era papel sobre papel com um fio fraco no meio, e o olho não
-         achava a divisão. Agora a separação é de VALOR, e o fio forte
-         só confirma o que a superfície já disse. */
-      .op-lateral{background:var(--surface-sunken);border-right:var(--fio) solid var(--rule-strong)}
-      .op-nav{display:block;text-decoration:none;border:0;border-left:2px solid transparent;padding:9px 16px;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease),background var(--dur-hover) var(--ease)}
-      .op-nav:hover{color:var(--fg-hover);background:var(--surface-page)}
-      .op-nav:focus-visible{outline:var(--fio-forte) solid var(--accent-focus);outline-offset:-2px}
-      /* Item ativo sobe para o chão do CORPO — a aba se liga visualmente
-         à área que abriu, em vez de só ganhar um fio colorido. */
-      .op-nav--ativo{border-left-color:var(--accent-house);background:var(--surface-page)}
-      .op-familia{display:flex;align-items:center;gap:8px;padding:0 16px 7px;border-bottom:var(--fio) solid var(--rule-strong)}
+      /* ─── LATERAL — papel, texto com fio, nunca caixa ───────────── */
+      .op-lat{display:flex;flex-direction:column;min-height:0;overflow-y:auto;overflow-x:hidden;border-right:var(--fio) solid var(--rule-strong);background:var(--surface-page);padding:22px 0 18px}
+      .op-lat__fila{display:flex;align-items:center;gap:12px;padding:8px 18px 8px 16px;margin:0 0 18px;border-left:2px solid transparent;text-decoration:none;color:var(--text-strong);transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease)}
+      .op-lat__fila:hover{color:var(--fg-hover)}
+      .op-lat__fila[aria-current="page"]{border-left-color:var(--accent-house)}
+      .op-lat__fam{margin:0 0 16px}
+      /* Cabeça de família: marca + nome + fio que enche — o divisor com
+         rótulo do sistema, com a marca no lugar do versalete. A cor da
+         família entra SÓ na marca. */
+      .op-lat__cab{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:10px;padding:0 18px 0 16px;color:var(--text-strong)}
+      .op-lat__cab .op-lat__marca{color:var(--fam)}
+      .op-lat__cab .op-lat__fio{height:var(--fio);background:var(--rule)}
+      .op-lat__fam[data-estado="sem-fila"] .op-lat__cab,.op-lat__fam[data-estado="prateleira-vazia"] .op-lat__cab{color:var(--text-muted)}
+      .op-lat__item{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 18px 6px 46px;border-left:2px solid transparent;text-decoration:none;color:var(--text-body);font-family:var(--font-body);font-weight:400;font-size:13.5px;line-height:1.3;letter-spacing:.01em;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease)}
+      .op-lat__item:hover{color:var(--fg-hover)}
+      .op-lat__item[aria-current="page"]{color:var(--text-strong);font-weight:500;border-left-color:var(--fam)}
+      .op-lat__item[data-sem-fila]{color:var(--text-faint);cursor:default}
+      .op-lat__item:focus-visible,.op-lat__fila:focus-visible,.op-lat__toggle:focus-visible{outline:2px solid var(--accent-focus);outline-offset:-2px}
+      .op-lat__n{font-family:var(--font-data);font-weight:400;font-size:11px;letter-spacing:.06em;color:var(--text-faint);font-variant-numeric:tabular-nums lining-nums;flex:none}
+      .op-lat__vazia{display:block;padding:5px 18px 4px 46px;font-family:var(--font-data);font-weight:400;font-size:10.5px;letter-spacing:.06em;color:var(--text-faint)}
+      .op-lat__toggle{margin:auto 0 0;padding:10px 18px 0 16px;background:none;border:0;border-top:var(--fio) solid var(--rule);text-align:left;font-family:var(--font-data);font-weight:400;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--text-faint);cursor:pointer;transition:color var(--dur-hover) var(--ease)}
+      .op-lat__toggle:hover{color:var(--fg-hover)}
 
-      /* AVISO — era faixa chapada de ponta a ponta, do mesmo tom da
-         zebra, sem peso. Vira bloco ancorado por fio de brasa à
-         esquerda: lê como declaração do sistema, não como fundo. */
-      .op-aviso{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:9px ${RESPIRO_LATERAL} 9px calc(${RESPIRO_LATERAL} - 3px);border-bottom:var(--fio) solid var(--rule-strong);border-left:3px solid var(--brasa);background:var(--surface-sunken)}
+      /* Rótulo surge por opacidade quando a lateral abre. A largura já
+         saltou; o que se vê chegar é o texto. */
+      .op-lat__rotulo{opacity:0;animation:nv-surge var(--dur-hover) var(--ease) 60ms forwards}
 
-      /* CABEÇALHO DA TABELA sobre chão afundado, com fio pesado embaixo.
-         É o que dá começo à grade — antes o cabeçalho boiava. */
-      .nv-tab thead th{background:var(--surface-sunken);border-bottom:var(--fio-forte) solid var(--rule-heavy)}
-      .nv-tab{border-color:var(--rule-strong)}
-      .nv-tab td{border-bottom-color:var(--rule)}
-      .nv-tab th+th,.nv-tab td+td{border-left-color:var(--rule)}
-      /* Linha mais alta: densidade não é aperto, é quantidade de dado
-         legível por tela. Linha de 26px cansa antes da vigésima. */
-      .nv-tab td{padding:10px 14px}
-      .nv-tab thead th{padding:9px 14px}
+      /* ─── RECOLHIDA: só as marcas, empilhadas ───────────────────── */
+      [data-lateral="recolhida"] .op-lat__rotulo,[data-lateral="recolhida"] .op-lat__n,[data-lateral="recolhida"] .op-lat__fio,[data-lateral="recolhida"] .op-lat__item,[data-lateral="recolhida"] .op-lat__vazia{display:none}
+      [data-lateral="recolhida"] .op-lat__fila{padding:8px 0 8px 17px;gap:0;margin-bottom:14px}
+      [data-lateral="recolhida"] .op-lat__cab{grid-template-columns:auto;padding:7px 0 7px 17px;border-left:2px solid transparent}
+      [data-lateral="recolhida"] .op-lat__fam{margin:0}
+      [data-lateral="recolhida"] .op-lat__fam[data-ativa] .op-lat__cab{border-left-color:var(--fam)}
+      [data-lateral="recolhida"] .op-lat__toggle{padding-left:0;text-align:center}
 
-      /* ORDENAÇÃO — o glifo colava na borda oposta da célula numérica
-         (row-reverse + flex:1 no rótulo), e virava um ↕ órfão a 200px
-         do título. Agora o par rótulo+glifo anda junto, e a célula
-         inteira é que se alinha à direita. */
-      .nv-tab th.nv-ord .nv-ord__b{padding:9px 14px}
-      /* Em row-reverse, flex-start empacota na borda VISUAL DIREITA —
-         que é onde a coluna numérica alinha o dado. O flex-end que eu
-         tentei primeiro empacotava à esquerda, mantendo o órfão. */
-      .nv-tab th.nv-ord.nv-num .nv-ord__b{justify-content:flex-start;gap:8px}
-      .nv-tab th.nv-ord.nv-num .nv-ord__rot{flex:0 0 auto}
+      /* ─── MAIN ─────────────────────────────────────────────────── */
+      .op-main{min-width:0;min-height:0;overflow-y:auto;padding:26px ${RESPIRO_LATERAL} 64px;view-transition-name:op-painel}
+      ::view-transition-old(op-painel){animation:none}
+      ::view-transition-new(op-painel){animation:nivar-painel-surge var(--dur-hover) var(--ease) both}
 
-      /* RESUMO — tiras de contagem em mono grande. A tela tinha 600px
-         de creme morto embaixo da tabela e nenhum número em que o olho
-         pousasse. */
-      .op-resumo{display:flex;flex-wrap:wrap;border:var(--fio) solid var(--rule-strong);border-left:0;background:var(--surface-raised)}
-      .op-resumo__cel{flex:1 1 0;min-width:150px;padding:12px 16px;border-left:var(--fio) solid var(--rule-strong)}
-      .op-resumo__cel[data-focal]{background:var(--surface-page);border-top:3px solid var(--accent-focus);margin-top:-1px;padding-top:10px}
-      .op-resumo__n{display:block;font-family:var(--font-data);font-weight:500;font-size:var(--ts-dado-2);line-height:var(--lh-dado-2);letter-spacing:-.02em;color:var(--text-strong);font-variant-numeric:tabular-nums lining-nums}
-      .op-resumo__rot{display:block;margin-top:5px;font-family:var(--font-data);font-weight:500;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
+      /* ─── TABELA no console: só divisor horizontal ──────────────
+         A versão anterior somava caixa + grade vertical + zebra + thead
+         sombreado + tfoot sombreado para sete linhas. O leitor do
+         terminal: "tabela só com divisor horizontal". */
+      .op-main .nv-tab{border:0}
+      .op-main .nv-tab th+th,.op-main .nv-tab td+td{border-left:0}
+      .op-main .nv-tab thead th{background:none;border-bottom:var(--fio) solid var(--rule-heavy);padding:0 12px 9px;color:var(--text-faint)}
+      .op-main .nv-tab thead th:first-child,.op-main .nv-tab tbody td:first-child{padding-left:0}
+      .op-main .nv-tab thead th:last-child,.op-main .nv-tab tbody td:last-child{padding-right:0}
+      .op-main .nv-tab td{padding:11px 12px;border-bottom-color:var(--rule)}
+      .op-main .nv-tab--zebra tbody tr:nth-child(even){background:none}
+      .op-main .nv-tab th.nv-ord .nv-ord__b{padding:0 12px 9px}
+      .op-main .nv-tab th.nv-ord:first-child .nv-ord__b{padding-left:0}
+      .op-main .nv-tab th.nv-ord:last-child .nv-ord__b{padding-right:0}
+      .op-main .nv-tab th.nv-ord.nv-num .nv-ord__b{justify-content:flex-start;gap:7px}
+      .op-main .nv-tab th.nv-ord.nv-num .nv-ord__rot{flex:0 0 auto}
+      /* O glifo de ordenação só aparece na coluna ativa e no hover —
+         cinco setas permanentes eram ruído no cabeçalho. */
+      .op-main .nv-ord__marca{opacity:0;transition:opacity var(--dur-hover) var(--ease)}
+      .op-main .nv-ord--ativa .nv-ord__marca,.op-main .nv-ord__b:hover .nv-ord__marca{opacity:1}
+      /* A linha em hover leva o acento do CONTEXTO (a família aberta),
+         não a brasa genérica. */
+      .op-main .nv-tab--hover tbody tr:hover{border-left-color:var(--acento-contexto,var(--accent-focus))}
+
+      /* ─── FILA: coluna principal + trilho. Abaixo de 1380px o trilho
+             desce para baixo da tabela — com ele ao lado, a coluna
+             Cliente caía a 129px e todo nome quebrava. ─────────────── */
+      .op-fila{display:grid;grid-template-columns:minmax(0,1fr) 232px;gap:0 48px;align-items:start;max-width:1240px}
+      .op-fila__trilho{padding-top:8px}
+      @media (max-width:1380px){
+        .op-fila{grid-template-columns:minmax(0,1fr);gap:32px 0}
+        .op-fila__trilho{padding-top:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 40px;align-items:start}
+        .op-fila__trilho>p:first-child{grid-column:1 / -1}
+      }
+
+      /* ─── CABEÇALHO DE SEÇÃO — número · título · fio · nota ─────
+         verbatim de structure.css, o fio a -4px para sentar no meio
+         óptico da altura-x. */
+      .op-sech{display:grid;grid-template-columns:auto auto 1fr auto;align-items:baseline;gap:14px;margin:0 0 14px}
+      .op-sech__n{font-family:var(--font-data);font-weight:500;font-size:13px;line-height:1.2;font-variant-numeric:tabular-nums lining-nums;color:var(--acento-contexto,var(--accent-house))}
+      .op-sech__t{font-family:var(--font-display);font-weight:600;font-size:19px;line-height:1.24;letter-spacing:-.006em;color:var(--text-strong);margin:0}
+      .op-sech__fio{height:1px;background:var(--rule);transform:translateY(-4px)}
+      .op-sech__nota{font-family:var(--font-data);font-weight:500;font-size:10.5px;line-height:1.5;letter-spacing:.09em;text-transform:uppercase;color:var(--text-faint);text-align:right;max-width:44ch;margin:0}
+
+      /* ─── CAMPO INERTE — linha de base, não caixa ───────────────── */
+      .op-campo{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:6px 0 5px;border-bottom:var(--fio) solid var(--rule-strong);color:var(--text-faint);font-family:var(--font-body);font-weight:300;font-size:13.5px;line-height:1.4}
+      .op-campo--longo{min-height:calc(var(--linhas,4) * 22px);align-items:flex-start}
+
+      @media (prefers-reduced-motion: reduce){
+        .op-lat__rotulo{animation:none;opacity:1}
+      }
     `}</style>
   );
 }
 
-/** O indicador de notificação DENTRO do portal — o segundo canal, ao
- *  lado do e-mail que o backend já dispara.
- *
- *  É NÚMERO EM MONO, não pílula: `no-pill-chip-default` é regra P1 do
- *  auditor, e uma bolinha colorida aqui seria semáforo de urgência —
- *  exatamente o que a doutrina de "idade, nunca prazo" proíbe. O número
- *  conta o que ainda não foi respondido, e quem decide se são muitos é
- *  quem lê.
- *
- *  Zero some em vez de virar "0": coluna sem pendência não precisa
- *  anunciar a própria ausência a cada render. */
-function Pendentes({ rotulo, quantos }: { rotulo: string; quantos: number }) {
-  return (
-    <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-      <span>{rotulo}</span>
-      {quantos > 0 ? (
-        <span
-          style={{ ...CT.dado, fontSize: '11px', color: 'var(--text-faint)', flex: 'none' }}
-          aria-label={`${quantos} ${quantos === 1 ? 'pedido aguardando' : 'pedidos aguardando'}`}
-        >
-          {quantos}
-        </span>
-      ) : null}
-    </span>
-  );
+function lerLateral(): 'aberta' | 'recolhida' {
+  try {
+    return window.localStorage.getItem(CHAVE_LATERAL) === 'recolhida' ? 'recolhida' : 'aberta';
+  } catch {
+    return 'aberta';
+  }
 }
 
-/** O chassi é ROTA DE LAYOUT, não componente que cada view monta.
- *
- *  Foi construído como componente na primeira passada da Fase 3 e o
- *  clique real derrubou: cada view montava a própria `ConsoleShell`, e
- *  como o estado de modo mora aqui, **trocar de produto voltava a tela
- *  para o modo claro**. Não aparece em código — só medindo
- *  `data-mode` depois de navegar.
- *
- *  Como layout, monta uma vez e as views trocam no `<Outlet />`: o modo
- *  sobrevive, e a lateral não repinta a cada navegação. O contexto e o
- *  produto ativo saem do PRÓPRIO endereço (`useMatch`) em vez de virem
- *  por prop — uma view não deveria precisar dizer ao shell onde ela
- *  está, isso já está na URL. */
 export function ConsoleLayout() {
   const [modo, setModo] = useState<'claro' | 'noturno'>('claro');
+  const [lateral, setLateral] = useState<'aberta' | 'recolhida'>(lerLateral);
   const navigate = useNavigate();
-  const familias = familiasComFila();
 
-  // `useParams()` num layout route não enxerga os segmentos das rotas
-  // filhas — o casamento explícito é o que dá o `:produtoId` aqui.
+  // Primeiro paint — o wordmark se escreve (peça "energização" do
+  // especimen de movimento, já em produção no Portal). Só uma vez: a
+  // troca de modo nunca redispara.
+  const [bootando, setBootando] = useState(
+    () => !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  );
+  useEffect(() => {
+    if (!bootando) return;
+    const t = window.setTimeout(() => setBootando(false), 1500);
+    return () => window.clearTimeout(t);
+  }, [bootando]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CHAVE_LATERAL, lateral);
+    } catch {
+      /* sem storage: fica só na sessão */
+    }
+  }, [lateral]);
+
   const dentroDeProduto = useMatch('/operador/:produtoId/*');
   const produtoAtivo = dentroDeProduto?.params.produtoId;
   const produto = produtoAtivo ? produtoComFilaPorId(produtoAtivo) : undefined;
+  const familiaAtiva = produto ? familiaPorId(produto.familiaId) : undefined;
   const contexto = produto ? nomeDoProduto(produto.produtoId) : undefined;
+  const familias = familiasParaLateral();
+  const totalPendentes = pendentes();
 
   const ir = useCallback(
     (destino: string) => (e: React.MouseEvent) => {
@@ -259,200 +348,183 @@ export function ConsoleLayout() {
     [navigate],
   );
 
+  const recolhida = lateral === 'recolhida';
+
   return (
     <div
       lang="pt-BR"
       data-nv-page=""
       data-mode={modo === 'noturno' ? 'noturno' : undefined}
-      style={{
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        background: 'var(--surface-page)',
-        color: 'var(--text-body)',
-        fontFamily: 'var(--font-body)',
-        fontSize: 'var(--ts-corpo)',
-        lineHeight: 'var(--lh-corpo)',
-        borderRadius: 0,
-      }}
+      data-lateral={lateral}
+      className={bootando ? 'nivar-boot' : undefined}
+      style={
+        {
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          background: 'var(--surface-page)',
+          color: 'var(--text-body)',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--ts-corpo)',
+          lineHeight: 'var(--lh-corpo)',
+          // A família aberta é o acento da tela inteira — um só, vindo
+          // do ancestral (--acento-contexto, readme.md).
+          '--acento-contexto': familiaAtiva?.token ?? 'var(--accent-house)',
+        } as CSSProperties
+      }
     >
       <style>{FOLHA_PORTAL}</style>
       <EstilosTabela />
       <EstilosConsole />
 
-      <span
-        aria-hidden="true"
-        style={{ flexShrink: 0, height: '4px', background: 'var(--gradiente-incandescente)' }}
-      />
-
-      <header
-        className="op-topo"
-        style={{
-          flexShrink: 0,
-          height: '58px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '24px',
-          padding: `0 ${RESPIRO_LATERAL}`,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-          <Link
-            to="/br"
-            aria-label="NIVAR — voltar ao Portal Brasil"
-            onClick={ir('/br')}
-            style={{ display: 'inline-flex', textDecoration: 'none', border: 'none' }}
-          >
-            <WordmarkNivar altura={27} idSufixo="op-cabecalho" />
-          </Link>
-          <span aria-hidden="true" style={{ width: '1px', height: '15px', background: 'var(--fio-tinta)' }} />
-          <Link
-            to="/operador"
-            onClick={ir('/operador')}
-            style={{ ...CT.etiqueta, color: 'var(--text-invert-muted)', textDecoration: 'none' }}
-          >
-            Console do operador
-          </Link>
-          {contexto ? (
-            <>
-              <span aria-hidden="true" style={{ ...CT.dado, color: 'var(--fio-tinta)' }}>
-                /
-              </span>
-              <span
-                style={{
-                  ...CT.etiqueta,
-                  color: 'var(--text-invert)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {contexto}
-              </span>
-            </>
-          ) : null}
+      <header className="op-mast">
+        <div>
+          <div className="op-mast__id">
+            <Link to="/br" aria-label="NIVAR — voltar ao Portal Brasil" onClick={ir('/br')} style={{ display: 'inline-flex' }}>
+              <WordmarkNivar altura={34} idSufixo="op-mast" />
+            </Link>
+            <span className="op-mast__sep" aria-hidden="true" />
+            <span className="op-mast__nome">Console do operador</span>
+          </div>
+          <p className="op-mast__sub">
+            Os pedidos que chegam dos produtos com fila, lidos por uma pessoa. A idade de cada um é
+            tempo decorrido, nunca prazo.
+          </p>
         </div>
-
-        <div className="nv-modo" role="group" aria-label="Modo de exibição">
-          <button
-            type="button"
-            className={`nv-modo__op${modo === 'claro' ? ' nv-modo__op--ativo' : ''}`}
-            aria-pressed={modo === 'claro'}
-            onClick={() => setModo('claro')}
-          >
-            claro
-          </button>
-          <span className="nv-modo__sep" aria-hidden="true">
-            ·
+        <div className="op-mast__meta">
+          <b>{contexto ?? 'Fila completa'}</b>
+          <span>
+            {familiaAtiva ? `${familiaAtiva.nome} · ` : 'Advisory · '}
+            {PRODUTOS_COM_FILA.length} produtos com fila
           </span>
-          <button
-            type="button"
-            className={`nv-modo__op${modo === 'noturno' ? ' nv-modo__op--ativo' : ''}`}
-            aria-pressed={modo === 'noturno'}
-            onClick={() => setModo('noturno')}
-          >
-            noturno
-          </button>
+          <span>
+            <span className="op-mast__n">{totalPendentes}</span> aguardando leitura
+          </span>
+          {/* A ausência, declarada UMA vez — em vez de faixa cheia em
+              toda tela. */}
+          <span>Amostra ilustrativa · sem verificação de operador</span>
+          <div className="nv-modo" role="group" aria-label="Modo de exibição">
+            <button
+              type="button"
+              className={`nv-modo__op${modo === 'claro' ? ' nv-modo__op--ativo' : ''}`}
+              aria-pressed={modo === 'claro'}
+              onClick={() => setModo('claro')}
+            >
+              claro
+            </button>
+            <span className="nv-modo__sep" aria-hidden="true">
+              ·
+            </span>
+            <button
+              type="button"
+              className={`nv-modo__op${modo === 'noturno' ? ' nv-modo__op--ativo' : ''}`}
+              aria-pressed={modo === 'noturno'}
+              onClick={() => setModo('noturno')}
+            >
+              noturno
+            </button>
+          </div>
         </div>
       </header>
+      <div className="op-bar" aria-hidden="true" />
 
-      {/* A ausência de verificação é declarada, não escondida. */}
-      <div className="op-aviso" role="note">
-        <span style={{ ...CT.eyebrow, color: 'var(--ilustrativa-fg)' }}>Sem verificação de operador</span>
-        <span style={{ ...CT.nota, color: 'var(--text-muted)' }}>
-          Esta superfície não checa papel de operador — a sessão da plataforma não carrega esse
-          campo. O gate entra na wave de ligação, junto com o endpoint de fila.
-        </span>
-      </div>
-
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-        <nav
-          className="op-lateral"
-          aria-label="Famílias e produtos com fila"
-          style={{
-            flexShrink: 0,
-            width: LARGURA_LATERAL,
-            padding: '20px 0',
-            overflowY: 'auto',
-          }}
-        >
+      <div className="op-corpo">
+        <nav className="op-lat" aria-label="Famílias e produtos">
           <Link
             to="/operador"
+            className="op-lat__fila"
+            aria-current={produtoAtivo === undefined ? 'page' : undefined}
             onClick={ir('/operador')}
-            className={`op-nav${produtoAtivo === undefined ? ' op-nav--ativo' : ''}`}
-            style={{
-              ...CT.etiqueta,
-              color: produtoAtivo === undefined ? 'var(--text-strong)' : 'var(--text-muted)',
-              marginBottom: '18px',
-            }}
+            title={recolhida ? 'Fila completa' : undefined}
           >
-            <Pendentes rotulo="Fila completa" quantos={pendentes()} />
+            <MarcaCasa tamanho={22} idSufixo="lat" />
+            <span className="op-lat__rotulo" style={{ ...CT.nome, flex: 1 }}>
+              Fila completa
+            </span>
+            {totalPendentes > 0 ? <span className="op-lat__n">{totalPendentes}</span> : null}
           </Link>
 
-          {familias.map(({ familia, produtos }) => (
-            <div key={familia.id} style={{ marginBottom: '18px' }}>
-              <span
-                className="op-familia"
-                style={{ ...CT.eyebrow, color: 'var(--text-faint)' }}
-              >
-                <span
-                  aria-hidden="true"
-                  style={{ display: 'block', width: '3px', height: '13px', background: familia.token }}
+          {familias.map(({ familia, estado, produtos }) => {
+            const ativa = familiaAtiva?.id === familia.id;
+            // Recolhida, a marca é o link: leva ao primeiro produto com
+            // fila da família, ou a lugar nenhum se ela não tem fila.
+            const primeiroComFila = produtos.find((p) => p.fila)?.destino.id;
+            const alvoRecolhida = primeiroComFila ? `/operador/${primeiroComFila}` : undefined;
+            const cabeca = (
+              <>
+                <MarcaFamilia
+                  familia={familia.id}
+                  tamanho={22}
+                  style={{ color: 'var(--fam)' }}
+                  rotulada={recolhida}
                 />
-                {familia.nome}
-              </span>
-              <div style={{ paddingTop: '6px' }}>
-                {produtos.map(({ fila, destino }) => (
-                  <Link
-                    key={fila.produtoId}
-                    to={`/operador/${fila.produtoId}`}
-                    onClick={ir(`/operador/${fila.produtoId}`)}
-                    className={`op-nav${produtoAtivo === fila.produtoId ? ' op-nav--ativo' : ''}`}
-                    style={{
-                      ...CT.corpo,
-                      fontSize: '13px',
-                      color:
-                        produtoAtivo === fila.produtoId
-                          ? 'var(--text-strong)'
-                          : 'var(--text-body)',
-                    }}
-                  >
-                    <Pendentes rotulo={destino.titulo} quantos={pendentes(fila.produtoId)} />
+                <span className="op-lat__rotulo" style={CT.nome}>
+                  {familia.nome}
+                </span>
+                <span className="op-lat__fio" aria-hidden="true" />
+              </>
+            );
+            return (
+              <section
+                key={familia.id}
+                className="op-lat__fam"
+                data-estado={estado}
+                data-ativa={ativa ? '' : undefined}
+                style={{ '--fam': familia.token } as CSSProperties}
+                aria-label={familia.nome}
+              >
+                {recolhida && alvoRecolhida ? (
+                  <Link className="op-lat__cab" to={alvoRecolhida} onClick={ir(alvoRecolhida)} title={familia.nome}>
+                    {cabeca}
                   </Link>
-                ))}
-              </div>
-            </div>
-          ))}
+                ) : (
+                  <div className="op-lat__cab" title={recolhida ? `${familia.nome} · sem fila` : undefined}>
+                    {cabeca}
+                  </div>
+                )}
 
-          {/* Família sem fila não vira aba vazia — ela não está na lista.
-              A nota explica a ausência em vez de deixá-la inexplicada. */}
-          <p
-            style={{
-              ...CT.nota,
-              fontSize: '10.5px',
-              lineHeight: 1.45,
-              color: 'var(--text-faint)',
-              padding: '14px 16px 0',
-              margin: 0,
-              borderTop: 'var(--fio) solid var(--rule-strong)',
-              maxWidth: '30ch',
-            }}
+                {estado === 'prateleira-vazia' ? (
+                  <span className="op-lat__vazia">prateleira vazia</span>
+                ) : (
+                  produtos.map(({ destino, fila }) =>
+                    fila ? (
+                      <Link
+                        key={destino.id}
+                        to={`/operador/${destino.id}`}
+                        className="op-lat__item"
+                        aria-current={produtoAtivo === destino.id ? 'page' : undefined}
+                        onClick={ir(`/operador/${destino.id}`)}
+                      >
+                        <span className="op-lat__rotulo">{destino.titulo}</span>
+                        {pendentes(destino.id) > 0 ? (
+                          <span className="op-lat__n">{pendentes(destino.id)}</span>
+                        ) : null}
+                      </Link>
+                    ) : (
+                      <span key={destino.id} className="op-lat__item" data-sem-fila="" title="Este produto não recebe pedido">
+                        <span className="op-lat__rotulo">{destino.titulo}</span>
+                        <span className="op-lat__n">sem fila</span>
+                      </span>
+                    ),
+                  )
+                )}
+              </section>
+            );
+          })}
+
+          <button
+            type="button"
+            className="op-lat__toggle"
+            onClick={() => setLateral(recolhida ? 'aberta' : 'recolhida')}
+            aria-expanded={!recolhida}
+            aria-label={recolhida ? 'Expandir a lateral' : 'Recolher a lateral'}
           >
-            Só aparece família cujo produto recebe pedido. Hoje é Advisory. Academy, Software e
-            Intelligence têm produto, mas nenhum recebe submissão; Hardware tem a prateleira vazia.
-          </p>
+            {recolhida ? '→' : '← recolher'}
+          </button>
         </nav>
 
-        <main
-          style={{
-            flex: 1,
-            minWidth: 0,
-            overflowY: 'auto',
-            padding: `24px ${RESPIRO_LATERAL} 48px`,
-          }}
-        >
+        <main className="op-main">
           <Outlet />
         </main>
       </div>

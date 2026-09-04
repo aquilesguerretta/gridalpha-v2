@@ -113,6 +113,42 @@ export function familiasComFila(): FamiliaComFila[] {
   })).filter((f) => f.produtos.length > 0);
 }
 
+// ─── AS CINCO FAMÍLIAS NA LATERAL — pedido direto do Aquiles ─────────
+// A Wave 2 mostrava só família com fila (Advisory). O Aquiles pediu as
+// cinco. O critério de HONESTIDADE não muda: família sem fila aparece,
+// mas cada produto dela DECLARA que não recebe pedido, e Hardware declara
+// a prateleira vazia — nada finge ter fila. É o mesmo que a página de
+// família do Portal já faz.
+
+export type EstadoNaLateral = 'com-fila' | 'sem-fila' | 'prateleira-vazia';
+
+export interface ProdutoNaLateral {
+  destino: DestinoBR;
+  /** Presente só quando o produto recebe pedido. */
+  fila: ProdutoComFila | null;
+}
+
+export interface FamiliaNaLateral {
+  familia: FamiliaBR;
+  estado: EstadoNaLateral;
+  produtos: ProdutoNaLateral[];
+}
+
+/** As cinco famílias, na ordem da escala de incandescência que
+ *  `FAMILIAS_BR` já fixa, cada uma com os produtos do catálogo do Portal
+ *  e a marca de quais recebem pedido. */
+export function familiasParaLateral(): FamiliaNaLateral[] {
+  return FAMILIAS_BR.map((familia) => {
+    const produtos = familia.produtoIds
+      .map((id) => DESTINOS_BR.find((d) => d.id === id))
+      .filter((d): d is DestinoBR => Boolean(d))
+      .map((destino) => ({ destino, fila: produtoComFilaPorId(destino.id) ?? null }));
+    const estado: EstadoNaLateral =
+      produtos.length === 0 ? 'prateleira-vazia' : produtos.some((p) => p.fila) ? 'com-fila' : 'sem-fila';
+    return { familia, estado, produtos };
+  });
+}
+
 /** Um produto da fila pelo id de rota. `undefined` para id desconhecido
  *  — quem chama decide (a rota manda para o 404). */
 export function produtoComFilaPorId(id: string): ProdutoComFila | undefined {

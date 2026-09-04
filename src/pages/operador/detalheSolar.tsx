@@ -1,209 +1,88 @@
-// detalheSolar — ARCHITECT, Portal do Operador Wave 2, Fase 5.
+// detalheSolar — ARCHITECT, Portal do Operador, revisão visual pós-Wave 2.
 //
 // Solar Proposal Validator. **Largura inteira, livro-razão da proposta:
 // uma linha por afirmação, classificada pela natureza.**
 //
-// ─── ISTO NÃO É UI INVENTADA — É A COPY PÚBLICA VIRANDO FERRAMENTA ───
-// A página do produto (`SolarProposalValidatorPage.tsx:829` e `:834`) já
-// promete ao cliente, na letra:
+// Não é UI inventada — é a copy pública virando ferramenta
+// (SolarProposalValidatorPage.tsx:829 e :834): duas trilhas (regulatória
+// e técnica), "cada linha classificada pela natureza — fato com fonte,
+// premissa ancorada, premissa não ancorada ou embutida por omissão — com
+// as perguntas de negociação e a base normativa citada". As colunas são
+// esses quatro eixos; os quatro valores são literais dela.
 //
-//   · duas TRILHAS de leitura — a regulatória "verifica porte,
-//     modalidade e regime de compensação"; a técnica "confronta geração
-//     estimada, degradação e trajetória tarifária contra referência
-//     citável";
-//   · "cada linha classificada pela NATUREZA — fato com fonte, premissa
-//     ancorada, premissa não ancorada ou embutida por omissão";
-//   · "com as PERGUNTAS DE NEGOCIAÇÃO e a BASE NORMATIVA citada".
-//
-// As colunas abaixo são exatamente esses quatro eixos. Os quatro valores
-// de natureza são literais da copy, não escala inventada por mim.
-//
-// ─── POR QUE TABELA, E NÃO DUAS COLUNAS COMO A CLE ───────────────────
-// Uma proposta comercial NÃO é padronizada: cada vendedor afirma o que
-// quer, num número variável de alegações. A tela precisa ser uma lista
-// que CRESCE, não um formulário de campos fixos. E como cada linha
-// carrega quatro atributos comparáveis entre si, a varredura vertical
-// por coluna alinhada é o instrumento certo — que é literalmente o que
-// `.nv-tab` faz, e a razão pela qual portei o grupo na Fase 2.
-//
-// O documento vira FAIXA FINA no topo, não metade da tela: aqui ele é
-// ponto de partida, não objeto de leitura campo a campo como a fatura.
+// Tabela, e não formulário, porque proposta comercial NÃO é
+// padronizada: o número de linhas é do documento. O documento vira uma
+// linha de dado sob o cabeçalho — aqui ele é ponto de partida, não
+// objeto de leitura campo a campo como a fatura.
 
 import { CT } from './consoleChrome';
 import { Tabela, type ColunaTabela } from '../../components/nivar/tabela';
-import {
-  CabecalhoDoPedido,
-  CampoInerte,
-  RAZAO_SEM_PERSISTENCIA,
-  Secao,
-} from './pecasDoPedido';
-import {
-  LIVRO_RAZAO_MOCK,
-  NATUREZAS_SOLAR,
-  type LinhaProposta,
-  type PedidoNaFila,
-} from '../../lib/operador/mock';
+import { CabecalhoDoPedido, CampoInerte, Secao } from './pecasDoPedido';
+import { formatarIdade } from '../../lib/operador/idade';
+import { AGORA_DA_AMOSTRA, LIVRO_RAZAO_MOCK, NATUREZAS_SOLAR, type LinhaProposta, type PedidoNaFila } from '../../lib/operador/mock';
 
-/** Seletor de natureza, inerte. Mostra os quatro valores da copy em vez
- *  de esconder num dropdown fechado: o operador precisa ver a escala
- *  inteira para classificar, e a escala é o produto. */
-function EscolhaNatureza() {
+/** As quatro naturezas da copy, UMA vez, como legenda da seção — a
+ *  escala é o produto, mas repetida em cada linha virava dezesseis
+ *  linhas de mono cinza. Cada linha recebe um campo só. */
+function LegendaNatureza() {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }} aria-disabled="true">
-      {NATUREZAS_SOLAR.map((n) => (
-        <span
-          key={n}
-          style={{
-            ...CT.dado,
-            fontSize: '10.5px',
-            color: 'var(--text-faint)',
-            borderBottom: 'var(--fio) dashed var(--rule-strong)',
-            paddingBottom: '1px',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {n}
+    <p style={{ ...CT.dado, fontSize: '11.5px', color: 'var(--text-muted)', margin: '0 0 14px', display: 'flex', flexWrap: 'wrap', gap: '4px 0' }}>
+      <span style={{ color: 'var(--text-faint)', marginRight: '10px' }}>natureza, por linha:</span>
+      {NATUREZAS_SOLAR.map((n, i) => (
+        <span key={n}>
+          {i > 0 ? <span aria-hidden="true" style={{ margin: '0 9px', color: 'var(--rule-strong)' }}>·</span> : null}
+          <span style={{ color: 'var(--text-body)' }}>{n}</span>
         </span>
       ))}
-    </div>
+    </p>
   );
 }
 
 export function DetalheSolar({ pedido, produto }: { pedido: PedidoNaFila; produto: string }) {
   const linhas = LIVRO_RAZAO_MOCK[pedido.id] ?? [];
+  const deck = `Uma proposta comercial de sistema solar, esperando leitura há ${formatarIdade(pedido.criadoEm, AGORA_DA_AMOSTRA)}. ${linhas.length} ${linhas.length === 1 ? 'afirmação extraída' : 'afirmações extraídas'}, em duas trilhas.`;
 
   const colunas: ColunaTabela<LinhaProposta>[] = [
     {
       chave: 'trilha',
       rotulo: 'Trilha',
-      celula: (l) => (
-        <span style={{ ...CT.dado, fontSize: '10.5px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.09em' }}>
-          {l.trilha}
-        </span>
-      ),
+      celula: (l) => <span style={{ ...CT.eyebrow, color: 'var(--text-muted)' }}>{l.trilha}</span>,
     },
     {
       chave: 'afirmacao',
       rotulo: 'O que a proposta afirma',
-      celula: (l) => <span style={{ color: 'var(--text-strong)' }}>{l.afirmacao}</span>,
+      celula: (l) => <span style={{ ...CT.corpo, fontSize: '14px', color: 'var(--text-strong)' }}>{l.afirmacao}</span>,
     },
-    { chave: 'natureza', rotulo: 'Natureza', celula: () => <EscolhaNatureza /> },
-    {
-      chave: 'pergunta',
-      rotulo: 'Pergunta de negociação',
-      celula: () => <CampoInerte placeholder="O que perguntar ao vendedor." linhas={2} />,
-    },
-    {
-      chave: 'base',
-      rotulo: 'Base normativa',
-      celula: () => <CampoInerte placeholder="REN, lei, norma." linhas={2} />,
-    },
+    { chave: 'natureza', rotulo: 'Natureza', celula: () => <CampoInerte placeholder="uma das quatro" /> },
+    { chave: 'pergunta', rotulo: 'Pergunta de negociação', celula: () => <CampoInerte placeholder="o que perguntar ao vendedor" linhas={2} /> },
+    { chave: 'base', rotulo: 'Base normativa', celula: () => <CampoInerte placeholder="REN, lei, norma" linhas={2} /> },
   ];
 
   return (
-    <>
-      <CabecalhoDoPedido pedido={pedido} produto={produto} />
+    <div style={{ maxWidth: '1180px' }}>
+      <CabecalhoDoPedido pedido={pedido} produto={produto} deck={deck} />
 
-      {/* O documento como faixa fina — ponto de partida, não objeto de
-          estudo campo a campo. */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '10px 20px',
-          border: 'var(--fio) solid var(--rule-strong)',
-          background: 'var(--zebra)',
-          padding: '10px 14px',
-          marginBottom: '26px',
-        }}
-      >
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 12px', minWidth: 0 }}>
-          <span style={{ ...CT.corpo, fontSize: '13px', color: 'var(--text-strong)', wordBreak: 'break-all' }}>
-            {pedido.arquivo ?? 'sem arquivo'}
-          </span>
-          <span aria-hidden="true" style={{ ...CT.dado, color: 'var(--rule-strong)' }}>
-            ·
-          </span>
-          <span style={{ ...CT.nota, fontSize: '11.5px', color: 'var(--text-muted)' }}>
-            A exibição do documento é wave própria. Até lá, abre pelo download.
-          </span>
-        </div>
-        <span
-          aria-disabled="true"
-          className="nv-btn nv-btn--secundario"
-          style={{ opacity: 0.55, cursor: 'not-allowed', flex: 'none' }}
-        >
-          <span className="nv-btn__glifo" aria-hidden="true">
-            ↓
-          </span>
-          Baixar proposta
-        </span>
-      </div>
+      {/* O documento como dado, não como caixa nem botão. */}
+      <p style={{ ...CT.dado, color: 'var(--text-muted)', margin: '-14px 0 30px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <span style={{ ...CT.nome, color: 'var(--text-strong)' }}>{pedido.arquivo}</span>
+        <span aria-hidden="true" style={{ color: 'var(--rule-strong)' }}>·</span>
+        <span>exibição e download com o pedido real</span>
+      </p>
 
-      <div style={{ display: 'grid', gap: '26px' }}>
-        {/* A FOCAL desta tela: o livro-razão nao e uma secao entre tres,
-            e o produto. Conclusao e entregavel sao o que se faz DEPOIS
-            dele. Estava em 10,5px, do mesmo tamanho das outras duas. */}
-        <Secao
-          data-focal=""
-          rotulo="Livro-razão da proposta"
-          nota={RAZAO_SEM_PERSISTENCIA}
-          style={{ borderTop: 'none', paddingTop: 0 }}
-        >
-          <p style={{ ...CT.nota, fontSize: '11.5px', color: 'var(--text-muted)', margin: '0 0 12px', maxWidth: '76ch' }}>
-            Uma linha por afirmação da proposta, em duas trilhas — regulatória e técnica —, cada
-            uma classificada pela natureza, com a pergunta de negociação e a base normativa. É o que
-            a página pública promete ao cliente, virado ferramenta de trabalho.
-          </p>
-
+      <div style={{ display: 'grid', gap: '34px' }}>
+        <Secao numero={1} titulo="Livro-razão da proposta" grande data-focal="" nota={`${linhas.length} linhas · cresce com o documento`}>
+          <LegendaNatureza />
           {linhas.length > 0 ? (
-            <Tabela colunas={colunas} linhas={linhas} chaveDe={(l) => l.id} hover={false} />
+            <Tabela colunas={colunas} linhas={linhas} chaveDe={(l) => l.id} zebra={false} hover={false} />
           ) : (
-            <p style={{ ...CT.nota, color: 'var(--text-faint)' }}>
-              Nenhuma linha extraída ainda nesta amostra.
-            </p>
+            <p style={{ ...CT.corpoLeve, color: 'var(--text-faint)' }}>Nenhuma linha extraída ainda nesta amostra.</p>
           )}
-
-          <div style={{ marginTop: '12px' }}>
-            <span
-              aria-disabled="true"
-              className="nv-btn nv-btn--secundario"
-              style={{ opacity: 0.55, cursor: 'not-allowed' }}
-            >
-              <span className="nv-btn__glifo" aria-hidden="true">
-                +
-              </span>
-              Acrescentar linha
-            </span>
-            <p style={{ ...CT.nota, fontSize: '11px', color: 'var(--text-faint)', margin: '8px 0 0', maxWidth: '58ch' }}>
-              O número de linhas é do documento, não da tela — uma proposta afirma o que o vendedor
-              quiser. Por isso lista que cresce, e não formulário de campos fixos.
-            </p>
-          </div>
         </Secao>
 
-        <Secao rotulo="Conclusão" nota={RAZAO_SEM_PERSISTENCIA}>
+        <Secao numero={2} titulo="Conclusão" nota="PDF do parecer entra com o pedido real">
           <CampoInerte placeholder="O parecer sobre esta proposta." linhas={6} />
         </Secao>
-
-        <Secao
-          rotulo="Entregável"
-          nota="A rota de entrega EXISTE no backend (POST …/deliverable), igual à da CLE. O que falta é o pedido ser real."
-        >
-          <span
-            aria-disabled="true"
-            className="nv-btn nv-btn--secundario"
-            style={{ opacity: 0.55, cursor: 'not-allowed' }}
-          >
-            <span className="nv-btn__glifo" aria-hidden="true">
-              ↑
-            </span>
-            Anexar parecer em PDF
-          </span>
-        </Secao>
       </div>
-    </>
+    </div>
   );
 }

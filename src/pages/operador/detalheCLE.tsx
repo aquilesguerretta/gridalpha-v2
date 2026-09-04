@@ -1,125 +1,70 @@
-// detalheCLE — ARCHITECT, Portal do Operador Wave 2, Fase 5.
+// detalheCLE — ARCHITECT, Portal do Operador, revisão visual pós-Wave 2.
 //
 // Conta de Luz Express. **Duas colunas: o documento fixo à esquerda, a
-// leitura à direita.**
+// leitura à direita.** A fatura é documento PADRONIZADO — os mesmos
+// campos toda vez, olhando para a peça —, então a tela é bancada.
 //
-// ─── POR QUE ESTA FORMA, E NÃO OUTRA ─────────────────────────────────
-// A fatura de concessionária é documento PADRONIZADO: o operador extrai
-// os mesmos campos toda vez, na mesma ordem, olhando para a peça. Isso
-// é bancada — a peça de um lado, a leitura do outro, as duas no campo de
-// visão ao mesmo tempo. Rolar para conferir um número contra o
-// documento é o atrito que a coluna fixa remove.
+// Os dez campos saem da copy pública do produto
+// (ContaDeLuzExpressPage.tsx:843): "modalidade tarifária, demanda
+// contratada e medida, tributos e encargos". Ordem de leitura da fatura.
 //
-// É a diferença dura para o Solar, cujo documento é argumento e não
-// formulário, e para o Diagnóstico, que não tem documento nenhum.
-//
-// ─── OS CAMPOS SAEM DA COPY PÚBLICA, NÃO DE PALPITE ──────────────────
-// `ANATOMIA_FATURA` é derivada do passo 2 da própria página do produto
-// (`ContaDeLuzExpressPage.tsx:843`): "Modalidade tarifária, demanda
-// contratada e medida, tributos e encargos." A ordem é a da leitura da
-// fatura, não alfabética.
-//
-// ─── TUDO INERTE, COM A RAZÃO AO LADO ────────────────────────────────
-// Nenhum campo aceita digitação nesta wave, e cada seção diz por quê.
+// Cada seção tem NÚMERO e NOME; a focal (o parecer, que é o trabalho)
+// tem o título grande. Nenhum botão morto: a rota de entrega existe e
+// entra com o pedido real — a nota da seção diz isso numa linha.
 
-import { CT } from './consoleChrome';
-import {
-  CabecalhoDoPedido,
-  CampoInerte,
-  LugarDoDocumento,
-  RAZAO_SEM_PERSISTENCIA,
-  Secao,
-} from './pecasDoPedido';
-import { ANATOMIA_FATURA, type PedidoNaFila } from '../../lib/operador/mock';
+import { CabecalhoDoPedido, CampoInerte, CampoRotulado, LugarDoDocumento, Secao } from './pecasDoPedido';
+import { formatarIdade } from '../../lib/operador/idade';
+import { AGORA_DA_AMOSTRA, ANATOMIA_FATURA, type PedidoNaFila } from '../../lib/operador/mock';
 
 export function DetalheCLE({ pedido, produto }: { pedido: PedidoNaFila; produto: string }) {
+  const deck =
+    pedido.status === 'ready'
+      ? `Fatura lida e parecer entregue. Chegou há ${formatarIdade(pedido.criadoEm, AGORA_DA_AMOSTRA)}.`
+      : `Uma fatura de concessionária, esperando leitura há ${formatarIdade(pedido.criadoEm, AGORA_DA_AMOSTRA)}. Os mesmos campos de toda fatura, na ordem em que aparecem nela.`;
+
   return (
-    <>
-      <CabecalhoDoPedido pedido={pedido} produto={produto} />
+    <div style={{ maxWidth: '1180px' }}>
+      <CabecalhoDoPedido pedido={pedido} produto={produto} deck={deck} />
 
       <div
         style={{
           display: 'grid',
-          // A coluna do documento tem largura FIXA e a da leitura estica:
-          // a peça tem proporção de papel e não deve deformar com a
-          // janela; o texto do parecer, sim, ganha com a largura.
-          gridTemplateColumns: 'minmax(300px, 380px) minmax(0, 1fr)',
-          gap: '28px',
+          gridTemplateColumns: 'minmax(260px, 300px) minmax(0, 1fr)',
+          gap: '0 56px',
           alignItems: 'start',
         }}
       >
-        {/* ESQUERDA — o documento, fixo enquanto a direita rola. */}
         <div style={{ position: 'sticky', top: 0 }}>
-          <h2 style={{ ...CT.eyebrow, color: 'var(--text-strong)', margin: '0 0 10px' }}>
-            O que chegou
-          </h2>
-          {pedido.arquivo ? (
-            <LugarDoDocumento arquivo={pedido.arquivo} />
-          ) : (
-            <p style={{ ...CT.nota, color: 'var(--text-faint)' }}>Nenhum arquivo neste pedido.</p>
-          )}
+          <Secao numero={1} titulo="O que chegou">
+            {pedido.arquivo ? <LugarDoDocumento arquivo={pedido.arquivo} /> : null}
+          </Secao>
         </div>
 
-        {/* DIREITA — a leitura. */}
-        <div style={{ display: 'grid', gap: '26px' }}>
-          <Secao
-            rotulo="Anatomia da fatura"
-            nota={RAZAO_SEM_PERSISTENCIA}
-            style={{ borderTop: 'none', paddingTop: 0 }}
-          >
-            <p style={{ ...CT.nota, fontSize: '11.5px', color: 'var(--text-muted)', margin: '0 0 12px', maxWidth: '58ch' }}>
-              Os mesmos campos em toda fatura, na ordem em que aparecem no documento. É o que
-              distingue ler uma fatura de ler uma proposta.
-            </p>
-            <div style={{ display: 'grid', gap: '8px' }}>
+        <div style={{ display: 'grid', gap: '34px' }}>
+          <Secao numero={2} titulo="Anatomia da fatura" nota="os mesmos campos, toda fatura">
+            <div style={{ display: 'grid', gap: '4px' }}>
               {ANATOMIA_FATURA.map((campo) => (
-                <div
-                  key={campo.chave}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(140px, 180px) minmax(0, 1fr)',
-                    gap: '10px',
-                    alignItems: 'center',
-                  }}
-                >
-                  <span
-                    style={{ ...CT.eyebrow, fontSize: '9.5px', color: 'var(--text-faint)', lineHeight: 1.5 }}
-                  >
-                    {campo.rotulo}
-                  </span>
-                  <CampoInerte placeholder="—" unidade={campo.unidade} />
-                </div>
+                <CampoRotulado key={campo.chave} rotulo={campo.rotulo} unidade={campo.unidade} />
               ))}
             </div>
           </Secao>
 
-          {/* A FOCAL desta tela. A anatomia e entrada e o entregavel e
-              saida; o parecer e o trabalho. */}
-          <Secao rotulo="Parecer" nota={RAZAO_SEM_PERSISTENCIA} data-focal="">
-            <p style={{ ...CT.nota, fontSize: '11.5px', color: 'var(--text-muted)', margin: '0 0 12px', maxWidth: '58ch' }}>
-              A conclusão vem com o contraditório junto, não depois — é o que a página pública do
-              produto promete ao cliente.
-            </p>
-            <CampoInerte placeholder="O parecer sobre esta fatura." linhas={7} />
-          </Secao>
-
-          <Secao
-            rotulo="Entregável"
-            nota="A rota de entrega EXISTE no backend (POST …/deliverable). O que falta é o pedido ser real: na amostra não há id para anexar nada."
-          >
-            <span
-              aria-disabled="true"
-              className="nv-btn nv-btn--secundario"
-              style={{ opacity: 0.55, cursor: 'not-allowed' }}
+          <Secao numero={3} titulo="Parecer" grande data-focal="" nota="o contraditório vai junto, não depois">
+            <CampoInerte placeholder="O parecer sobre esta fatura, com o argumento que o contesta." linhas={8} />
+            <p
+              style={{
+                fontFamily: 'var(--font-data)',
+                fontSize: '11px',
+                letterSpacing: '.06em',
+                color: 'var(--text-faint)',
+                margin: '10px 0 0',
+              }}
             >
-              <span className="nv-btn__glifo" aria-hidden="true">
-                ↑
-              </span>
-              Anexar parecer em PDF
-            </span>
+              PDF do parecer entra por POST …/deliverable, com o pedido real.
+            </p>
           </Secao>
         </div>
       </div>
-    </>
+    </div>
   );
 }

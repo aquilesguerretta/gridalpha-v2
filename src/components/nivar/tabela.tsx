@@ -152,6 +152,11 @@ export interface ColunaTabela<L> {
   numerico?: boolean;
   /** Ordenável? Sem isto, o cabeçalho é `<th>` simples. */
   ordenavel?: boolean;
+  /** Largura da coluna (`<col style=width>`). Sem ela, a coluna divide o
+   *  que sobra. Coluna de dado tem largura FIXA para a varredura vertical
+   *  não depender da janela: a 1920px uma tabela sem larguras joga
+   *  "enviado" a 250px de "cliente". */
+  largura?: string;
   /** O que renderizar na célula. Recebe a linha inteira, não um valor
    *  solto — coluna que combina dois campos é caso normal aqui. */
   celula: (linha: L) => ReactNode;
@@ -208,8 +213,15 @@ export function Tabela<L>({
 
   return (
     <div className="nv-tab-rolo">
-      <table className={cls}>
+      <table className={cls} style={colunas.some((c) => c.largura) ? { tableLayout: 'fixed' } : undefined}>
         {legenda ? <caption>{legenda}</caption> : null}
+        {colunas.some((c) => c.largura) ? (
+          <colgroup>
+            {colunas.map((c) => (
+              <col key={c.chave} style={c.largura ? { width: c.largura } : undefined} />
+            ))}
+          </colgroup>
+        ) : null}
         <thead>
           <tr>
             {colunas.map((c) => {

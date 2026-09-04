@@ -44,7 +44,7 @@ export function PedidoView() {
     return (
       <>
         <span style={{ ...CT.eyebrow, color: 'var(--text-faint)' }}>{nome}</span>
-        <h1 style={{ ...CT.titulo, color: 'var(--text-strong)', margin: '4px 0 16px' }}>
+        <h1 style={{ ...CT.display, color: 'var(--text-strong)', margin: '4px 0 16px' }}>
           {pedidoId}
         </h1>
         <EstadoVazio

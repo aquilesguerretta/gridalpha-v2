@@ -33,9 +33,29 @@ export function CabecalhoDoPedido({
   produto: string;
 }) {
   return (
-    <header style={{ marginBottom: '20px' }}>
+    <header
+      style={{
+        marginBottom: '24px',
+        paddingBottom: '14px',
+        borderBottom: 'var(--fio-forte) solid var(--rule-heavy)',
+      }}
+    >
       <span style={{ ...CT.eyebrow, color: 'var(--text-faint)' }}>{produto}</span>
-      <h1 style={{ ...CT.titulo, color: 'var(--text-strong)', margin: '4px 0 8px' }}>
+      {/* Mesma escala de display do título da fila. Estava em 24px
+          enquanto a fila subiu para 32, e a hierarquia entre as duas
+          telas se contradizia: o caso aberto lia como MENOS importante
+          que a lista de onde ele veio. */}
+      <h1
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontWeight: 'var(--fw-display)',
+          fontSize: 'var(--ts-display-3)',
+          lineHeight: 'var(--lh-display-3)',
+          letterSpacing: 'var(--tr-display-3)',
+          color: 'var(--text-strong)',
+          margin: '5px 0 10px',
+        }}
+      >
         {pedido.cliente}
       </h1>
       <p

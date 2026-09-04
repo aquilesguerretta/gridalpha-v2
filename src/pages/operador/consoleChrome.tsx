@@ -44,7 +44,7 @@ import { familiasComFila, nomeDoProduto, produtoComFilaPorId } from '../../lib/o
 import { pendentes } from '../../lib/operador/mock';
 
 export const RESPIRO_LATERAL = '32px';
-const LARGURA_LATERAL = '224px';
+const LARGURA_LATERAL = '236px';
 
 /** Papéis tipográficos, referenciando os tokens do NIVAR — nunca
  *  literal de escala. Declarados aqui e não importados de `ContaShell`
@@ -125,12 +125,75 @@ export function comTransicao(mudanca: () => void) {
 function EstilosConsole() {
   return (
     <style>{`
-      .op-nav{display:block;text-decoration:none;border:0;border-left:2px solid transparent;padding:7px 12px;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease),background var(--dur-hover) var(--ease)}
-      .op-nav:hover{color:var(--fg-hover);background:var(--zebra)}
+      /* BARRA DE TOPO EM TINTA.
+         A página inteira vivia numa faixa de creme de ~5% de valor, e
+         por isso lia como lavagem: sem âncora, o olho não tem de onde
+         partir. --surface-ink existe no modo CLARO do sistema
+         exatamente para isto — não é invenção, é o token de superfície
+         escura que a folha provisiona e que ninguém tinha usado.
+         No noturno a página já é tinta, então a barra sobe para
+         --surface-raised para não sumir contra o próprio chão. */
+      .op-topo{background:var(--surface-ink);border-bottom:0}
+      .op-topo a,.op-topo span{color:var(--text-invert)}
+      .op-topo .nv-modo__op{color:var(--text-invert-muted)}
+      .op-topo .nv-modo__op:hover{color:var(--intelligence)}
+      .op-topo .nv-modo__op--ativo{color:var(--text-invert);border-bottom-color:var(--intelligence)}
+      .op-topo .nv-modo__sep{color:var(--fio-tinta)}
+      [data-mode="noturno"] .op-topo{background:var(--surface-raised);border-bottom:var(--fio) solid var(--rule)}
+
+      /* RODAPÉ DA TABELA — a tabela terminava no ar. O tfoot do sistema
+         já traz fio pesado em cima e texto forte; usá-lo fecha a grade
+         e devolve a contagem no pé, onde o olho chega. */
+      .nv-tab tfoot td{padding:9px 14px;border-top:var(--fio-forte) solid var(--rule-heavy);background:var(--surface-sunken)}
+
+      /* LATERAL — chão PRÓPRIO (--surface-sunken), não o mesmo do corpo.
+         Era papel sobre papel com um fio fraco no meio, e o olho não
+         achava a divisão. Agora a separação é de VALOR, e o fio forte
+         só confirma o que a superfície já disse. */
+      .op-lateral{background:var(--surface-sunken);border-right:var(--fio) solid var(--rule-strong)}
+      .op-nav{display:block;text-decoration:none;border:0;border-left:2px solid transparent;padding:9px 16px;transition:color var(--dur-hover) var(--ease),border-color var(--dur-hover) var(--ease),background var(--dur-hover) var(--ease)}
+      .op-nav:hover{color:var(--fg-hover);background:var(--surface-page)}
       .op-nav:focus-visible{outline:var(--fio-forte) solid var(--accent-focus);outline-offset:-2px}
-      .op-nav--ativo{border-left-color:var(--accent-house);background:var(--zebra)}
-      .op-familia{display:block;padding:0 12px 6px;border-bottom:var(--fio) solid var(--rule)}
-      .op-aviso{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:7px ${RESPIRO_LATERAL};border-bottom:var(--fio) solid var(--rule-strong);background:var(--zebra)}
+      /* Item ativo sobe para o chão do CORPO — a aba se liga visualmente
+         à área que abriu, em vez de só ganhar um fio colorido. */
+      .op-nav--ativo{border-left-color:var(--accent-house);background:var(--surface-page)}
+      .op-familia{display:flex;align-items:center;gap:8px;padding:0 16px 7px;border-bottom:var(--fio) solid var(--rule-strong)}
+
+      /* AVISO — era faixa chapada de ponta a ponta, do mesmo tom da
+         zebra, sem peso. Vira bloco ancorado por fio de brasa à
+         esquerda: lê como declaração do sistema, não como fundo. */
+      .op-aviso{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:9px ${RESPIRO_LATERAL} 9px calc(${RESPIRO_LATERAL} - 3px);border-bottom:var(--fio) solid var(--rule-strong);border-left:3px solid var(--brasa);background:var(--surface-sunken)}
+
+      /* CABEÇALHO DA TABELA sobre chão afundado, com fio pesado embaixo.
+         É o que dá começo à grade — antes o cabeçalho boiava. */
+      .nv-tab thead th{background:var(--surface-sunken);border-bottom:var(--fio-forte) solid var(--rule-heavy)}
+      .nv-tab{border-color:var(--rule-strong)}
+      .nv-tab td{border-bottom-color:var(--rule)}
+      .nv-tab th+th,.nv-tab td+td{border-left-color:var(--rule)}
+      /* Linha mais alta: densidade não é aperto, é quantidade de dado
+         legível por tela. Linha de 26px cansa antes da vigésima. */
+      .nv-tab td{padding:10px 14px}
+      .nv-tab thead th{padding:9px 14px}
+
+      /* ORDENAÇÃO — o glifo colava na borda oposta da célula numérica
+         (row-reverse + flex:1 no rótulo), e virava um ↕ órfão a 200px
+         do título. Agora o par rótulo+glifo anda junto, e a célula
+         inteira é que se alinha à direita. */
+      .nv-tab th.nv-ord .nv-ord__b{padding:9px 14px}
+      /* Em row-reverse, flex-start empacota na borda VISUAL DIREITA —
+         que é onde a coluna numérica alinha o dado. O flex-end que eu
+         tentei primeiro empacotava à esquerda, mantendo o órfão. */
+      .nv-tab th.nv-ord.nv-num .nv-ord__b{justify-content:flex-start;gap:8px}
+      .nv-tab th.nv-ord.nv-num .nv-ord__rot{flex:0 0 auto}
+
+      /* RESUMO — tiras de contagem em mono grande. A tela tinha 600px
+         de creme morto embaixo da tabela e nenhum número em que o olho
+         pousasse. */
+      .op-resumo{display:flex;flex-wrap:wrap;border:var(--fio) solid var(--rule-strong);border-left:0;background:var(--surface-raised)}
+      .op-resumo__cel{flex:1 1 0;min-width:150px;padding:12px 16px;border-left:var(--fio) solid var(--rule-strong)}
+      .op-resumo__cel[data-focal]{background:var(--surface-page);border-top:3px solid var(--accent-focus);margin-top:-1px;padding-top:10px}
+      .op-resumo__n{display:block;font-family:var(--font-data);font-weight:500;font-size:var(--ts-dado-2);line-height:var(--lh-dado-2);letter-spacing:-.02em;color:var(--text-strong);font-variant-numeric:tabular-nums lining-nums}
+      .op-resumo__rot{display:block;margin-top:5px;font-family:var(--font-data);font-weight:500;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint)}
     `}</style>
   );
 }
@@ -224,16 +287,15 @@ export function ConsoleLayout() {
       />
 
       <header
+        className="op-topo"
         style={{
           flexShrink: 0,
-          height: '56px',
+          height: '58px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: '24px',
           padding: `0 ${RESPIRO_LATERAL}`,
-          borderBottom: 'var(--fio) solid var(--rule)',
-          background: 'var(--surface-page)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
@@ -243,25 +305,25 @@ export function ConsoleLayout() {
             onClick={ir('/br')}
             style={{ display: 'inline-flex', textDecoration: 'none', border: 'none' }}
           >
-            <WordmarkNivar altura={26} idSufixo="op-cabecalho" />
+            <WordmarkNivar altura={27} idSufixo="op-cabecalho" />
           </Link>
-          <span aria-hidden="true" style={{ width: '1px', height: '14px', background: 'var(--rule)' }} />
+          <span aria-hidden="true" style={{ width: '1px', height: '15px', background: 'var(--fio-tinta)' }} />
           <Link
             to="/operador"
             onClick={ir('/operador')}
-            style={{ ...CT.etiqueta, color: 'var(--text-muted)', textDecoration: 'none' }}
+            style={{ ...CT.etiqueta, color: 'var(--text-invert-muted)', textDecoration: 'none' }}
           >
             Console do operador
           </Link>
           {contexto ? (
             <>
-              <span aria-hidden="true" style={{ ...CT.dado, color: 'var(--rule-strong)' }}>
+              <span aria-hidden="true" style={{ ...CT.dado, color: 'var(--fio-tinta)' }}>
                 /
               </span>
               <span
                 style={{
                   ...CT.etiqueta,
-                  color: 'var(--text-strong)',
+                  color: 'var(--text-invert)',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -307,14 +369,13 @@ export function ConsoleLayout() {
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <nav
+          className="op-lateral"
           aria-label="Famílias e produtos com fila"
           style={{
             flexShrink: 0,
             width: LARGURA_LATERAL,
-            borderRight: 'var(--fio) solid var(--rule)',
-            padding: '18px 0',
+            padding: '20px 0',
             overflowY: 'auto',
-            background: 'var(--surface-page)',
           }}
         >
           <Link
@@ -338,14 +399,7 @@ export function ConsoleLayout() {
               >
                 <span
                   aria-hidden="true"
-                  style={{
-                    display: 'inline-block',
-                    width: '6px',
-                    height: '6px',
-                    marginRight: '7px',
-                    background: familia.token,
-                    verticalAlign: 'middle',
-                  }}
+                  style={{ display: 'block', width: '3px', height: '13px', background: familia.token }}
                 />
                 {familia.nome}
               </span>
@@ -377,12 +431,13 @@ export function ConsoleLayout() {
           <p
             style={{
               ...CT.nota,
-              fontSize: '11px',
+              fontSize: '10.5px',
+              lineHeight: 1.45,
               color: 'var(--text-faint)',
-              padding: `0 12px`,
+              padding: '14px 16px 0',
               margin: 0,
-              borderTop: 'var(--fio) solid var(--rule)',
-              paddingTop: '12px',
+              borderTop: 'var(--fio) solid var(--rule-strong)',
+              maxWidth: '30ch',
             }}
           >
             Só aparece família cujo produto recebe pedido. Hoje é Advisory. Academy, Software e

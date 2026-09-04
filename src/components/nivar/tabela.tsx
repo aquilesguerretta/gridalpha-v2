@@ -174,6 +174,10 @@ export interface TabelaProps<L> {
   /** `<tr>` marcada por controle externo (não por `:hover`). */
   linhaMarcada?: string;
   onClicarLinha?: (linha: L) => void;
+  /** Célula de rodapé por chave de coluna. Fecha a grade em vez de
+   *  deixá-la terminar no ar, e é onde a contagem chega ao olho depois
+   *  da varredura. Coluna sem entrada aqui sai vazia. */
+  rodape?: Partial<Record<string, ReactNode>>;
 }
 
 const GLIFO: Record<Ordem, string> = { neutro: '↕', asc: '↑', desc: '↓' };
@@ -196,6 +200,7 @@ export function Tabela<L>({
   onOrdenar,
   linhaMarcada,
   onClicarLinha,
+  rodape,
 }: TabelaProps<L>) {
   const cls = ['nv-tab', zebra ? 'nv-tab--zebra' : '', hover ? 'nv-tab--hover' : '']
     .filter(Boolean)
@@ -260,6 +265,17 @@ export function Tabela<L>({
             );
           })}
         </tbody>
+        {rodape ? (
+          <tfoot>
+            <tr>
+              {colunas.map((c) => (
+                <td key={c.chave} className={c.numerico ? 'nv-num' : undefined}>
+                  {rodape[c.chave] ?? null}
+                </td>
+              ))}
+            </tr>
+          </tfoot>
+        ) : null}
       </table>
     </div>
   );

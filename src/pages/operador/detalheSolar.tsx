@@ -143,7 +143,11 @@ export function DetalheSolar({ pedido, produto }: { pedido: PedidoNaFila; produt
       </div>
 
       <div style={{ display: 'grid', gap: '26px' }}>
+        {/* A FOCAL desta tela: o livro-razão nao e uma secao entre tres,
+            e o produto. Conclusao e entregavel sao o que se faz DEPOIS
+            dele. Estava em 10,5px, do mesmo tamanho das outras duas. */}
         <Secao
+          data-focal=""
           rotulo="Livro-razão da proposta"
           nota={RAZAO_SEM_PERSISTENCIA}
           style={{ borderTop: 'none', paddingTop: 0 }}

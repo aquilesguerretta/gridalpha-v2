@@ -29,6 +29,13 @@ import { nomeDoProduto, produtoComFilaPorId } from '../../lib/operador/catalogo'
 import { AGORA_DA_AMOSTRA, filaDe, type PedidoNaFila } from '../../lib/operador/mock';
 import { formatarData, formatarIdade, idadePorExtenso, medirIdade } from '../../lib/operador/idade';
 
+/** A tabela não estica até a borda da janela. Cinco colunas em 1590px
+ *  jogam "enviado" e "idade" a 200px do dado que descrevem, e a
+ *  varredura vertical — a única razão de existir tabela densa — morre.
+ *  Esta medida mantém as colunas juntas o bastante para o olho descer
+ *  uma coluna sem perder a linha. */
+const MEDIDA_DA_FILA = '1140px';
+
 /** Rótulo de estado. O backend só tem dois valores, e o terceiro caso —
  *  produto SEM o campo — se declara em vez de virar um estado inventado
  *  (`src/lib/diagnostico/api.ts:27`). */
@@ -163,21 +170,114 @@ export function FilaView() {
 
   const semNada = linhas.length === 0;
 
-  return (
-    <>
-      <h1 style={{ ...CT.titulo, color: 'var(--text-strong)', margin: '0 0 2px' }}>{titulo}</h1>
-      <p style={{ ...CT.nota, color: 'var(--text-muted)', margin: '0 0 10px', maxWidth: '68ch' }}>
-        {produto
-          ? 'Os pedidos deste produto. A coluna de idade é tempo decorrido, não prazo.'
-          : 'Todos os pedidos que chegaram, de todos os produtos com fila. A coluna de idade é tempo decorrido, não prazo.'}
-      </p>
+  // As três contagens do resumo. Sem cor por estado — `no-semaforo` vale
+  // aqui como em todo lugar, e "aguardando" não é vermelho.
+  const aguardando = linhas.filter((p) => p.status === 'submitted').length;
+  const entregues = linhas.filter((p) => p.status === 'ready').length;
+  const semEstado = linhas.filter((p) => p.status === null).length;
 
-      <div style={{ marginBottom: '18px' }}>
-        <Frescor
-          estado="ilustrativa"
-          detalhe={`${linhas.length} ${linhas.length === 1 ? 'pedido' : 'pedidos'} · o endpoint de fila ainda não existe`}
-        />
+  // A idade do mais antigo da fila — o rodapé devolve o extremo depois
+  // da varredura, sem que ninguém precise reler a primeira linha.
+  const maisAntigo = linhas.reduce(
+    (pior, p) =>
+      medirIdade(p.criadoEm, AGORA_DA_AMOSTRA).ms > medirIdade(pior.criadoEm, AGORA_DA_AMOSTRA).ms
+        ? p
+        : pior,
+    linhas[0],
+  );
+
+  return (
+    <div style={{ maxWidth: MEDIDA_DA_FILA }}>
+      {/* BLOCO DE TÍTULO — o foco da tela.
+          Antes: h1 de 24px e o número de pedidos enterrado numa linha de
+          10,5px. Não havia onde o olho pousar. Agora o título usa a
+          escala de display (32px) e a CONTAGEM é numeral mono de 40px,
+          que é o dado que o operador quer antes de qualquer outro. */}
+      <header
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: '12px 32px',
+          paddingBottom: '14px',
+          borderBottom: 'var(--fio-forte) solid var(--rule-heavy)',
+          marginBottom: '2px',
+        }}
+      >
+        <div style={{ minWidth: 0 }}>
+          <h1
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 'var(--fw-display)',
+              fontSize: 'var(--ts-display-3)',
+              lineHeight: 'var(--lh-display-3)',
+              letterSpacing: 'var(--tr-display-3)',
+              color: 'var(--text-strong)',
+              margin: 0,
+            }}
+          >
+            {titulo}
+          </h1>
+          <p style={{ ...CT.nota, color: 'var(--text-muted)', margin: '7px 0 0', maxWidth: '58ch' }}>
+            {produto
+              ? 'Os pedidos deste produto, do mais antigo ao mais recente.'
+              : 'Todos os pedidos que chegaram, de todos os produtos com fila.'}{' '}
+            A coluna de idade é tempo decorrido, nunca prazo.
+          </p>
+        </div>
+
+        <p
+          style={{
+            display: 'flex',
+            alignItems: 'baseline',
+            gap: '9px',
+            margin: 0,
+            flex: 'none',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-data)',
+              fontWeight: 500,
+              fontSize: 'var(--ts-dado-1)',
+              lineHeight: 'var(--lh-dado-1)',
+              letterSpacing: '-.03em',
+              color: 'var(--text-strong)',
+              fontVariantNumeric: 'tabular-nums lining-nums',
+            }}
+          >
+            {linhas.length}
+          </span>
+          <span style={{ ...CT.eyebrow, color: 'var(--text-faint)' }}>
+            {linhas.length === 1 ? 'pedido' : 'pedidos'}
+          </span>
+        </p>
+      </header>
+
+      <div style={{ margin: '10px 0 22px' }}>
+        <Frescor estado="ilustrativa" detalhe="o endpoint de fila ainda não existe" />
       </div>
+
+      {/* TIRA DE RESUMO — três contagens em mono grande. Entrou porque a
+          tela terminava a tabela e deixava ~600px de creme morto: nada
+          para o olho fazer, e nenhuma leitura agregada da fila. */}
+      {!semNada ? (
+        <div className="op-resumo" style={{ marginBottom: '26px' }}>
+          <div className="op-resumo__cel" data-focal="">
+            <span className="op-resumo__n">{aguardando}</span>
+            <span className="op-resumo__rot">Aguardando leitura</span>
+          </div>
+          <div className="op-resumo__cel">
+            <span className="op-resumo__n">{entregues}</span>
+            <span className="op-resumo__rot">Parecer entregue</span>
+          </div>
+          <div className="op-resumo__cel">
+            <span className="op-resumo__n">{semEstado}</span>
+            <span className="op-resumo__rot">Sem campo de estado</span>
+          </div>
+        </div>
+      ) : null}
 
       {semNada ? (
         <EstadoVazio
@@ -198,6 +298,10 @@ export function FilaView() {
               setOrdenadaPor(chave);
               setOrdem(proxima);
             }}
+            rodape={{
+              [produto ? 'cliente' : 'produto']: `${linhas.length} ${linhas.length === 1 ? 'pedido' : 'pedidos'}`,
+              idade: maisAntigo ? formatarIdade(maisAntigo.criadoEm, AGORA_DA_AMOSTRA) : null,
+            }}
           />
           <p style={{ ...CT.nota, color: 'var(--text-faint)', maxWidth: '68ch', marginTop: '12px' }}>
             <strong style={{ fontWeight: 500 }}>sem estado</strong> não é falha de leitura:
@@ -207,6 +311,6 @@ export function FilaView() {
           </p>
         </>
       )}
-    </>
+    </div>
   );
 }

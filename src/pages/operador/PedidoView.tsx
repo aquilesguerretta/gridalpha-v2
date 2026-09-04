@@ -59,10 +59,10 @@ export function PedidoView() {
 
   switch (produto.natureza) {
     case 'documento-padronizado':
-      return <DetalheCLE pedido={pedido} produto={nome} />;
+      return <DetalheCLE pedido={pedido} />;
     case 'documento-aberto':
-      return <DetalheSolar pedido={pedido} produto={nome} />;
+      return <DetalheSolar pedido={pedido} />;
     case 'ficha':
-      return <DetalheDiagnostico pedido={pedido} produto={nome} />;
+      return <DetalheDiagnostico pedido={pedido} />;
   }
 }

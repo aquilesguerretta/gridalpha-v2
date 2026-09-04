@@ -22,6 +22,7 @@ import { PerfilPlataforma } from './pages/conta/PerfilPlataforma';
 import { ContaDeLuzExpressPage } from './pages/conta-de-luz-express/ContaDeLuzExpressPage';
 import { SolarProposalValidatorPage } from './pages/solar-proposal-validator/SolarProposalValidatorPage';
 import { DiagnosticoEnergeticoPage } from './pages/diagnostico-energetico/DiagnosticoEnergeticoPage';
+import { OperadorRouter } from './pages/operador/OperadorRouter';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -159,6 +160,27 @@ createRoot(document.getElementById('root')!).render(
               antigo para `/br` segue válido, sem redirecionamento. */}
           <Route path="/br/*" element={<PortalBRRouter />} />
           <Route path="/us" element={<LandingPage />} />
+
+          {/* Console do operador (Portal do Operador Wave 2) — a
+              superfície interna onde os pedidos que chegam dos produtos
+              Advisory são trabalhados. SPLAT, não rota rasa: o console é
+              hierarquia real (fila → produto → pedido), ao contrário dos
+              três produtos acima, cujo fluxo v1 cabe numa tela só. Mesmo
+              padrão de `/br/*` e `/alexandria/*` — o `OperadorRouter`
+              declara as próprias rotas e tem catch-all próprio,
+              devolvendo o mesmo `NotFound` desta árvore.
+
+              SEM GATE, e é deliberado nesta wave: `PlatformUser` não
+              carrega papel, e o gate real do backend é por env
+              (`ADVISORY_OPERATOR_EMAIL`), que o front não conhece nem
+              pode replicar — um gate por e-mail no cliente daria a
+              aparência da proteção sem a substância, porque a recusa
+              real é do endpoint, não da tela. A rota é alcançável por
+              endereço digitado, e o console DECLARA isso numa tarja no
+              topo. O gate entra na wave de ligação, junto com o
+              endpoint de fila. Medido em
+              `docs/operador-recon-frontend.md` §1.3 e no adendo. */}
+          <Route path="/operador/*" element={<OperadorRouter />} />
 
           {/* Endereço desconhecido devolve um 404 REAL (Portal Debt
               Wave 1). Até aqui caía na home brasileira em silêncio —

@@ -41,6 +41,7 @@ import '../../design/nivar/motion.css';
 import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
 import { EstilosTabela } from '../../components/nivar/tabela';
 import { familiasComFila, nomeDoProduto, produtoComFilaPorId } from '../../lib/operador/catalogo';
+import { pendentes } from '../../lib/operador/mock';
 
 export const RESPIRO_LATERAL = '32px';
 const LARGURA_LATERAL = '224px';
@@ -131,6 +132,33 @@ function EstilosConsole() {
       .op-familia{display:block;padding:0 12px 6px;border-bottom:var(--fio) solid var(--rule)}
       .op-aviso{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;padding:7px ${RESPIRO_LATERAL};border-bottom:var(--fio) solid var(--rule-strong);background:var(--zebra)}
     `}</style>
+  );
+}
+
+/** O indicador de notificação DENTRO do portal — o segundo canal, ao
+ *  lado do e-mail que o backend já dispara.
+ *
+ *  É NÚMERO EM MONO, não pílula: `no-pill-chip-default` é regra P1 do
+ *  auditor, e uma bolinha colorida aqui seria semáforo de urgência —
+ *  exatamente o que a doutrina de "idade, nunca prazo" proíbe. O número
+ *  conta o que ainda não foi respondido, e quem decide se são muitos é
+ *  quem lê.
+ *
+ *  Zero some em vez de virar "0": coluna sem pendência não precisa
+ *  anunciar a própria ausência a cada render. */
+function Pendentes({ rotulo, quantos }: { rotulo: string; quantos: number }) {
+  return (
+    <span style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
+      <span>{rotulo}</span>
+      {quantos > 0 ? (
+        <span
+          style={{ ...CT.dado, fontSize: '11px', color: 'var(--text-faint)', flex: 'none' }}
+          aria-label={`${quantos} ${quantos === 1 ? 'pedido aguardando' : 'pedidos aguardando'}`}
+        >
+          {quantos}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -299,7 +327,7 @@ export function ConsoleLayout() {
               marginBottom: '18px',
             }}
           >
-            Fila completa
+            <Pendentes rotulo="Fila completa" quantos={pendentes()} />
           </Link>
 
           {familias.map(({ familia, produtos }) => (
@@ -337,7 +365,7 @@ export function ConsoleLayout() {
                           : 'var(--text-body)',
                     }}
                   >
-                    {destino.titulo}
+                    <Pendentes rotulo={destino.titulo} quantos={pendentes(fila.produtoId)} />
                   </Link>
                 ))}
               </div>

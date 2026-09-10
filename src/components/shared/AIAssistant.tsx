@@ -335,7 +335,7 @@ export function AIAssistant() {
           placeholder={
             apiKeyOk
               ? "Ask anything about today's market..."
-              : 'Add VITE_ANTHROPIC_API_KEY to .env.local to enable.'
+              : 'Sign in to a NIVAR account to use the AI service.'
           }
           aria-label="Ask the GridAlpha AI"
           disabled={!apiKeyOk}

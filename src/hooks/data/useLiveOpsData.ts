@@ -23,6 +23,11 @@ type ReserveMargin = {
   load_actual_mw: number;
 };
 
+type ZonePriceExtreme = {
+  zone: string;
+  price: number;
+};
+
 const CANONICAL_ZONES = new Set([
   'WEST_HUB', 'COMED', 'AEP', 'ATSI', 'DAY', 'DEOK', 'DUQ', 'DOMINION',
   'DPL', 'EKPC', 'PPL', 'PECO', 'PSEG', 'JCPL', 'PEPCO', 'BGE', 'METED',
@@ -69,9 +74,12 @@ export interface LiveOpsData {
   zoneHistory: number[];
   rtoPrice: number;
   temperatureF: number;
+  weatherSampleSize: number;
   loadForecastMw: number;
   actualLoadMw: number;
   weatherAlert: string;
+  highestZone: ZonePriceExtreme | null;
+  lowestZone: ZonePriceExtreme | null;
   avg24h: number;
 }
 
@@ -148,6 +156,15 @@ export function useLiveOpsData(selectedZone: string | null): LiveOpsData {
   const temperatures = weather?.points.map((point) => point.temperature_c) ?? [];
   const averageTemperatureC = avg(temperatures);
   const hasPrecipitation = weather?.points.some((point) => point.precip_mm > 0) ?? false;
+  const zonePrices = Object.entries(allZones)
+    .map(([zone, value]) => ({ zone, price: Number(value.lmp_total) }))
+    .filter((entry) => Number.isFinite(entry.price));
+  const highestZone = zonePrices.length
+    ? zonePrices.reduce((highest, entry) => entry.price > highest.price ? entry : highest)
+    : null;
+  const lowestZone = zonePrices.length
+    ? zonePrices.reduce((lowest, entry) => entry.price < lowest.price ? entry : lowest)
+    : null;
 
   return {
     live: current !== null && weather !== null,
@@ -160,9 +177,14 @@ export function useLiveOpsData(selectedZone: string | null): LiveOpsData {
     zoneHistory,
     rtoPrice: Number(allZones.WEST_HUB?.lmp_total ?? 0),
     temperatureF: temperatures.length ? averageTemperatureC * 9 / 5 + 32 : 0,
+    weatherSampleSize: temperatures.length,
     loadForecastMw: Number(reserve?.load_forecast_mw ?? 0),
     actualLoadMw: Number(reserve?.load_actual_mw ?? 0),
-    weatherAlert: hasPrecipitation ? 'Precipitation' : 'None',
+    weatherAlert: weather
+      ? hasPrecipitation ? 'Precipitation' : 'No precipitation'
+      : 'Unavailable',
+    highestZone,
+    lowestZone,
     avg24h: avg(zoneHistory),
   };
 }

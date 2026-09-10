@@ -51,3 +51,32 @@ test('SSE builds a valid same-origin EventSource URL', async () => {
   assert.match(stream, /new EventSource\(browserApiUrl\(['"]\/api\/stream['"]\)/);
   assert.doesNotMatch(stream, /railway\.app/);
 });
+
+test('AI assistant gates anonymous users with the shared auth state', async () => {
+  const assistant = await source('src/components/shared/AIAssistant.tsx');
+  const anthropic = await source('src/services/anthropic.ts');
+
+  assert.match(assistant, /useAuth\(\)/);
+  assert.match(assistant, /const canUseAI = !authLoading && user !== null/);
+  assert.match(assistant, /if \(!canUseAI \|\| !text\.trim\(\) \|\| isStreaming\) return/);
+  assert.match(assistant, /to="\/entrar"/);
+  assert.match(assistant, /disabled=\{!canUseAI\}/);
+  assert.match(assistant, /Sign in required/);
+  assert.doesNotMatch(assistant, /isApiKeyConfigured/);
+  assert.doesNotMatch(anthropic, /isApiKeyConfigured|VITE_ANTHROPIC/);
+});
+
+test('migrated market drivers show unavailable state instead of numeric fallbacks', async () => {
+  const lmpCard = await source('src/components/LMPCard.tsx');
+  const blockStart = lmpCard.indexOf('Market Drivers row');
+  const blockEnd = lmpCard.indexOf('function LMPExpandedZone');
+  assert.ok(blockStart >= 0 && blockEnd > blockStart);
+  const marketDrivers = lmpCard.slice(blockStart, blockEnd);
+
+  assert.match(marketDrivers, /PJM regional avg/);
+  assert.match(marketDrivers, /Comparison unavailable/);
+  assert.match(marketDrivers, /price === null \? '—'/);
+  assert.match(marketDrivers, /liveOps\.highestZone/);
+  assert.doesNotMatch(marketDrivers, /Live station/);
+  assert.doesNotMatch(marketDrivers, /\b(?:41|128\.4|2\.1|92|36\.60|32\.04|1\.58)\b/);
+});

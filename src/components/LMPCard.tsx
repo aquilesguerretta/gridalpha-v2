@@ -29,6 +29,11 @@ function LMPExpandedSystem() {
   const loadForecastGw = liveOps.loadForecastMw / 1000;
   const actualLoadGw = liveOps.actualLoadMw / 1000;
   const loadDeltaGw = actualLoadGw - loadForecastGw;
+  const hasWeather = liveOps.weatherSampleSize > 0;
+  const hasLoadComparison = loadForecastGw > 0 && actualLoadGw > 0;
+  const loadProgressPct = hasLoadComparison
+    ? Math.max(0, Math.min(100, (actualLoadGw / loadForecastGw) * 100))
+    : 0;
 
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', height: '100%', overflow: 'auto' }}>
@@ -79,10 +84,12 @@ function LMPExpandedSystem() {
         <div style={{ flex: 1, padding: '16px', border: '0.5px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>WEATHER</div>
           <div style={{ fontFamily: F.mono, fontSize: '28px', color: C.textPrimary, fontWeight: 'bold' }}>
-            {(liveOps.temperatureF || 41).toFixed(0)}F
+            {hasWeather ? `${liveOps.temperatureF.toFixed(0)}F` : '—'}
           </div>
           <div style={{ fontFamily: F.sans, fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>
-            {liveOps.weatherAlert || 'Normal'} · Live station
+            {hasWeather
+              ? `${liveOps.weatherAlert} · PJM regional avg · ${liveOps.weatherSampleSize}-location sample`
+              : 'PJM regional weather unavailable'}
           </div>
         </div>
         {/* Load vs Forecast */}
@@ -90,18 +97,20 @@ function LMPExpandedSystem() {
           <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '8px' }}>LOAD VS FORECAST</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
             <span style={{ fontFamily: F.mono, fontSize: '28px', color: C.textPrimary, fontWeight: 'bold' }}>
-              {loadForecastGw > 0 ? loadForecastGw.toFixed(1) : '128.4'}
+              {loadForecastGw > 0 ? loadForecastGw.toFixed(1) : '—'}
             </span>
             <span style={{ fontFamily: F.mono, fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>GW</span>
             <span style={{ fontFamily: F.sans, fontSize: '10px', color: loadDeltaGw > 0 ? '#FFB800' : C.electricBlue }}>
-              {loadDeltaGw >= 0 ? '▲' : '▼'} {Math.abs(loadDeltaGw || 2.1).toFixed(1)} GW vs forecast
+              {hasLoadComparison
+                ? `${loadDeltaGw >= 0 ? '▲' : '▼'} ${Math.abs(loadDeltaGw).toFixed(1)} GW vs forecast`
+                : 'Comparison unavailable'}
             </span>
           </div>
           <div style={{ height: '4px', background: 'rgba(255,255,255,0.08)', marginTop: '8px' }}>
             <div
               style={{
                 height: '100%',
-                width: `${Math.max(0, Math.min(100, loadForecastGw > 0 ? (actualLoadGw / loadForecastGw) * 100 : 92))}%`,
+                width: `${loadProgressPct}%`,
                 background: C.electricBlue,
               }}
             />
@@ -112,13 +121,13 @@ function LMPExpandedSystem() {
           <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', marginBottom: '12px' }}>ZONE EXTREMES</div>
           <div style={{ display: 'flex', gap: '24px' }}>
             {[
-              { label: 'HIGHEST', zone: 'RECO',  price: 36.60, color: '#FF4444' },
-              { label: 'LOWEST',  zone: 'COMED', price: 32.04, color: C.electricBlue },
-              { label: 'MOST CONGESTED', zone: 'PSEG', price: 1.58, color: '#FFB800' },
+              { label: 'HIGHEST', zone: liveOps.highestZone?.zone ?? 'Unavailable', price: liveOps.highestZone?.price ?? null, color: '#FF4444' },
+              { label: 'LOWEST', zone: liveOps.lowestZone?.zone ?? 'Unavailable', price: liveOps.lowestZone?.price ?? null, color: C.electricBlue },
+              { label: 'MOST CONGESTED', zone: 'Unavailable', price: null, color: '#FFB800' },
             ].map(({ label, zone, price, color }) => (
               <div key={label}>
                 <div style={{ fontFamily: F.mono, fontSize: '8px', color: 'rgba(255,255,255,0.2)', marginBottom: '4px' }}>{label}</div>
-                <div style={{ fontFamily: F.mono, fontSize: '18px', color, fontWeight: 'bold' }}>{price.toFixed(2)}</div>
+                <div style={{ fontFamily: F.mono, fontSize: '18px', color, fontWeight: 'bold' }}>{price === null ? '—' : price.toFixed(2)}</div>
                 <div style={{ fontFamily: F.mono, fontSize: '9px', color: 'rgba(255,255,255,0.3)' }}>{zone}</div>
               </div>
             ))}

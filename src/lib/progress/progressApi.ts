@@ -10,11 +10,9 @@
 // viaja em fetch cross-site, então caminho relativo é o que serve dev e
 // produção sem `if (dev)`.
 //
-// NÃO segue o padrão de `src/lib/atlas/worldApi.ts` (Wave 27) de propósito:
-// aquele arquivo é dado PÚBLICO e usa `fetchEnvelope`/`BASE_URL` absoluto
-// com `credentials: 'omit'` (`src/services/api/client.ts`) — errado aqui,
-// porque progresso é por conta e precisa do cookie httpOnly de sessão
-// viajando em toda chamada, exatamente como identidade.
+// O Atlas Mundial e o cliente canônico também usam caminhos relativos;
+// progresso acrescenta `credentials: 'include'` porque precisa do cookie
+// httpOnly de sessão em toda chamada, exatamente como identidade.
 //
 // Endpoint 22 (`POST /events`) devolve JSON PLANO, mesmo idioma do
 // `activate` da Wave 9 — reporta o que acabou de acontecer, não é leitura

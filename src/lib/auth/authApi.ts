@@ -13,8 +13,7 @@
 // carregar frescor de dado (`timestamp`, `data_age_seconds`), que não
 // significa nada numa chamada de identidade. Passar por lá seria
 // forçar um validador de envelope sobre respostas que legitimamente
-// não têm um. `BASE_URL` é reaproveitado — a configuração continua
-// com uma fonte só (`VITE_BACKEND_URL`).
+// não têm um. Todas as chamadas de browser usam `/api/*` same-origin.
 //
 // PRIMEIRO USO DE `credentials: 'include'` NO PROJETO. Grep no fechamento
 // da Fase 1: a única ocorrência de `credentials:` em todo o src/ era
@@ -33,10 +32,7 @@
 // Caminho relativo resolve nos dois ambientes sem `if (dev)`:
 //   · dev  — `server.proxy['/api']` do vite.config.ts encaminha para o
 //            Railway, e o browser vê tudo como mesma origem;
-//   · prod — frontend e backend já dividem a origem no Railway.
-// Se a topologia mudar para domínios separados (a Wave 9 registra que
-// isso está indeciso), a correção é `SESSION_COOKIE_SAMESITE=none` no
-// backend + origem absoluta aqui — não uma reescrita.
+//   · prod — o rewrite do vercel.json encaminha `/api/*` ao Railway.
 
 // ─── Formas do contrato (camelCase, literais do backend) ──────────
 

@@ -34,7 +34,7 @@
 import { feature as topoFeature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { Feature, Geometry } from 'geojson';
-import { BASE_URL } from '@/services/api/client';
+import { browserApiUrl } from '@/lib/backendBase';
 
 // ─────────────────────────────────────────────────────────────────────
 // Tipos — espelho do contrato real (docs/v2-backend-contract.md § Wave
@@ -161,11 +161,9 @@ const N3_ISO: Record<string, readonly [string, string]> = {
 };
 
 // ─────────────────────────────────────────────────────────────────────
-// Fetch — os perfis são dado público e vivem no backend Railway.
-// O proxy /api do Vite existe só em desenvolvimento; em deploys
-// estáticos (Vercel) um caminho relativo cairia no próprio frontend.
-// Por isso a API usa BASE_URL, enquanto o TopoJSON continua relativo
-// porque é um asset empacotado no mesmo deploy.
+// Fetch — perfis passam pelo `/api` same-origin (Vite em desenvolvimento,
+// rewrite da Vercel em produção). O TopoJSON continua relativo porque é
+// um asset empacotado no mesmo deploy.
 // ─────────────────────────────────────────────────────────────────────
 
 async function buscarJson<T>(url: string, signal?: AbortSignal): Promise<T> {
@@ -178,14 +176,14 @@ async function buscarJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 export function buscarPaisesMundo(signal?: AbortSignal): Promise<Envelope<PaisResumo[]>> {
   return buscarJson<Envelope<PaisResumo[]>>(
-    `${BASE_URL}/api/atlas/world/countries`,
+    browserApiUrl('/api/atlas/world/countries'),
     signal,
   );
 }
 
 export function buscarPerfilPais(iso: string, signal?: AbortSignal): Promise<Envelope<PaisPerfil>> {
   return buscarJson<Envelope<PaisPerfil>>(
-    `${BASE_URL}/api/atlas/world/countries/${encodeURIComponent(iso)}`,
+    browserApiUrl(`/api/atlas/world/countries/${encodeURIComponent(iso)}`),
     signal,
   );
 }

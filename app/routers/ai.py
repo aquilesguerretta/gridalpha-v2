@@ -31,9 +31,23 @@ _MAX_BODY_BYTES = 64 * 1024
 _MAX_TOTAL_TEXT_CHARS = 48_000
 _RATE_LIMIT_REQUESTS = 20
 _RATE_LIMIT_WINDOW_SECONDS = 60.0
+_DEFAULT_GLOBAL_RATE_LIMIT_REQUESTS = 60
+_GLOBAL_RATE_LIMIT_ENV = "AI_GLOBAL_RATE_LIMIT_REQUESTS"
 
 _rate_limit_windows: dict[str, deque[float]] = {}
+_global_rate_limit_window: deque[float] = deque()
 _rate_limit_lock = Lock()
+
+
+def _global_rate_limit_requests() -> int:
+    raw_value = os.environ.get(_GLOBAL_RATE_LIMIT_ENV, "").strip()
+    if not raw_value:
+        return _DEFAULT_GLOBAL_RATE_LIMIT_REQUESTS
+    try:
+        configured = int(raw_value)
+    except ValueError:
+        return _DEFAULT_GLOBAL_RATE_LIMIT_REQUESTS
+    return configured if configured > 0 else _DEFAULT_GLOBAL_RATE_LIMIT_REQUESTS
 
 
 class AnthropicMessage(BaseModel):
@@ -119,13 +133,25 @@ def _require_ai_user(user: User = Depends(get_current_user)) -> User:
         window = _rate_limit_windows.setdefault(user_key, deque())
         while window and window[0] <= cutoff:
             window.popleft()
+        while _global_rate_limit_window and _global_rate_limit_window[0] <= cutoff:
+            _global_rate_limit_window.popleft()
+
         if len(window) >= _RATE_LIMIT_REQUESTS:
             raise HTTPException(
                 status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="AI request rate limit exceeded",
                 headers={"Retry-After": str(int(_RATE_LIMIT_WINDOW_SECONDS))},
             )
+
+        if len(_global_rate_limit_window) >= _global_rate_limit_requests():
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="AI global request rate limit exceeded",
+                headers={"Retry-After": str(int(_RATE_LIMIT_WINDOW_SECONDS))},
+            )
+
         window.append(now)
+        _global_rate_limit_window.append(now)
 
         # Bound memory even when many distinct accounts touch one process.
         stale_keys = [

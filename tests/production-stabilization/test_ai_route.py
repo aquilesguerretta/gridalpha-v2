@@ -43,8 +43,10 @@ class MockAnthropicClient:
 @pytest.fixture(autouse=True)
 def reset_ai_state(monkeypatch):
     ai._rate_limit_windows.clear()
+    ai._global_rate_limit_window.clear()
     MockAnthropicClient.calls.clear()
     monkeypatch.setenv("ANTHROPIC_API_KEY", "server-secret-for-test")
+    monkeypatch.delenv("AI_GLOBAL_RATE_LIMIT_REQUESTS", raising=False)
 
 
 @pytest.fixture
@@ -139,3 +141,27 @@ def test_per_process_rate_limit_rejects_burst(test_app: FastAPI, monkeypatch):
     assert responses[-1].status_code == 429
     assert responses[-1].headers["retry-after"] == "60"
     assert len(MockAnthropicClient.calls) == ai._RATE_LIMIT_REQUESTS
+
+
+def test_global_rate_limit_applies_across_different_accounts(
+    test_app: FastAPI, monkeypatch
+):
+    limit = 3
+    monkeypatch.setenv("AI_GLOBAL_RATE_LIMIT_REQUESTS", str(limit))
+    monkeypatch.setattr(ai.httpx, "AsyncClient", MockAnthropicClient)
+    users = iter(SimpleNamespace(id=uuid.uuid4()) for _ in range(limit + 1))
+    test_app.dependency_overrides[get_current_user] = lambda: next(users)
+    client = TestClient(test_app)
+
+    responses = [
+        client.post("/api/ai/complete", json=VALID_PAYLOAD)
+        for _ in range(limit + 1)
+    ]
+
+    assert all(response.status_code == 200 for response in responses[:-1])
+    assert responses[-1].status_code == 429
+    assert responses[-1].json()["detail"] == "AI global request rate limit exceeded"
+    assert responses[-1].headers["retry-after"] == "60"
+    assert len(ai._rate_limit_windows) == limit + 1
+    assert all(len(window) <= 1 for window in ai._rate_limit_windows.values())
+    assert len(MockAnthropicClient.calls) == limit

@@ -1634,3 +1634,19 @@
     transition: none !important;
   }
 }
+/* G2.1 working surfaces: a seated document, a raised reading context. */
+.g2-ops{isolation:isolate;background:linear-gradient(135deg,#e9e5ed,#f1eef2 45%)}
+.g2-ops__header{background:linear-gradient(120deg,#26252c,#1c1c21);box-shadow:0 3px 15px #15101b22;position:relative;z-index:3}
+.g2-ops__sidebar{background:linear-gradient(110deg,#e5e0e9,#eeeaf0);border-right:1px solid #cbc3d1}
+.g2-ops__main{background:linear-gradient(150deg,#f1eef2,#f6f3f7);position:relative}
+.g2-queue__inspect{background:linear-gradient(130deg,#fbf8fcf2,#ece6f0cf);backdrop-filter:blur(18px);border:1px solid #faf8fc99;border-top:2px solid var(--ops-accent);box-shadow:0 18px 38px -20px #3d2b4c3d}
+.g2-queue__inspect-top{font-size:10px}.g2-queue__inspect dl>div{font-size:11px;padding-block:12px}
+.g2-case__source-empty,.g2-case__document{box-shadow:0 19px 37px -24px #37284466;background:linear-gradient(125deg,#fcfafd,#eeebf2);border-color:#ddd6e3}
+.g2-case__annotation{background:linear-gradient(135deg,#e2dae9ed,#f5f0f6d9);backdrop-filter:blur(18px);box-shadow:0 12px 25px -20px #32253c4d;border:1px solid #d5cadd}
+.g2-case__source-meta{background:color-mix(in srgb,var(--ops-paper) 60%,transparent);padding:20px;border:1px solid var(--ops-rule)}
+.g2-ops[data-ops-theme=dark] .g2-ops__sidebar{background:linear-gradient(110deg,#17151b,#201b24);border-color:#423749}
+.g2-ops[data-ops-theme=dark] .g2-ops__main{background:linear-gradient(140deg,#242029,#1a181f)}
+.g2-ops[data-ops-theme=dark] .g2-queue__inspect{background:linear-gradient(135deg,#514456b3,#302c37eb);border-color:#79678366;border-top-color:var(--ops-accent);box-shadow:0 18px 38px -18px #08060c99}
+.g2-ops[data-ops-theme=dark] .g2-case__source-empty,.g2-ops[data-ops-theme=dark] .g2-case__document{background:linear-gradient(125deg,#302b35,#211e26);border-color:#4c4155;box-shadow:0 22px 40px -17px #08060c77}
+.g2-ops[data-ops-theme=dark] .g2-case__annotation{background:linear-gradient(135deg,#514258ad,#342d3db3);border-color:#71607f77;box-shadow:0 15px 25px -17px #08060c88}
+@media(max-width:700px){.g2-queue__inspect,.g2-case__annotation,.g2-case__source-empty{box-shadow:0 12px 22px -20px #30223744}.g2-case__source-meta{padding:15px}}

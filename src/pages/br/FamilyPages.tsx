@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowRight, ArrowUpRight, Check, FileText } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Check, FileText, Pause, Play } from "lucide-react";
 import { FamilyEmblem } from "../../components/g2/Brand";
 import {
   NivarShell,
@@ -14,6 +14,82 @@ import { DESTINOS_BR } from "../../lib/data/br-destinos";
 import { TerminalPreview } from "../terminal-brasil/TerminalBrasil";
 import { NotFound } from "../NotFound";
 import "./g2-pages.css";
+import "./g21-families.css";
+
+function FamilyFilm() {
+  const video = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const playbackIntent = useRef<"auto" | "paused" | "playing">("auto");
+
+  useEffect(() => {
+    const element = video.current;
+    if (!element) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const viewport = window.matchMedia("(max-width: 650px)");
+    let visible = false;
+    const update = () => {
+      if (visible && (!motion.matches || playbackIntent.current === "playing") && playbackIntent.current !== "paused" && !document.hidden) {
+        void element.play().catch(() => setPlaying(false));
+      } else {
+        element.pause();
+      }
+    };
+    const source = () => {
+      const format = viewport.matches ? "mobile" : "desktop";
+      element.poster = `/g2/g21/document-evidence-${format}-poster.webp`;
+      element.src = `/g2/g21/document-evidence-${format}.mp4`;
+      update();
+    };
+    source();
+    const observer = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      update();
+    }, { threshold: 0.15 });
+    observer.observe(element);
+    motion.addEventListener("change", update);
+    viewport.addEventListener("change", source);
+    document.addEventListener("visibilitychange", update);
+    return () => {
+      observer.disconnect();
+      element.pause();
+      motion.removeEventListener("change", update);
+      viewport.removeEventListener("change", source);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, []);
+
+  return (
+    <div className="g21-family-film">
+      <video
+        ref={video}
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        poster="/g2/g21/document-evidence-desktop-poster.webp"
+        aria-label="Estudo visual gerado: mãos examinam camadas de papel translúcido"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+      />
+      <button
+        className="g21-film-control"
+        aria-label={playing ? "Pausar filme de exame documental" : "Reproduzir filme de exame documental"}
+        onClick={() => {
+          if (playing) {
+            playbackIntent.current = "paused";
+            video.current?.pause();
+          } else {
+            playbackIntent.current = "playing";
+            void video.current?.play().catch(() => setPlaying(false));
+          }
+        }}
+      >
+        {playing ? <Pause size={13} /> : <Play size={13} />}
+        <span>{playing ? "Pausar" : "Reproduzir"}</span>
+      </button>
+    </div>
+  );
+}
 
 function FamilyHeader({
   id,
@@ -30,7 +106,7 @@ function FamilyHeader({
       <span>/</span>
       <span>{name}</span>
       <div>
-        <FamilyEmblem family={id} size={35} />
+        <FamilyEmblem family={id} size={28} variant="micro" />
         <span className="g2-mono">{verb}</span>
       </div>
     </div>
@@ -88,6 +164,7 @@ function Intelligence() {
         verb="ARGOS / OBSERVAR"
       />
       <section className="g2-intelligence-masthead g2-container">
+        <div className="g21-editorial-title">
         <span className="g2-eyebrow">NIVAR INTELLIGENCE</span>
         <h1>
           O que muda.
@@ -98,22 +175,30 @@ function Intelligence() {
           Atenção contínua ao mercado. Leitura com contexto.
           <br />E espaço para o que ainda não sabemos.
         </p>
+        </div>
+        <div className="g21-editorial-seal">
+          <FamilyEmblem family="intelligence" size={300} variant="hero" />
+          <span className="g2-mono">ARGOS / OBSERVAR</span>
+        </div>
       </section>
       <section className="g2-intelligence-cover g2-container">
         <figure>
           <img
-            src="/g2/reservoir-landscape.webp"
+            src="/g2/g21/hydro-flow.webp"
             alt="Reservatório e infraestrutura, paisagem ilustrativa gerada"
+            width={1800}
+            height={1018}
           />
           <figcaption className="g2-caption">
             ILUSTRAÇÃO GERADA · NÃO REPRESENTA UMA USINA IDENTIFICADA
           </figcaption>
         </figure>
-        <article>
+        <article className="g21-publication-cover">
           <div className="g2-cover-label">
             <span>ENERGY BRIEF</span>
             <span>Nº 00 / MÉTODO</span>
           </div>
+          <img className="g21-publication-art" src="/g2/g21/publication-photogram.webp" alt="Arte editorial gerada: condutores e sombras sobre papel mineral" width={1344} height={1800} />
           <h2>
             O preço mudou.
             <br />
@@ -245,7 +330,7 @@ function Advisory() {
         verb="SÓCRATES / QUESTIONAR"
       />
       <section className="g2-advisory-hero g2-container">
-        <div>
+        <div className="g21-advisory-copy">
           <span className="g2-eyebrow">A DECISÃO É SUA. O RIGOR É NOSSO.</span>
           <h1>
             Uma boa decisão
@@ -262,10 +347,18 @@ function Advisory() {
             Começar pela sua fatura
             <ArrowUpRight size={18} />
           </Link>
+          <div className="g21-advisory-seal">
+            <FamilyEmblem family="advisory" size={228} variant="hero" />
+          </div>
         </div>
+        <div className="g21-examination">
+          <figure className="g21-document-scene">
+            <FamilyFilm />
+            <figcaption className="g2-caption">EXAME DOCUMENTAL · ESTUDO VISUAL GERADO</figcaption>
+          </figure>
         <aside className="g2-argument">
           <div className="g2-argument-top">
-            <FamilyEmblem family="advisory" size={70} />
+            <FamilyEmblem family="advisory" size={38} variant="standard" />
             <span className="g2-mono">UM CASO. TRÊS EXAMES.</span>
           </div>
           <div
@@ -315,6 +408,7 @@ function Advisory() {
             <span className="g2-mono">{stages[stage].foot}</span>
           </div>
         </aside>
+        </div>
       </section>
       <section className="g2-section g2-container">
         <SectionLabel number="01">
@@ -434,7 +528,7 @@ function Academy() {
     >
       <FamilyHeader id="academy" name="Academy" verb="PERSEU / TRANSMITIR" />
       <section className="g2-academy-hero g2-container">
-        <div>
+        <div className="g21-academy-copy">
           <span className="g2-eyebrow">
             CONHECIMENTO PARA PENSAR POR CONTA PRÓPRIA
           </span>
@@ -452,11 +546,19 @@ function Academy() {
             Entrar na Alexandria
           </TextLink>
         </div>
-        <figure>
+        <figure className="g21-reading-scene">
+          <div className="g21-academy-seal">
+            <FamilyEmblem family="academy" size={290} variant="hero" />
+          </div>
+          <picture>
+            <source media="(max-width: 650px)" srcSet="/g2/g21/academy-reading-mobile.webp" />
           <img
-            src="/g2/academy-study.webp"
-            alt="Cena ilustrativa de estudo coletivo com documentos e diagramas"
+            src="/g2/g21/academy-reading.webp"
+            alt="Cena ilustrativa gerada: uma pessoa lê e anota documentos junto à luz de uma janela"
+            width={1800}
+            height={1344}
           />
+          </picture>
           <figcaption className="g2-caption">
             O CONHECIMENTO SE CONSTRÓI EM RELAÇÃO · ILUSTRAÇÃO GERADA
           </figcaption>
@@ -480,7 +582,8 @@ function Academy() {
               </button>
             ))}
           </div>
-          <article>
+          <article className="g21-learning-sheet">
+            <img className="g21-learning-art" src="/g2/g21/academy-transparency.webp" alt="Estudo visual gerado de curvas, grade e sobreposição de transparências, sem dados quantitativos" loading="lazy" width={1800} height={1344} />
             <span className="g2-eyebrow">{tracks[path].tag}</span>
             <h2>{tracks[path].name}</h2>
             <p>{tracks[path].desc}</p>
@@ -541,12 +644,19 @@ function Software() {
     >
       <FamilyHeader id="software" name="Software" verb="ARIADNE / ORGANIZAR" />
       <section className="g2-software-hero g2-container">
+        <div className="g21-software-heading">
+        <div>
         <span className="g2-eyebrow">INSTRUMENTOS DE LEITURA E OPERAÇÃO</span>
         <h1>
-          Complexidade não precisa
+          Complexidade não precisa{" "}
           <br />
           significar <em>perder o fio.</em>
         </h1>
+        </div>
+        <div className="g21-software-seal">
+          <FamilyEmblem family="software" size={280} variant="hero" />
+        </div>
+        </div>
         <div className="g2-software-intro">
           <p className="g2-lead">
             Uma região leva a uma série. Uma mudança leva a uma pergunta. Uma
@@ -557,7 +667,7 @@ function Software() {
             <ArrowUpRight size={18} />
           </Link>
         </div>
-        <TerminalPreview />
+        <div className="g21-terminal-stage"><TerminalPreview /></div>
         <Provenance>
           Demonstração funcional · séries sintéticas identificadas · conexão de
           dados brasileiros em desenvolvimento
@@ -658,7 +768,7 @@ function Hardware() {
         verb="HEFESTO / MEDIR E CONSTRUIR"
       />
       <section className="g2-hardware-hero g2-container">
-        <div>
+        <div className="g21-hardware-copy">
           <span className="g2-eyebrow">A REALIDADE ANTES DA INTERPRETAÇÃO</span>
           <h1>
             O mundo não
@@ -672,12 +782,20 @@ function Hardware() {
             com aquilo que existe antes de se tornar dado.
           </p>
           <span className="g2-status">FRENTE EM DESENVOLVIMENTO</span>
+          <div className="g21-hardware-seal">
+            <FamilyEmblem family="hardware" size={246} variant="hero" />
+          </div>
         </div>
-        <figure>
+        <figure className="g21-copper-scene">
+          <picture>
+            <source media="(max-width: 650px)" srcSet="/g2/g21/copper-connection-mobile.webp" />
           <img
-            src="/g2/grid-meter.webp"
-            alt="Medidor e transformadores de corrente em painel elétrico industrial, ilustração gerada"
+            src="/g2/g21/copper-connection.webp"
+            alt="Detalhe de conexão aparafusada em barramento de cobre, ilustração gerada"
+            width={1800}
+            height={1344}
           />
+          </picture>
           <figcaption className="g2-caption">
             ESTUDO CONCEITUAL GERADO · NÃO É UM PRODUTO DISPONÍVEL PARA VENDA
           </figcaption>
@@ -688,8 +806,10 @@ function Hardware() {
         <div className="g2-instrument-study">
           <figure>
             <img
-              src="/g2/grid-meter.webp"
-              alt="Medição elétrica e instalação em painel, ilustração gerada"
+              src="/g2/g21/substation-rain.webp"
+              alt="Infraestrutura elétrica com isoladores, cabos e estruturas metálicas sob chuva, ilustração gerada"
+              width={1800}
+              height={1018}
               loading="lazy"
             />
             <figcaption className="g2-caption">

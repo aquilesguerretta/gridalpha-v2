@@ -9,8 +9,9 @@ import {
 } from "../../components/g2/NivarShell";
 import { familyPath } from "../../components/g2/family-path";
 import { HeroFilm } from "../../components/g2/HeroFilm";
-import { TerminalPreview } from "../terminal-brasil/TerminalBrasil";
+import { HouseChapters } from "../../components/g2/HouseChapters";
 import "./g2-pages.css";
+import "./g21-portal.css";
 
 const HOUSE_FAMILIES = [
   {
@@ -21,6 +22,7 @@ const HOUSE_FAMILIES = [
     title: "O mercado muda. A leitura acompanha.",
     desc: "Sinais, publicações e contexto para entender o que está mudando — e por quê.",
     product: "Energy Brief",
+    productPath: "/br/brief",
   },
   {
     id: "advisory",
@@ -30,6 +32,7 @@ const HOUSE_FAMILIES = [
     title: "Uma conclusão precisa resistir.",
     desc: "A evidência de um caso, as premissas de uma proposta e as perguntas que ainda faltam.",
     product: "Parecer e contraditório",
+    productPath: "/br/advisory",
   },
   {
     id: "academy",
@@ -39,6 +42,7 @@ const HOUSE_FAMILIES = [
     title: "Conhecimento que se torna capacidade.",
     desc: "Do primeiro conceito à fluência para examinar o setor por conta própria.",
     product: "Alexandria",
+    productPath: "/alexandria?trilha=brasil",
   },
   {
     id: "software",
@@ -48,6 +52,7 @@ const HOUSE_FAMILIES = [
     title: "Complexidade, com um caminho legível.",
     desc: "Instrumentos para explorar relações, acompanhar séries e voltar à origem de um dado.",
     product: "Terminal Brasil",
+    productPath: "/br/terminal",
   },
   {
     id: "hardware",
@@ -57,6 +62,7 @@ const HOUSE_FAMILIES = [
     title: "A realidade é o ponto de partida.",
     desc: "Medição, instrumentação e telemetria. O trabalho começa antes da planilha.",
     product: "Instrumentação em desenvolvimento",
+    productPath: "/br/familia/hardware",
   },
 ];
 
@@ -71,11 +77,9 @@ export function G2Portal() {
           <div className="g2-eyebrow">
             <span className="g2-short-rule" /> CASA INDEPENDENTE · BRASIL
           </div>
-          <h1 id="portal-thesis">
-            A verdade vem
-            <br className="g2-desktop-break" /> antes da
-            <br className="g2-desktop-break" /> <em>recomendação.</em>
-          </h1>
+          <h1 id="portal-thesis">A verdade vem{" "}<br />antes da <em>recomendação.</em></h1>
+        </div>
+        <div className="g21-hero-aside">
           <p className="g2-lead">
             Inteligência em energia para compreender melhor.
             <br className="g2-desktop-break" /> Da realidade à decisão, com a
@@ -97,10 +101,8 @@ export function G2Portal() {
             </span>
           </div>
         </div>
-        <div className="g2-hero-film-wrap">
-          <HeroFilm />
-        </div>
       </section>
+      <div className="g2-hero-film-wrap g21-film-wide"><HeroFilm /></div>
       <div className="g2-hero-foot g2-container">
         <span className="g2-mono">PUBLICAÇÃO. INSTRUMENTO. TERMINAL.</span>
         <a href="#a-casa">
@@ -109,40 +111,7 @@ export function G2Portal() {
         </a>
         <span className="g2-mono">MÉTODO ANTES DO RESULTADO</span>
       </div>
-      <section className="g2-section g2-container" id="a-casa">
-        <SectionLabel number="01">A arquitetura da casa</SectionLabel>
-        <div className="g2-section-intro">
-          <h2>
-            Uma casa.
-            <br />
-            <em>Cinco formas de investigar.</em>
-          </h2>
-          <p className="g2-lead">
-            Medir, organizar, observar, questionar e transmitir. Capacidades que
-            se completam, com a independência como ponto em comum.
-          </p>
-        </div>
-        <div className="g2-house-index">
-          {HOUSE_FAMILIES.map((f) => (
-            <Link className="g2-house-row" to={familyPath(f.id)} key={f.id}>
-              <span className="g2-mono g2-row-number">{f.n}</span>
-              <div className="g2-house-identity">
-                <FamilyEmblem family={f.id} size={53} />
-                <div>
-                  <span>{f.name}</span>
-                  <small>{f.verb}</small>
-                </div>
-              </div>
-              <div className="g2-house-description">
-                <h3>{f.title}</h3>
-                <p>{f.desc}</p>
-              </div>
-              <span className="g2-house-product">{f.product}</span>
-              <ArrowUpRight size={23} />
-            </Link>
-          ))}
-        </div>
-      </section>
+      <HouseChapters families={HOUSE_FAMILIES} />
       <section className="g2-terminal-passage">
         <div className="g2-container g2-section">
           <SectionLabel number="02">NIVAR Software · Ariadne</SectionLabel>
@@ -160,7 +129,6 @@ export function G2Portal() {
               <TextLink to="/br/terminal">Entrar no Terminal Brasil</TextLink>
             </div>
           </div>
-          <TerminalPreview />
           <div className="g2-passage-foot">
             <Provenance>
               Demonstração interativa · séries sintéticas identificadas ·
@@ -177,10 +145,10 @@ export function G2Portal() {
         <div className="g2-editorial-feature">
           <figure>
             <img
-              src="/g2/reservoir-landscape.webp"
-              srcSet="/g2/reservoir-landscape-small.webp 1000w, /g2/reservoir-landscape.webp 2400w"
+              src="/g2/g21/substation-rain.webp"
+              srcSet="/g2/g21/substation-rain-mobile.webp 800w, /g2/g21/substation-rain.webp 2200w"
               sizes="(max-width:760px) 100vw, 60vw"
-              alt="Paisagem ilustrativa de reservatório e barragem sob céu mineral"
+              alt="Subestação sob a chuva, cena ilustrativa gerada"
               loading="lazy"
             />
             <figcaption className="g2-caption">
@@ -298,7 +266,7 @@ export function G2Portal() {
         <article>
           <figure>
             <img
-              src="/g2/academy-study.webp"
+              src="/g2/g21/academy-reading.webp"
               alt="Pessoas estudam diagramas e documentos juntas, em cena ilustrativa gerada"
               loading="lazy"
             />
@@ -322,8 +290,8 @@ export function G2Portal() {
         <article>
           <figure>
             <img
-              src="/g2/grid-meter.webp"
-              alt="Medidor elétrico em painel industrial, ilustração gerada"
+              src="/g2/g21/copper-connection.webp"
+              alt="Detalhe de conexão de barramento de cobre, ilustração gerada"
               loading="lazy"
             />
             <figcaption className="g2-caption">
@@ -346,7 +314,7 @@ export function G2Portal() {
         </article>
       </section>
       <section className="g2-house-manifesto g2-container">
-        <FamilyEmblem family="house" size={112} />
+        <FamilyEmblem family="house" variant="hero" size={220} />
         <div>
           <span className="g2-eyebrow">
             A INDEPENDÊNCIA É UM MÉTODO DE TRABALHO

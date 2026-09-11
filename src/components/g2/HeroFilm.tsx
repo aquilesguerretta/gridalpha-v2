@@ -3,112 +3,70 @@ import { ArrowUpRight, Pause, Play, RotateCcw } from "lucide-react";
 import { Wordmark } from "./Brand";
 import "./hero-film.css";
 
-const CHAPTER_MS = 3000;
+const CHAPTER_MS = 4000;
 const FILM_MS = CHAPTER_MS * 6;
 const CHAPTERS = [
-  {
-    id: "medir",
-    verb: "Medir",
-    family: "Hardware",
-    title: "Da geração ao registro.",
-    detail: "Medir uma grandeza. Preservar o instante e a unidade.",
-  },
-  {
-    id: "organizar",
-    verb: "Organizar",
-    family: "Software",
-    title: "Um número precisa de contexto.",
-    detail: "Fonte, período e unidade acompanham a evidência.",
-  },
-  {
-    id: "observar",
-    verb: "Observar",
-    family: "Intelligence",
-    title: "Uma hipótese pede exame.",
-    detail: "A sequência sugere uma alta. A cobertura sustenta a leitura?",
-  },
-  {
-    id: "questionar",
-    verb: "Questionar",
-    family: "Advisory",
-    title: "A conclusão muda com a evidência.",
-    detail: "Dois intervalos ausentes. Tendência não demonstrada.",
-  },
-  {
-    id: "transmitir",
-    verb: "Transmitir",
-    family: "Academy",
-    title: "Conhecimento que pode ser examinado.",
-    detail: "Publicar a interpretação. Preservar seus limites.",
-  },
-  {
-    id: "procurar",
-    verb: "Procurar",
-    family: "NIVAR",
-    title: "A investigação continua.",
-    detail: "Evidência. Método. Uma pergunta melhor.",
-  },
+  { id: "medir", verb: "Medir", family: "Hardware", title: "A realidade vem primeiro.", detail: "Uma grandeza. Um instante. Um registro." },
+  { id: "organizar", verb: "Organizar", family: "Software", title: "O dado ganha companhia.", detail: "Fonte, período e unidade permanecem juntos." },
+  { id: "observar", verb: "Observar", family: "Intelligence", title: "O que a sequência sugere?", detail: "De 68 a 108 MW. A cobertura sustenta essa leitura?" },
+  { id: "questionar", verb: "Questionar", family: "Advisory", title: "A conclusão precisa resistir.", detail: "Dois intervalos ausentes. Tendência não demonstrada." },
+  { id: "transmitir", verb: "Transmitir", family: "Academy", title: "Uma leitura que pode ser examinada.", detail: "A interpretação circula com seus limites." },
+  { id: "procurar", verb: "Procurar", family: "NIVAR", title: "O dado não encerra a pergunta.", detail: "A investigação continua. A evidência permanece aberta." },
 ] as const;
+const SAMPLES = [68, 64, null, 81, null, 108];
 
-/**
- * Eighteen-second native product film. One evidence record and one evidence
- * plane persist through all chapters; only their relationship and density change.
- * Sequence: source → ledger → series → missing evidence → publication → inquiry.
- * This is an authored illustration, not a recording or a live market feed.
- */
+/** A 24-second authored composition. Generated footage establishes territory and
+ * material; native UI carries one explicitly synthetic evidence record.
+ * Images do not identify a power plant or constitute the source of this series. */
 export function HeroFilm({ className = "" }: { className?: string }) {
   const stageRef = useRef<HTMLElement>(null);
   const progressRef = useRef<HTMLSpanElement>(null);
   const timeRef = useRef<HTMLSpanElement>(null);
   const elapsedRef = useRef(0);
   const activeRef = useRef(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [chapter, setChapter] = useState(0);
-  const [playing, setPlaying] = useState(
-    () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  const [playing, setPlaying] = useState(() => !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [visible, setVisible] = useState(!document.hidden);
   const [inView, setInView] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [compact, setCompact] = useState(() => window.matchMedia("(max-width: 700px)").matches);
   const running = playing && visible && inView;
   const current = CHAPTERS[chapter];
+  const scene = chapter === 4 ? "document-evidence" : chapter === 1 ? "hydro-flow" : "transmission-locked";
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onPreference = () => {
-      if (media.matches) setPlaying(false);
-    };
+    const viewport = window.matchMedia("(max-width: 700px)");
+    const onViewport = () => setCompact(viewport.matches);
+    const onPreference = () => { if (media.matches) setPlaying(false); };
     const onVisibility = () => setVisible(!document.hidden);
     media.addEventListener("change", onPreference);
+    viewport.addEventListener("change", onViewport);
     document.addEventListener("visibilitychange", onVisibility);
-    const observer = new IntersectionObserver(
-      ([entry]) => setInView(entry.intersectionRatio >= 0.12),
-      { threshold: 0.12 },
-    );
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.intersectionRatio >= 0.12), { threshold: 0.12 });
     if (stageRef.current) observer.observe(stageRef.current);
-    return () => {
-      media.removeEventListener("change", onPreference);
-      document.removeEventListener("visibilitychange", onVisibility);
-      observer.disconnect();
-    };
+    return () => { media.removeEventListener("change", onPreference); viewport.removeEventListener("change", onViewport); document.removeEventListener("visibilitychange", onVisibility); observer.disconnect(); };
   }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (running) void video.play().catch(() => { /* Poster and manual transport remain available. */ });
+    else video.pause();
+  }, [running, scene, compact]);
 
   useEffect(() => {
     if (!running) return;
     let frame = 0;
     let previous = 0;
     const advance = (now: number) => {
-      if (previous)
-        elapsedRef.current =
-          (elapsedRef.current + Math.min(now - previous, 100)) % FILM_MS;
+      if (previous) elapsedRef.current = (elapsedRef.current + Math.min(now - previous, 100)) % FILM_MS;
       previous = now;
       const next = Math.floor(elapsedRef.current / CHAPTER_MS);
-      if (activeRef.current !== next) {
-        activeRef.current = next;
-        setChapter(next);
-      }
-      if (progressRef.current)
-        progressRef.current.style.transform = `scaleX(${(elapsedRef.current % CHAPTER_MS) / CHAPTER_MS})`;
-      if (timeRef.current)
-        timeRef.current.textContent = `${String(Math.floor(elapsedRef.current / 1000)).padStart(2, "0")} / 18 s`;
+      if (activeRef.current !== next) { activeRef.current = next; setChapter(next); }
+      if (progressRef.current) progressRef.current.style.transform = `scaleX(${(elapsedRef.current % CHAPTER_MS) / CHAPTER_MS})`;
+      if (timeRef.current) timeRef.current.textContent = `${String(Math.floor(elapsedRef.current / 1000)).padStart(2, "0")} / 24 s`;
       frame = requestAnimationFrame(advance);
     };
     frame = requestAnimationFrame(advance);
@@ -121,326 +79,46 @@ export function HeroFilm({ className = "" }: { className?: string }) {
     activeRef.current = index;
     setChapter(index);
     if (progressRef.current) progressRef.current.style.transform = "scaleX(0)";
-    if (timeRef.current)
-      timeRef.current.textContent = `${String(index * 3).padStart(2, "0")} / 18 s`;
-  };
-
-  const replay = () => {
-    selectChapter(0);
-    setPlaying(true);
+    if (timeRef.current) timeRef.current.textContent = `${String(index * 4).padStart(2, "0")} / 24 s`;
   };
 
   return (
-    <figure
-      className={`g2-hero-film ${className}`}
-      ref={stageRef}
-      data-chapter={current.id}
-      data-playing={running}
-      aria-label="O método NIVAR, em seis movimentos"
-    >
-      <div
-        className="g2-film-stage"
-        role="img"
-        aria-label={`${current.verb}. ${current.title} ${current.detail} Paisagem gerada para comunicação visual. Exemplo didático com uma série sintética, unidade MW, período de 00 a 20 horas. Quatro valores disponíveis: 68, 64, 81 e 108 MW; dois intervalos ausentes.`}
-      >
-        <div className="g2-film-topline" aria-hidden="true">
-          <span>CADERNO DE EVIDÊNCIA</span>
-          <span className="g2-film-example">
-            <i /> EXEMPLO
-          </span>
+    <figure className={`g2-hero-film ${className}`} ref={stageRef} data-chapter={current.id} data-playing={running} aria-label="O método NIVAR, em seis movimentos">
+      <div className="g2-film-stage">
+        <div className="g2-film-cinema" aria-hidden="true">
+          <video key={`${scene}-${compact ? "mobile" : "desktop"}`} ref={videoRef} muted loop playsInline preload="metadata" poster={`/g2/g21/${scene}-${compact ? "mobile" : "desktop"}-poster.webp`} onCanPlay={() => setFailed(false)} onError={() => setFailed(true)}>
+            <source src={`/g2/g21/${scene}-mobile.mp4`} media="(max-width: 700px)" type="video/mp4" />
+            <source src={`/g2/g21/${scene}-desktop.mp4`} type="video/mp4" />
+          </video>
+          <div className="g2-film-cinema-shade" /><div className="g2-film-cinema-grain" />
         </div>
-
-        {/* Context is explicitly illustrative; EV—001 is the continuous evidence object. */}
-        <div className="g2-film-context" aria-hidden="true">
-          <img src="/g2/reservoir-landscape.webp" alt="" fetchPriority="high" />
-          <span className="g2-film-context-credit">Paisagem gerada</span>
-        </div>
-
-        <div className="g2-film-measurement" aria-hidden="true">
-          <span className="g2-film-measure-label">
-            MEDIÇÃO DE POTÊNCIA ATIVA
-          </span>
-          <div className="g2-film-circuit">
-            <div>
-              <svg viewBox="0 0 44 44" fill="none">
-                <circle cx="22" cy="22" r="17" />
-                <path d="M15 23C19 10 25 34 29 21" />
-              </svg>
-              <span>Gerador</span>
-            </div>
-            <span className="g2-film-circuit-wire">
-              <i />
-            </span>
-            <div>
-              <svg viewBox="0 0 44 44" fill="none">
-                <path d="M0 22H44" />
-                <circle cx="22" cy="22" r="13" />
-                <path d="M18 8V0M26 36V44" />
-              </svg>
-              <span>TC / TP</span>
-            </div>
-            <span className="g2-film-circuit-wire">
-              <i />
-            </span>
-            <div>
-              <svg viewBox="0 0 44 44" fill="none">
-                <path d="M6 5H38V39H6Z" />
-                <path d="M18 30V14H25C32 14 32 23 25 23H18" />
-              </svg>
-              <span>Medidor</span>
-            </div>
-          </div>
-          <p>
-            Tensão e corrente <span>→</span> potência ativa
-          </p>
-          <span className="g2-film-record-link">
-            <i />
-          </span>
-        </div>
-
-        <div className="g2-film-plane" aria-hidden="true">
-          <div className="g2-film-plane-head">
-            <span>EV—001</span>
-            <span className="g2-film-plane-state">
-              {chapter === 4
-                ? "NOTA DE MÉTODO"
-                : chapter === 3
-                  ? "HIPÓTESE REVISTA"
-                  : chapter === 5
-                    ? "EVIDÊNCIA ABERTA"
-                    : "REGISTRO"}
-            </span>
-          </div>
-          <div className="g2-film-source-ticket">
-            <span>POTÊNCIA ATIVA</span>
-            <strong>
-              68 <small>MW</small>
-            </strong>
-            <div>
-              <span>00:00 h</span>
-              <span>Amostra 001</span>
-            </div>
-          </div>
-          <div className="g2-film-ledger">
-            <div>
-              <span>FONTE</span>
-              <strong>Série sintética NIVAR</strong>
-            </div>
-            <div>
-              <span>PERÍODO</span>
-              <strong>Dia ilustrativo · 00–20 h</strong>
-            </div>
-            <div>
-              <span>UNIDADE</span>
-              <strong>MW · potência ativa</strong>
-            </div>
-            <div>
-              <span>COBERTURA</span>
-              <strong>
-                4 de 6 intervalos <em>· 2 ausentes</em>
-              </strong>
-            </div>
-            <p>O contexto pertence ao dado.</p>
-          </div>
-          <div className="g2-film-analysis">
-            <div className="g2-film-plot-title">
-              <span>Potência ativa</span>
-              <span>MW</span>
-            </div>
-            <svg
-              className="g2-film-plot"
-              viewBox="0 0 360 175"
-              role="presentation"
-            >
-              <g className="g2-film-plot-grid">
-                <path d="M40 22H344M40 70H344M40 118H344" />
-              </g>
-              <g className="g2-film-plot-axis">
-                <text x="0" y="27">
-                  120
-                </text>
-                <text x="9" y="75">
-                  90
-                </text>
-                <text x="9" y="123">
-                  60
-                </text>
-                <text x="25" y="153">
-                  00 h
-                </text>
-                <text x="139" y="153">
-                  08 h
-                </text>
-                <text x="255" y="153">
-                  16 h
-                </text>
-                <text x="315" y="153">
-                  20 h
-                </text>
-              </g>
-              <path
-                className="g2-film-plot-unknown"
-                d="M100 112L220 84M220 84L340 41"
-              />
-              <path className="g2-film-plot-known" d="M40 105L100 112" />
-              <g className="g2-film-plot-points">
-                <circle cx="40" cy="105" r="4" />
-                <circle cx="100" cy="112" r="4" />
-                <circle cx="220" cy="84" r="4" />
-                <circle cx="340" cy="41" r="4" />
-              </g>
-              <g className="g2-film-plot-gaps">
-                <path d="M160 27V120M280 27V120" />
-                <circle cx="160" cy="98" r="9" />
-                <circle cx="280" cy="63" r="9" />
-                <path d="M155 93L165 103M165 93L155 103M275 58L285 68M285 58L275 68" />
-              </g>
-              <text className="g2-film-plot-value" x="302" y="28">
-                108
-              </text>
+        <div className="g2-film-topline"><span>CADERNO DE EVIDÊNCIA VIVO</span><span><i /> BRASIL / FILME DE MÉTODO<button className="g21-film-stage-pause" onClick={() => setPlaying((v) => !v)} aria-label={playing ? "Pausar animação de abertura" : "Reproduzir animação de abertura"}>{playing ? <Pause size={13} /> : <Play size={13} />}</button></span></div>
+        <div className="g2-film-territory-label" aria-hidden="true"><span>01 / TERRITÓRIO</span><p>Energia é mundo.<br />Antes de ser número.</p></div>
+        <svg className="g2-film-thread" viewBox="0 0 1400 620" preserveAspectRatio="none" aria-hidden="true"><path className="g2-film-thread-base" d="M440 204 H518 L744 356 H848" /><path className="g2-film-thread-current" d="M440 204 H518 L744 356 H848" /><circle cx="440" cy="204" r="4" /><circle cx="848" cy="356" r="4" /></svg>
+        <div className="g2-film-evidence" aria-label="Registro EV—001. Exemplo didático com série sintética de potência ativa, unidade MW, de 00 a 20 horas. Valores 68, 64, ausente, 81, ausente e 108.">
+          <div className="g2-film-evidence-head"><span>EV—001</span><span>SÉRIE SINTÉTICA</span><i /></div>
+          <div className="g2-film-evidence-title"><span className="g2-film-record-kicker">{chapter === 4 ? "NOTA DE MÉTODO" : chapter === 3 ? "EXAME DA HIPÓTESE" : "POTÊNCIA ATIVA"}</span><h3>{chapter === 3 || chapter === 4 ? "Tendência não demonstrada." : chapter === 5 ? "Aberta a nova evidência." : chapter === 2 ? "O começo de uma hipótese." : "Preservar o instante."}</h3></div>
+          <div className="g2-film-record" aria-hidden="true"><strong>68<small>MW</small></strong><div><span>00:00 h</span><span>GRANDEZA / TEMPO / UNIDADE</span></div></div>
+          <div className="g2-film-ledger" aria-hidden="true"><div className="g2-film-ledger-head"><span>INSTANTE</span><span>POTÊNCIA</span><span>COBERTURA</span></div>{SAMPLES.map((v, i) => <div key={i} data-missing={v === null}><span>{String(i * 4).padStart(2, "0")}:00</span><strong>{v ?? "—"}<small>{v === null ? "" : " MW"}</small></strong><span>{v === null ? "ausente" : "disponível"}</span></div>)}</div>
+          <div className="g2-film-plot" aria-hidden="true">
+            <div className="g2-film-plot-caption"><span>POTÊNCIA / MW</span><span>4 DE 6 INTERVALOS</span></div>
+            <svg viewBox="0 0 510 190" role="presentation">
+              <defs><linearGradient id="g2-film-gap"><stop stopColor="#ca956b" stopOpacity=".03" /><stop offset=".5" stopColor="#ca956b" stopOpacity=".2" /><stop offset="1" stopColor="#ca956b" stopOpacity=".03" /></linearGradient></defs>
+              {[36, 94, 152].map((y, i) => <g key={y}><line x1="30" x2="492" y1={y} y2={y} className="g2-film-gridline" /><text x="0" y={y + 4}>{[120, 90, 60][i]}</text></g>)}
+              <g className="g2-film-gap-bands"><rect x="196" y="24" width="33" height="134" fill="url(#g2-film-gap)" /><rect x="376" y="24" width="33" height="134" fill="url(#g2-film-gap)" /></g>
+              <path d="M32 136.5 L122 144.3" className="g2-film-data-path" />
+              {SAMPLES.map((v, i) => <g key={i} className={v === null ? "g2-film-null-point" : "g2-film-valid-point"}>{v === null ? <><line x1={32 + i * 90} x2={32 + i * 90} y1="24" y2="158" strokeDasharray="3 6" /><text x={32 + i * 90} y="94" textAnchor="middle">—</text></> : <><circle cx={32 + i * 90} cy={152 - (v - 60) * 1.93} r="4" /><text x={32 + i * 90} y={138 - (v - 60) * 1.93} textAnchor="middle">{v}</text></>}<text className="g2-film-axis" x={32 + i * 90} y="181" textAnchor="middle">{String(i * 4).padStart(2, "0")}:00</text></g>)}
             </svg>
-            <div className="g2-film-plot-key">
-              <span>
-                <i /> Amostra
-              </span>
-              <span>
-                <i />{" "}
-                {chapter === 3 ? "2 intervalos ausentes" : "Ligação hipotética"}
-              </span>
-            </div>
+            <p className="g2-film-plot-question"><span>08:00 + 16:00</span> O que aconteceu nos intervalos que faltam?</p>
           </div>
-          <div className="g2-film-publication">
-            <h3>Tendência não demonstrada.</h3>
-            <ol className="g2-film-method-steps">
-              <li>
-                Comparar os extremos: <strong>68 → 108 MW.</strong>
-              </li>
-              <li>
-                Verificar a cobertura: <strong>4 de 6 intervalos.</strong>
-              </li>
-              <li>Medir as lacunas antes de concluir.</li>
-            </ol>
-            <div>
-              <span>ABERTA A NOVA EVIDÊNCIA</span>
-              <ArrowUpRight size={17} />
-            </div>
-          </div>
-          <div className="g2-film-return-sample">
-            <span>SEIS INTERVALOS / MW</span>
-            <div>
-              {[
-                { h: "00 h", v: "68" },
-                { h: "04 h", v: "64" },
-                { h: "08 h", v: "—" },
-                { h: "12 h", v: "81" },
-                { h: "16 h", v: "—" },
-                { h: "20 h", v: "108" },
-              ].map((point) => (
-                <span key={point.h} data-missing={point.v === "—"}>
-                  <small>{point.h}</small>
-                  <strong>{point.v}</strong>
-                </span>
-              ))}
-            </div>
-          </div>
-          <div className="g2-film-plane-bottom">
-            <span>MESMA FONTE · MESMO REGISTRO</span>
-            <span>↗</span>
-          </div>
+          <div className="g2-film-publication" aria-hidden="true"><div><span>01</span><p>Comparar os extremos.<strong>68 → 108 MW.</strong></p></div><div><span>02</span><p>Verificar a cobertura.<strong>4 de 6 intervalos.</strong></p></div><div><span>03</span><p>Medir as lacunas antes de concluir.</p></div><span className="g2-film-publication-open">ABERTA A NOVA EVIDÊNCIA <ArrowUpRight size={16} /></span></div>
+          <div className="g2-film-evidence-foot"><span>FONTE <b>Série sintética NIVAR</b></span><span>PERÍODO <b>Dia ilustrativo · 00–20 h</b></span></div>
         </div>
-
-        <div className="g2-film-reading" aria-hidden="true">
-          <span>
-            {chapter === 3 ? "HIPÓTESE REVISTA" : "HIPÓTESE / A EXAMINAR"}
-          </span>
-          <p className="g2-film-hypothesis">Uma tendência de alta?</p>
-          <p className="g2-film-revision">Tendência não demonstrada.</p>
-          <small>2 de 6 intervalos ausentes.</small>
-        </div>
-
-        <div className="g2-film-inquiry" aria-hidden="true">
-          <Wordmark height={32} />
-          <p>Nullius in verba.</p>
-          <div>
-            <span>A PRÓXIMA PERGUNTA</span>
-            <h3>O que falta medir?</h3>
-            <p>08 h e 16 h continuam em aberto.</p>
-          </div>
-        </div>
-
-        <div className="g2-film-provenance" aria-hidden="true">
-          <span>
-            <b>FONTE</b> Série sintética NIVAR
-          </span>
-          <span>
-            <b>UNIDADE</b> MW
-          </span>
-          <span>
-            <b>PERÍODO</b> Dia ilustrativo · 00–20 h
-          </span>
-        </div>
+        <div className="g2-film-final" aria-hidden="true"><Wordmark height={49} /><p>Independência<br />para ver melhor.</p><span>NULLIUS IN VERBA.</span></div>
+        <div className="g2-film-bottomline"><span>IMAGENS GERADAS · CENAS ILUSTRATIVAS</span><span>{failed ? "POSTER · VÍDEO INDISPONÍVEL" : "MESMA FONTE. MESMO REGISTRO."}</span></div>
       </div>
-
-      <figcaption className="g2-film-caption">
-        <div>
-          <span className="g2-film-caption-index">
-            0{chapter + 1} <span>/ 06</span>
-          </span>
-          <div>
-            <p>{current.title}</p>
-            <span>{current.detail}</span>
-          </div>
-        </div>
-        <div className="g2-film-transport">
-          <button
-            type="button"
-            onClick={() => setPlaying((value) => !value)}
-            aria-label={
-              playing
-                ? "Pausar filme do método NIVAR"
-                : "Reproduzir filme do método NIVAR"
-            }
-            title={playing ? "Pausar filme" : "Reproduzir filme"}
-          >
-            {playing ? <Pause size={15} /> : <Play size={15} />}
-          </button>
-          <button
-            type="button"
-            onClick={replay}
-            aria-label="Reiniciar filme de 18 segundos"
-            title="Reiniciar filme"
-          >
-            <RotateCcw size={14} />
-          </button>
-          <span ref={timeRef}>00 / 18 s</span>
-        </div>
-      </figcaption>
-      <div
-        className="g2-film-chapters"
-        role="group"
-        aria-label="Capítulos do filme. A seleção pausa a reprodução."
-      >
-        {CHAPTERS.map((item, index) => (
-          <button
-            type="button"
-            key={item.id}
-            onClick={() => selectChapter(index)}
-            aria-pressed={chapter === index}
-            aria-label={`${index + 1}. ${item.verb} — ${item.family}`}
-          >
-            <span className="g2-film-chapter-progress">
-              {chapter === index && <span ref={progressRef} />}
-            </span>
-            <span className="g2-film-chapter-number">0{index + 1}</span>
-            {item.verb}
-          </button>
-        ))}
-      </div>
-      <span className="g2-film-sr-only" role="status">
-        {!playing ? `${current.verb}. Filme pausado.` : ""}
-      </span>
+      <figcaption className="g2-film-caption"><span className="g2-film-chapter-count">0{chapter + 1}<small>/ 06</small></span><div className="g2-film-chapter-copy"><h2>{current.title}</h2><p>{current.detail}</p></div><div className="g2-film-control-group"><span ref={timeRef}>00 / 24 s</span><button onClick={() => setPlaying((v) => !v)} aria-label={playing ? "Pausar filme" : "Reproduzir filme"}>{playing ? <Pause size={16} /> : <Play size={16} />}</button><button onClick={() => { selectChapter(0); setPlaying(true); }} aria-label="Reiniciar filme"><RotateCcw size={16} /></button></div></figcaption>
+      <div className="g2-film-chapters" role="group" aria-label="Capítulos do filme">{CHAPTERS.map((c, i) => <button key={c.id} onClick={() => selectChapter(i)} aria-pressed={chapter === i}><span className="g2-film-chapter-rule">{chapter === i && <span ref={progressRef} />}</span><span className="g2-film-chapter-index">0{i + 1}</span><span>{c.verb}</span><small>{c.family}</small></button>)}</div>
     </figure>
   );
 }
-
-export default HeroFilm;

@@ -1,39 +1,8 @@
-@font-face {
-  font-family: "Nivar Newsreader";
-  src: url("../../../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2")
-    format("woff2");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Nivar Newsreader";
-  src: url("../../../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-italic.woff2")
-    format("woff2");
-  font-weight: 200 800;
-  font-style: italic;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Nivar Instrument";
-  src: url("../../../node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2")
-    format("woff2");
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Nivar Plex";
-  src: url("../../../node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2")
-    format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+@import "./g21-fonts.css";
 .g2 {
-  --g2-serif: "Nivar Newsreader", Georgia, serif;
-  --g2-sans: "Nivar Instrument", Arial, sans-serif;
-  --g2-mono: "Nivar Plex", monospace;
+  --g2-serif: "Nivar Literata", Georgia, serif;
+  --g2-sans: "Nivar Manrope", Arial, sans-serif;
+  --g2-mono: "Nivar Geist Mono", monospace;
   --g2-paper: #f1eef2;
   --g2-ink: #202228;
   --g2-secondary: #66626a;
@@ -233,12 +202,14 @@
 }
 .g2-emblem {
   object-fit: contain;
-  filter: grayscale(1) contrast(1.1);
+  filter: none;
+}
+.g2-emblem--hero {
+  object-fit: cover;
   mix-blend-mode: multiply;
 }
-.g2[data-g2-theme="dark"] .g2-emblem {
-  filter: grayscale(1) invert(1);
-  mix-blend-mode: screen;
+.g2[data-g2-theme="dark"] .g2-emblem--hero {
+  mix-blend-mode: normal;
 }
 .g2-wordmark {
   flex-shrink: 0;
@@ -315,7 +286,8 @@
   gap: 30px;
   padding-inline: 56px;
   border-bottom: 1px solid var(--g2-rule);
-  background: var(--g2-paper);
+  background: color-mix(in srgb, var(--g2-paper) 89%, transparent);
+  backdrop-filter: blur(18px) saturate(.7);
 }
 .g2-brand {
   display: flex;

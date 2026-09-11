@@ -1,6 +1,6 @@
-# NIVAR G2 — working design canon
+# NIVAR G2.1 — working design canon
 
-G2 EXPERIMENTAL. Human review is deferred. G0/G1 in `docs/g2-dream-build/g0-g1-canon.md` remain the approved constitution.
+G2.1 EXPERIMENTAL. G0/G1 in `docs/g2-dream-build/g0-g1-canon.md` remain the approved constitution. The owner rejected the G2 craft bar; this document describes the subsequent rendered direction, not a claim of human approval. The G2 structural checkpoint remains `69a84a5`.
 
 ## Thesis
 
@@ -16,19 +16,23 @@ NIVAR is an independent house of energy intelligence. Truth precedes recommendat
 
 ## Type voices
 
-Serif interprets: self-hosted Newsreader, optical editorial headlines, interpretations and questions. Sans organizes: self-hosted Instrument Sans, navigation, functional prose, controls. Mono proves: self-hosted IBM Plex Mono, source/time/unit/ID. All support Portuguese; licenses shipped. CSS names `--g2-serif`, `--g2-sans`, `--g2-mono`.
+Serif interprets: self-hosted **Literata**, including its actual italic face, for optical editorial headlines, interpretations and questions. Sans organizes: self-hosted **Manrope**, navigation, functional prose, controls. Mono proves: self-hosted **Geist Mono**, source/time/unit/ID. All support Portuguese; OFL licenses shipped. CSS names remain `--g2-serif`, `--g2-sans`, `--g2-mono`. Three actual type systems were compared on matching content; see `docs/g2-dream-build/g2-1/brand/decisions.md`. These font names are isolated to G2 scopes.
 
-Hero title 68–80px desktop / 46–52px mobile; page titles 48–64px; section titles 36–48px; body 16–18px; product 13–15px; metadata 10–12px. Never use mono for long prose. Tabular numerals for comparable values.
+Portal thesis approximately 100px at 1440, with dedicated mobile line breaks; page titles 48–64px; section titles 36–58px; reading body 16–18px; functional product 12–15px. Source and unit labels need an optical check at actual size, not just a CSS token check. Short marginal indexes can be smaller, but never carry the only disclosure of synthetic data. Never use mono for long prose. Tabular numerals for comparable values.
 
 ## Geometry and identity
 
-1328px maximum public content; 56px desktop margins; 24px tablet; 20px mobile. Prefer 5/7 hero split and long horizontal editorial rows. Whitespace has hierarchy: 96px section intervals, 32px group intervals, 8–16px within a group. Thin rules, near-zero corner radius, no drop-shadow dependency. Navigation is a house index with persistent family context; mobile is a real expanded menu.
+1328px maximum ordinary public content; 56px desktop margins; 24px tablet; 20px mobile. The Portal film deliberately opens beyond this measure, with a two-line thesis above it. Whitespace has hierarchy: approximately 96px section intervals, 32px group intervals, 8–16px within a group. Navigation is a house index with persistent family context; mobile is a real expanded menu. House chapters use a sticky index and normal document scrolling; no wheel hijack. Every chapter remains in the document when motion is reduced.
 
-Custom NIVAR wordmark uses continuous mechanical rhythm, a readable N, quiet I, deep V and a crossbar-free A. N monogram comes from it. Preserve original mythic characters as monochrome family emblems, small near capability names and larger in editorial contexts. UI icons come from Lucide, not mythic emblems.
+Original **Interval** wordmark uses a readable N, quiet I, open V and a distinctive interrupted A. It was selected against Current and Civic at multiple optical sizes. The six patrons have micro, standard and hero treatments: Argos / Intelligence; Sócrates / Advisory; Perseu / Academy; Ariadne / Software; Hefesto / Hardware; Diógenes / the house. Hero intaglios are ink on a mineral ground, not bronze medallions. Do not invert them into ghostlike negatives on dark surfaces. In Portal chapters the patron is printed into the same image field as the energy photograph, rather than floated in a separate little frame. Actual UI action icons remain functional and distinguishable.
+
+## Material hierarchy
+
+Mineral reading paper has a controlled tonal range and nearly imperceptible grain. Evidence glass is reserved for foreground records over actual motion or plotted geometry: a thin illuminated boundary, local blur and soft contact shadow. A whole website of glass cards is excluded. The Terminal has a near-black base, subdued geography, a brighter central instrument/plot and an independent matte interpretation plane. Large toolbar slabs and uniformly bright gray containers were rejected in the image-only critique. Shadows explain which plane is above which; they are not a substitute for composition. The Blender material study remains a study, not an invented device shipped as evidence.
 
 ## Hero and motion
 
-18-second silent, playable, pausable, chapter-selectable film prototype. One energy evidence record retains identity through MEDIR → ORGANIZAR → OBSERVAR → QUESTIONAR → TRANSMITIR → PROCURAR. Stable stage; material image and native text/data layers. Source/time/unit appear as actual readable type. Contradiction visibly interrupts a conclusion. The final frame resolves to NIVAR / Nullius in verba and returns to the source. Six adjacent chapter controls expose the full method without waiting. Motion explains relations. Reduced-motion defaults to a composed still and permits deliberate chapter selection. Offscreen/hidden playback pauses. Mobile recomposes the evidence record and source labels vertically. Invented scientific instruments, laboratory props and abstract calibration objects are excluded. Infrastructure, recognizable electrical hardware, data, documents and provenance carry the method. Generated imagery is illustration, never evidence of an actual facility or device.
+24-second silent, playable, pausable, chapter-selectable native composition over three actual generated six-second motion sources: transmission landscape, hydro flow and document handling. The 18-second structural prototype is archived. EV—001 retains identity through MEDIR → ORGANIZAR → OBSERVAR → QUESTIONAR → TRANSMITIR → PROCURAR. Its synthetic values are 68, 64, absent, 81, absent, 108 MW; a chart must never join across the missing observations. The record opens into an analytical field; its lower edge preserves the source when chapter contents change. Source/time/unit remain actual type. The final frame resolves to NIVAR / Nullius in verba and returns to the source. Six adjacent chapter controls expose the method without waiting. Reduced motion starts paused, with the matching portrait/landscape poster; deliberate chapter selection still works. Offscreen/hidden playback pauses. The phone uses dedicated portrait films and its own composition. Infrastructure, recognizable electrical hardware, data, documents and provenance carry the method. Generated imagery is illustration, never evidence of an actual facility or device. Invented scientific instruments and calibration props remain excluded.
 
 ## Truth and interaction
 
@@ -42,4 +46,4 @@ Keyboard-operable links, buttons, chapters, menus, chart controls. Visible focus
 
 ## Review bar
 
-Use `docs/g2-dream-build/bar.md`. Fresh-context critics see rendered outputs. A build pass is not visual approval. Record failures and changes in `docs/g2-dream-build/loop-progress.md`.
+Use `docs/g2-dream-build/g2-1/bar.md` and `docs/g2-dream-build/g2-1-reference-dossier.md`. Fresh-context critics see actual renders beside external references. A build pass is not visual approval. Keep all NO verdicts and corrective iterations in `docs/g2-dream-build/g2-1/loop-progress.md`; the old G2 log is historical. Inspect actual components at `/br/sistema`, with the local material lab as the honest fallback for unavailable Storybook. Never describe a disconnected tool as used successfully.

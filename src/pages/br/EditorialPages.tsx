@@ -8,13 +8,14 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { FamilyEmblem, Wordmark } from "../../components/g2/Brand";
+import { MaterialLab } from "../../components/g2/MaterialLab";
 import {
   NivarShell,
   Provenance,
   SectionLabel,
   TextLink,
 } from "../../components/g2/NivarShell";
-import loopProgress from "../../../docs/g2-dream-build/loop-progress.md?raw";
+import loopProgress from "../../../docs/g2-dream-build/g2-1/loop-progress.md?raw";
 import "./g2-editorial.css";
 
 const READINGS: Record<
@@ -418,103 +419,85 @@ export function MethodPage() {
 
 export function SystemPage() {
   return (
-    <NivarShell title="Caderno do sistema · G2 experimental">
-      <section className="g2-system-hero g2-container">
-        <span className="g2-eyebrow">G2 EXPERIMENTAL · CADERNO DO SISTEMA</span>
-        <h1>
-          Uma linguagem.
-          <br />
-          <em>Três densidades.</em>
-        </h1>
-        <p className="g2-lead">
-          Publicação, instrumento e terminal. Este espaço permite inspecionar a
-          direção em construção. A seleção humana continua aberta.
-        </p>
+    <NivarShell title="Caderno do sistema · G2.1">
+      <section className="g2-system-hero g21-system-hero g2-container">
+        <span className="g2-eyebrow">G2.1 · CADERNO DO SISTEMA</span>
+        <h1>O sistema, em matéria.</h1>
+        <p className="g2-lead">Um laboratório local de componentes: superfícies, estados de leitura, tipografia e os sinais da casa.</p>
       </section>
-      <section className="g2-section g2-container">
-        <SectionLabel number="01">Marca e família</SectionLabel>
-        <div className="g2-mark-specimen">
-          <Wordmark height={70} />
-          <Wordmark height={32} />
-          <Wordmark height={18} />
+      <MaterialLab />
+      <section className="g2-section g2-container g2-rule" data-system-section="brand">
+        <SectionLabel number="02">Um nome. Três escalas.</SectionLabel>
+        <div className="g21-system-wordmarks">
+          {[64, 24, 16].map(height => <figure key={height}><Wordmark height={height} /><figcaption>Interval / {height} px</figcaption></figure>)}
         </div>
-        <div className="g2-emblem-specimens">
+        <Provenance>Contornos originais. O desenho se ajusta na escala menor; os emblemas passam do sinal à gravura.</Provenance>
+        <div className="g21-system-emblems">
           {[
-            "house",
-            "hardware",
-            "software",
-            "intelligence",
-            "advisory",
-            "academy",
-          ].map((f) => (
-            <div key={f}>
-              <FamilyEmblem family={f} size={65} />
-              <span className="g2-mono">
-                {f === "house" ? "NIVAR" : f.toUpperCase()}
-              </span>
-            </div>
+            ["house", "Diógenes", "NIVAR", "Examinar"],
+            ["intelligence", "Argos", "Intelligence", "Observar"],
+            ["advisory", "Sócrates", "Advisory", "Questionar"],
+            ["academy", "Perseu", "Academy", "Transmitir"],
+            ["software", "Ariadne", "Software", "Organizar"],
+            ["hardware", "Hefesto", "Hardware", "Medir e construir"],
+          ].map(([family, name, label, verb]) => (
+            <article className="g21-system-emblem" key={family}>
+              <header><h3>{name}</h3><span>{label}</span></header>
+              <div className="g21-system-optics">
+                <div><FamilyEmblem family={family} size={16} variant="micro" /><span>16 px</span></div>
+                <div><FamilyEmblem family={family} size={48} variant="standard" /><span>48 px</span></div>
+                <div><FamilyEmblem family={family} size={96} variant="standard" /><span>96 px</span></div>
+              </div>
+              <FamilyEmblem family={family} size={400} variant="hero" className="g21-system-portrait" />
+              <p>{verb} / Intaglio editorial</p>
+            </article>
           ))}
         </div>
       </section>
       <section className="g2-section g2-container g2-rule">
-        <SectionLabel number="02">Cor é pontuação</SectionLabel>
-        <div className="g2-color-specimens">
+        <SectionLabel number="03">Cor é pontuação</SectionLabel>
+        <div className="g21-system-palette">
           {[
             ["Ferro", "#202228"],
             ["Mineral Claro", "#F1EEF2"],
             ["Lavanda", "#756985"],
             ["Prata", "#A5A3A8"],
-            ["Óxido", "#B65E50"],
+            ["Óxido", "#A44F42"],
             ["Grafite", "#121315"],
             ["Espresso", "#2A1F1F"],
             ["Aubergine", "#3C2A36"],
             ["Âmbar", "#C97A3E"],
-            ["Oliva", "#5B665A"],
+            ["Oliva", "#879382"],
           ].map(([label, color]) => (
             <div key={label}>
-              <div style={{ background: color }} />
-              <span>{label}</span>
-              <small>{color}</small>
+              <i style={{ background: color }} aria-hidden="true" />
+              <span>{label}<small>{color}</small></span>
             </div>
           ))}
         </div>
       </section>
       <section className="g2-section g2-container g2-rule">
-        <SectionLabel number="03">Cada voz tem um trabalho</SectionLabel>
-        <div className="g2-type-specimens">
+        <SectionLabel number="04">Cada voz tem um trabalho</SectionLabel>
+        <div className="g2-type-specimens g21-system-type">
           <article>
-            <span className="g2-mono">NEWSREADER · INTERPRETAR</span>
-            <h2>
-              O que isso nos
-              <br />
-              <em>permite afirmar?</em>
-            </h2>
+            <span className="g2-mono">LITERATA · INTERPRETAR</span>
+            <h2>O que isso nos permite afirmar?</h2>
           </article>
           <article>
-            <span className="g2-mono">INSTRUMENT SANS · ORGANIZAR</span>
+            <span className="g2-mono">MANROPE · ORGANIZAR</span>
             <p>Conhecimento que pode ser examinado.</p>
             <TextLink to="/br/metodo">Abrir o método</TextLink>
           </article>
           <article>
-            <span className="g2-mono">IBM PLEX MONO · PROVAR</span>
-            <pre>
-              FONTE Registro original
-              <br />
-              UNIDADE MW / MWh / R$/MWh
-              <br />
-              PERÍODO Declarado
-              <br />
-              NATUREZA Observado / derivado
-            </pre>
+            <span className="g2-mono">GEIST MONO · PROVAR</span>
+            <pre>{"ORIGEM  Série sintética\nUNIDADE MW\nAMOSTRA 04 de 06\nVALOR   81\nNATUREZA Ilustrativa"}</pre>
           </article>
         </div>
       </section>
       <section className="g2-section g2-container g2-rule">
-        <SectionLabel number="04">Histórico do Design Loop</SectionLabel>
-        <Provenance>
-          Atualizado a partir do registro de revisão desta branch.
-        </Provenance>
-        <pre className="g2-loop-log">{loopProgress}</pre>
+        <SectionLabel number="05">Registro de revisão · G2.1</SectionLabel>
+        <Provenance>Decisões e verificações desta passagem de design, com os limites ainda em aberto.</Provenance>
+        <details className="g21-system-loop"><summary>Abrir o registro desta versão <span>Documento de trabalho</span></summary><pre className="g2-loop-log">{loopProgress}</pre></details>
       </section>
     </NivarShell>
   );

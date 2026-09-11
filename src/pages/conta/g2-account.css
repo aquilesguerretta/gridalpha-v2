@@ -1,4 +1,5 @@
 .g2-account {
+  isolation: isolate;
   --font-body: var(--g2-sans);
   --font-display: var(--g2-serif);
   --font-data: var(--g2-mono);
@@ -635,3 +636,22 @@
     transition: none !important;
   }
 }
+/* G2.1: the account opens between territory and a quiet reading surface. */
+.g2-account__editorial{--text-strong:#f1eef2;--text-muted:#d0cad3;--rule:#f1eef233;--rule-strong:#f1eef255;--accent-house:#d7cbe0;color:var(--text-strong);background:linear-gradient(110deg,#151b22ee,#20202db3),url('/g2/g21/transmission-territory.webp') center/cover;position:relative;border-right:0}
+.g2-account__editorial h2{font-size:clamp(43px,4.05vw,64px);line-height:1.12;letter-spacing:-.047em}
+.g2-account__editorial h2 em{color:#e0d0df}
+.g2-account__editorial .g2-account__index{padding:0 22px 0 0;max-width:430px}
+.g2-account__editorial .g2-account__index a{color:#f1eef2}
+.g2-account__editorial footer{color:#e0d8e4;position:relative}
+.g2-account__editorial footer:after{content:'PAISAGEM ILUSTRATIVA GERADA';display:block;font:8px var(--g2-mono);color:#c4bac8;margin-top:18px;letter-spacing:.04em}
+.g2-account__form-panel{position:relative;background:linear-gradient(120deg,#faf8fa,#eeebf0);box-shadow:-22px 0 65px -35px #16102099}
+.g2-account__form-content h1{font-size:57px;letter-spacing:-.045em}
+.g2-account .conta-campo{background:#fbf9fb8c;box-shadow:inset 0 2px 4px #33223906;border-color:#c7bfcc;transition:background .2s,border-color .2s,box-shadow .2s}
+.g2-account .conta-campo:focus{background:#fcfafc;box-shadow:0 0 0 5px #b1a0c217}
+.g2-account__profile-section{background:var(--account-paper);padding:28px 30px;border:1px solid color-mix(in srgb,var(--rule) 50%,transparent);box-shadow:0 15px 35px -26px #33243d4d}
+.g2-account__profile-nav{background:color-mix(in srgb,var(--account-paper) 40%,transparent);padding:12px}
+.g2-account[data-account-theme=dark] .g2-account__form-panel{background:linear-gradient(120deg,#2a272e,#201f24);box-shadow:-22px 0 65px -35px #09070bbb}
+.g2-account[data-account-theme=dark] .conta-campo{background:#15141999;border-color:#5a5060;box-shadow:inset 0 2px 4px #08060c33}
+.g2-account[data-account-theme=dark] .conta-campo:focus{background:#19161f;box-shadow:0 0 0 5px #b1a0c214}
+@media(max-width:1050px){.g2-account__editorial h2{font-size:46px}.g2-account__form-content h1{font-size:49px}.g2-account__profile-section{padding:24px}}
+@media(max-width:760px){.g2-account__form-panel{order:0;padding:30px 24px;box-shadow:none}.g2-account__editorial{order:1;padding:34px 24px;background:linear-gradient(110deg,#151b22ee,#20202dbb),url('/g2/g21/transmission-territory-mobile.webp') center/cover}.g2-account__editorial h2{font-size:35px;line-height:1.15;margin-top:24px}.g2-account__form-content{padding:28px 0 22px}.g2-account__form-content h1{font-size:47px}.g2-account__profile-section{padding:23px 19px}.g2-account__profile-nav{padding:8px 0;background:none}.g2-account__profile-heading h1{font-size:44px}}

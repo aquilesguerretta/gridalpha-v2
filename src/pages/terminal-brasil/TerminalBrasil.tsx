@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   BookOpen,
   ChevronDown,
+  Crosshair,
   Database,
   Moon,
   Search,
@@ -42,6 +43,7 @@ import {
 } from "./sample";
 import type { MetricId, Observation, PeriodId, RegionId } from "./sample";
 import "../../components/g2/g2.css";
+import "../../components/g2/g21-fonts.css";
 import "./terminal-brasil.css";
 
 interface TerminalBrasilProps {
@@ -132,6 +134,22 @@ function SeriesTooltip({
   );
 }
 
+function RegionalTrace({ series, selectedIndex }: { series: Observation[]; selectedIndex: number }) {
+  const low = Math.min(...series.map((point) => point.value));
+  const high = Math.max(...series.map((point) => point.value));
+  const coordinate = (point: Observation) => [
+    2 + (point.index / (series.length - 1)) * 72,
+    24 - ((point.value - low) / (high - low || 1)) * 20,
+  ];
+  const selected = coordinate(series[Math.min(selectedIndex, series.length - 1)]);
+  return (
+    <svg className="g2t-region-trace" viewBox="0 0 76 28" aria-hidden="true">
+      <polyline points={series.map((point) => coordinate(point).join(",")).join(" ")} />
+      <circle cx={selected[0]} cy={selected[1]} r="2" />
+    </svg>
+  );
+}
+
 function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
   useEffect(() => {
     if (compact) return;
@@ -149,6 +167,9 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
   );
   const [tone, setTone] = useState<"graphite" | "paper">("graphite");
   const [eventIndex, setEventIndex] = useState(1);
+  const [probeIndex, setProbeIndex] = useState<number | null>(null);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [sourceSearch, setSourceSearch] = useState("");
   const [announcement, setAnnouncement] = useState("");
   const WorkspaceElement = compact ? "div" : "main";
@@ -169,6 +190,8 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
     (fraction) => series[Math.round((series.length - 1) * fraction)],
   );
   const selectedPoint = eventPoints[eventIndex];
+  const inspectedPoint = series[Math.min(probeIndex ?? selectedPoint.index, series.length - 1)];
+  const selectedMarket = SUBMERCADOS.find((market) => market.id === region)!;
   const question = questions[metric][eventIndex];
   const normalizedSearch = sourceSearch
     .toLocaleLowerCase("pt-BR")
@@ -193,6 +216,19 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
       : summary.change < 0
         ? "recua"
         : "permanece estável";
+
+  useEffect(() => {
+    const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(preference.matches);
+    update();
+    preference.addEventListener("change", update);
+    return () => preference.removeEventListener("change", update);
+  }, []);
+
+  function selectEvent(index: number) {
+    setEventIndex(index);
+    setProbeIndex(null);
+  }
 
   function openSources() {
     setSourceSearch("");
@@ -222,6 +258,8 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
     <section
       className={`g2-terminal${compact ? " g2-terminal--compact" : ""}`}
       data-tone={tone}
+      data-source={sourceMode}
+      data-map-open={mapOpen}
       aria-label="Terminal Brasil — ambiente demonstrativo"
     >
       <header className="g2t-header">
@@ -235,7 +273,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
         </Link>
         <div className="g2t-product">
           <span className="g2t-product-mark" aria-hidden="true">
-            ↗
+            <Crosshair size={19} strokeWidth={1.2} />
           </span>
           <span>
             Terminal Brasil<small>UMA LEITURA DO SISTEMA</small>
@@ -351,8 +389,12 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
         </div>
 
         <WorkspaceElement className="g2t-workspace">
+          <button className="g2t-mobile-map-toggle" type="button" aria-expanded={mapOpen} aria-controls={`${id}-geography`} onClick={() => setMapOpen(!mapOpen)}>
+            <Crosshair size={14} /><span>{mapOpen ? "Recolher geografia" : "Explorar geografia"}</span><span>{regionInfo.code}</span><ChevronDown size={14} />
+          </button>
           <section
             className="g2t-geography"
+            id={`${id}-geography`}
             aria-labelledby={`${id}-map-title`}
           >
             <div className="g2t-panel-heading">
@@ -362,6 +404,9 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
               <span>4 REGIÕES</span>
             </div>
             <div className="g2t-map-stage">
+              <div className="g2t-map-index" aria-hidden="true">
+                <span>PROJEÇÃO / BR</span><span>SELEÇÃO ESPACIAL</span>
+              </div>
               <span className="g2t-map-coordinate g2t-map-coordinate--top">
                 05° N
               </span>
@@ -374,12 +419,19 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                 role="group"
                 aria-label="Selecionar submercado brasileiro"
               >
+                <defs>
+                  <linearGradient id={`${id}-map-light`} x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="var(--g2t-map-selected)" />
+                    <stop offset="100%" stopColor="var(--g2t-map)" />
+                  </linearGradient>
+                </defs>
                 <path d={BRASIL_OUTLINE_D} className="g2t-map-outline" />
                 {SUBMERCADOS.map((submarket) => (
                   <path
                     key={submarket.id}
                     d={submarket.d}
                     className={`g2t-map-region${region === submarket.id ? " is-selected" : ""}`}
+                    style={region === submarket.id ? { fill: `url(#${id}-map-light)` } : undefined}
                     tabIndex={0}
                     role="button"
                     aria-label={`Selecionar ${submarket.nome}`}
@@ -395,6 +447,12 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                     <title>{submarket.nome}</title>
                   </path>
                 ))}
+                <g className="g2t-map-crosshair" style={{ transform: `translate(${selectedMarket.centroid[0]}px, ${selectedMarket.centroid[1]}px)` }} aria-hidden="true">
+                  <line x1="-720" y1="0" x2="720" y2="0" />
+                  <line x1="0" y1="-755" x2="0" y2="755" />
+                  <circle r="23" />
+                  <circle className="g2t-map-target" r="10" />
+                </g>
                 {SUBMERCADOS.map((submarket) => (
                   <g
                     key={submarket.id}
@@ -409,6 +467,10 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   </g>
                 ))}
               </svg>
+              <div className="g2t-spatial-tag" key={region}>
+                <Crosshair size={12} />
+                <span>{regionInfo.code}<small>REGIÃO SELECIONADA</small></span>
+              </div>
               <div className="g2t-map-caption">
                 <span>BR / SUBMERCADOS</span>
                 <button
@@ -428,8 +490,9 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
               aria-label="Submercado selecionado"
             >
               {REGIONS.map((item) => {
+                const regionalSeries = getSeries(item.id, period, metric);
                 const regional = describeSeries(
-                  getSeries(item.id, period, metric),
+                  regionalSeries,
                   metric,
                 );
                 return (
@@ -441,6 +504,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   >
                     <span className="g2t-region-code">{item.code}</span>
                     <span className="g2t-region-name">{item.short}</span>
+                    {isSample && <RegionalTrace series={regionalSeries} selectedIndex={inspectedPoint.index} />}
                     <span className="g2t-region-value">
                       {isSample ? formatValue(regional.last, metric) : "—"}
                     </span>
@@ -517,7 +581,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
             </div>
             <div className="g2t-series-reading">
               <div>
-                <span className="g2t-value-label">{metricInfo.longLabel}</span>
+                <span className="g2t-value-label">{metricInfo.longLabel} · última observação</span>
                 <div className="g2t-major-value">
                   {isSample ? formatValue(summary.last, metric) : "—"}
                   <span>{metricInfo.unit}</span>
@@ -554,6 +618,11 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                       data={series}
                       margin={{ top: 26, right: 26, bottom: 8, left: 4 }}
                       accessibilityLayer
+                      onClick={(state) => {
+                        if (state.activeTooltipIndex == null) return;
+                        const index = Number(state.activeTooltipIndex);
+                        if (Number.isInteger(index) && index >= 0 && index < series.length) setProbeIndex(index);
+                      }}
                     >
                       <defs>
                         <linearGradient
@@ -566,7 +635,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                           <stop
                             offset="0%"
                             stopColor="var(--g2t-accent)"
-                            stopOpacity={0.16}
+                            stopOpacity={0.23}
                           />
                           <stop
                             offset="100%"
@@ -578,7 +647,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                       <CartesianGrid
                         stroke="var(--g2t-rule)"
                         vertical={false}
-                        strokeDasharray="2 5"
+                        strokeOpacity={0.55}
                       />
                       <XAxis
                         dataKey="index"
@@ -595,7 +664,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                         }
                         tick={{
                           fill: "var(--g2t-muted)",
-                          fontSize: 10,
+                          fontSize: 12,
                           fontFamily: "var(--g2-mono, monospace)",
                         }}
                         axisLine={false}
@@ -610,7 +679,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                         tickCount={4}
                         tick={{
                           fill: "var(--g2t-muted)",
-                          fontSize: 10,
+                          fontSize: 12,
                           fontFamily: "var(--g2-mono, monospace)",
                         }}
                         tickFormatter={(value: number) =>
@@ -629,14 +698,13 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                         strokeOpacity={0.5}
                       />
                       <ReferenceLine
-                        x={selectedPoint.index}
+                        x={inspectedPoint.index}
                         stroke="var(--g2t-accent)"
-                        strokeDasharray="2 4"
-                        strokeOpacity={0.5}
+                        strokeOpacity={0.8}
                         label={{
-                          value: `NOTA ${String(eventIndex + 1).padStart(2, "0")}`,
+                          value: probeIndex == null ? `NOTA ${String(eventIndex + 1).padStart(2, "0")}` : inspectedPoint.label,
                           fill: "var(--g2t-accent)",
-                          fontSize: 10,
+                          fontSize: 12,
                           fontFamily: "var(--g2-mono, monospace)",
                           position: "insideTopRight",
                         }}
@@ -654,12 +722,14 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                           stroke: "var(--g2t-bg)",
                           strokeWidth: 2,
                         }}
-                        isAnimationActive={false}
+                        isAnimationActive={!reducedMotion}
+                        animationDuration={560}
+                        animationEasing="ease-out"
                       />
                       <ReferenceDot
-                        x={selectedPoint.index}
-                        y={selectedPoint.value}
-                        r={4}
+                        x={inspectedPoint.index}
+                        y={inspectedPoint.value}
+                        r={5}
                         fill="var(--g2t-accent)"
                         stroke="var(--g2t-bg)"
                         strokeWidth={2}
@@ -673,6 +743,45 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
+                  <div
+                    className="g2t-evidence-dock"
+                    data-placement={inspectedPoint.value > (summary.min + summary.max) / 2 ? "below" : "above"}
+                    style={{ left: `clamp(111px, ${18 + (inspectedPoint.index / (series.length - 1)) * 74}%, calc(100% - 111px))` }}
+                  >
+                    <div className="g2t-context-plane" key={`${region}-${period}-${metric}-${eventIndex}`}>
+                      <div className="g2t-context-heading">
+                        <span><Crosshair size={12} /> OBSERVAÇÃO</span>
+                        <button type="button" onClick={openSources} aria-label="Rastrear esta observação nas fontes">Fonte <ArrowUpRight size={12} /></button>
+                      </div>
+                      <div className="g2t-context-value"><strong>{formatValue(inspectedPoint.value, metric)}</strong><span>{metricInfo.unit}</span></div>
+                      <p>{regionInfo.code} <i /> {inspectedPoint.label} <i /> AMOSTRA</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="g2t-time-inspector">
+                  <div className="g2t-probe-heading">
+                    <span><Crosshair size={12} /> {probeIndex == null ? `NOTA 0${eventIndex + 1}` : "OBSERVAÇÃO"} / {regionInfo.code}</span>
+                    <output htmlFor={`${id}-time-scrub`}><b>{inspectedPoint.label}</b><span>{formatValue(inspectedPoint.value, metric)} <small>{metricInfo.unit}</small></span></output>
+                  </div>
+                  <label className="g2t-visually-hidden" htmlFor={`${id}-time-scrub`}>Inspecionar observação da série</label>
+                  <input
+                    id={`${id}-time-scrub`}
+                    className="g2t-time-scrub"
+                    type="range"
+                    min={0}
+                    max={series.length - 1}
+                    step={1}
+                    value={inspectedPoint.index}
+                    aria-valuetext={`${inspectedPoint.label}: ${formatValue(inspectedPoint.value, metric)} ${metricInfo.unit}. Amostra sintética.`}
+                    onChange={(event) => setProbeIndex(Number(event.target.value))}
+                  />
+                  <div className="g2t-timeline-events" role="group" aria-label="Notas na linha do tempo">
+                    {eventPoints.map((point, index) => (
+                      <button key={index} type="button" onClick={() => selectEvent(index)} aria-pressed={eventIndex === index && probeIndex == null}>
+                        <i aria-hidden="true" /><span>0{index + 1}</span><strong>{point.label}</strong><ArrowUpRight size={11} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <figcaption>
                   <span className="g2t-baseline-key" />
@@ -768,16 +877,16 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                     : "API brasileira não conectada. Nenhum dado substituto é tratado como observação."}
                 </p>
               </div>
-              <div className="g2t-reading-annotation g2t-reading-annotation--question">
+              <div className="g2t-reading-annotation g2t-reading-annotation--question" key={`${metric}-${eventIndex}`}>
                 <span>02 / CONTRADITÓRIO</span>
                 <p>
                   {isSample
-                    ? "O que mudaria esta leitura?"
+                    ? `Nota 0${eventIndex + 1}: uma hipótese.`
                     : "O que falta para retomar?"}
                 </p>
                 <small>
                   {isSample
-                    ? "Oferta, demanda, clima e intercâmbio precisam ser examinados em conjunto. Aqui, essas evidências ainda não existem."
+                    ? question.hypothesis
                     : "Uma fonte identificada, cobertura conhecida, horário de referência e método verificável."}
                 </small>
               </div>
@@ -822,7 +931,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   <button
                     key={index}
                     type="button"
-                    onClick={() => setEventIndex(index)}
+                    onClick={() => selectEvent(index)}
                     aria-pressed={eventIndex === index}
                     disabled={!isSample}
                   >
@@ -839,7 +948,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   </button>
                 ))}
               </div>
-              <div className="g2t-event-dossier" aria-live="polite">
+              <div className="g2t-event-dossier" key={`${metric}-${eventIndex}`} aria-live="polite">
                 <div>
                   <span className="g2t-eyebrow">
                     HIPÓTESE A EXAMINAR / 0{eventIndex + 1}

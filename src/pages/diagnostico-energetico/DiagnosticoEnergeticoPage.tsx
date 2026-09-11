@@ -45,7 +45,7 @@
 // Ligar a tela e anunciar o produto são decisões separadas.
 
 import { useEffect, useId, useState, type CSSProperties } from 'react';
-import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 
 import { useAuth } from '../../lib/auth/AuthContext';
@@ -62,7 +62,8 @@ import '../../design/nivar/typography.css';
 import '../../design/nivar/space.css';
 import '../../design/nivar/motion.css';
 
-import { FOLHA_PORTAL, WordmarkNivar } from '../../components/br/portalChrome';
+import { FOLHA_PORTAL } from '../../components/br/portalChrome';
+import { AdvisoryIntakeHeader, Wordmark } from '../../components/g2/AdvisoryIntakeTheme';
 import { PlantaBaixa } from '../../components/br/DestinoCard';
 import {
   CampoSelect,
@@ -328,6 +329,7 @@ export function DiagnosticoEnergeticoPage() {
   return (
     <div
       lang="pt-BR"
+      className="g2 g2-intake"
       data-nv-page=""
       data-mode={modo === 'noturno' ? 'noturno' : undefined}
       style={{
@@ -352,81 +354,7 @@ export function DiagnosticoEnergeticoPage() {
         style={{ flexShrink: 0, height: '4px', background: 'var(--gradiente-incandescente)' }}
       />
 
-      <header
-        style={{
-          flexShrink: 0,
-          height: '64px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '24px',
-          padding: `0 ${RESPIRO_LATERAL}`,
-          borderBottom: 'var(--fio) solid var(--rule)',
-          background: 'var(--surface-page)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Link
-            to="/br"
-            aria-label="NIVAR — voltar ao Portal Brasil"
-            onClick={(e) => {
-              if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-              e.preventDefault();
-              comTransicao(() => navigate('/br'));
-            }}
-            style={{ display: 'inline-flex', textDecoration: 'none', border: 'none' }}
-          >
-            <WordmarkNivar altura={30} idSufixo="diag-cabecalho" />
-          </Link>
-          <span
-            aria-hidden="true"
-            style={{ width: '1px', height: '14px', background: 'var(--rule)' }}
-          />
-          <span style={{ ...NT.etiqueta, color: 'var(--text-muted)' }}>Diagnóstico Energético</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '22px' }}>
-          <Link
-            className="nv-btn nv-btn--secundario"
-            to="/br/familia/advisory"
-            onClick={(e) => {
-              if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-              e.preventDefault();
-              comTransicao(() => navigate('/br/familia/advisory'));
-            }}
-          >
-            <span className="nv-btn__glifo" aria-hidden="true">
-              ←
-            </span>
-            Advisory
-          </Link>
-          <span
-            aria-hidden="true"
-            style={{ width: '1px', height: '12px', background: 'var(--rule)' }}
-          />
-          <div className="nv-modo" role="group" aria-label="Modo de exibição">
-            <button
-              type="button"
-              className={`nv-modo__op${modo === 'claro' ? ' nv-modo__op--ativo' : ''}`}
-              aria-pressed={modo === 'claro'}
-              onClick={() => setModo('claro')}
-            >
-              claro
-            </button>
-            <span className="nv-modo__sep" aria-hidden="true">
-              ·
-            </span>
-            <button
-              type="button"
-              className={`nv-modo__op${modo === 'noturno' ? ' nv-modo__op--ativo' : ''}`}
-              aria-pressed={modo === 'noturno'}
-              onClick={() => setModo('noturno')}
-            >
-              noturno
-            </button>
-          </div>
-        </div>
-      </header>
+      <AdvisoryIntakeHeader title="Diagnóstico Energético" mode={modo} onModeChange={setModo} onNavigate={(path) => comTransicao(() => navigate(path))} />
 
       <main
         tabIndex={0}
@@ -768,7 +696,7 @@ export function DiagnosticoEnergeticoPage() {
             }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-              <WordmarkNivar altura={17} idSufixo="diag-rodape" />
+              <Wordmark height={17} />
               <span style={{ ...NT.etiqueta, color: 'var(--text-strong)' }}>
                 Diagnóstico Energético
               </span>

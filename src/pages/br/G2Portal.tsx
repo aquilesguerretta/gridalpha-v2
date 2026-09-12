@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { FamilyEmblem } from "../../components/g2/Brand";
 import {
   NivarShell,
@@ -10,6 +10,8 @@ import {
 import { familyPath } from "../../components/g2/family-path";
 import { HeroFilm } from "../../components/g2/HeroFilm";
 import { HouseChapters } from "../../components/g2/HouseChapters";
+import { HouseFinale } from "../../components/g2/HouseFinale";
+import { TerminalThreshold } from "../../components/g2/TerminalThreshold";
 import "./g2-pages.css";
 import "./g21-portal.css";
 
@@ -68,7 +70,7 @@ const HOUSE_FAMILIES = [
 
 export function G2Portal() {
   return (
-    <NivarShell>
+    <NivarShell compactFooter>
       <section
         className="g2-portal-hero g2-container"
         aria-labelledby="portal-thesis"
@@ -129,6 +131,7 @@ export function G2Portal() {
               <TextLink to="/br/terminal">Entrar no Terminal Brasil</TextLink>
             </div>
           </div>
+          <TerminalThreshold />
           <div className="g2-passage-foot">
             <Provenance>
               Demonstração interativa · séries sintéticas identificadas ·
@@ -313,23 +316,7 @@ export function G2Portal() {
           </TextLink>
         </article>
       </section>
-      <section className="g2-house-manifesto g2-container">
-        <FamilyEmblem family="house" variant="hero" size={220} />
-        <div>
-          <span className="g2-eyebrow">
-            A INDEPENDÊNCIA É UM MÉTODO DE TRABALHO
-          </span>
-          <h2>
-            O compromisso é com a pergunta.
-            <br />
-            <em>Mesmo quando a resposta muda.</em>
-          </h2>
-        </div>
-        <Link className="g2-primary" to="/criar-conta">
-          Entre na casa
-          <ArrowRight size={18} />
-        </Link>
-      </section>
+      <HouseFinale />
     </NivarShell>
   );
 }

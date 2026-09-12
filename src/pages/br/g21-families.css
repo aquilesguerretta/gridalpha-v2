@@ -751,3 +751,22 @@
   .g2 .g21-family-film video { transition: none; }
 }
 .g2 .g21-film-control{min-height:44px}
+
+/* G2.2 — Software earns its operational instrument through a visible reading path. */
+.g2 .g22-software-opening { padding-block:42px 10px; }
+.g2 .g22-software-heading { display:grid; grid-template-columns:minmax(0,1fr) 290px; align-items:end; gap:50px; padding-bottom:46px; }
+.g2 .g22-software-heading h1 { font-family:var(--g2-serif); font-size:clamp(45px,4.35vw,74px); line-height:1.11; letter-spacing:-.065em; font-weight:400; margin:27px 0 0; }
+.g2 .g22-software-heading h1 em { color:var(--g2-family-accent,var(--g2-secondary)); font-weight:400; }
+.g2 .g22-software-heading>.g2-lead { font-size:15px; line-height:1.85; max-width:34ch; margin:0 0 5px; }
+@media(max-width:1050px) {
+  .g2 .g22-software-heading { grid-template-columns:minmax(0,1fr) 240px; gap:28px; }
+  .g2 .g22-software-heading h1 { font-size:clamp(42px,5.15vw,60px); }
+  .g2 .g22-software-heading>.g2-lead { font-size:13px; }
+}
+@media(max-width:650px) {
+  .g2 .g22-software-opening { padding-top:28px; }
+  .g2 .g22-software-heading { grid-template-columns:1fr; gap:24px; padding-bottom:31px; }
+  .g2 .g22-software-heading h1 { font-size:clamp(38px,10.2vw,55px); margin-top:25px; line-height:1.16; }
+  .g2 .g22-software-heading h1 br { display:none; }
+  .g2 .g22-software-heading>.g2-lead { font-size:14px; line-height:1.8; max-width:40ch; }
+}

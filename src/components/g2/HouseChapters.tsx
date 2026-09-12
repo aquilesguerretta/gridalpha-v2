@@ -4,7 +4,7 @@ import { ArrowUpRight } from "lucide-react";
 import { FamilyEmblem } from "./Brand";
 import { familyPath } from "./family-path";
 import { SectionLabel } from "./NivarShell";
-import { TerminalPreview } from "../../pages/terminal-brasil/TerminalBrasil";
+import { AriadneJourney } from "./AriadneJourney";
 import "./house-chapters.css";
 
 type FamilyChapter = { id: string; name: string; verb: string; n: string; title: string; desc: string; product: string; productPath: string };
@@ -68,7 +68,7 @@ export function HouseChapters({ families }: { families: FamilyChapter[] }) {
           return <article className="g21-house-chapter" id={`g21-house-${f.id}`} key={f.id} data-active={active === i} data-family={f.id}>
             <div className="g21-house-chapter-top"><span>{f.n} / {art.patron.toLocaleUpperCase("pt-BR")}</span><span>{f.verb.toLocaleUpperCase("pt-BR")}</span></div>
             <Link className="g21-house-title" to={familyPath(f.id)}><h3>{f.name}</h3><ArrowUpRight size={29} /></Link>
-            {f.id === "software" ? <div className="g21-house-instrument"><div className="g21-house-instrument-title"><FamilyEmblem family="software" variant="standard" size={62} decorative /><div><span>ARIADNE / DA RELAÇÃO AO PERCURSO</span><p>Selecione uma região. A leitura acompanha.</p></div></div><TerminalPreview /></div> : <div className="g21-house-collage">
+            {f.id === "software" ? <AriadneJourney compact /> : <div className="g21-house-collage">
               <picture><source media="(max-width:700px)" srcSet={`/g2/g21/${art.asset}-mobile.webp`} /><img src={`/g2/g21/${art.asset}.webp`} alt="" loading="lazy" /></picture>
               <div className="g21-house-portrait"><FamilyEmblem family={f.id} variant="hero" size={310} decorative /></div>
               <span className="g21-house-photo-credit">CENA ILUSTRATIVA GERADA</span>

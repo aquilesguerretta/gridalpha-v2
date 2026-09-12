@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowRight, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { ArrowRight, Menu, Moon, Plus, Search, Sun, X } from "lucide-react";
 import { useAuth } from "../../lib/auth/AuthContext";
 import { Wordmark } from "./Brand";
 import { familyPath } from "./family-path";
@@ -58,10 +58,12 @@ export function NivarShell({
   children,
   title = "Casa independente de inteligência energética",
   family,
+  compactFooter = false,
 }: {
   children: ReactNode;
   title?: string;
   family?: string;
+  compactFooter?: boolean;
 }) {
   const [dark, setDark] = useState(() => {
     try {
@@ -199,16 +201,23 @@ export function NivarShell({
       <main id="g2-main" tabIndex={-1}>
         {children}
       </main>
-      <footer className="g2-footer g2-container">
+      <footer className={`g2-footer g2-container${compactFooter ? " g22-footer-compact" : ""}`}>
+        {compactFooter ? <details className="g22-footer-index">
+          <summary>Índice da casa <Plus size={15} /></summary>
+          <nav aria-label="Índice da casa">
+            <div className="g2-footer-links">{FAMILIES.map(f => <Link to={familyPath(f)} key={f}>{FAMILY_NAMES[f]}</Link>)}</div>
+            <div className="g2-footer-links"><Link to="/br/metodo">Fonte e método</Link><Link to="/br/brief">Energy Brief</Link><Link to="/br/terminal">Terminal Brasil</Link><Link to="/conta">Minha conta</Link></div>
+          </nav>
+        </details> : <>
         <div className="g2-footer-top">
-          <div>
+          {!compactFooter && <div>
             <Wordmark height={32} />
             <p>
               Uma casa independente.
               <br />
               Um compromisso com a realidade.
             </p>
-          </div>
+          </div>}
           <div className="g2-footer-links">
             {FAMILIES.map((f) => (
               <Link to={familyPath(f)} key={f}>
@@ -222,12 +231,13 @@ export function NivarShell({
             <Link to="/br/terminal">Terminal Brasil</Link>
             <Link to="/conta">Minha conta</Link>
           </div>
-          <span className="g2-footer-motto">
+          {!compactFooter && <span className="g2-footer-motto">
             Nullius
             <br />
             <em>in verba.</em>
-          </span>
+          </span>}
         </div>
+        </>}
         <div className="g2-footer-bottom">
           <span>BRASIL · {new Date().getFullYear()}</span>
           <span>O método antes do resultado.</span>

@@ -11,7 +11,7 @@ import {
 import { ALEXANDRIA_TRILHAS } from "../../lib/data/alexandria-trilhas";
 import { ALEXANDRIA_BLOCKS } from "../../lib/data/alexandria-blocks";
 import { DESTINOS_BR } from "../../lib/data/br-destinos";
-import { TerminalPreview } from "../terminal-brasil/TerminalBrasil";
+import { AriadneJourney } from "../../components/g2/AriadneJourney";
 import { NotFound } from "../NotFound";
 import "./g2-pages.css";
 import "./g21-families.css";
@@ -643,35 +643,18 @@ function Software() {
       title="Software · Instrumentos para atravessar a complexidade"
     >
       <FamilyHeader id="software" name="Software" verb="ARIADNE / ORGANIZAR" />
-      <section className="g2-software-hero g2-container">
-        <div className="g21-software-heading">
-        <div>
-        <span className="g2-eyebrow">INSTRUMENTOS DE LEITURA E OPERAÇÃO</span>
-        <h1>
-          Complexidade não precisa{" "}
-          <br />
-          significar <em>perder o fio.</em>
-        </h1>
-        </div>
-        <div className="g21-software-seal">
-          <FamilyEmblem family="software" size={280} variant="hero" />
-        </div>
-        </div>
-        <div className="g2-software-intro">
+      <section className="g22-software-opening g2-container">
+        <div className="g22-software-heading">
+          <div>
+            <span className="g2-eyebrow">INSTRUMENTOS DE LEITURA E OPERAÇÃO</span>
+            <h1>Complexidade não precisa{" "}<br />significar <em>perder o fio.</em></h1>
+          </div>
           <p className="g2-lead">
             Uma região leva a uma série. Uma mudança leva a uma pergunta. Uma
             leitura leva à fonte. Software que torna o percurso legível.
           </p>
-          <Link className="g2-primary" to="/br/terminal">
-            Explorar o Terminal Brasil
-            <ArrowUpRight size={18} />
-          </Link>
         </div>
-        <div className="g21-terminal-stage"><TerminalPreview /></div>
-        <Provenance>
-          Demonstração funcional · séries sintéticas identificadas · conexão de
-          dados brasileiros em desenvolvimento
-        </Provenance>
+        <AriadneJourney />
       </section>
       <section className="g2-section g2-container">
         <SectionLabel number="01">O instrumento e o raciocínio</SectionLabel>

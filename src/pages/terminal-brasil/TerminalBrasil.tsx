@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowDownToLine,
   ArrowLeft,
@@ -42,12 +42,21 @@ import {
   SOURCE_RECORDS,
 } from "./sample";
 import type { MetricId, Observation, PeriodId, RegionId } from "./sample";
+import { useTerminalMotion } from "./terminal-motion";
 import "../../components/g2/g2.css";
 import "../../components/g2/g21-fonts.css";
 import "./terminal-brasil.css";
 
 interface TerminalBrasilProps {
   compact?: boolean;
+  initialRegion?: RegionId;
+  initialProbeIndex?: number;
+  initialPeriod?: PeriodId;
+  initialMetric?: MetricId;
+  initialSourceMode?: "sample" | "unavailable";
+  initialTone?: "graphite" | "paper";
+  initialEventIndex?: number;
+  onEntryUrlChange?: (url: string) => void;
 }
 
 const periodNames: Record<PeriodId, string> = {
@@ -150,7 +159,17 @@ function RegionalTrace({ series, selectedIndex }: { series: Observation[]; selec
   );
 }
 
-function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
+function TerminalBrasil({
+  compact = false,
+  initialRegion = "sudesteCentroOeste",
+  initialProbeIndex,
+  initialPeriod = "24h",
+  initialMetric = "price",
+  initialSourceMode = "sample",
+  initialTone = "graphite",
+  initialEventIndex = 1,
+  onEntryUrlChange,
+}: TerminalBrasilProps) {
   useEffect(() => {
     if (compact) return;
     const previousTitle = document.title;
@@ -159,21 +178,27 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
       document.title = previousTitle;
     };
   }, [compact]);
-  const [region, setRegion] = useState<RegionId>("sudesteCentroOeste");
-  const [period, setPeriod] = useState<PeriodId>("24h");
-  const [metric, setMetric] = useState<MetricId>("price");
+  const [region, setRegion] = useState<RegionId>(initialRegion);
+  const [period, setPeriod] = useState<PeriodId>(initialPeriod);
+  const [metric, setMetric] = useState<MetricId>(initialMetric);
   const [sourceMode, setSourceMode] = useState<"sample" | "unavailable">(
-    "sample",
+    initialSourceMode,
   );
-  const [tone, setTone] = useState<"graphite" | "paper">("graphite");
-  const [eventIndex, setEventIndex] = useState(1);
-  const [probeIndex, setProbeIndex] = useState<number | null>(null);
+  const [tone, setTone] = useState<"graphite" | "paper">(initialTone);
+  const [eventIndex, setEventIndex] = useState(initialEventIndex);
+  const [probeIndex, setProbeIndex] = useState<number | null>(() =>
+    initialProbeIndex !== undefined && Number.isInteger(initialProbeIndex) && initialProbeIndex >= 0
+      ? initialProbeIndex
+      : null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
   const [sourceSearch, setSourceSearch] = useState("");
   const [announcement, setAnnouncement] = useState("");
   const WorkspaceElement = compact ? "div" : "main";
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const terminalRef = useTerminalMotion(reducedMotion);
+  const [selectionRevision, setSelectionRevision] = useState(0);
+  const [selectionKind, setSelectionKind] = useState("initial");
   const id = useId().replace(/:/g, "");
   const isSample = sourceMode === "sample";
   const regionInfo = REGIONS.find((r) => r.id === region)!;
@@ -191,6 +216,16 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
   );
   const selectedPoint = eventPoints[eventIndex];
   const inspectedPoint = series[Math.min(probeIndex ?? selectedPoint.index, series.length - 1)];
+  // The public handoff is derived from the current instrument, including its
+  // absence state. A note stays a note; a manually inspected point stays a point.
+  const entryParams = new URLSearchParams({
+    region, period, metric, source: sourceMode, tone, note: String(eventIndex),
+  });
+  if (probeIndex !== null) entryParams.set("observation", String(inspectedPoint.index));
+  const entryUrl = `/br/terminal?${entryParams.toString()}`;
+  useEffect(() => {
+    onEntryUrlChange?.(entryUrl);
+  }, [entryUrl, onEntryUrlChange]);
   const selectedMarket = SUBMERCADOS.find((market) => market.id === region)!;
   const question = questions[metric][eventIndex];
   const normalizedSearch = sourceSearch
@@ -228,6 +263,44 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
   function selectEvent(index: number) {
     setEventIndex(index);
     setProbeIndex(null);
+    propagate("observation");
+  }
+
+  function propagate(kind: string) {
+    setSelectionKind(kind);
+    setSelectionRevision((revision) => revision + 1);
+  }
+
+  function selectRegion(next: RegionId) {
+    if (next === region) return;
+    setRegion(next);
+    propagate("region");
+  }
+
+  function selectPeriod(next: PeriodId) {
+    if (next === period) return;
+    // A daily observation retains its timestamp when its window changes.
+    // Hourly and daily fixtures are distinct frequencies, not aggregates.
+    if (probeIndex !== null && period !== "24h" && next !== "24h") {
+      const nextSeries = getSeries(region, next, metric);
+      const match = nextSeries.findIndex((point) => point.timestamp === inspectedPoint.timestamp);
+      setProbeIndex(match >= 0 ? match : null);
+    } else {
+      setProbeIndex(null);
+    }
+    setPeriod(next);
+    propagate("period");
+  }
+
+  function selectMetric(next: MetricId) {
+    if (next === metric) return;
+    setMetric(next);
+    propagate("metric");
+  }
+
+  function inspectPoint(index: number) {
+    setProbeIndex(index);
+    propagate("observation");
   }
 
   function openSources() {
@@ -256,10 +329,15 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
 
   return (
     <section
+      ref={terminalRef}
       className={`g2-terminal${compact ? " g2-terminal--compact" : ""}`}
       data-tone={tone}
       data-source={sourceMode}
       data-map-open={mapOpen}
+      data-period={period}
+      data-metric={metric}
+      data-selection={selectionKind}
+      data-selection-revision={selectionRevision}
       aria-label="Terminal Brasil — ambiente demonstrativo"
     >
       <header className="g2t-header">
@@ -370,7 +448,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
               <button
                 type="button"
                 key={item}
-                onClick={() => setPeriod(item)}
+                onClick={() => selectPeriod(item)}
                 aria-pressed={period === item}
               >
                 {item}
@@ -436,11 +514,11 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                     role="button"
                     aria-label={`Selecionar ${submarket.nome}`}
                     aria-pressed={region === submarket.id}
-                    onClick={() => setRegion(submarket.id)}
+                    onClick={() => selectRegion(submarket.id)}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        setRegion(submarket.id);
+                        selectRegion(submarket.id);
                       }
                     }}
                   >
@@ -467,7 +545,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   </g>
                 ))}
               </svg>
-              <div className="g2t-spatial-tag" key={region}>
+              <div className="g2t-spatial-tag">
                 <Crosshair size={12} />
                 <span>{regionInfo.code}<small>REGIÃO SELECIONADA</small></span>
               </div>
@@ -499,7 +577,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setRegion(item.id)}
+                    onClick={() => selectRegion(item.id)}
                     aria-pressed={region === item.id}
                   >
                     <span className="g2t-region-code">{item.code}</span>
@@ -534,7 +612,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                 <select
                   value={region}
                   onChange={(event) =>
-                    setRegion(event.target.value as RegionId)
+                    selectRegion(event.target.value as RegionId)
                   }
                 >
                   {REGIONS.map((item) => (
@@ -557,7 +635,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   key={item}
                   type="button"
                   aria-pressed={metric === item}
-                  onClick={() => setMetric(item)}
+                  onClick={() => selectMetric(item)}
                 >
                   {METRICS[item].label}
                 </button>
@@ -571,7 +649,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                   <button
                     type="button"
                     key={item}
-                    onClick={() => setPeriod(item)}
+                    onClick={() => selectPeriod(item)}
                     aria-pressed={period === item}
                   >
                     {item}
@@ -621,7 +699,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                       onClick={(state) => {
                         if (state.activeTooltipIndex == null) return;
                         const index = Number(state.activeTooltipIndex);
-                        if (Number.isInteger(index) && index >= 0 && index < series.length) setProbeIndex(index);
+                        if (Number.isInteger(index) && index >= 0 && index < series.length) inspectPoint(index);
                       }}
                     >
                       <defs>
@@ -716,15 +794,14 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                         strokeWidth={2}
                         fill={`url(#${id}-fill)`}
                         dot={false}
+                        connectNulls={false}
                         activeDot={{
                           r: 4,
                           fill: "var(--g2t-accent)",
                           stroke: "var(--g2t-bg)",
                           strokeWidth: 2,
                         }}
-                        isAnimationActive={!reducedMotion}
-                        animationDuration={560}
-                        animationEasing="ease-out"
+                        isAnimationActive={false}
                       />
                       <ReferenceDot
                         x={inspectedPoint.index}
@@ -748,7 +825,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                     data-placement={inspectedPoint.value > (summary.min + summary.max) / 2 ? "below" : "above"}
                     style={{ left: `clamp(111px, ${18 + (inspectedPoint.index / (series.length - 1)) * 74}%, calc(100% - 111px))` }}
                   >
-                    <div className="g2t-context-plane" key={`${region}-${period}-${metric}-${eventIndex}`}>
+                    <div className="g2t-context-plane">
                       <div className="g2t-context-heading">
                         <span><Crosshair size={12} /> OBSERVAÇÃO</span>
                         <button type="button" onClick={openSources} aria-label="Rastrear esta observação nas fontes">Fonte <ArrowUpRight size={12} /></button>
@@ -773,7 +850,7 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                     step={1}
                     value={inspectedPoint.index}
                     aria-valuetext={`${inspectedPoint.label}: ${formatValue(inspectedPoint.value, metric)} ${metricInfo.unit}. Amostra sintética.`}
-                    onChange={(event) => setProbeIndex(Number(event.target.value))}
+                    onChange={(event) => inspectPoint(Number(event.target.value))}
                   />
                   <div className="g2t-timeline-events" role="group" aria-label="Notas na linha do tempo">
                     {eventPoints.map((point, index) => (
@@ -877,7 +954,13 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
                     : "API brasileira não conectada. Nenhum dado substituto é tratado como observação."}
                 </p>
               </div>
-              <div className="g2t-reading-annotation g2t-reading-annotation--question" key={`${metric}-${eventIndex}`}>
+              {isSample && <button type="button" className="g2t-observation-trace" onClick={openSources} aria-label="Examinar a proveniência da observação selecionada">
+                <span><Crosshair size={13} /> OBSERVAÇÃO SELECIONADA <ArrowUpRight size={12} /></span>
+                <strong>{regionInfo.code} <i /> {inspectedPoint.label}</strong>
+                <span className="g2t-trace-value">{formatValue(inspectedPoint.value, metric)} <small>{metricInfo.unit}</small></span>
+                <small>Base sintética · fonte e método</small>
+              </button>}
+              <div className="g2t-reading-annotation g2t-reading-annotation--question">
                 <span>02 / CONTRADITÓRIO</span>
                 <p>
                   {isSample
@@ -1067,6 +1150,12 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
           <p className="g2t-dialog-intro">
             Origem, cálculo e limites desta tela — no mesmo lugar.
           </p>
+          <div className="g2t-source-context" aria-label="Contexto preservado da seleção">
+            <span><Crosshair size={14} /> {isSample ? "OBSERVAÇÃO EM EXAME" : "FONTE INDISPONÍVEL"}</span>
+            <strong>{regionInfo.name} <i /> {metricInfo.label}</strong>
+            <div><b>{isSample ? formatValue(inspectedPoint.value, metric) : "—"} <small>{metricInfo.unit}</small></b><span>{isSample ? inspectedPoint.timestamp : "sem observação"}</span></div>
+            <small>{isSample ? SAMPLE_VERSION : "Nenhum valor de mercado conectado"}</small>
+          </div>
           <label className="g2t-source-search">
             <Search size={16} />
             <span className="g2t-visually-hidden">Buscar fonte ou método</span>
@@ -1116,7 +1205,26 @@ function TerminalBrasil({ compact = false }: TerminalBrasilProps) {
   );
 }
 
-export function TerminalPreview() {
-  return <TerminalBrasil compact />;
+export function TerminalPreview({ initialRegion, initialProbeIndex, onEntryUrlChange }: Pick<TerminalBrasilProps, "initialRegion" | "initialProbeIndex" | "onEntryUrlChange"> = {}) {
+  return <TerminalBrasil compact initialRegion={initialRegion} initialProbeIndex={initialProbeIndex} onEntryUrlChange={onEntryUrlChange} />;
 }
-export default TerminalBrasil;
+/** Public entry accepts only known presentation context. The observation bound
+ * comes from the selected fixture window. No query can supply a datum or API. */
+export default function TerminalPage() {
+  const [params] = useSearchParams();
+  const initialRegion = REGIONS.find(item => item.id === params.get("region"))?.id ?? "sudesteCentroOeste";
+  const initialPeriod = (["24h", "7d", "30d"] as const).find(item => item === params.get("period")) ?? "24h";
+  const initialMetric = (["price", "load", "storage"] as const).find(item => item === params.get("metric")) ?? "price";
+  const initialSourceMode = params.get("source") === "unavailable" ? "unavailable" : "sample";
+  const initialTone = params.get("tone") === "paper" ? "paper" : "graphite";
+  const boundedIndex = (name: string, length: number) => {
+    const value = params.get(name);
+    if (value === null || !/^\d+$/.test(value)) return undefined;
+    const index = Number(value);
+    return Number.isInteger(index) && index < length ? index : undefined;
+  };
+  const initialProbeIndex = boundedIndex("observation", getSeries(initialRegion, initialPeriod, initialMetric).length);
+  const initialEventIndex = boundedIndex("note", 3) ?? 1;
+  const contextKey = [initialRegion, initialPeriod, initialMetric, initialSourceMode, initialTone, initialEventIndex, initialProbeIndex ?? "note"].join("/");
+  return <TerminalBrasil key={contextKey} initialRegion={initialRegion} initialPeriod={initialPeriod} initialMetric={initialMetric} initialSourceMode={initialSourceMode} initialTone={initialTone} initialEventIndex={initialEventIndex} initialProbeIndex={initialProbeIndex} />;
+}
